@@ -27,13 +27,23 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+        Geometry
+      , Draw
   other-modules:
       Paths_generative_art
   hs-source-dirs:
       src
   build-depends:
-      base >=4.7 && <5
+        base >=4.7 && <5
+      , cairo
+      , colour
+      , hsnoise
+      , linear
+      , MonadRandom
+      , mtl
+      , time
+      , transformers
+      , random
   default-language: Haskell2010
 
 executable generative-art-exe
@@ -54,6 +64,7 @@ executable generative-art-exe
     , mtl
     , time
     , transformers
+    , random
 
   default-language: Haskell2010
 
@@ -68,4 +79,13 @@ test-suite generative-art-test
   build-depends:
       base >=4.7 && <5
     , generative-art
+    , cairo
+    , colour
+    , hsnoise
+    , linear
+    , MonadRandom
+    , mtl
+    , time
+    , transformers
+    , random
   default-language: Haskell2010

@@ -3,13 +3,15 @@ module Main where
 
 
 import Graphics.Rendering.Cairo
+import System.Random
 import Data.Foldable
-import           Data.Time.Clock.POSIX
-import           Data.Colour.RGBSpace
-import           Data.Colour.RGBSpace.HSV
+import Control.Monad
+import Data.Time.Clock.POSIX
+import Data.Colour.RGBSpace
+import Data.Colour.RGBSpace.HSV
 import Data.Semigroup
 
-import Lib
+import Geometry
 
 
 
@@ -35,12 +37,16 @@ hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
 sketch :: Render ()
 sketch = do
     background
-    for_ (move (Vec2 30 30) haskellLogo) (\closedPath -> do
-        hsva 230 0.7 0.5 1
-        renderPolygon closedPath
-        setLineWidth 3
-        stroke)
-    scanlines
+    logoStroke
+    randomPoints
+    -- scanlines
+
+logoStroke :: Render ()
+logoStroke = for_ (move (Vec2 30 30) haskellLogo) (\closedPath -> do
+    hsva 230 0.7 0.5 1
+    renderPolygon closedPath
+    setLineWidth 2
+    stroke)
 
 background :: Render ()
 background = do
@@ -48,20 +54,38 @@ background = do
     hsva 275 0.7 0.5 0.1
     fill
 
-angledLineDraw x y angle len = do
+randomPoints :: Render ()
+randomPoints = replicateM_ 10000 $ do
+    let range = (Vec2 0 0, Vec2 (fromIntegral picWidth - 1) (fromIntegral picHeight - 1))
+    p@(Vec2 x y) <- liftIO (randomRIO range)
+    let inLogo = any (\poly -> pointInPolygon p poly) (move (Vec2 30 30) haskellLogo)
+
+    newPath
+    arc x y 5 0 (2*pi)
+    if inLogo
+        then do hsva 0 0.7 0.5 0.1
+                fill
+        else pure ()
+
+
+
+
+angledLineDraw :: Vec2 -> Double -> Double -> Render ()
+angledLineDraw start angle len = do
+    let Vec2 x y = start
     moveTo x y
     lineTo (x + len * cos angle) (y + len * sin angle)
 
 scanlines = do
-    let diagonalLine x y = do
+    let diagonalLine start = do
             newPath
-            angledLineDraw x y (pi / 4) 1000
+            angledLineDraw start (pi/4) 1000
             closePath
     for_ (move (Vec2 30 30) haskellLogo) (\polygon -> do
         renderPolygon polygon
         clip
         for_ [-1000,-995..1000] (\x -> do
-            diagonalLine x 0
+            diagonalLine (Vec2 x 0)
             setLineWidth 1
             stroke )
         resetClip )
