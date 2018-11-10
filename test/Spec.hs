@@ -21,33 +21,74 @@ main = do
     testIntersectionLL
     testMirror
     testReflection
+    testBillard
 
-testReflection :: IO ()
-testReflection = renderAllFormats 510 210 "test/out/reflection" (do
-    let rayOrigin = Vec2 180 150
-    hsva 40 1 0.7 1
-    setLineWidth 1
-    circleSketch rayOrigin (Distance 5)
+testBillard :: IO ()
+testBillard = renderAllFormats 320 240 "test/out/billard" (do
+    let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
+        startPoint = Vec2 100 100
+        startVec = angledLine startPoint (deg 50) (Distance 100)
+        billard = startPoint : take 10 (billardProcess table startVec)
+
+    setLineWidth 2
+    hsva 0 0 0 0.5
+    polygonSketch table
     stroke
 
-    let mirror = angledLine (Vec2 10 10) (deg 10) (Distance 500)
+    setLineWidth 1
+    hsva 0 1 1 1
+    for_ billard (\point -> do
+        circleSketch point (Distance 5)
+        stroke
+        )
+    hsva 30 1 1 1
+    let billardArrows = zipWith Line billard (tail billard)
+    for_ billardArrows (\arr -> do
+        arrowSketch arr
+        stroke )
 
-    newPath
-    setLineWidth 3
+    )
+
+testReflection :: IO ()
+testReflection = renderAllFormats 520 300 "test/out/reflection" (do
+
+    let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
+
+    setLineWidth 2
     hsva 0 0 0 0.5
     lineSketch mirror
     stroke
 
-    setLineWidth 1
-    for_ (zip [-135,-120.. -10] [0,6..]) (\(angleDeg, colorDeg) -> do
-        let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
-            (Line _ reflectedRayEnd, iPoint, _, _) = reflection rayRaw mirror
-            ray = Line rayOrigin iPoint
-            ray' = Line iPoint reflectedRayEnd
-        hsva colorDeg 1 0.7 0.7
-        lineSketch ray
-        lineSketch ray'
-        stroke )
+    do
+        let rayOrigin = Vec2 180 250
+        setLineWidth 1
+        hsva 0 1 0.7 1
+        circleSketch rayOrigin (Distance 5)
+        stroke
+        for_ (zip [-135,-120.. -10] [0,6..]) (\(angleDeg, colorDeg) -> do
+            let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
+                (Line _ reflectedRayEnd, iPoint, _, _) = reflection rayRaw mirror
+                ray = Line rayOrigin iPoint
+                ray' = Line iPoint reflectedRayEnd
+            hsva colorDeg 1 0.7 0.7
+            lineSketch ray
+            lineSketch ray'
+            stroke )
+    do
+        let rayOrigin = Vec2 350 30
+        setLineWidth 1
+        hsva 180 1 0.7 1
+        circleSketch rayOrigin (Distance 5)
+        stroke
+        for_ (zip [-135,-120.. -10] [180,180+6..]) (\(angleDeg, colorDeg) -> do
+            let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
+                (Line _ reflectedRayEnd, iPoint, _, _) = reflection rayRaw mirror
+                ray = Line rayOrigin iPoint
+                ray' = Line iPoint reflectedRayEnd
+            hsva colorDeg 1 0.7 0.7
+            lineSketch ray
+            lineSketch ray'
+            stroke )
 
     )
 
@@ -70,8 +111,7 @@ testMirror = renderAllFormats 250 200 "test/out/mirror" (do
   where
 
     testMirror mirror ps = do
-        newPath
-        setLineWidth 3
+        setLineWidth 2
         hsva 0 0 0 1
         lineSketch mirror
         stroke
@@ -99,8 +139,7 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
     testVirtualL
     testVirtualR
     testReal1
-    testReal2
-    )
+    testReal2 )
   where
     testVirtual1
       = testDraw (angledLine (Vec2 50 190) (Angle ( pi/6)) (Distance 100))
@@ -126,8 +165,6 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
 
     testDraw line1 line2 = do
         let (point, angle, ty) = intersectionLL line1 line2
-
-        newPath
 
         setLineWidth 1
         hsva 0 1 0.7 1
@@ -174,7 +211,6 @@ renderPng picWidth picHeight filename drawing = do
     surfaceWriteToPNG surface filename
   where
     background picWidth picHeight = do
-        newPath
         rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
         hsva 0 0 0 1
         setLineWidth 1

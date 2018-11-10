@@ -13,6 +13,8 @@ import System.Random
 
 import Geometry
 
+
+
 lineSketch :: Line -> Render ()
 lineSketch (Line (Vec2 x1 y1) (Vec2 x2 y2)) = moveTo x1 y1 >> lineTo x2 y2
 
@@ -30,3 +32,11 @@ crossSketch center (Distance r) = do
 arcSketch :: Vec2 -> Distance -> Angle -> Angle -> Render ()
 arcSketch (Vec2 x y) (Distance r) (Angle angleStart) (Angle angleEnd)
   = arc x y r angleStart angleEnd
+
+polygonSketch :: Polygon -> Render ()
+polygonSketch (Polygon []) = pure ()
+polygonSketch (Polygon (Vec2 x y : vecs)) = do
+    newPath
+    moveTo x y
+    for_ vecs (\(Vec2 x' y') -> lineTo x' y')
+    closePath

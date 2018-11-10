@@ -2,6 +2,8 @@ module Geometry where
 
 
 
+import Data.Fixed
+import Data.Foldable
 import Data.Maybe
 import System.Random
 
@@ -209,7 +211,10 @@ perpendicularBisector line@(Line start end) = rotateAround middle (Angle (pi/2))
     middle = mulVec2 0.5 (end `addVec2` end)
 
 deg :: Double -> Angle
-deg degrees = Angle (degrees / 360 * 2 * pi)
+deg degrees = rad (degrees / 360 * 2 * pi)
+
+rad :: Double -> Angle
+rad r = Angle (r `mod'` (2*pi))
 
 -- | Line perpendicular to a given line through a point. The result starts
 -- at that point and has unit length.
@@ -227,3 +232,30 @@ reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
     (iPoint, iAngle, iType) = intersectionLL ray mirror
     mirrorAxis = perpendicularLineThrough iPoint mirror
     ray' = mirrorAlong mirrorAxis ray
+
+-- | Shoot a billard ball inside a polygon along an initial line. Returns an
+-- infinite list of collision points.
+billardProcess :: Polygon -> Line -> [Vec2]
+billardProcess poly = go
+  where
+    edges = polygonEdges poly
+    go ballVec@(Line ballStart _)
+      = let reflectionsAhead = flip mapMaybe edges (\line ->
+                let (ray, point, _, _) = reflection ballVec line
+                in if point `liesAhead` ballVec
+                    then Just (ray, point)
+                    else Nothing
+                )
+            (nearestReflectionRay, nearestReflectionPoint)
+              = flip minimumBy reflectionsAhead (\(_, x) (_, y) ->
+                    let Distance xDistance = lineLength (Line ballStart x)
+                        Distance yDistance = lineLength (Line ballStart y)
+                    in compare xDistance yDistance
+                    )
+        in nearestReflectionPoint : go nearestReflectionRay
+
+    liesAhead :: Vec2 -> Line -> Bool
+    liesAhead p ray@(Line rayStart _)
+      = let ray2 = Line rayStart p
+            Angle angle = angleBetween ray ray2
+        in cos angle > 0
