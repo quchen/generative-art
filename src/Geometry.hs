@@ -26,7 +26,6 @@ instance Random Vec2 where
             (y, gen'') = random gen'
         in (Vec2 x y, gen'')
 
-
 class Move geo where
     move :: Vec2 -> geo -> geo
 
@@ -77,6 +76,20 @@ instance Rotate Polygon where
 instance Rotate Circle where
     rotateAround pivot angle (Circle center r) = Circle (rotateAround pivot angle center) r
 
+class Mirror geo where
+    mirrorAlong :: Line -> geo -> geo
+
+instance Mirror Vec2 where
+    mirrorAlong mirror@(Line start _) p = p'
+      where
+        virtual = Line start p
+        Angle angle = angleBetween mirror virtual
+        Line _ p' = rotateAround start (Angle (-2*angle)) virtual
+
+instance Mirror Line where
+    mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
+                                               (mirrorAlong mirror end)
+
 addVec2 :: Vec2 -> Vec2 -> Vec2
 addVec2 (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
 
@@ -86,53 +99,76 @@ negateVec2 (Vec2 x y) = Vec2 (-x) (-y)
 subtractVec2 :: Vec2 -> Vec2 -> Vec2
 subtractVec2 v1 v2 = addVec2 v1 (negateVec2 v2)
 
+mulVec2 :: Double -> Vec2 -> Vec2
+mulVec2 a (Vec2 x y) = Vec2 (a*x) (a*y)
+
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 norm :: Vec2 -> Distance
 norm v = Distance (sqrt (dotProduct v v))
 
-angleL :: Line -> Angle
-angleL (Line (Vec2 x1 y1) (Vec2 x2 y2)) = Angle (atan2 (y2-y1) (x2-x1))
+angleOfLine :: Line -> Angle
+angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = Angle (atan2 (y2-y1) (x2-x1))
+
+angleBetween :: Line -> Line -> Angle
+angleBetween line1 line2
+  = let Angle a1 = angleOfLine line1
+        Angle a2 = angleOfLine line2
+    in Angle (a2 - a1)
 
 angledLine :: Vec2 -> Angle -> Distance -> Line
 angledLine start@(Vec2 x y) (Angle angle) (Distance len) = Line start end
   where
     end = Vec2 (x + len * cos angle) (y + len * sin angle)
 
+lineLength :: Line -> Distance
+lineLength (Line start end) = norm (end `subtractVec2` start)
+
+resizeLine :: Line -> (Distance -> Distance) -> Line
+resizeLine line@(Line start end) f
+  = angledLine start (angleOfLine line) (f (lineLength line))
+
+-- | Switch defining points of a line
+lineReverse :: Line -> Line
+lineReverse (Line start end) = Line end start
+
 data LLIntersection
-    = Intersection
-    | VirtualIntersectionL
-    | VirtualIntersectionR
-    | VirtualIntersection
+    = IntersectionReal
+    | IntersectionVirtualInsideL
+    | IntersectionVirtualInsideR
+    | IntersectionVirtual
     deriving (Eq, Ord, Show)
 
+-- | Calculate the intersection of two lines.
+--
+-- Returns the point and angle of the intersection, and whether it is inside
+-- both, one, or none of the provided finite line segments.
 intersectionLL :: Line -> Line -> (Vec2, Angle, LLIntersection)
-intersectionLL line1 line2 = (iPoint, iAngle, iType)
+intersectionLL lineL lineR = (intersectionPoint, intersectionAngle, intersectionType)
   where
-    iType = case (virtualL, virtualR) of
-        (True,  True)  -> VirtualIntersection
-        (True,  False) -> VirtualIntersectionL
-        (False, True)  -> VirtualIntersectionR
-        (False, False) -> Intersection
+    intersectionType = case (intersectionInsideL, intersectionInsideR) of
+        (True,  True)  -> IntersectionReal
+        (True,  False) -> IntersectionVirtualInsideL
+        (False, True)  -> IntersectionVirtualInsideR
+        (False, False) -> IntersectionVirtual
 
-    Line (Vec2 x1 y1) (Vec2 x2 y2) = line1
-    Line (Vec2 a1 b1) (Vec2 a2 b2) = line2
+    Line (Vec2 x1 y1) (Vec2 x2 y2) = lineL
+    Line (Vec2 a1 b1) (Vec2 a2 b2) = lineR
 
-    iPoint = Vec2 (x1 + t * (x2-x1)) (y1 + t * (y2-y1))
+    intersectionPoint = Vec2 (x1 + t * (x2-x1)) (y1 + t * (y2-y1))
+
     t =   ((x1-a1) * (b1-b2) - (y1-b1) * (a1-a2))
         / ---------------------------------------
           ((x1-x2) * (b1-b2) - (y1-y2) * (a1-a2))
-    virtualL = t < 0 || t > 1
+    intersectionInsideL = t >= 0 && t <= 1
 
     u = - ((x1-x2) * (y1-b1) - (y1-y2) * (x1-a1))
         / ---------------------------------------
           ((x1-x2) * (b1-b2) - (y1-y2) * (a1-a2))
-    virtualR = u < 0 || u > 1
+    intersectionInsideR = u >= 0 && u <= 1
 
-    iAngle = let Angle a1 = angleL line1
-                 Angle a2 = angleL line2
-             in Angle (a2 - a1)
+    intersectionAngle = angleBetween lineL lineR
 
 intersectionLC :: Line -> Circle -> Maybe (Vec2, Vec2)
 intersectionLC (Line (Vec2 x1 y1) (Vec2 x2 y2)) (Circle _ r) = undefined
@@ -162,7 +198,32 @@ pointInPolygon p poly = odd (length intersections)
 
     intersections = flip filter edges (\edge ->
         case intersectionLL testRay edge of
-            (_, _, Intersection) -> True
+            (_, _, IntersectionReal) -> True
             _other -> False)
 
     edges = polygonEdges poly
+
+perpendicularBisector :: Line -> Line
+perpendicularBisector line@(Line start end) = rotateAround middle (Angle (pi/2)) line
+  where
+    middle = mulVec2 0.5 (end `addVec2` end)
+
+deg :: Double -> Angle
+deg degrees = Angle (degrees / 360 * 2 * pi)
+
+-- | Line perpendicular to a given line through a point. The result starts
+-- at that point and has unit length.
+perpendicularLineThrough :: Vec2 -> Line -> Line
+perpendicularLineThrough p line = angledLine p angle' (Distance 1)
+  where
+    Angle a = angleOfLine line
+    angle' = Angle (a + pi/2)
+
+-- | Optical reflection of a ray on a mirror. Note that the outgoing line has
+-- reversed direction like light rays would.
+reflection :: Line -> Line -> (Line, Vec2, Angle, LLIntersection)
+reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
+  where
+    (iPoint, iAngle, iType) = intersectionLL ray mirror
+    mirrorAxis = perpendicularLineThrough iPoint mirror
+    ray' = mirrorAlong mirrorAxis ray
