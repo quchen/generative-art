@@ -21,32 +21,67 @@ main = do
     testIntersectionLL
     testMirror
     testReflection
-    testBillard
+    testReflection2
+    -- testBillard
 
 testBillard :: IO ()
 testBillard = renderAllFormats 320 240 "test/out/billard" (do
     let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
-        startPoint = Vec2 100 100
-        startVec = angledLine startPoint (deg 50) (Distance 100)
-        billard = startPoint : take 10 (billardProcess table startVec)
+
+    billard table (Vec2 100 100) (deg $ -40)
+
+    )
+  where
+    billard table startPoint startAngle = do
+        let startVec = angledLine startPoint startAngle (Distance 100)
+            billard = startPoint : take 16 (billardProcess table startVec)
+
+        setLineWidth 2
+        hsva 0 0 0 0.5
+        polygonSketch table
+        stroke
+
+        setLineWidth 1
+        hsva 0 1 1 1
+        liftIO (traverse print billard)
+        for_ billard (\point -> do
+            circleSketch point (Distance 3)
+            fill )
+        hsva 180 1 0.7 1
+        let billardArrows = zipWith Line billard (tail billard)
+        for_ billardArrows (\arr -> do
+            arrowSketch arr
+            stroke )
+
+testReflection2 :: IO ()
+testReflection2 = renderAllFormats 520 300 "test/out/reflection2" (do
+    let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
     setLineWidth 2
     hsva 0 0 0 0.5
-    polygonSketch table
+    lineSketch mirror
     stroke
 
-    setLineWidth 1
-    hsva 0 1 1 1
-    for_ billard (\point -> do
-        circleSketch point (Distance 5)
-        stroke
-        )
-    hsva 30 1 1 1
-    let billardArrows = zipWith Line billard (tail billard)
-    for_ billardArrows (\arr -> do
-        arrowSketch arr
-        stroke )
+    let originalOpts = setLineWidth 1 >> hsva 120 1 0.7 1
+        mirroredOpts = setLineWidth 1 >> hsva 0   1 0.7 1
 
+    let mirrorLineTest line = do
+            let mirrored = mirrorAlong mirror line
+            originalOpts >> arrowSketch line >> stroke
+            mirroredOpts >> arrowSketch mirrored >> stroke
+    mirrorLineTest (angledLine (Vec2 50 10) (deg (20)) (Distance 100))
+    mirrorLineTest (angledLine (Vec2 150 10) (deg 90) (Distance 100))
+    mirrorLineTest (angledLine (Vec2 160 10) (deg 90) (Distance 150))
+    mirrorLineTest (angledLine (Vec2 300 10) (deg 120) (Distance 180))
+    mirrorLineTest (angledLine (Vec2 250 160) (deg 0) (Distance 200))
+    mirrorLineTest (angledLine (Vec2 120 110) (deg 180) (Distance 100))
+
+    let mirrorPolygonTest poly = do
+            let mirrored = mirrorAlong mirror poly
+            originalOpts >> polygonSketch poly >> stroke
+            mirroredOpts >> polygonSketch mirrored >> stroke
+    mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
+    mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])
     )
 
 testReflection :: IO ()

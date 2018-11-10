@@ -92,6 +92,9 @@ instance Mirror Line where
     mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
                                                (mirrorAlong mirror end)
 
+instance Mirror Polygon where
+    mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
+
 addVec2 :: Vec2 -> Vec2 -> Vec2
 addVec2 (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
 
@@ -240,19 +243,25 @@ billardProcess poly = go
   where
     edges = polygonEdges poly
     go ballVec@(Line ballStart _)
-      = let reflectionsAhead = flip mapMaybe edges (\line ->
-                let (ray, point, _, _) = reflection ballVec line
-                in if point `liesAhead` ballVec
-                    then Just (ray, point)
+      = let reflectionsAhead = flip mapMaybe edges (\polygonEdge ->
+                let (reflectionRay, reflectionPoint, _, ty) = reflection ballVec polygonEdge
+                    reflectedPointLiesAhead = reflectionPoint `liesAhead` ballVec
+                    intersectionIsInsideEdge = case ty of
+                        IntersectionReal -> True
+                        IntersectionVirtualInsideR -> True
+                        _other -> False
+                in if reflectedPointLiesAhead && intersectionIsInsideEdge
+                    then Just (reflectionRay, reflectionPoint)
                     else Nothing
                 )
-            (nearestReflectionRay, nearestReflectionPoint)
-              = flip minimumBy reflectionsAhead (\(_, x) (_, y) ->
-                    let Distance xDistance = lineLength (Line ballStart x)
-                        Distance yDistance = lineLength (Line ballStart y)
-                    in compare xDistance yDistance
+            (Line _ reflectionRayEnd, nearestReflectionPoint)
+              = flip minimumBy reflectionsAhead (\(_, p) (_, q) ->
+                    let Distance pDistance = lineLength (Line ballStart p)
+                        Distance qDistance = lineLength (Line ballStart q)
+                    in compare pDistance qDistance
                     )
-        in nearestReflectionPoint : go nearestReflectionRay
+            reflectionRay = Line nearestReflectionPoint reflectionRayEnd
+        in nearestReflectionPoint : go reflectionRay
 
     liesAhead :: Vec2 -> Line -> Bool
     liesAhead p ray@(Line rayStart _)
