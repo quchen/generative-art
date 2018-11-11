@@ -9,5 +9,5 @@ them yourself. :-)
 
 ![](test/out/intersection.svg)
 ![](test/out/mirror.svg)
+![](test/out/mirror2.svg)
 ![](test/out/reflection.svg)
-![](test/out/reflection2.svg)

@@ -36,7 +36,6 @@ arcSketch (Vec2 x y) (Distance r) (Angle angleStart) (Angle angleEnd)
 polygonSketch :: Polygon -> Render ()
 polygonSketch (Polygon []) = pure ()
 polygonSketch (Polygon (Vec2 x y : vecs)) = do
-    newPath
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')
     closePath

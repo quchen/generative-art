@@ -54,7 +54,7 @@ testBillard = renderAllFormats 320 240 "test/out/billard" (do
             stroke )
 
 testReflection2 :: IO ()
-testReflection2 = renderAllFormats 520 300 "test/out/reflection2" (do
+testReflection2 = renderAllFormats 520 300 "test/out/mirror2" (do
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
     setLineWidth 2
@@ -62,13 +62,11 @@ testReflection2 = renderAllFormats 520 300 "test/out/reflection2" (do
     lineSketch mirror
     stroke
 
-    let originalOpts = setLineWidth 1 >> hsva 120 1 0.7 1
-        mirroredOpts = setLineWidth 1 >> hsva 0   1 0.7 1
-
+    setLineWidth 1
     let mirrorLineTest line = do
             let mirrored = mirrorAlong mirror line
-            originalOpts >> arrowSketch line >> stroke
-            mirroredOpts >> arrowSketch mirrored >> stroke
+            hsva 120 1 0.7 1 >> arrowSketch line >> stroke
+            hsva 0 1 0.7 1 >> arrowSketch mirrored >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg (20)) (Distance 100))
     mirrorLineTest (angledLine (Vec2 150 10) (deg 90) (Distance 100))
     mirrorLineTest (angledLine (Vec2 160 10) (deg 90) (Distance 150))
@@ -78,8 +76,8 @@ testReflection2 = renderAllFormats 520 300 "test/out/reflection2" (do
 
     let mirrorPolygonTest poly = do
             let mirrored = mirrorAlong mirror poly
-            originalOpts >> polygonSketch poly >> stroke
-            mirroredOpts >> polygonSketch mirrored >> stroke
+            hsva 120 1 0.7 1 >> polygonSketch poly >> strokePreserve >> hsva 120 1 0.7 0.1 >> fill
+            hsva 0 1 0.7 1 >> polygonSketch mirrored >> strokePreserve >> hsva 0 1 0.7 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
     mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])
     )
