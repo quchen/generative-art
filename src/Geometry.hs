@@ -16,6 +16,7 @@ data Circle = Circle Vec2 !Double deriving (Eq, Ord, Show)
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 newtype Angle = Angle Double deriving (Eq, Ord, Show)
 newtype Distance = Distance Double deriving (Eq, Ord, Show)
+newtype Area = Area Double deriving (Eq, Ord, Show)
 
 class Move geo where
     move :: Vec2 -> geo -> geo
@@ -169,7 +170,7 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionAngle, intersection
     intersectionAngle = angleBetween lineL lineR
 
 polygonEdges :: Polygon -> [Line]
-polygonEdges (Polygon ps) = zipWith Line ps (drop 1 (cycle ps))
+polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
 -- Ray-casting algorithm.
 pointInPolygon :: Vec2 -> Polygon -> Bool
@@ -200,6 +201,30 @@ polygonCircumference poly = foldl'
     (\(Distance acc) edge -> let Distance d = lineLength edge in Distance (acc + d))
     (Distance 0)
     (polygonEdges poly)
+
+-- UNTESTED
+--
+-- http://mathworld.wolfram.com/PolygonArea.html
+polygonArea :: Polygon -> Area
+polygonArea (Polygon ps)
+  = let determinants = zipWih (\(Vec2 x1 y1) (Vec2 x2 y2) -> x1*y2 - x2*y1) ps (tail (cycle ps))
+    in Area (ans (sum determinants / 2))
+
+-- UNTESTED
+isConvex :: Polygon -> Bool
+isConvex (Polygon ps)
+  = let innerAnglesSines = zipWith3
+            (\p q r -> sin (angleBetween (Line p q) (Line q r)))
+            ps
+            (tail (cycle ps))
+            (tail (tail (cycle ps)))
+    in all (>= 0) innerAnglesSines || all (<= 0) innerAnglesSines
+
+-- | Cut a polygon in multiple pieces with a line.
+cutPolygon :: Polygon -> Line -> [Polygon]
+cutPolygon = error "TODO! See https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/"
+    -- This could be useful to shatter polygons into multiple pieces for a nice
+    -- effect.
 
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line _start end) = rotateAround middle (Angle (pi/2)) line
