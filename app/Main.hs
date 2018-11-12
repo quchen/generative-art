@@ -43,28 +43,30 @@ drawing = do
         billardLambda = BillardSpec{ steps = 400, table = lambda, startPos = Vec2 230 175, startAngle = deg 40 }
         billardUpper  = BillardSpec{ steps = 120, table = upper,  startPos = Vec2 400 120, startAngle = deg 20 }
         billardLower  = BillardSpec{ steps = 120, table = lower,  startPos = Vec2 450 220, startAngle = deg 40 }
-        billardSketch spec = do
+        billardSketch :: BillardSpec -> (Double -> Render ()) -> Render ()
+        billardSketch spec setColor = do
             let points = runBillardSpec spec
                 billardLines = zipWith Line points (tail points)
-            for_ billardLines (\line -> lineSketch line >> stroke)
+            for_ billardLines (\line ->
+                let alpha :: Double
+                    alpha = case lineLength line of
+                        Distance d -> min 1 (max 0.4 (d/300))
+                in setColor alpha >> lineSketch line >> stroke)
 
     translate 10 10
 
     setLineWidth 1
     let alpha = 1
-    hsva 257 0.40 0.38 alpha
-    billardSketch billardLeft >> stroke
+    billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke
     hsva 257 0.40 0.38 1
     polygonSketch left >> stroke
 
-    hsva 256 0.40 0.50 alpha
-    billardSketch billardLambda
+    billardSketch billardLambda (hsva 256 0.40 0.50)
     hsva 256 0.40 0.50 1
     polygonSketch lambda >> stroke
 
-    hsva 304 0.45 0.56 alpha
-    billardSketch billardUpper
-    billardSketch billardLower
+    billardSketch billardUpper (hsva 304 0.45 0.56)
+    billardSketch billardLower (hsva 304 0.45 0.56)
     hsva 304 0.45 0.56 1
     polygonSketch upper >> stroke
     polygonSketch lower >> stroke
