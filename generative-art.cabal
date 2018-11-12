@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 52c7aca438e55ee84c7afcf457a8c72f5a77f261ec60d8b27c0ab9a953c1f083
+-- hash: 7916b78abfecf7dd529334ed60f452e4fc81cfec6e676d545ff1596330d56701
 
 name:           generative-art
 version:        0.1.0.0
@@ -36,9 +36,10 @@ library
   build-depends:
       base >=4.7 && <5
     , cairo
+    , colour
   default-language: Haskell2010
 
-executable generative-art-exe
+executable haskell-logo-billard
   main-is: Main.hs
   other-modules:
       Paths_generative_art

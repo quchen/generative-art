@@ -239,6 +239,10 @@ billardProcess poly = go (const True)
   where
     edges = polygonEdges poly
 
+    -- The predicate is used to exclude the line just mirrored off of, otherwise
+    -- we get rays stuck in a single line due to numerical shenanigans. Note
+    -- that this is a valid use case for equality of Double (contained in
+    -- Line/Vec2). :-)
     go :: (Line -> Bool) -> Line -> [Vec2]
     go considerEdge ballVec@(Line ballStart _)
       = let reflectionRays :: [(Line, Line)]

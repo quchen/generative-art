@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="250pt" height="200pt" viewBox="0 0 250 200" version="1.1">
-<g id="surface45">
+<g id="surface5">
 <path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 100 L 110 100 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(70%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 43.535156 13.535156 L 36.464844 6.464844 M 36.464844 13.535156 L 43.535156 6.464844 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,70%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 45 190 C 45 196.667969 35 196.667969 35 190 C 35 183.332031 45 183.332031 45 190 "/>

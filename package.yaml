@@ -21,6 +21,7 @@ description: Generative art using Haskell.
 dependencies:
     - base >= 4.7 && < 5
     - cairo
+    - colour
 
 ghc-options:
     - -Wall
@@ -29,7 +30,7 @@ library:
     source-dirs: src
 
 executables:
-    generative-art-exe:
+    haskell-logo-billard:
         main:        Main.hs
         source-dirs: app
         ghc-options:
@@ -40,7 +41,6 @@ executables:
         dependencies:
             - generative-art
             - cairo
-            - colour
 
 tests:
     generative-art-test:
@@ -54,6 +54,5 @@ tests:
         dependencies:
             - generative-art
             - cairo
-            - colour
             - tasty
             - tasty-hunit

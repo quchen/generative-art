@@ -4,8 +4,6 @@ module Visual.Common (arrowSketch, renderAllFormats, hsva) where
 
 
 
-import Data.Colour.RGBSpace
-import Data.Colour.RGBSpace.HSV
 import Graphics.Rendering.Cairo
 
 import Draw
@@ -48,7 +46,3 @@ renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
     renderPng w h (filename ++ ".png") drawing
     renderSvg w h (filename ++ ".svg") drawing
-
-hsva :: Double -> Double -> Double -> Double -> Render ()
-hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
-    where RGB{..} = hsv h s v

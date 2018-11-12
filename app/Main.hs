@@ -1,11 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Main where
+module Main (main) where
 
 
 
-import Data.Colour.RGBSpace
-import Data.Colour.RGBSpace.HSV
 import Data.Foldable
 import Graphics.Rendering.Cairo
 
@@ -27,34 +25,47 @@ main = png >> svg
         surfaceWriteToPNG surface "out/haskell_logo_billard.png"
     svg = withSVGSurface "out/haskell_logo_billard.svg" picWidth picHeight (\surface -> renderWith surface drawing)
 
-hsva :: Double -> Double -> Double -> Double -> Render ()
-hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
-    where RGB{..} = hsv h s v
+data BillardSpec = BillardSpec
+    { steps :: Int
+    , table :: Polygon
+    , startPos :: Vec2
+    , startAngle :: Angle
+    }
+
+runBillardSpec :: BillardSpec -> [Vec2]
+runBillardSpec BillardSpec{..} =
+    take steps (drop 1 (billardProcess table (angledLine startPos startAngle (Distance 10))))
 
 drawing :: Render ()
 drawing = do
     let [left, lambda, upper, lower] = haskellLogo
-        billardLeft   = take 256 (drop 1 (billardProcess left   (angledLine (Vec2 10 10) (deg 40) (Distance 10))))
-        billardLambda = take 400 (drop 1 (billardProcess lambda (angledLine (Vec2 230 175) (deg 40) (Distance 10))))
-        billardUpper  = take 120 (drop 1 (billardProcess upper  (angledLine (Vec2 400 120) (deg 20) (Distance 10))))
-        billardLower  = take 120 (drop 1 (billardProcess lower  (angledLine (Vec2 450 220) (deg 40) (Distance 10))))
-        drawBillard points = do
-            let billardLines = zipWith Line points (tail points)
-            setLineWidth 1
-            for_ billardLines (\line -> do
-                lineSketch line
-                stroke )
+        billardLeft   = BillardSpec{ steps = 256, table = left,   startPos = Vec2 10  10,  startAngle = deg 40 }
+        billardLambda = BillardSpec{ steps = 400, table = lambda, startPos = Vec2 230 175, startAngle = deg 40 }
+        billardUpper  = BillardSpec{ steps = 120, table = upper,  startPos = Vec2 400 120, startAngle = deg 20 }
+        billardLower  = BillardSpec{ steps = 120, table = lower,  startPos = Vec2 450 220, startAngle = deg 40 }
+        billardSketch spec = do
+            let points = runBillardSpec spec
+                billardLines = zipWith Line points (tail points)
+            for_ billardLines (\line -> lineSketch line >> stroke)
 
     translate 10 10
+
+    setLineWidth 1
+    let alpha = 1
+    hsva 257 0.40 0.38 alpha
+    billardSketch billardLeft >> stroke
     hsva 257 0.40 0.38 1
-    drawBillard billardLeft
     polygonSketch left >> stroke
+
+    hsva 256 0.40 0.50 alpha
+    billardSketch billardLambda
     hsva 256 0.40 0.50 1
-    drawBillard billardLambda
     polygonSketch lambda >> stroke
+
+    hsva 304 0.45 0.56 alpha
+    billardSketch billardUpper
+    billardSketch billardLower
     hsva 304 0.45 0.56 1
-    drawBillard billardUpper
-    drawBillard billardLower
     polygonSketch upper >> stroke
     polygonSketch lower >> stroke
 

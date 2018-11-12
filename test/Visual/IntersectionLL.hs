@@ -4,6 +4,8 @@ import Graphics.Rendering.Cairo hiding (x,y)
 
 
 
+import Text.Printf
+
 import Draw
 import Geometry
 
@@ -52,11 +54,12 @@ testDraw line1 line2 = do
     hsva 0 1 0.7 1
     arrowSketch line1
     stroke
-    hsva 60 1 0.7 1
+
+    hsva 200 1 0.7 1
     arrowSketch line2
     stroke
 
-    hsva 120 1 0.7 1
+    hsva 180 1 0.7 1
     circleSketch point (Distance 3)
     fill
 
@@ -70,7 +73,5 @@ testDraw line1 line2 = do
        moveTo x y
        setFontSize fontSize
        let Angle alpha = angle
-           angleDeg = round (alpha / (2 * pi) * 360) :: Int
-       showText (show ty ++ ", " ++ show angleDeg ++ "°")
-
-    closePath
+           angleDeg = printf "%2f" (alpha / (2 * pi) * 360)
+       showText (show ty ++ ", " ++ angleDeg ++ "°")
