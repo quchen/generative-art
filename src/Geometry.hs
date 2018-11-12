@@ -207,14 +207,15 @@ polygonCircumference poly = foldl'
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Area
 polygonArea (Polygon ps)
-  = let determinants = zipWih (\(Vec2 x1 y1) (Vec2 x2 y2) -> x1*y2 - x2*y1) ps (tail (cycle ps))
-    in Area (ans (sum determinants / 2))
+  = let determinants = zipWith (\(Vec2 x1 y1) (Vec2 x2 y2) -> x1*y2 - x2*y1) ps (tail (cycle ps))
+    in Area (abs (sum determinants / 2))
 
 -- UNTESTED
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
-  = let innerAnglesSines = zipWith3
-            (\p q r -> sin (angleBetween (Line p q) (Line q r)))
+  = let rawAngle (Angle a) = a
+        innerAnglesSines = zipWith3
+            (\p q r -> sin (rawAngle (angleBetween (Line p q) (Line q r))))
             ps
             (tail (cycle ps))
             (tail (tail (cycle ps)))
@@ -227,9 +228,9 @@ cutPolygon = error "TODO! See https://geidav.wordpress.com/2015/03/21/splitting-
     -- effect.
 
 perpendicularBisector :: Line -> Line
-perpendicularBisector line@(Line _start end) = rotateAround middle (Angle (pi/2)) line
+perpendicularBisector line@(Line start end) = rotateAround middle (Angle (pi/2)) line
   where
-    middle = mulVec2 0.5 (end `addVec2` end)
+    middle = mulVec2 0.5 (start `addVec2` end)
 
 deg :: Double -> Angle
 deg degrees = rad (degrees / 360 * 2 * pi)
