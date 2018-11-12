@@ -8,9 +8,9 @@ import Graphics.Rendering.Cairo
 import Draw
 import Geometry
 
-import Visual.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import Visual.Common
 
 
 

@@ -1,6 +1,6 @@
 module Visual.IntersectionLL (tests) where
 
-import Graphics.Rendering.Cairo hiding (x,y)
+import Graphics.Rendering.Cairo hiding (x, y)
 
 
 
@@ -9,9 +9,9 @@ import Text.Printf
 import Draw
 import Geometry
 
-import Visual.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import Visual.Common
 
 
 

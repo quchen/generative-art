@@ -4,10 +4,10 @@ module Draw where
 
 
 
-import Data.Foldable
-import Graphics.Rendering.Cairo hiding (x,y)
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
+import Data.Foldable
+import Graphics.Rendering.Cairo hiding (x, y)
 
 import Geometry
 
