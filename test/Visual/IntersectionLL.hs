@@ -68,10 +68,11 @@ testDraw line1 line2 = do
     stroke
 
     do let fontSize = 10
-       let Vec2 x y = point `addVec2` Vec2 15 15
+           Vec2 x y = point `addVec2` Vec2 15 15
+           Angle alpha = angle
+           angleDeg = printf "%2f" (alpha / (2 * pi) * 360)
+
        hsva 0 0 0 1
        moveTo x y
        setFontSize fontSize
-       let Angle alpha = angle
-           angleDeg = printf "%2f" (alpha / (2 * pi) * 360)
        showText (show ty ++ ", " ++ angleDeg ++ "°")
