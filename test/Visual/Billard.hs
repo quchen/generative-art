@@ -21,7 +21,7 @@ testBillard :: IO ()
 testBillard = renderAllFormats 320 240 "test/out/billard" (do
     let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
 
-    billard table (Vec2 100 100) (deg $ -40)
+    billard table (Vec2 100 100) (deg $ -20)
 
     )
   where

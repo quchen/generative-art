@@ -2,9 +2,9 @@ module Geometry where
 
 
 
+import Control.Monad
 import Data.Fixed
 import Data.Foldable
-import Data.Maybe
 
 
 
@@ -121,6 +121,10 @@ resizeLine :: Line -> (Distance -> Distance) -> Line
 resizeLine line@(Line start _end) f
   = angledLine start (angleOfLine line) (f (lineLength line))
 
+-- | Move the end point of the line so that it has length 1.
+normalizeLine :: Line -> Line
+normalizeLine line = resizeLine line (const (Distance 1))
+
 -- | Switch defining points of a line
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
@@ -220,28 +224,35 @@ billardProcess :: Polygon -> Line -> [Vec2]
 billardProcess poly = go
   where
     edges = polygonEdges poly
-    go ballVec@(Line ballStart _)
-      = let reflectionsAhead = flip mapMaybe edges (\polygonEdge ->
-                let (reflectionRay, reflectionPoint, _, ty) = reflection ballVec polygonEdge
-                    reflectedPointLiesAhead = reflectionPoint `liesAhead` ballVec
-                    intersectionIsInsideEdge = case ty of
-                        IntersectionReal           -> True
-                        IntersectionVirtualInsideR -> True
-                        _other                     -> False
-                in if reflectedPointLiesAhead && intersectionIsInsideEdge
-                    then Just (reflectionRay, reflectionPoint)
-                    else Nothing
-                )
-            (Line _ reflectionRayEnd, nearestReflectionPoint)
-              = flip minimumBy reflectionsAhead (\(_, p) (_, q) ->
-                    let Distance pDistance = lineLength (Line ballStart p)
-                        Distance qDistance = lineLength (Line ballStart q)
-                    in compare pDistance qDistance
-                    )
-        in nearestReflectionPoint : go (Line nearestReflectionPoint reflectionRayEnd)
 
-    liesAhead :: Vec2 -> Line -> Bool
-    liesAhead p ray@(Line rayStart _)
+    go :: Line -> [Vec2]
+    go ballVec@(Line ballStart _)
+      = let reflectionRays :: [Line]
+            reflectionRays = do
+                edge <- edges
+                let (Line _ reflectionEnd, incidentPoint, _angle, ty) = reflection ballVec edge
+                guard (case ty of
+                    IntersectionReal           -> True
+                    IntersectionVirtualInsideR -> True
+                    IntersectionVirtualInsideL -> False
+                    IntersectionVirtual        -> False )
+                guard (incidentPoint `liesAheadOf` ballVec)
+                pure (normalizeLine (Line incidentPoint reflectionEnd))
+
+            reflectionRay@(Line reflectionStart _) = closestLineStart ballStart reflectionRays
+        in reflectionStart : go reflectionRay
+
+    liesAheadOf :: Vec2 -> Line -> Bool
+    liesAheadOf p ray@(Line rayStart _)
       = let ray2 = Line rayStart p
             Angle angle = angleBetween ray ray2
         in cos angle > 0
+
+    closestLineStart :: Vec2 -> [Line] -> Line
+    closestLineStart start = minimumBy (startsCloserTo start)
+
+    startsCloserTo :: Vec2 -> Line -> Line -> Ordering
+    startsCloserTo start (Line p _) (Line q _) =
+        let Distance pDistance = lineLength (Line start p)
+            Distance qDistance = lineLength (Line start q)
+        in compare pDistance qDistance
