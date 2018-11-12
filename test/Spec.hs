@@ -168,33 +168,29 @@ testIntersectionLL :: IO ()
 testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
     testVirtual1
     testVirtual2
-    testVirtual3
-    testVirtualL
+    testVirtualInL
     testVirtualR
     testReal1
     testReal2 )
   where
-    testVirtual1
-      = testDraw (angledLine (Vec2 50 190) (Angle ( pi/6)) (Distance 100))
-                 (angledLine (Vec2 50 300) (Angle (-pi/6)) (Distance 100))
-    testVirtual2
-      = testDraw (angledLine (Vec2 50 430) (Angle (-pi/6)) (Distance 100))
-                 (angledLine (Vec2 50 320) (Angle ( pi/6)) (Distance 100))
-    testVirtual3
-      = testDraw (angledLine (Vec2 250 (430-50)) (Angle (-5*pi/6)) (Distance 100))
-                 (angledLine (Vec2 250 (320-50)) (Angle ( 5*pi/6)) (Distance 100))
-    testVirtualL
-      = testDraw (angledLine (Vec2 300 180) (Angle      0) (Distance 100))
-                 (angledLine (Vec2 350 200) (Angle (pi/2)) (Distance 100))
-    testVirtualR
-      = testDraw (angledLine (Vec2 420 250) (Angle      0) (Distance 100))
-                 (angledLine (Vec2 400 220) (Angle (pi/2)) (Distance 100))
-    testReal1
-      = testDraw (Line (Vec2 10  10) (Vec2 220 190))
-                 (Line (Vec2 270 50) (Vec2  30 160))
-    testReal2
-      = testDraw (move (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
-                 (move (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
+    testVirtual1 = testDraw
+        (angledLine (Vec2 50 190) (Angle ( pi/6)) (Distance 100))
+        (angledLine (Vec2 50 300) (Angle (-pi/6)) (Distance 100))
+    testVirtual2 = testDraw
+        (move (Vec2 30 380) (moveRad (Angle (-pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle (-pi/6)) (Distance 100))))
+        (move (Vec2 30 380) (moveRad (Angle ( pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle ( pi/6)) (Distance 100))))
+    testVirtualInL = testDraw
+        (angledLine (Vec2 300 180) (Angle      0) (Distance 100))
+        (angledLine (Vec2 350 200) (Angle (pi/2)) (Distance  50))
+    testVirtualR = testDraw
+        (angledLine (Vec2 370 330) (Angle      0) (Distance  50))
+        (angledLine (Vec2 350 280) (Angle (pi/2)) (Distance 100))
+    testReal1 = testDraw
+        (Line (Vec2 10  10) (Vec2 220 190))
+        (Line (Vec2 270 50) (Vec2  30 160))
+    testReal2 = testDraw
+        (move (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
+        (move (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
 
     testDraw line1 line2 = do
         let (point, angle, ty) = intersectionLL line1 line2
