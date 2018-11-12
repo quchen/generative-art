@@ -2,14 +2,8 @@ module Draw where
 
 
 
-import Control.Monad
-import Data.Colour.RGBSpace
-import Data.Colour.RGBSpace.HSV
 import Data.Foldable
-import Data.Semigroup
-import Data.Time.Clock.POSIX
-import Graphics.Rendering.Cairo
-import System.Random
+import Graphics.Rendering.Cairo hiding (x,y)
 
 import Geometry
 

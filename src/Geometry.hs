@@ -131,7 +131,7 @@ lineLength :: Line -> Distance
 lineLength (Line start end) = norm (end `subtractVec2` start)
 
 resizeLine :: Line -> (Distance -> Distance) -> Line
-resizeLine line@(Line start end) f
+resizeLine line@(Line start _end) f
   = angledLine start (angleOfLine line) (f (lineLength line))
 
 -- | Switch defining points of a line
@@ -175,18 +175,6 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionAngle, intersection
 
     intersectionAngle = angleBetween lineL lineR
 
-intersectionLC :: Line -> Circle -> Maybe (Vec2, Vec2)
-intersectionLC (Line (Vec2 x1 y1) (Vec2 x2 y2)) (Circle _ r) = undefined
-  where
-    -- Taken from MathWorld,
-    -- http://mathworld.wolfram.com/Circle-LineIntersection.html
-    dx = x2 - x1
-    dy = y2 - y1
-    dr = sqrt (dx^2 + dy^2)
-    dd = x1*y2 - x2*y1
-    sgnStar x = if x < 0 then -1 else 1
-    delta = r^2 * dr^2 - dd^2
-
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (drop 1 (cycle ps))
 
@@ -209,7 +197,7 @@ pointInPolygon p poly = odd (length intersections)
     edges = polygonEdges poly
 
 perpendicularBisector :: Line -> Line
-perpendicularBisector line@(Line start end) = rotateAround middle (Angle (pi/2)) line
+perpendicularBisector line@(Line _start end) = rotateAround middle (Angle (pi/2)) line
   where
     middle = mulVec2 0.5 (end `addVec2` end)
 
@@ -238,6 +226,9 @@ reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
 
 -- | Shoot a billard ball inside a polygon along an initial line. Returns an
 -- infinite list of collision points.
+--
+-- TODO: generalize to arbitrary geometries, not just polygons, to allow
+-- polygon-in-polygon scenarios
 billardProcess :: Polygon -> Line -> [Vec2]
 billardProcess poly = go
   where
@@ -247,9 +238,9 @@ billardProcess poly = go
                 let (reflectionRay, reflectionPoint, _, ty) = reflection ballVec polygonEdge
                     reflectedPointLiesAhead = reflectionPoint `liesAhead` ballVec
                     intersectionIsInsideEdge = case ty of
-                        IntersectionReal -> True
+                        IntersectionReal           -> True
                         IntersectionVirtualInsideR -> True
-                        _other -> False
+                        _other                     -> False
                 in if reflectedPointLiesAhead && intersectionIsInsideEdge
                     then Just (reflectionRay, reflectionPoint)
                     else Nothing
@@ -260,8 +251,7 @@ billardProcess poly = go
                         Distance qDistance = lineLength (Line ballStart q)
                     in compare pDistance qDistance
                     )
-            reflectionRay = Line nearestReflectionPoint reflectionRayEnd
-        in nearestReflectionPoint : go reflectionRay
+        in nearestReflectionPoint : go (Line nearestReflectionPoint reflectionRayEnd)
 
     liesAhead :: Vec2 -> Line -> Bool
     liesAhead p ray@(Line rayStart _)

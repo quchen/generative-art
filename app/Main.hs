@@ -1,16 +1,13 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Main where
 
 
 
-import Control.Monad
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
 import Data.Foldable
-import Data.Maybe
-import Data.Semigroup
-import Data.Time.Clock.POSIX
 import Graphics.Rendering.Cairo
-import System.Random
 
 import Draw
 import Geometry
@@ -26,12 +23,12 @@ main = do
     surface <- createImageSurface FormatARGB32 picWidth picHeight
     putStrLn "Rendering"
     renderWith surface sketch
-    -- surfaceWriteToPNG surface ("out/" <> show seed <> ".png")
     putStrLn "Writing output file"
     surfaceWriteToPNG surface "out/latest.png"
 
+hsva :: Double -> Double -> Double -> Double -> Render ()
 hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
-    where RGB{channelRed = channelRed, channelGreen = channelGreen, channelBlue = channelBlue} = hsv h s v
+    where RGB{..} = hsv h s v
 
 sketch :: Render ()
 sketch = do
@@ -43,13 +40,13 @@ sketch = do
 
 
     let start = Vec2 390 300
-        rectangle = Polygon [Vec2 200 200, Vec2 500 200, Vec2 500 380, Vec2 200 380]
-        points = take 10 $ error "FIXME in Main.hs" $ billardProcess rectangle (angledLine start (deg 45) (Distance 10))
+        billardTable = Polygon [Vec2 200 200, Vec2 500 200, Vec2 500 380, Vec2 200 380]
+        points = take 10 $ error "FIXME in Main.hs" $ billardProcess billardTable (angledLine start (deg 45) (Distance 10))
     hsva 130 0.7 0.5 1
     setLineWidth 1
     polygonSketch (Polygon points)
     stroke
-    polygonSketch rectangle
+    polygonSketch billardTable
     stroke
     circleSketch start (Distance 5)
     stroke
@@ -61,6 +58,7 @@ logoStroke = for_ movedLogo (\polygon -> do
     setLineWidth 2
     stroke)
 
+movedLogo :: [Polygon]
 movedLogo = move (Vec2 30 30) haskellLogo
 
 haskellLogo :: [Polygon]

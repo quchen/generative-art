@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 14530af1b27759b020d90e66d4b6fcbf01d52042ce71de4f47dc3fde8a14633a
+-- hash: 92ed766534df7f7d3f842904a96f51de089324ca2bebfba23f64e9d8ac640a56
 
 name:           generative-art
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
       Paths_generative_art
   hs-source-dirs:
       src
+  ghc-options: -Wall
   build-depends:
       MonadRandom
     , base >=4.7 && <5
@@ -52,7 +53,7 @@ executable generative-art-exe
       Paths_generative_art
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
       MonadRandom
     , base >=4.7 && <5
@@ -71,10 +72,15 @@ test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Visual.Billard
+      Visual.Common
+      Visual.IntersectionLL
+      Visual.Mirror
+      Visual.Reflection
       Paths_generative_art
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
       MonadRandom
     , base >=4.7 && <5
@@ -85,6 +91,8 @@ test-suite generative-art-test
     , linear
     , mtl
     , random
+    , tasty
+    , tasty-hunit
     , time
     , transformers
   default-language: Haskell2010
