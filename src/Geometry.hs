@@ -221,13 +221,13 @@ reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
 -- TODO: generalize to arbitrary geometries, not just polygons, to allow
 -- polygon-in-polygon scenarios
 billardProcess :: Polygon -> Line -> [Vec2]
-billardProcess poly = go
+billardProcess poly = go (const True)
   where
     edges = polygonEdges poly
 
-    go :: Line -> [Vec2]
-    go ballVec@(Line ballStart _)
-      = let reflectionRays :: [Line]
+    go :: (Line -> Bool) -> Line -> [Vec2]
+    go considerEdge ballVec@(Line ballStart _)
+      = let reflectionRays :: [(Line, Line)]
             reflectionRays = do
                 edge <- edges
                 let (Line _ reflectionEnd, incidentPoint, _angle, ty) = reflection ballVec edge
@@ -237,22 +237,18 @@ billardProcess poly = go
                     IntersectionVirtualInsideL -> False
                     IntersectionVirtual        -> False )
                 guard (incidentPoint `liesAheadOf` ballVec)
-                pure (normalizeLine (Line incidentPoint reflectionEnd))
+                guard (considerEdge edge)
+                pure (edge, normalizeLine (Line incidentPoint reflectionEnd))
 
-            reflectionRay@(Line reflectionStart _) = closestLineStart ballStart reflectionRays
-        in reflectionStart : go reflectionRay
+            (edgeReflectedOn, reflectionRay@(Line reflectionStart _)) = flip minimumBy reflectionRays
+                (\(_, Line p _) (_, Line q _) ->
+                    let Distance pDistance = lineLength (Line ballStart p)
+                        Distance qDistance = lineLength (Line ballStart q)
+                    in compare pDistance qDistance )
+        in reflectionStart : go (/= edgeReflectedOn) reflectionRay
 
     liesAheadOf :: Vec2 -> Line -> Bool
     liesAheadOf p ray@(Line rayStart _)
       = let ray2 = Line rayStart p
             Angle angle = angleBetween ray ray2
         in cos angle > 0
-
-    closestLineStart :: Vec2 -> [Line] -> Line
-    closestLineStart start = minimumBy (startsCloserTo start)
-
-    startsCloserTo :: Vec2 -> Line -> Line -> Ordering
-    startsCloserTo start (Line p _) (Line q _) =
-        let Distance pDistance = lineLength (Line start p)
-            Distance qDistance = lineLength (Line start q)
-        in compare pDistance qDistance
