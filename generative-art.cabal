@@ -4,26 +4,25 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 92ed766534df7f7d3f842904a96f51de089324ca2bebfba23f64e9d8ac640a56
+-- hash: 52c7aca438e55ee84c7afcf457a8c72f5a77f261ec60d8b27c0ab9a953c1f083
 
 name:           generative-art
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/generative-art#readme>
-homepage:       https://github.com/githubuser/generative-art#readme
-bug-reports:    https://github.com/githubuser/generative-art/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2018 Author name here
+description:    Generative art using Haskell.
+homepage:       https://github.com/quchen/generative-art#readme
+bug-reports:    https://github.com/quchen/generative-art/issues
+author:         David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+maintainer:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+copyright:      2018 David Luposchainsky
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
-    ChangeLog.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/generative-art
+  location: https://github.com/quchen/generative-art
 
 library
   exposed-modules:
@@ -35,16 +34,8 @@ library
       src
   ghc-options: -Wall
   build-depends:
-      MonadRandom
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , cairo
-    , colour
-    , hsnoise
-    , linear
-    , mtl
-    , random
-    , time
-    , transformers
   default-language: Haskell2010
 
 executable generative-art-exe
@@ -55,17 +46,10 @@ executable generative-art-exe
       app
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
-      MonadRandom
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , cairo
     , colour
     , generative-art
-    , hsnoise
-    , linear
-    , mtl
-    , random
-    , time
-    , transformers
   default-language: Haskell2010
 
 test-suite generative-art-test
@@ -82,17 +66,10 @@ test-suite generative-art-test
       test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
-      MonadRandom
-    , base >=4.7 && <5
+      base >=4.7 && <5
     , cairo
     , colour
     , generative-art
-    , hsnoise
-    , linear
-    , mtl
-    , random
     , tasty
     , tasty-hunit
-    , time
-    , transformers
   default-language: Haskell2010

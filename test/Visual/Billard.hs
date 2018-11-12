@@ -1,5 +1,7 @@
 module Visual.Billard (tests) where
 
+
+
 import Data.Foldable
 import Graphics.Rendering.Cairo
 

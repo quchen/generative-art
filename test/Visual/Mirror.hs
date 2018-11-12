@@ -1,5 +1,7 @@
 module Visual.Mirror (tests) where
 
+
+
 import Data.Foldable
 import Graphics.Rendering.Cairo
 
@@ -9,7 +11,6 @@ import Geometry
 import Visual.Common
 import Test.Tasty
 import Test.Tasty.HUnit
-
 
 
 

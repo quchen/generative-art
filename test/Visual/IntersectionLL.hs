@@ -2,6 +2,8 @@ module Visual.IntersectionLL (tests) where
 
 import Graphics.Rendering.Cairo hiding (x,y)
 
+
+
 import Draw
 import Geometry
 

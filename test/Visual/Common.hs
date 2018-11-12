@@ -2,6 +2,8 @@
 
 module Visual.Common (arrowSketch, renderAllFormats, hsva) where
 
+
+
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
 import Graphics.Rendering.Cairo

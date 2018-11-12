@@ -5,7 +5,6 @@ module Geometry where
 import Data.Fixed
 import Data.Foldable
 import Data.Maybe
-import System.Random
 
 
 
@@ -15,18 +14,6 @@ data Circle = Circle Vec2 !Double deriving (Eq, Ord, Show)
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 newtype Angle = Angle Double deriving (Eq, Ord, Show)
 newtype Distance = Distance Double deriving (Eq, Ord, Show)
-
-instance Random Vec2 where
-    randomR (lo, hi) gen
-      = let Vec2 loX loY = lo
-            (x, gen')  = randomR (loX, hiX) gen
-            Vec2 hiX hiY = hi
-            (y, gen'') = randomR (loY, hiY) gen'
-        in (Vec2 x y, gen'')
-    random gen
-      = let (x, gen')  = random gen
-            (y, gen'') = random gen'
-        in (Vec2 x y, gen'')
 
 class Move geo where
     move :: Vec2 -> geo -> geo
