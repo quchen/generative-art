@@ -1,10 +1,12 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Geometry where
 
 
 
 import Control.Monad
 import Data.Fixed
-import Data.Foldable
+import Data.List
 
 
 
@@ -186,6 +188,18 @@ pointInPolygon p poly = odd (length intersections)
             _other -> False)
 
     edges = polygonEdges poly
+
+-- | Average of polygon vertices
+polygonAverage :: Polygon -> Vec2
+polygonAverage (Polygon corners)
+  = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, addVec2 vec corner)) (0, Vec2 0 0) corners
+    in mulVec2 (1/num) total
+
+polygonCircumference :: Polygon -> Distance
+polygonCircumference poly = foldl'
+    (\(Distance acc) edge -> let Distance d = lineLength edge in Distance (acc + d))
+    (Distance 0)
+    (polygonEdges poly)
 
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line _start end) = rotateAround middle (Angle (pi/2)) line
