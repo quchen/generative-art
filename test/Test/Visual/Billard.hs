@@ -19,6 +19,7 @@ tests = testGroup "Billard process"
     [ testCase "Rectangular table" testRectangularTable
     , testCase "Rectangular table with hole" testHoleInTable
     , testCase "Lambda table" testLambdaTable
+    , testCase "Broken table" testBrokenTable
     ]
 
 testRectangularTable :: IO ()
@@ -67,6 +68,7 @@ billard table startPoint startAngle numReflections = do
     for_ billardArrows (\arr -> do
         lineSketch arr
         stroke )
+
 testBrokenTable :: IO ()
 testBrokenTable = renderAllFormats 160 120 "test/out/billard_broken_table" (do
     let tableVertices = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]

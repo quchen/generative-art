@@ -16,6 +16,8 @@ them yourself. :-)
 
 ![](test/out/billard_lambda.svg)
 
+![](test/out/billard_broken_table.svg)
+
 ![](test/out/intersection.svg)
 
 ![](test/out/mirror.svg)
