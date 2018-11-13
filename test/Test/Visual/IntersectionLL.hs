@@ -63,7 +63,7 @@ testDraw line1 line2 = do
     circleSketch point (Distance 3)
     fill
 
-    arcSketch point (Distance 10) (angleOfLine line1) (angleOfLine line2)
+    angleSketch point (angleOfLine line1) (angleOfLine line2)
     stroke
 
     do let fontSize = 10
