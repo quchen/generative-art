@@ -56,3 +56,5 @@ tests:
             - cairo
             - tasty
             - tasty-hunit
+            - tasty-quickcheck
+            - QuickCheck

@@ -1,4 +1,4 @@
-module Visual.Mirror (tests) where
+module Test.Visual.Mirror (tests) where
 
 
 
@@ -10,18 +10,30 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Visual.Common
+import Test.Visual.Common
 
 
 
 tests :: TestTree
-tests = testGroup "Mirror along an axis"
-    [ testCase "Mirroring points" mirrorPointsTest
-    , testCase "Mirroring more complex shapes" mirrorComplexTest
-    ]
+tests = testCase "Mirror along an axis" mirrorPointsTest
+
+originalC, mirroredC :: Double -> Render ()
+originalC = mmaColor 0
+mirroredC = mmaColor 1
+
+setMirrorStyle :: Render ()
+setMirrorStyle = hsva 0 0 0 0.5 >> setDash [5,5] 0 >> setLineWidth 1
 
 mirrorPointsTest :: IO ()
-mirrorPointsTest = renderAllFormats 250 200 "test/out/mirror" (do
+mirrorPointsTest = renderAllFormats 550 550 "test/out/mirror" (do
+    translate 10 20
+    mirror1
+    translate 0 230
+    mirror2
+    )
+
+mirror1 :: Render ()
+mirror1 = do
     testDraw
         (angledLine (Vec2 10 100) (Angle 0) (Distance 100))
         [ Vec2 40 10
@@ -35,26 +47,23 @@ mirrorPointsTest = renderAllFormats 250 200 "test/out/mirror" (do
         , Vec2 140 20
         , Vec2 180 60
         , Vec2 230 100
-        ])
+        ]
   where
     testDraw :: Line -> [Vec2] -> Render ()
     testDraw mirror ps = do
-        setLineWidth 2
-        hsva 0 0 0 1
+        setMirrorStyle
         lineSketch mirror
         stroke
-
-        let setOriginal = mmaColor 0 1
-            setMirrored = mmaColor 1 1
+        setDash [] 0
 
         for_ ps (\p -> do
             let p' = mirrorAlong mirror p
 
             setLineWidth 1
-            setMirrored
+            mirroredC 1
             crossSketch p (Distance 5)
             stroke
-            setOriginal
+            originalC 1
             circleSketch p' (Distance 5)
             stroke
 
@@ -62,17 +71,14 @@ mirrorPointsTest = renderAllFormats 250 200 "test/out/mirror" (do
             arrowSketch (Line p p')
             stroke )
 
-mirrorComplexTest :: IO ()
-mirrorComplexTest = renderAllFormats 520 300 "test/out/mirror2" (do
+mirror2 :: Render ()
+mirror2 = do
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
-    let originalC = mmaColor 0
-        mirroredC = mmaColor 1
-
-    setLineWidth 2
-    hsva 0 0 0 0.5
+    setMirrorStyle
     lineSketch mirror
     stroke
+    setDash [] 0
 
     setFontSize 12
     originalC 1 >> moveTo 180 30 >> showText "Original"
@@ -96,4 +102,3 @@ mirrorComplexTest = renderAllFormats 520 300 "test/out/mirror2" (do
             mirroredC 1 >> polygonSketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
     mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])
-    )

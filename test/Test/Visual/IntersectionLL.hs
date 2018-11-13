@@ -1,4 +1,4 @@
-module Visual.IntersectionLL (tests) where
+module Test.Visual.IntersectionLL (tests) where
 
 import Graphics.Rendering.Cairo hiding (x, y)
 
@@ -11,7 +11,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Visual.Common
+import Test.Visual.Common
 
 
 
@@ -48,7 +48,7 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
 
 testDraw :: Line -> Line -> Render ()
 testDraw line1 line2 = do
-    let (point, angle, ty) = intersectionLL line1 line2
+    let (point, ty) = intersectionLL line1 line2
 
     setLineWidth 1
     mmaColor 0 1
@@ -59,7 +59,7 @@ testDraw line1 line2 = do
     arrowSketch line2
     stroke
 
-    mmaColor 2 1
+    mmaColor 3 1
     circleSketch point (Distance 3)
     fill
 
@@ -68,7 +68,7 @@ testDraw line1 line2 = do
 
     do let fontSize = 10
            Vec2 x y = point `addVec2` Vec2 15 15
-           Angle alpha = angle
+           Angle alpha = angleBetween line1 line2
            angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
            tyStr = case ty of
                IntersectionVirtual        -> "Virtual"

@@ -59,7 +59,6 @@ drawing = do
     translate 10 10
 
     setLineWidth 1
-    let alpha = 1
     billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke
     hsva 257 0.40 0.38 1
     polygonSketch left >> stroke
@@ -93,5 +92,8 @@ mean xs = sumEntries / numEntries
 standardDeviation :: [Double] -> Double
 standardDeviation xs = sqrt (sumSquareDeltas / (numEntries-1))
   where
-    (numEntries, sumSquareDeltas) = foldl' (\(!count, !squareDeltas) x -> (count+1, squareDeltas + (x - m)^2)) (0, 0) xs
     m = mean xs
+    (numEntries, sumSquareDeltas) = foldl'
+        (\(!count, !squareDeltas) x -> (count+1, squareDeltas + (x - m)^(2::Int)))
+        (0, 0)
+        xs

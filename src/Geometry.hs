@@ -7,16 +7,19 @@ module Geometry where
 import Control.Monad
 import Data.Fixed
 import Data.List
+import Text.Printf
 
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 newtype Polygon = Polygon [Vec2] deriving (Eq, Ord, Show)
-data Circle = Circle Vec2 !Double deriving (Eq, Ord, Show)
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
-newtype Angle = Angle Double deriving (Eq, Ord, Show)
+newtype Angle = Angle Double deriving (Eq, Ord)
 newtype Distance = Distance Double deriving (Eq, Ord, Show)
 newtype Area = Area Double deriving (Eq, Ord, Show)
+
+instance Show Angle where
+    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
 
 class Move geo where
     move :: Vec2 -> geo -> geo
@@ -29,9 +32,6 @@ instance Move Vec2 where
 
 instance Move Polygon where
     move offset (Polygon points) = Polygon (map (move offset) points)
-
-instance Move Circle where
-    move offset (Circle center r) = Circle (move offset center) r
 
 instance Move Line where
     move offset (Line a b) = Line (move offset a) (move offset b)
@@ -65,18 +65,14 @@ instance Rotate Polygon where
     rotateAround pivot angle (Polygon points)
       = Polygon (map (rotateAround pivot angle) points)
 
-instance Rotate Circle where
-    rotateAround pivot angle (Circle center r) = Circle (rotateAround pivot angle center) r
-
 class Mirror geo where
     mirrorAlong :: Line -> geo -> geo
 
 instance Mirror Vec2 where
-    mirrorAlong mirror@(Line start _) p = p'
-      where
-        virtual = Line start p
-        Angle angle = angleBetween mirror virtual
-        Line _ p' = rotateAround start (Angle (-2*angle)) virtual
+    mirrorAlong mirror p
+      = let perpendicular = perpendicularLineThrough p mirror
+            (foot, _ty) = intersectionLL mirror perpendicular
+        in foot `addVec2` foot `subtractVec2` p
 
 instance Mirror Line where
     mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
@@ -84,6 +80,9 @@ instance Mirror Line where
 
 instance Mirror Polygon where
     mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
+
+infixl 6 `addVec2`, `subtractVec2`
+infixl 7 `mulVec2`
 
 addVec2 :: Vec2 -> Vec2 -> Vec2
 addVec2 (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
@@ -104,18 +103,18 @@ norm :: Vec2 -> Distance
 norm v = Distance (sqrt (dotProduct v v))
 
 angleOfLine :: Line -> Angle
-angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = Angle (atan2 (y2-y1) (x2-x1))
+angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
 angleBetween :: Line -> Line -> Angle
 angleBetween line1 line2
   = let Angle a1 = angleOfLine line1
         Angle a2 = angleOfLine line2
-    in Angle (a2 - a1)
+    in rad (a2 - a1)
 
 angledLine :: Vec2 -> Angle -> Distance -> Line
-angledLine start@(Vec2 x y) (Angle angle) (Distance len) = Line start end
+angledLine start angle (Distance len) = Line start end
   where
-    end = Vec2 (x + len * cos angle) (y + len * sin angle)
+    end = rotateAround start angle (start `addVec2` Vec2 len 0)
 
 lineLength :: Line -> Distance
 lineLength (Line start end) = norm (end `subtractVec2` start)
@@ -155,10 +154,10 @@ data LLIntersection
 
 -- | Calculate the intersection of two lines.
 --
--- Returns the point and angle of the intersection, and whether it is inside
--- both, one, or none of the provided finite line segments.
-intersectionLL :: Line -> Line -> (Vec2, Angle, LLIntersection)
-intersectionLL lineL lineR = (intersectionPoint, intersectionAngle, intersectionType)
+-- Returns the point of the intersection, and whether it is inside both, one, or
+-- none of the provided finite line segments.
+intersectionLL :: Line -> Line -> (Vec2, LLIntersection)
+intersectionLL lineL lineR = (intersectionPoint, intersectionType)
   where
     intersectionType = case (intersectionInsideL, intersectionInsideR) of
         (True,  True)  -> IntersectionReal
@@ -181,14 +180,17 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionAngle, intersection
           ((x1-x2) * (b1-b2) - (y1-y2) * (a1-a2))
     intersectionInsideR = u >= 0 && u <= 1
 
-    intersectionAngle = angleBetween lineL lineR
-
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
--- Ray-casting algorithm.
-pointInPolygon :: Vec2 -> Polygon -> Bool
-pointInPolygon p poly = odd (length intersections)
+-- Ray-casting algorithm. Counts how many times a ray coming from infinity
+-- intersects the edges of an object.
+--
+-- The most basic use case is 'pointInPolygon', but it can also be used to find
+-- out whether something is inside more complicated objects, such as nested
+-- polygons (e.g. polygons with holes).
+countEdgeTraversals :: Vec2 -> [Line] -> Int
+countEdgeTraversals p edges = length intersections
   where
     -- The test ray comes from outside the polygon from the left, and ends at
     -- the point to be tested.
@@ -199,10 +201,11 @@ pointInPolygon p poly = odd (length intersections)
 
     intersections = flip filter edges (\edge ->
         case intersectionLL testRay edge of
-            (_, _, IntersectionReal) -> True
+            (_, IntersectionReal) -> True
             _other -> False)
 
-    edges = polygonEdges poly
+pointInPolygon :: Vec2 -> Polygon -> Bool
+pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
 -- | Average of polygon vertices
 polygonAverage :: Polygon -> Vec2
@@ -224,7 +227,10 @@ polygonArea (Polygon ps)
   = let determinants = zipWith (\(Vec2 x1 y1) (Vec2 x2 y2) -> x1*y2 - x2*y1) ps (tail (cycle ps))
     in Area (abs (sum determinants / 2))
 
--- UNTESTED
+-- UNTESTED.
+--
+-- Classifies some self-intersecting polygons, such as the pentagram, as convex.
+-- Is that desirable?
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
   = let rawAngle (Angle a) = a
@@ -235,37 +241,75 @@ isConvex (Polygon ps)
             (tail (tail (cycle ps)))
     in all (>= 0) innerAnglesSines || all (<= 0) innerAnglesSines
 
+-- UNTESTED
+--
+-- The idea is that a polygon is convex iff all angles point in one direction.
+-- The sign of the dot product tells us whether two vectors point in the same
+-- direction. Therefore, we can check whether an angle is towards the left/right
+-- by looking at the dot product of the normal of the current line (leading to
+-- the angle) with the line going away from the angle.
+isConvex_noTrigonometry :: Polygon -> Bool
+isConvex_noTrigonometry (Polygon ps)
+  = let angleDotProducts = zipWith3
+            (\p q r ->
+                let vectorOf (Line start end) = end `subtractVec2` start
+                    lineBeforeAngle = Line p q
+                    normalOfBefore = perpendicularBisector lineBeforeAngle
+                    lineAfterAngle = Line q r
+                in dotProduct (vectorOf normalOfBefore) (vectorOf lineAfterAngle) )
+            ps
+            (tail (cycle ps))
+            (tail (tail (cycle ps)))
+
+        allSameSign :: [Double] -> Bool
+        -- NB: head is safe here, since all short-circuits for empty xs
+        allSameSign xs = all (\p -> signum p == signum (head xs)) xs
+    in allSameSign angleDotProducts
+
 -- | Cut a polygon in multiple pieces with a line.
 cutPolygon :: Polygon -> Line -> [Polygon]
 cutPolygon = error "TODO! See https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/"
     -- This could be useful to shatter polygons into multiple pieces for a nice
     -- effect.
 
+-- The result has the same length as the input, point in its center, and points
+-- to the left (90° turned CCW) relative to the input.
 perpendicularBisector :: Line -> Line
-perpendicularBisector line@(Line start end) = rotateAround middle (Angle (pi/2)) line
+perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
     middle = mulVec2 0.5 (start `addVec2` end)
 
 deg :: Double -> Angle
-deg degrees = rad (degrees / 360 * 2 * pi)
+deg degrees = Angle (degrees / 360 * 2 * pi)
 
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
 
--- | Line perpendicular to a given line through a point. The result starts
--- at that point and has unit length.
+-- | Line perpendicular to a given line through a point.
+--
+-- The result has the same length as the input, point in its center, and points
+-- to the left (90° turned CCW) relative to the input.
 perpendicularLineThrough :: Vec2 -> Line -> Line
-perpendicularLineThrough p line = angledLine p angle' (Distance 1)
+perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
-    Angle a = angleOfLine line
-    angle' = Angle (a + pi/2)
+    -- Move line to it starts at the origin
+    Line start0 end0 = move (negateVec2 start) line
+    -- Rotate end point 90° CCW
+    end0' = let Vec2 x y  = end0
+            in Vec2 (-y) x
+    -- Construct rotated line
+    lineAt0' = Line start0 end0'
+    -- Move line back so it goes through the point
+    line' = move p lineAt0'
 
 -- | Optical reflection of a ray on a mirror. Note that the outgoing line has
--- reversed direction like light rays would.
-reflection :: Line -> Line -> (Line, Vec2, Angle, LLIntersection)
-reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
+-- reversed direction like light rays would. The second result element is the
+-- point of intersection with the mirror, which is not necessarily on the line,
+-- and thus returned separately.
+reflection :: Line -> Line -> (Line, Vec2, LLIntersection)
+reflection ray mirror = (lineReverse ray', iPoint, iType)
   where
-    (iPoint, iAngle, iType) = intersectionLL ray mirror
+    (iPoint, iType) = intersectionLL ray mirror
     mirrorAxis = perpendicularLineThrough iPoint mirror
     ray' = mirrorAlong mirrorAxis ray
 
@@ -283,7 +327,7 @@ billardProcess edges = go (const True)
       = let reflectionRays :: [(Line, Line)]
             reflectionRays = do
                 edge <- edges
-                let (Line _ reflectionEnd, incidentPoint, _angle, ty) = reflection ballVec edge
+                let (Line _ reflectionEnd, incidentPoint, ty) = reflection ballVec edge
                 guard (case ty of
                     IntersectionReal           -> True
                     IntersectionVirtualInsideR -> True

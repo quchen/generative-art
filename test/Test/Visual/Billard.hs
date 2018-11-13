@@ -1,4 +1,4 @@
-module Visual.Billard (tests) where
+module Test.Visual.Billard (tests) where
 
 
 
@@ -10,7 +10,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Visual.Common
+import Test.Visual.Common
 
 
 
@@ -44,7 +44,7 @@ testLambdaTable = renderAllFormats 332 360 "test/out/billard_lambda" (do
             , Vec2 156.293 233.859
             , Vec2 85.426  340.156
             , Vec2 0.387   340.156 ])
-    billard (polygonEdges lambda) (Vec2 100 100) (deg 25) 256 )
+    billard (polygonEdges lambda) (Vec2 100 100) (deg 25) 128 )
 
 billard :: [Line] -> Vec2 -> Angle -> Int -> Render ()
 billard table startPoint startAngle numReflections = do

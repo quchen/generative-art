@@ -1,4 +1,4 @@
-module Visual.SimpleOperations (tests) where
+module Test.Visual.SimpleOperations (tests) where
 
 
 
@@ -10,7 +10,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Visual.Common
+import Test.Visual.Common
 
 
 
@@ -18,11 +18,28 @@ tests :: TestTree
 tests = testCase "Simple operations" testSimple
 
 testSimple :: IO ()
-testSimple = renderAllFormats 320 240 "test/out/simple_operations" (do
-    translate 10 20 >> perpendicularBisectorTest >> identityMatrix
-    translate 10 90 >> perpendicularLineThroughTest >> identityMatrix
-    translate 30 180 >> pointInPolygonTest >> identityMatrix
+testSimple = renderAllFormats 320 400 "test/out/simple_operations" (do
+    translate 30 50 >> rotateLineTest
+    translate  0 80 >> perpendicularBisectorTest
+    translate  0 80 >> perpendicularLineThroughTest
+    translate  0 80 >> pointInPolygonTest
     )
+
+rotateLineTest :: Render ()
+rotateLineTest = do
+    let initialLine = angledLine (Vec2 0 0) (rad 0) (Distance 75)
+        rotated = iterate (rotateAround (Vec2 25 0) (deg 20)) initialLine
+
+    setLineWidth 1
+    for_ (zip [0..8] rotated) (\(i, line) -> do
+        mmaColor i 1
+        lineSketch line
+        stroke )
+
+    mmaColor 1 1
+    setFontSize 12
+    moveTo 90 20
+    showText "Rotate line in 20° increments"
 
 perpendicularBisectorTest :: Render ()
 perpendicularBisectorTest = do
@@ -54,7 +71,7 @@ perpendicularLineThroughTest = do
     circleSketch point (Distance 3)
     stroke
     mmaColor 1 1
-    lineSketch (resizeLineSymmetric line' (const (Distance 50)))
+    lineSketch line'
     stroke
 
     setFontSize 12

@@ -1,4 +1,4 @@
-module Visual.Reflection (tests) where
+module Test.Visual.Reflection (tests) where
 
 
 
@@ -10,7 +10,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Visual.Common
+import Test.Visual.Common
 
 
 
@@ -35,7 +35,7 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" (do
         stroke
         for_ (zip [-135,-120.. -10] [0,6..]) (\(angleDeg, colorDeg) -> do
             let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
-                (Line _ reflectedRayEnd, iPoint, _, _) = reflection rayRaw mirror
+                (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             hsva colorDeg 1 0.7 0.7
@@ -50,7 +50,7 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" (do
         stroke
         for_ (zip [-135,-120.. -10] [180,180+6..]) (\(angleDeg, colorDeg) -> do
             let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
-                (Line _ reflectedRayEnd, iPoint, _, _) = reflection rayRaw mirror
+                (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             hsva colorDeg 1 0.7 0.7

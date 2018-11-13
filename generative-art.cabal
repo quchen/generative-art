@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d4bad03983f5cc54322c3a2a466368c765f9f65c7efd7d613eefada7ab77fd2c
+-- hash: 9b7105593f8123ea904dab1908038f503c20868124670bc194163556af750df1
 
 name:           generative-art
 version:        0.1.0.0
@@ -57,21 +57,24 @@ test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Visual.Billard
-      Visual.Common
-      Visual.IntersectionLL
-      Visual.Mirror
-      Visual.Reflection
-      Visual.SimpleOperations
+      Test.Properties
+      Test.Visual.Billard
+      Test.Visual.Common
+      Test.Visual.IntersectionLL
+      Test.Visual.Mirror
+      Test.Visual.Reflection
+      Test.Visual.SimpleOperations
       Paths_generative_art
   hs-source-dirs:
       test
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
-      base >=4.7 && <5
+      QuickCheck
+    , base >=4.7 && <5
     , cairo
     , colour
     , generative-art
     , tasty
     , tasty-hunit
+    , tasty-quickcheck
   default-language: Haskell2010

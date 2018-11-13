@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Visual.Common (arrowSketch, renderAllFormats, hsva) where
+module Test.Visual.Common (arrowSketch, renderAllFormats, hsva) where
 
 
 
