@@ -120,9 +120,23 @@ angledLine start@(Vec2 x y) (Angle angle) (Distance len) = Line start end
 lineLength :: Line -> Distance
 lineLength (Line start end) = norm (end `subtractVec2` start)
 
+-- | Resize a line, keeping the starting point.
 resizeLine :: Line -> (Distance -> Distance) -> Line
 resizeLine line@(Line start _end) f
   = angledLine start (angleOfLine line) (f (lineLength line))
+
+-- | Resize a line, extending in both directions.
+resizeLineSymmetric :: Line -> (Distance -> Distance) -> Line
+resizeLineSymmetric line f = centerLine (resizeLine line f )
+
+-- | Move the line so that its center is where the start used to be.
+--
+-- Useful for painting lines going through a point symmetrically.
+centerLine :: Line -> Line
+centerLine line@(Line start end) = move delta line
+  where
+    middle = mulVec2 0.5 (start `addVec2` end)
+    delta = start `subtractVec2` middle
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line

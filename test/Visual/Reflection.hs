@@ -15,10 +15,7 @@ import Visual.Common
 
 
 tests :: TestTree
-tests = testGroup "Reflection of rays on a mirror"
-    [ testCase "#1" testReflection
-    , testCase "#2" testReflection2
-    ]
+tests = testCase "Reflection of rays on a mirror" testReflection
 
 testReflection :: IO ()
 testReflection = renderAllFormats 520 300 "test/out/reflection" (do
@@ -61,35 +58,4 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" (do
             lineSketch ray'
             stroke )
 
-    )
-
-
-
-testReflection2 :: IO ()
-testReflection2 = renderAllFormats 520 300 "test/out/mirror2" (do
-    let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
-
-    setLineWidth 2
-    hsva 0 0 0 0.5
-    lineSketch mirror
-    stroke
-
-    setLineWidth 1
-    let mirrorLineTest line = do
-            let mirrored = mirrorAlong mirror line
-            hsva 120 1 0.7 1 >> arrowSketch line >> stroke
-            hsva 0 1 0.7 1 >> arrowSketch mirrored >> stroke
-    mirrorLineTest (angledLine (Vec2 50 10) (deg (20)) (Distance 100))
-    mirrorLineTest (angledLine (Vec2 150 10) (deg 90) (Distance 100))
-    mirrorLineTest (angledLine (Vec2 160 10) (deg 90) (Distance 150))
-    mirrorLineTest (angledLine (Vec2 300 10) (deg 120) (Distance 180))
-    mirrorLineTest (angledLine (Vec2 250 160) (deg 0) (Distance 200))
-    mirrorLineTest (angledLine (Vec2 120 110) (deg 180) (Distance 100))
-
-    let mirrorPolygonTest poly = do
-            let mirrored = mirrorAlong mirror poly
-            hsva 120 1 0.7 1 >> polygonSketch poly >> strokePreserve >> hsva 120 1 0.7 0.1 >> fill
-            hsva 0 1 0.7 1 >> polygonSketch mirrored >> strokePreserve >> hsva 0 1 0.7 0.1 >> fill
-    mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
-    mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])
     )

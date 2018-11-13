@@ -44,17 +44,12 @@ billard table startPoint startAngle numReflections = do
     let startVec = angledLine startPoint startAngle (Distance 100)
         billardPoints = startPoint : take numReflections (billardProcess table startVec)
 
-    setLineWidth 2
-    hsva 0 0 0 0.3
-    polygonSketch table
-    stroke
-
     setLineWidth 1
+    mmaColor 0 1
     for_ billardPoints (\point -> do
         circleSketch point (Distance 3)
-        hsva 300 1 0.7 0.3
-        fill )
-    hsva 300 1 0.7 0.5
+        stroke )
+    mmaColor 1 1
     let billardArrows = zipWith Line billardPoints (tail billardPoints)
     for_ billardArrows (\arr -> do
         lineSketch arr

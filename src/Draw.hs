@@ -17,10 +17,11 @@ hsva :: Double -> Double -> Double -> Double -> Render ()
 hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
     where RGB{..} = hsv h s v
 
+-- | Mathematica’s ColorData[97] scheme.
 mmaColor :: Int -> Double -> Render ()
 mmaColor n alpha = setSourceRGBA r g b alpha
   where
-    (r,g,b) = case n of
+    (r,g,b) = case rem n 15 of
         0 ->  (0.368417, 0.506779, 0.709798)
         1 ->  (0.880722, 0.611041, 0.142051)
         2 ->  (0.560181, 0.691569, 0.194885)
@@ -36,7 +37,7 @@ mmaColor n alpha = setSourceRGBA r g b alpha
         12 -> (0.9728288904374106, 0.621644452187053, 0.07336199581899142)
         13 -> (0.736782672705901, 0.358, 0.5030266573755369)
         14 -> (0.28026441037696703, 0.715, 0.4292089322474965)
-        _other -> error "Unsupported color index"
+        _other -> error "modulus in mmaColor is broken"
 
 lineSketch :: Line -> Render ()
 lineSketch (Line (Vec2 x1 y1) (Vec2 x2 y2)) = moveTo x1 y1 >> lineTo x2 y2

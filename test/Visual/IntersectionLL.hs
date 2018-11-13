@@ -51,28 +51,32 @@ testDraw line1 line2 = do
     let (point, angle, ty) = intersectionLL line1 line2
 
     setLineWidth 1
-    hsva 0 1 0.7 1
+    mmaColor 0 1
     arrowSketch line1
     stroke
 
-    hsva 200 1 0.7 1
+    mmaColor 1 1
     arrowSketch line2
     stroke
 
-    hsva 180 1 0.7 1
+    mmaColor 2 1
     circleSketch point (Distance 3)
     fill
 
-    hsva 180 1 0.7 1
     arcSketch point (Distance 10) (angleOfLine line1) (angleOfLine line2)
     stroke
 
     do let fontSize = 10
            Vec2 x y = point `addVec2` Vec2 15 15
            Angle alpha = angle
-           angleDeg = printf "%2f" (alpha / (2 * pi) * 360)
+           angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
+           tyStr = case ty of
+               IntersectionVirtual        -> "Virtual"
+               IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
+               IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
+               IntersectionReal           -> "Intersection"
 
        hsva 0 0 0 1
        moveTo x y
        setFontSize fontSize
-       showText (show ty ++ ", " ++ angleDeg ++ "°")
+       showText (tyStr ++ ", " ++ angleDeg ++ "°")
