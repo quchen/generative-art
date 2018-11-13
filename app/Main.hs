@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main (main) where
 
@@ -47,10 +48,12 @@ drawing = do
         billardSketch spec setColor = do
             let points = runBillardSpec spec
                 billardLines = zipWith Line points (tail points)
+            let lengths = [d | Distance d <- map lineLength billardLines]
+                meanLength = mean lengths
+                sigmaLength = standardDeviation lengths
             for_ billardLines (\line ->
-                let alpha :: Double
-                    alpha = case lineLength line of
-                        Distance d -> min 1 (max 0.4 (d/300))
+                let alpha = case lineLength line of
+                        Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
                 in setColor alpha >> lineSketch line >> stroke)
 
     translate 10 10
@@ -78,3 +81,17 @@ haskellLogo = [left, lambda, upper, lower]
     lambda = Polygon [Vec2 113.386719 340.15625, Vec2 226.773438 170.078125, Vec2 113.386719 0, Vec2 198.425781 0, Vec2 425.195312 340.15625, Vec2 340.15625 340.15625, Vec2 269.292969 233.859375, Vec2 198.425781 340.15625, Vec2 113.386719 340.15625]
     upper  = Polygon [Vec2 330.710938 155.90625, Vec2 292.914062 99.214844, Vec2 481.890625 99.210938, Vec2 481.890625 155.90625, Vec2 330.710938 155.90625]
     lower  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 481.890625 184.25, Vec2 481.890625 240.945312, Vec2 387.402344 240.945312]
+
+mean :: [Double] -> Double
+mean xs = sumEntries / numEntries
+  where
+    (numEntries, sumEntries) = foldl'
+        (\(!count, !total) x -> (count+1, total+x))
+        (0, 0)
+        xs
+
+standardDeviation :: [Double] -> Double
+standardDeviation xs = sqrt (sumSquareDeltas / (numEntries-1))
+  where
+    (numEntries, sumSquareDeltas) = foldl' (\(!count, !squareDeltas) x -> (count+1, squareDeltas + (x - m)^2)) (0, 0) xs
+    m = mean xs
