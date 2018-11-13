@@ -1,24 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Geometry (
-      Vec2(..)
-    , Polygon(..)
-    , Line(..)
-    , Angle(..)
-    , Distance(..)
-    , Area(..)
-    , Move(..)
-    , moveRad
-    , Rotate(..)
-    , Mirror(..)
+    -- * Primitives
+    -- ** Vectors
+    Vec2(..)
     , addVec2
     , negateVec2
     , subtractVec2
     , mulVec2
     , dotProduct
     , norm
-    , deg
-    , rad
+
+    -- ** Lines
+    , Line(..)
     , angleOfLine
     , angleBetween
     , angledLine
@@ -28,17 +22,37 @@ module Geometry (
     , centerLine
     , normalizeLine
     , lineReverse
+    , perpendicularBisector
+    , perpendicularLineThrough
     , LLIntersection(..)
     , intersectionLL
-    , polygonEdges
-    , countEdgeTraversals
+
+    -- ** Polygons
+    , Polygon(..)
     , pointInPolygon
+    , countEdgeTraversals
     , polygonAverage
     , polygonCircumference
     , polygonArea
     , isConvex
-    , perpendicularBisector
-    , perpendicularLineThrough
+    , polygonEdges
+
+    -- ** Angles
+    , Angle(..)
+    , deg
+    , rad
+
+    -- ** Safety newtypes
+    , Distance(..)
+    , Area(..)
+
+    -- ** Convenience classes
+    , Move(..)
+    , moveRad
+    , Rotate(..)
+    , Mirror(..)
+
+    -- * Processes
     , reflection
     , billardProcess
 ) where
@@ -53,10 +67,20 @@ import Text.Printf
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
+
+-- | Polygon, defined by its corners.
 newtype Polygon = Polygon [Vec2] deriving (Eq, Ord, Show)
+
+-- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+
+-- | Newtype safety wrapper.
 newtype Angle = Angle Double deriving (Eq, Ord)
+
+-- | Newtype safety wrapper.
 newtype Distance = Distance Double deriving (Eq, Ord, Show)
+
+-- | Newtype safety wrapper.
 newtype Area = Area Double deriving (Eq, Ord, Show)
 
 instance Show Angle where
@@ -123,7 +147,7 @@ instance Mirror Polygon where
     mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
 
 infixl 6 `addVec2`, `subtractVec2`
-infixl 7 `mulVec2`
+infixl 7 `mulVec2`, `dotProduct`
 
 addVec2 :: Vec2 -> Vec2 -> Vec2
 addVec2 (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
@@ -140,15 +164,19 @@ mulVec2 a (Vec2 x y) = Vec2 (a*x) (a*y)
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
+-- | Euclidean norm.
 norm :: Vec2 -> Distance
 norm v = Distance (sqrt (dotProduct v v))
 
+-- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
 deg degrees = Angle (degrees / 360 * 2 * pi)
 
+-- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
 
+-- | Angle of a single line, relative to the x axis.
 angleOfLine :: Line -> Angle
 angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
@@ -194,9 +222,17 @@ lineReverse (Line start end) = Line end start
 
 data LLIntersection
     = IntersectionReal
+        -- ^ Two lines intersect fully.
+
     | IntersectionVirtualInsideL
+        -- ^ The intersection is in the left argument (of 'intersectionLL')
+        -- only, and only on the infinite continuation of the right argument.
+
     | IntersectionVirtualInsideR
+        -- ^ dito, but the other way round.
+
     | IntersectionVirtual
+        -- ^ The intersection lies in the infinite continuations of both lines.
     deriving (Eq, Ord, Show)
 
 -- | Calculate the intersection of two lines.
@@ -230,13 +266,16 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
--- Ray-casting algorithm. Counts how many times a ray coming from infinity
+-- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
 --
 -- The most basic use case is 'pointInPolygon', but it can also be used to find
 -- out whether something is inside more complicated objects, such as nested
 -- polygons (e.g. polygons with holes).
-countEdgeTraversals :: Vec2 -> [Line] -> Int
+countEdgeTraversals
+    :: Vec2   -- ^ Point to check
+    -> [Line] -- ^ Geometry
+    -> Int    -- ^ Number of edges crossed
 countEdgeTraversals p edges = length intersections
   where
     -- The test ray comes from outside the polygon from the left, and ends at
@@ -312,8 +351,8 @@ cutPolygon = error "TODO! See https://geidav.wordpress.com/2015/03/21/splitting-
     -- This could be useful to shatter polygons into multiple pieces for a nice
     -- effect.
 
--- The result has the same length as the input, point in its center, and points
--- to the left (90° turned CCW) relative to the input.
+-- | The result has the same length as the input, point in its center, and
+-- points to the left (90° turned CCW) relative to the input.
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
@@ -340,16 +379,28 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 -- reversed direction like light rays would. The second result element is the
 -- point of intersection with the mirror, which is not necessarily on the line,
 -- and thus returned separately.
-reflection :: Line -> Line -> (Line, Vec2, LLIntersection)
+reflection
+    :: Line -- ^ Light ray
+    -> Line -- ^ Mirror
+    -> (Line, Vec2, LLIntersection)
+            -- ^ Reflected ray; point of incidence; type of intersection of the
+            -- ray with the mirror. The reflected ray is symmetric with respect
+            -- to the incoming ray (in terms of length, distance from mirror,
+            -- etc.), but has reversed direction (like real light).
 reflection ray mirror = (lineReverse ray', iPoint, iType)
   where
     (iPoint, iType) = intersectionLL ray mirror
     mirrorAxis = perpendicularLineThrough iPoint mirror
     ray' = mirrorAlong mirrorAxis ray
 
--- | Shoot a billard ball inside a polygon along an initial line. Returns the
--- list of collision points; the result is finite iff the ball escapes.
-billardProcess :: [Line] -> Line -> [Vec2]
+-- | Shoot a billard ball, and record its trajectory as it is reflected off the
+-- edges of a provided geometry.
+billardProcess
+    :: [Line] -- ^ Geometry; typically involves the edges of a bounding polygon.
+    -> Line   -- ^ Initial velocity vector of the ball. Only start and direction,
+              --   not length, are relevant for the algorithm.
+    -> [Vec2] -- ^ List of collision points. Finite iff the ball escapes the
+              --   geometry.
 billardProcess edges = go (const True)
   where
     -- The predicate is used to exclude the line just mirrored off of, otherwise
