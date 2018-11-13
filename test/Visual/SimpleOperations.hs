@@ -17,6 +17,7 @@ import Visual.Common
 tests :: TestTree
 tests = testCase "Simple operations" testSimple
 
+testSimple :: IO ()
 testSimple = renderAllFormats 320 240 "test/out/simple_operations" (do
     translate 10 20 >> perpendicularBisectorTest >> identityMatrix
     translate 10 90 >> perpendicularLineThroughTest >> identityMatrix

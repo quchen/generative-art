@@ -27,7 +27,7 @@ main = png >> svg
 
 data BillardSpec = BillardSpec
     { steps :: Int
-    , table :: Polygon
+    , table :: [Line]
     , startPos :: Vec2
     , startAngle :: Angle
     }
@@ -39,10 +39,10 @@ runBillardSpec BillardSpec{..} =
 drawing :: Render ()
 drawing = do
     let [left, lambda, upper, lower] = haskellLogo
-        billardLeft   = BillardSpec{ steps = 256, table = left,   startPos = Vec2 10  10,  startAngle = deg 40 }
-        billardLambda = BillardSpec{ steps = 400, table = lambda, startPos = Vec2 230 175, startAngle = deg 40 }
-        billardUpper  = BillardSpec{ steps = 120, table = upper,  startPos = Vec2 400 120, startAngle = deg 20 }
-        billardLower  = BillardSpec{ steps = 120, table = lower,  startPos = Vec2 450 220, startAngle = deg 40 }
+        billardLeft   = BillardSpec{ steps = 256, table = polygonEdges left,   startPos = Vec2 10  10,  startAngle = deg 40 }
+        billardLambda = BillardSpec{ steps = 400, table = polygonEdges lambda, startPos = Vec2 230 175, startAngle = deg 40 }
+        billardUpper  = BillardSpec{ steps = 120, table = polygonEdges upper,  startPos = Vec2 400 120, startAngle = deg 20 }
+        billardLower  = BillardSpec{ steps = 120, table = polygonEdges lower,  startPos = Vec2 450 220, startAngle = deg 40 }
         billardSketch :: BillardSpec -> (Double -> Render ()) -> Render ()
         billardSketch spec setColor = do
             let points = runBillardSpec spec

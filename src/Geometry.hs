@@ -271,14 +271,9 @@ reflection ray mirror = (lineReverse ray', iPoint, iAngle, iType)
 
 -- | Shoot a billard ball inside a polygon along an initial line. Returns an
 -- infinite list of collision points.
---
--- TODO: generalize to arbitrary geometries, not just polygons, to allow
--- polygon-in-polygon scenarios
-billardProcess :: Polygon -> Line -> [Vec2]
-billardProcess poly = go (const True)
+billardProcess :: [Line] -> Line -> [Vec2]
+billardProcess edges = go (const True)
   where
-    edges = polygonEdges poly
-
     -- The predicate is used to exclude the line just mirrored off of, otherwise
     -- we get rays stuck in a single line due to numerical shenanigans. Note
     -- that this is a valid use case for equality of Double (contained in
