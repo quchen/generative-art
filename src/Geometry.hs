@@ -219,12 +219,22 @@ polygonCircumference poly = foldl'
     (Distance 0)
     (polygonEdges poly)
 
+-- | Determinant of the matrix
+--
+-- / x1 x2 \
+-- \ y1 y2 /
+--
+-- This is useful to calculate the (signed) area of the parallelogram spanned by
+-- two vectors.
+det :: Vec2 -> Vec2 -> Double
+det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
+
 -- UNTESTED
 --
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Area
 polygonArea (Polygon ps)
-  = let determinants = zipWith (\(Vec2 x1 y1) (Vec2 x2 y2) -> x1*y2 - x2*y1) ps (tail (cycle ps))
+  = let determinants = zipWith det ps (tail (cycle ps))
     in Area (abs (sum determinants / 2))
 
 -- UNTESTED.
@@ -242,21 +252,18 @@ isConvex (Polygon ps)
     in all (>= 0) innerAnglesSines || all (<= 0) innerAnglesSines
 
 -- UNTESTED
---
--- The idea is that a polygon is convex iff all angles point in one direction.
--- The sign of the dot product tells us whether two vectors point in the same
--- direction. Therefore, we can check whether an angle is towards the left/right
--- by looking at the dot product of the normal of the current line (leading to
--- the angle) with the line going away from the angle.
 isConvex_noTrigonometry :: Polygon -> Bool
 isConvex_noTrigonometry (Polygon ps)
+    -- The idea is that a polygon is convex iff all internal angles are in the
+    -- same direction. The direction of an angle defined by two vectors shares
+    -- its sign with the signed area spanned by those vectors, and the latter is
+    -- easy to calculate via a determinant.
   = let angleDotProducts = zipWith3
             (\p q r ->
                 let vectorOf (Line start end) = end `subtractVec2` start
                     lineBeforeAngle = Line p q
-                    normalOfBefore = perpendicularBisector lineBeforeAngle
-                    lineAfterAngle = Line q r
-                in dotProduct (vectorOf normalOfBefore) (vectorOf lineAfterAngle) )
+                    lineAfterAngle  = Line q r
+                in det (vectorOf lineBeforeAngle) (vectorOf lineAfterAngle) )
             ps
             (tail (cycle ps))
             (tail (tail (cycle ps)))
