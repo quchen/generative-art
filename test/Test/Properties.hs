@@ -65,13 +65,13 @@ areaTest = testGroup "Area"
                 expected = abs ((x2-x1) * (y2-y1))
             in actual ~== expected ))
 
-    parallelogram = testProperty "Parallelogram via determinant" (forAll
+    parallelogram = testProperty "Parallelogram" (forAll
         ((,) <$> vec2 <*> vec2)
         (\(v1, v2) ->
-            let actual = det v1 v2
+            let Area actual = polygonArea (Polygon [zero, v1, v1 `addVec2` v2, v2])
                 zero = Vec2 0 0
                 Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
                 Distance v1norm = norm v1
                 Distance v2norm = norm v2
-                expected = v1norm * v2norm * sin rawAngleBetween
+                expected = abs (v1norm * v2norm * sin rawAngleBetween)
             in actual ~== expected ))

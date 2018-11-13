@@ -1,6 +1,47 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Geometry where
+module Geometry (
+      Vec2(..)
+    , Polygon(..)
+    , Line(..)
+    , Angle(..)
+    , Distance(..)
+    , Area(..)
+    , Move(..)
+    , moveRad
+    , Rotate(..)
+    , Mirror(..)
+    , addVec2
+    , negateVec2
+    , subtractVec2
+    , mulVec2
+    , dotProduct
+    , norm
+    , deg
+    , rad
+    , angleOfLine
+    , angleBetween
+    , angledLine
+    , lineLength
+    , resizeLine
+    , resizeLineSymmetric
+    , centerLine
+    , normalizeLine
+    , lineReverse
+    , LLIntersection(..)
+    , intersectionLL
+    , polygonEdges
+    , countEdgeTraversals
+    , pointInPolygon
+    , polygonAverage
+    , polygonCircumference
+    , polygonArea
+    , isConvex
+    , perpendicularBisector
+    , perpendicularLineThrough
+    , reflection
+    , billardProcess
+) where
 
 
 
@@ -101,6 +142,12 @@ dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 norm :: Vec2 -> Distance
 norm v = Distance (sqrt (dotProduct v v))
+
+deg :: Double -> Angle
+deg degrees = Angle (degrees / 360 * 2 * pi)
+
+rad :: Double -> Angle
+rad r = Angle (r `mod'` (2*pi))
 
 angleOfLine :: Line -> Angle
 angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
@@ -237,23 +284,9 @@ polygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
     in Area (abs (sum determinants / 2))
 
--- UNTESTED.
---
--- Classifies some self-intersecting polygons, such as the pentagram, as convex.
--- Is that desirable?
+-- UNTESTED
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
-  = let rawAngle (Angle a) = a
-        innerAnglesSines = zipWith3
-            (\p q r -> sin (rawAngle (angleBetween (Line p q) (Line q r))))
-            ps
-            (tail (cycle ps))
-            (tail (tail (cycle ps)))
-    in all (>= 0) innerAnglesSines || all (<= 0) innerAnglesSines
-
--- UNTESTED
-isConvex_noTrigonometry :: Polygon -> Bool
-isConvex_noTrigonometry (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
     -- same direction. The direction of an angle defined by two vectors shares
     -- its sign with the signed area spanned by those vectors, and the latter is
@@ -285,12 +318,6 @@ perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
     middle = mulVec2 0.5 (start `addVec2` end)
-
-deg :: Double -> Angle
-deg degrees = Angle (degrees / 360 * 2 * pi)
-
-rad :: Double -> Angle
-rad r = Angle (r `mod'` (2*pi))
 
 -- | Line perpendicular to a given line through a point.
 --
