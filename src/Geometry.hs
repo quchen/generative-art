@@ -313,8 +313,8 @@ reflection ray mirror = (lineReverse ray', iPoint, iType)
     mirrorAxis = perpendicularLineThrough iPoint mirror
     ray' = mirrorAlong mirrorAxis ray
 
--- | Shoot a billard ball inside a polygon along an initial line. Returns an
--- infinite list of collision points.
+-- | Shoot a billard ball inside a polygon along an initial line. Returns the
+-- list of collision points; the result is finite iff the ball escapes.
 billardProcess :: [Line] -> Line -> [Vec2]
 billardProcess edges = go (const True)
   where
@@ -335,17 +335,25 @@ billardProcess edges = go (const True)
                     IntersectionVirtual        -> False )
                 guard (incidentPoint `liesAheadOf` ballVec)
                 guard (considerEdge edge)
-                pure (edge, normalizeLine (Line incidentPoint reflectionEnd))
+                pure (edge, Line incidentPoint reflectionEnd)
 
-            (edgeReflectedOn, reflectionRay@(Line reflectionStart _)) = flip minimumBy reflectionRays
-                (\(_, Line p _) (_, Line q _) ->
-                    let Distance pDistance = lineLength (Line ballStart p)
-                        Distance qDistance = lineLength (Line ballStart q)
-                    in compare pDistance qDistance )
-        in reflectionStart : go (/= edgeReflectedOn) reflectionRay
+        in case reflectionRays of
+            [] -> let Line _ end = ballVec in [end]
+            _  ->
+                let (edgeReflectedOn, reflectionRay@(Line reflectionStart _))
+                      = minimumBy
+                          (\(_, Line p _) (_, Line q _) -> distanceFrom ballStart p q)
+                          reflectionRays
+                in reflectionStart : go (/= edgeReflectedOn) reflectionRay
 
     liesAheadOf :: Vec2 -> Line -> Bool
     liesAheadOf p ray@(Line rayStart _)
       = let ray2 = Line rayStart p
             Angle angle = angleBetween ray ray2
         in cos angle > 0
+
+    distanceFrom :: Vec2 -> Vec2 -> Vec2 -> Ordering
+    distanceFrom start p q
+      = let Distance pDistance = lineLength (Line start p)
+            Distance qDistance = lineLength (Line start q)
+        in compare pDistance qDistance

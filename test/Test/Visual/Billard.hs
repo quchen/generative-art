@@ -67,3 +67,9 @@ billard table startPoint startAngle numReflections = do
     for_ billardArrows (\arr -> do
         lineSketch arr
         stroke )
+testBrokenTable :: IO ()
+testBrokenTable = renderAllFormats 160 120 "test/out/billard_broken_table" (do
+    let tableVertices = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
+        table = zipWith Line tableVertices (tail tableVertices)
+    translate 50 10
+    billard table (Vec2 20 20) (deg 60) 1000 )
