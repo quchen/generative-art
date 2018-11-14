@@ -372,7 +372,7 @@ cutPolygon scissors polygon
 
         -- Cut: Finalize current polygon, start a new one
         walk (Polygon corners) (Cut p q r : rest)
-          = Polygon (reverse (q:p:corners)) : walk (Polygon [q]) rest
+          = Polygon (reverse (q:p:corners)) : walk (Polygon []) (NoCut q r : rest)
 
         -- No cut: extend current polygon
         walk (Polygon corners) (NoCut p _ : rest)

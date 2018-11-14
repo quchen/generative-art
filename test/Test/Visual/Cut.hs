@@ -18,12 +18,12 @@ tests :: TestTree
 tests = testCase "Cut my line into pieces" cutTest
 
 cutTest :: IO ()
-cutTest = renderAllFormats 230 350 "test/out/cut" (do
+cutTest = renderAllFormats 230 380 "test/out/cut" (do
     translate 10 40
     cutLineDrawing
-    translate 120 100
+    translate 120 110
     cutSquareDrawing
-    translate 0 100
+    translate 0 110
     cutComplicatedPolygon
     )
 
@@ -51,7 +51,7 @@ cutLineDrawing = do
     mmaColor 1 1
     setFontSize 12
     moveTo 60 10
-    showText "Cut line in two pieces"
+    showText "Cut my line in two pieces"
 
 polyCutDraw :: Line -> [Polygon] -> Render ()
 polyCutDraw scissors cutResults = do
@@ -62,6 +62,7 @@ polyCutDraw scissors cutResults = do
     lineSketch scissors
     stroke
     setDash [] 0
+
 
     for_ (zip [0..] cutResults) (\(color, poly) -> do
         mmaColor color 1
@@ -84,6 +85,11 @@ cutSquareDrawing = do
         cutResult = cutPolygon scissors square
     polyCutDraw scissors (move (Vec2 (-80) 0) square : cutResult)
 
+    mmaColor 1 1
+    setFontSize 12
+    moveTo (-10) 70
+    showText (show (length cutResult) ++ " polygons")
+    -- for_ cutResult (\poly -> translate 0 60 >> polygonSketch poly >> hsva 0 0 0 1 >> stroke)
 
 cutComplicatedPolygon :: Render ()
 cutComplicatedPolygon = do
@@ -101,3 +107,8 @@ cutComplicatedPolygon = do
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw scissors (move (Vec2 (-100) 0) polygon : cutResult)
+
+    mmaColor 1 1
+    setFontSize 12
+    moveTo (-10) 100
+    showText (show (length cutResult) ++ " polygons")
