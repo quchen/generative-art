@@ -248,20 +248,26 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
         (False, True)  -> IntersectionVirtualInsideR
         (False, False) -> IntersectionVirtual
 
-    Line (Vec2 x1 y1) (Vec2 x2 y2) = lineL
-    Line (Vec2 a1 b1) (Vec2 a2 b2) = lineR
+    -- Calculation copied straight off of Wikipedia, then converted Latex to
+    -- Haskell using bulk editing.
+    --
+    -- https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 
-    intersectionPoint = Vec2 (x1 + t * (x2-x1)) (y1 + t * (y2-y1))
+    Line v1@(Vec2 x1 y1) v2@(Vec2 x2 y2) = lineL
+    Line v3@(Vec2 x3 y3) v4@(Vec2 x4 y4) = lineR
 
-    t =   ((x1-a1) * (b1-b2) - (y1-b1) * (a1-a2))
-        / ---------------------------------------
-          ((x1-x2) * (b1-b2) - (y1-y2) * (a1-a2))
+    intersectionPoint
+      = let denominator = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4)
+        in Vec2 ( ((det v1 v2) * (x3-x4) - (x1-x2) * (det v3 v4)) / denominator )
+                ( ((det v1 v2) * (y3-y4) - (y1-y2) * (det v3 v4)) / denominator )
+
+    t = det (v1 -. v3) (v3 -. v4) / det (v1 -. v2) (v3 -. v4)
     intersectionInsideL = t >= 0 && t <= 1
 
-    u = - ((x1-x2) * (y1-b1) - (y1-y2) * (x1-a1))
-        / ---------------------------------------
-          ((x1-x2) * (b1-b2) - (y1-y2) * (a1-a2))
+    u = - det (v1 -. v2) (v1 -. v3) / det (v1 -. v2) (v3 -. v4)
     intersectionInsideR = u >= 0 && u <= 1
+
+    (-.) = subtractVec2
 
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))

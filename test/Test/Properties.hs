@@ -17,7 +17,8 @@ import Test.Tasty.QuickCheck
 tests :: TestTree
 tests = testGroup "Properties"
     [ angleBetweenTest
-    , areaTest ]
+    , areaTest
+    , intersectionLLTest ]
 
 newtype Tolerance = Tolerance Double
 
@@ -75,3 +76,18 @@ areaTest = testGroup "Area"
                 Distance v2norm = norm v2
                 expected = abs (v1norm * v2norm * sin rawAngleBetween)
             in actual ~== expected ))
+
+intersectionLLTest :: TestTree
+intersectionLLTest = testProperty "Line-line intersection" (forAll
+    ((,,,,) <$> vec2 <*> vec2 <*> dist <*> vec2 <*> dist)
+    (\(start@(Vec2 expectedX expectedY), end1, dist1, end2, dist2) ->
+        let line1 = Line start end1
+            line1' = moveRad (angleOfLine line1) dist1 line1
+            line2 = Line start end2
+            line2' = moveRad (angleOfLine line2) dist2 line2
+            (Vec2 actualX actualY, _ty) = intersectionLL line1' line2'
+        in expectedX ~== actualX && expectedY ~== actualY ))
+  where
+    coord = choose (-100, 100 :: Double)
+    vec2 = liftA2 Vec2 coord coord
+    dist = fmap Distance (choose (-100, 100))
