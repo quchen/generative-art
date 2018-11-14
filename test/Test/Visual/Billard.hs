@@ -15,37 +15,44 @@ import Test.Visual.Common
 
 
 tests :: TestTree
-tests = testGroup "Billard process"
-    [ testCase "Rectangular table" testRectangularTable
-    , testCase "Rectangular table with hole" testHoleInTable
-    , testCase "Lambda table" testLambdaTable
-    , testCase "Broken table" testBrokenTable
-    ]
+tests = testCase "Billard process" billardTest
 
-testRectangularTable :: IO ()
-testRectangularTable = renderAllFormats 320 240 "test/out/billard_rectangular" (do
-    let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
-    billard (polygonEdges table) (Vec2 100 100) (deg 25) 16 )
+billardTest :: IO ()
+billardTest = renderAllFormats 660 490 "test/out/billard" (do
+    rectangularTable
+    translate 0 250 >> holeInTable
+    identityMatrix
+    translate 330 0 >> lambdaTable
+    translate 80 370 >> brokenTable
+    )
+  where
+    rectangularTable = do
+        let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
+        billard (polygonEdges table) (Vec2 100 100) (deg 25) 16
 
-testHoleInTable :: IO ()
-testHoleInTable = renderAllFormats 320 240 "test/out/billard_rectangular_hole" (do
-    let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
-        hole = move (Vec2 80 80) (rotateAround (Vec2 0 0) (deg 31) (Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]))
-    billard (polygonEdges table ++ polygonEdges hole) (Vec2 200 200) (deg 50) 64 )
+    holeInTable = do
+        let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
+            hole = move (Vec2 80 80) (rotateAround (Vec2 0 0) (deg 31) (Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]))
+        billard (polygonEdges table ++ polygonEdges hole) (Vec2 200 200) (deg 50) 48
 
-testLambdaTable :: IO ()
-testLambdaTable = renderAllFormats 332 360 "test/out/billard_lambda" (do
-    let lambda = move (Vec2 10 10) (Polygon
-            [ Vec2 0.387   340.156
-            , Vec2 113.773 170.078
-            , Vec2 0.387   0
-            , Vec2 85.426  0
-            , Vec2 312.195 340.156
-            , Vec2 227.156 340.156
-            , Vec2 156.293 233.859
-            , Vec2 85.426  340.156
-            , Vec2 0.387   340.156 ])
-    billard (polygonEdges lambda) (Vec2 100 100) (deg 25) 128 )
+    lambdaTable = do
+        let lambda = move (Vec2 10 10) (Polygon
+                [ Vec2 0.387   340.156
+                , Vec2 113.773 170.078
+                , Vec2 0.387   0
+                , Vec2 85.426  0
+                , Vec2 312.195 340.156
+                , Vec2 227.156 340.156
+                , Vec2 156.293 233.859
+                , Vec2 85.426  340.156
+                , Vec2 0.387   340.156 ])
+        billard (polygonEdges lambda) (Vec2 100 100) (deg 25) 128
+
+    brokenTable = do
+        let tableVertices = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
+            table = zipWith Line tableVertices (tail tableVertices)
+        translate 50 10
+        billard table (Vec2 20 20) (deg 60) 1000
 
 billard :: [Line] -> Vec2 -> Angle -> Int -> Render ()
 billard table startPoint startAngle numReflections = do
@@ -68,10 +75,3 @@ billard table startPoint startAngle numReflections = do
     for_ billardArrows (\arr -> do
         lineSketch arr
         stroke )
-
-testBrokenTable :: IO ()
-testBrokenTable = renderAllFormats 160 120 "test/out/billard_broken_table" (do
-    let tableVertices = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
-        table = zipWith Line tableVertices (tail tableVertices)
-    translate 50 10
-    billard table (Vec2 20 20) (deg 60) 1000 )
