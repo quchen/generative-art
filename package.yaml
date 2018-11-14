@@ -19,6 +19,7 @@ dependencies:
     - base >= 4.7 && < 5
     - cairo
     - colour
+    - containers
 
 ghc-options:
     - -Wall

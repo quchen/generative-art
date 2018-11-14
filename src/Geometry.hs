@@ -62,10 +62,13 @@ module Geometry (
 
 
 
-import Control.Monad
-import Data.Fixed
-import Data.List
-import Text.Printf
+import           Control.Monad
+import           Data.Fixed
+import           Data.List
+import           Data.Map      (Map)
+import qualified Data.Map      as M
+import           Data.Ord
+import           Text.Printf
 
 
 
@@ -178,6 +181,9 @@ deg degrees = Angle (degrees / 360 * 2 * pi)
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
+
+vectorOf :: Line -> Vec2
+vectorOf (Line start end) = end `subtractVec2` start
 
 -- | Angle of a single line, relative to the x axis.
 angleOfLine :: Line -> Angle
@@ -341,8 +347,7 @@ isConvex (Polygon ps)
     -- easy to calculate via a determinant.
   = let angleDotProducts = zipWith3
             (\p q r ->
-                let vectorOf (Line start end) = end `subtractVec2` start
-                    lineBeforeAngle = Line p q
+                let lineBeforeAngle = Line p q
                     lineAfterAngle  = Line q r
                 in det (vectorOf lineBeforeAngle) (vectorOf lineAfterAngle) )
             ps
@@ -354,34 +359,101 @@ isConvex (Polygon ps)
         allSameSign xs = all (\p -> signum p == signum (head xs)) xs
     in allSameSign angleDotProducts
 
+-- | Used in the implementation of a multimap where each entry can have one or
+-- two values.
+data OneOrTwo a = One a | Two a a
+
+-- | Used to keep track of whether a) another cut point was already reached and
+-- the next cut point will finish a polygon, or b) whether the next cut point
+-- will mark the beginning of a different polygon.
+data CutState = NoCutActive | CutActive Vec2
+
 -- | Cut a polygon in multiple pieces with a line.
---
--- Algorithm inspired by https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cutPolygon :: Line -> Polygon -> [Polygon]
-cutPolygon scissors polygon
-  = let extendedPolygon :: [CutLine]
-        extendedPolygon = map (cutLine scissors) (polygonEdges polygon)
+cutPolygon = \scissors polygon ->
+    reconstructPolygons
+        (gatherAllEdges
+            (rotateToOutermostCut
+                (cutAllEdges scissors polygon)))
+  where
 
-        isCut Cut{} = True
-        isCut NoCut{} = False
+    -- Generate a list of all the edges of a polygon, extended with additional
+    -- points on the edges that are crossed by the scissors.
+    cutAllEdges :: Line -> Polygon -> [CutLine]
+    cutAllEdges scissors polygon = map (cutLine scissors) (polygonEdges polygon)
 
-        rotateToFirstSource :: [CutLine] -> [CutLine]
-        rotateToFirstSource cuts = zipWith const
-            (dropWhile (not . isCut) (cycle cuts))
-            (undefined : cuts)
+    -- In order to start at a cut point that starts (not finalizes) a polygon,
+    -- it is important we start at a point that is at the beginning or end of
+    -- the cutting line. We arbitrarily choose the maximum here, but the minimum
+    -- would do just as well.
+    rotateToOutermostCut :: [CutLine] -> [CutLine]
+    rotateToOutermostCut cutLines
+      = let outermost :: CutLine
+            -- We use cutP•cutP instead of norm here so this works with rational
+            -- numbers just as well as it does for Doubles. :-)
+            outermost = snd (maximumBy (comparing fst) [(dotProduct cutP cutP, cut) | cut@(Cut _ cutP _) <- cutLines])
+        in zipWith const
+            (dropWhile (/= outermost) (cutLines ++ cutLines))
+            cutLines
 
-        -- Cut: Finalize current polygon, start a new one
-        walk (Polygon corners) (Cut p q r : rest)
-          = Polygon (reverse (q:p:corners)) : walk (Polygon []) (NoCut q r : rest)
+    -- A polygon can be described by an adjacency list of corners to the next
+    -- corner. A cut simply introduces two new corners (of polygons to be) that
+    -- point to each other.
+    gatherAllEdges :: [CutLine] -> Map Vec2 (OneOrTwo Vec2)
+    gatherAllEdges = go NoCutActive
+      where
+        go :: CutState -> [CutLine] -> Map Vec2 (OneOrTwo Vec2)
+        go NoCutActive (Cut p sourceCut q : rest)
+          = ((p --> sourceCut) . (sourceCut --> q))
+            (go (CutActive sourceCut) rest)
+        go (CutActive sourceCut) (Cut p targetCut q : rest)
+          = ((p --> targetCut) . (targetCut --> q) . (sourceCut --> targetCut) . (targetCut --> sourceCut))
+            (go NoCutActive rest)
 
-        -- No cut: extend current polygon
-        walk (Polygon corners) (NoCut p _ : rest)
-          = walk (Polygon (p:corners)) rest
+        go lastCut (NoCut p q : rest)
+          = (p --> q) (go lastCut rest)
 
         -- Out of potential cuts, terminate
-        walk _ [] = []
+        go NoCutActive [] = M.empty
+        go (CutActive _) [] = error "Unpaired cut edge in polygon cutting\
+                                    \ algorithm, should never happen! Please\
+                                    \ report this as a bug."
 
-    in walk (Polygon []) (rotateToFirstSource extendedPolygon)
+    -- Insert a value into a (1 to 2) multimap.
+    (-->) :: Ord k => k -> v -> Map k (OneOrTwo v) -> Map k (OneOrTwo v)
+    (k --> v) db = case M.lookup k db of
+        Nothing       -> M.insert k (One v) db
+        Just (One v') -> M.insert k (Two v v') db
+        Just Two{}    -> error "Third edge in cutting algorithm, should never\
+                               \ happen! Please report this as a bug."
+
+    -- Given a list of corners that point to other corners, we can reconstruct
+    -- all the polygons described by them by finding the smallest cycles, i.e.
+    -- cycles that do not contain other (parts of the) adjacency map.
+    --
+    -- Starting at an arbitrary point, we can extract a single polygon by
+    -- following such a minimal cycle; iterating this algorithm until the entire
+    -- map has been consumed yields all the polygons.
+    reconstructPolygons :: Map Vec2 (OneOrTwo Vec2) -> [Polygon]
+    reconstructPolygons = \edgeGraph -> case M.lookupMin edgeGraph of
+            Nothing -> []
+            Just (edgeStart, _end) ->
+                let (poly, edgeGraph') = extractSinglePolygon [] edgeStart edgeGraph
+                in poly : reconstructPolygons edgeGraph'
+      where
+        extractSinglePolygon :: [Vec2] -> Vec2 -> Map Vec2 (OneOrTwo Vec2) -> (Polygon, Map Vec2 (OneOrTwo Vec2))
+        extractSinglePolygon cornersSoFar pivot edgeGraph = case M.lookup pivot edgeGraph of
+            Nothing              -> (Polygon (reverse cornersSoFar), edgeGraph)
+            Just (One end)       -> extractSinglePolygon (pivot:cornersSoFar) end (M.delete pivot edgeGraph)
+            Just (Two end1 end2) ->
+                let endAtSmallestAngle = case cornersSoFar of
+                        [] -> end1 -- arbitrary starting point
+                        from:_ -> let colinearity = \end -> dotProduct (vectorOf (Line from pivot)) (vectorOf (Line pivot end))
+                                  in minimumBy (comparing colinearity) (filter (/= from) [end1, end2])
+                    edgeGraph'
+                        | endAtSmallestAngle == end1 = M.insert pivot (One end2) edgeGraph
+                        | otherwise                  = M.insert pivot (One end1) edgeGraph
+                in extractSinglePolygon (pivot:cornersSoFar) endAtSmallestAngle edgeGraph'
 
 data CutLine
     = NoCut Vec2 Vec2

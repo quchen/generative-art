@@ -103,7 +103,7 @@ cutComplicatedPolygon = do
             , Vec2 40 0
             , Vec2 0 20
             , Vec2 (-60) 0 ])
-        scissors = centerLine (angledLine (Vec2 (60/2) (80/2)) (deg 140) (Distance 150))
+        scissors = centerLine (angledLine (Vec2 (60/2) (60/2)) (deg 130) (Distance 150))
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw scissors (move (Vec2 (-100) 0) polygon : cutResult)
