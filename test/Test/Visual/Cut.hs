@@ -31,7 +31,7 @@ cutLineDrawing :: Render ()
 cutLineDrawing = do
     let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
         scissors = perpendicularBisector paper
-        Cut paperL p paperR = cutLine scissors paper
+        Cut paperStart p paperEnd = cutLine scissors paper
 
     setLineWidth 1
     hsva 0 0 0 1
@@ -42,10 +42,10 @@ cutLineDrawing = do
 
     setLineWidth 3
     mmaColor 0 1
-    lineSketch paperL
+    lineSketch (Line paperStart p)
     stroke
     mmaColor 3 1
-    lineSketch paperR
+    lineSketch (Line p paperEnd)
     stroke
 
     mmaColor 1 1

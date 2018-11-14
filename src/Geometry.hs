@@ -371,22 +371,24 @@ cutPolygon scissors polygon
             (undefined : cuts)
 
         -- Cut: Finalize current polygon, start a new one
-        walk (Polygon corners) (Cut _ cutPoint _ : rest) = Polygon (cutPoint:corners) : walk (Polygon [cutPoint]) rest
+        walk (Polygon corners) (Cut p q r : rest)
+          = Polygon (reverse (q:p:corners)) : walk (Polygon [q]) rest
+
         -- No cut: extend current polygon
-        walk (Polygon corners) (NoCut (Line p q) : rest) = walk (Polygon (q:p:corners)) rest
+        walk (Polygon corners) (NoCut p _ : rest)
+          = walk (Polygon (p:corners)) rest
+
         -- Out of potential cuts, terminate
         walk _ [] = []
 
     in walk (Polygon []) (rotateToFirstSource extendedPolygon)
 
 data CutLine
-    = NoCut Line
-        -- ^ No cut has occurred, i.e. the cutting line did not intersect with
-        -- the object.
-    | Cut Line Vec2 Line
-        -- ^ The input was divided in two lines at the point indicated. The
-        -- beginning and the end of the respective lines are identical to the
-        -- point, which is redundantly returned for convenience.
+    = NoCut Vec2 Vec2
+        -- ^ (start, end). No cut has occurred, i.e. the cutting line did not
+        -- intersect with the object.
+    | Cut Vec2 Vec2 Vec2
+        -- ^ (start, cut, end). The input was divided in two lines.
     deriving (Eq, Ord, Show)
 
 -- | Cut a finite piece of paper in one or two parts with an infinite line
@@ -398,8 +400,8 @@ cutLine scissors paper = case intersectionLL scissors paper of
     (_, IntersectionVirtual)        -> noCut
   where
     Line paperStart paperEnd = paper
-    cut p = Cut (Line paperStart p) p (Line p paperEnd)
-    noCut = NoCut paper
+    cut p = Cut paperStart p paperEnd
+    noCut = NoCut paperStart paperEnd
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.
