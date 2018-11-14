@@ -80,11 +80,11 @@ perpendicularLineThroughTest = do
 
 pointInPolygonTest :: Render ()
 pointInPolygonTest = do
-    let polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+    let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
 
     setLineWidth 1
-    polygonSketch polygon
+    polygonSketch square
     mmaColor 0 1
     strokePreserve
     mmaColor 0 0.1
@@ -93,7 +93,7 @@ pointInPolygonTest = do
     mmaColor 1 1
     for_ points (\point -> do
         circleSketch point (Distance 3)
-        if pointInPolygon point polygon
+        if pointInPolygon point square
             then fill
             else stroke )
 

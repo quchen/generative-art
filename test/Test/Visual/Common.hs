@@ -2,6 +2,7 @@
 
 module Test.Visual.Common
     ( arrowSketch
+    , arrowHead
     , angleSketch
     , renderAllFormats
     , hsva

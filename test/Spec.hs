@@ -10,6 +10,7 @@ import Control.Exception
 
 import qualified Test.Properties
 import qualified Test.Visual.Billard
+import qualified Test.Visual.Cut
 import qualified Test.Visual.IntersectionLL
 import qualified Test.Visual.Mirror
 import qualified Test.Visual.Reflection
@@ -34,6 +35,7 @@ tests = testGroup "Test suite"
         , Test.Visual.IntersectionLL.tests
         , Test.Visual.Mirror.tests
         , Test.Visual.Reflection.tests
+        , Test.Visual.Cut.tests
         ]
     ]
 

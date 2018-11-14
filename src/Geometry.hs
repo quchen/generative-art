@@ -26,6 +26,8 @@ module Geometry (
     , perpendicularLineThrough
     , LLIntersection(..)
     , intersectionLL
+    , cutLine
+    , CutLine(..)
 
     -- ** Polygons
     , Polygon(..)
@@ -36,6 +38,7 @@ module Geometry (
     , polygonArea
     , isConvex
     , polygonEdges
+    , cutPolygon
 
     -- ** Angles
     , Angle(..)
@@ -352,10 +355,51 @@ isConvex (Polygon ps)
     in allSameSign angleDotProducts
 
 -- | Cut a polygon in multiple pieces with a line.
-cutPolygon :: Polygon -> Line -> [Polygon]
-cutPolygon = error "TODO! See https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/"
-    -- This could be useful to shatter polygons into multiple pieces for a nice
-    -- effect.
+--
+-- Algorithm inspired by https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
+cutPolygon :: Line -> Polygon -> [Polygon]
+cutPolygon scissors polygon
+  = let extendedPolygon :: [CutLine]
+        extendedPolygon = map (cutLine scissors) (polygonEdges polygon)
+
+        isCut Cut{} = True
+        isCut NoCut{} = False
+
+        rotateToFirstSource :: [CutLine] -> [CutLine]
+        rotateToFirstSource cuts = zipWith const
+            (dropWhile (not . isCut) (cycle cuts))
+            (undefined : cuts)
+
+        -- Cut: Finalize current polygon, start a new one
+        walk (Polygon corners) (Cut _ cutPoint _ : rest) = Polygon (cutPoint:corners) : walk (Polygon [cutPoint]) rest
+        -- No cut: extend current polygon
+        walk (Polygon corners) (NoCut (Line p q) : rest) = walk (Polygon (q:p:corners)) rest
+        -- Out of potential cuts, terminate
+        walk _ [] = []
+
+    in walk (Polygon []) (rotateToFirstSource extendedPolygon)
+
+data CutLine
+    = NoCut Line
+        -- ^ No cut has occurred, i.e. the cutting line did not intersect with
+        -- the object.
+    | Cut Line Vec2 Line
+        -- ^ The input was divided in two lines at the point indicated. The
+        -- beginning and the end of the respective lines are identical to the
+        -- point, which is redundantly returned for convenience.
+    deriving (Eq, Ord, Show)
+
+-- | Cut a finite piece of paper in one or two parts with an infinite line
+cutLine :: Line -> Line -> CutLine
+cutLine scissors paper = case intersectionLL scissors paper of
+    (p, IntersectionReal)           -> cut p
+    (p, IntersectionVirtualInsideR) -> cut p
+    (_, IntersectionVirtualInsideL) -> noCut
+    (_, IntersectionVirtual)        -> noCut
+  where
+    Line paperStart paperEnd = paper
+    cut p = Cut (Line paperStart p) p (Line p paperEnd)
+    noCut = NoCut paper
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.
