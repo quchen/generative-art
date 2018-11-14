@@ -4,11 +4,11 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5762fdc5dc5055bb71e9d864f01e240316d149657c4dfc09e20d5218d98b98a0
+-- hash: 2b8257f055b8ddb43b480ad09a837a96632f57355f9a0cedd4df65cf12182c68
 
 name:           generative-art
 version:        0.1.0.0
-description:    Generative art using Haskell.
+description:    Generative art using Haskell. See README.md.
 homepage:       https://github.com/quchen/generative-art#readme
 bug-reports:    https://github.com/quchen/generative-art/issues
 author:         David »quchen« Luposchainsky – dluposchainsky (λ) gmail
