@@ -53,8 +53,10 @@ tests:
             - -Wall
         dependencies:
             - generative-art
+
             - cairo
+            - process
+            - QuickCheck
             - tasty
             - tasty-hunit
             - tasty-quickcheck
-            - QuickCheck

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9b7105593f8123ea904dab1908038f503c20868124670bc194163556af750df1
+-- hash: 5762fdc5dc5055bb71e9d864f01e240316d149657c4dfc09e20d5218d98b98a0
 
 name:           generative-art
 version:        0.1.0.0
@@ -74,6 +74,7 @@ test-suite generative-art-test
     , cairo
     , colour
     , generative-art
+    , process
     , tasty
     , tasty-hunit
     , tasty-quickcheck
