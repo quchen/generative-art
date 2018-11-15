@@ -4,9 +4,9 @@ module Main (main) where
 
 
 
-import System.Process
-import System.Exit
 import Control.Exception
+import System.Exit
+import System.Process
 
 import qualified Test.Properties
 import qualified Test.Visual.Billard
