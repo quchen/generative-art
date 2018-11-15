@@ -25,7 +25,7 @@ cutTest = renderAllFormats 230 380 "test/out/cut" (do
     cutSquareDrawing
     translate 0 110
     cutComplicatedPolygon
-    -- cutMissesPolygon
+    cutMissesPolygon
     )
 
 cutLineDrawing :: Render ()

@@ -377,6 +377,10 @@ data OneOrTwo a = One a | Two a a
 data CutState = NoCutActive | CutActive Vec2
 
 -- | Cut a polygon in multiple pieces with a line.
+--
+-- For convex polygons, the result is either just the polygon (if the line
+-- misses) or two pieces. Concave polygons can in general be divided in
+-- arbitrarily many pieces.
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon = \scissors polygon ->
     reconstructPolygons
@@ -396,13 +400,15 @@ cutPolygon = \scissors polygon ->
     -- would do just as well.
     rotateToOutermostCut :: [CutLine] -> [CutLine]
     rotateToOutermostCut cutLines
-      = let outermost :: CutLine
-            -- We use cutP•cutP instead of norm here so this works with rational
+      = let -- We use cutP•cutP instead of norm here so this works with rational
             -- numbers just as well as it does for Doubles. :-)
-            outermost = snd (maximumBy (comparing fst) [(dotProduct cutP cutP, cut) | cut@(Cut _ cutP _) <- cutLines])
-        in zipWith const
-            (dropWhile (/= outermost) (cutLines ++ cutLines))
-            cutLines
+            cuts = [(dotProduct cutP cutP, cut) | cut@(Cut _ cutP _) <- cutLines]
+        in if null cuts
+            then []
+            else let outermost = snd (maximumBy (comparing fst) cuts)
+                 in zipWith const
+                        (dropWhile (/= outermost) (cutLines ++ cutLines))
+                        cutLines
 
     -- A polygon can be described by an adjacency list of corners to the next
     -- corner. A cut simply introduces two new corners (of polygons to be) that
