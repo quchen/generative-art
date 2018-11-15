@@ -182,6 +182,9 @@ deg degrees = Angle (degrees / 360 * 2 * pi)
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
 
+-- | Directional vector of a line, i.e. the vector pointing from start to end.
+-- The norm of the vector is the length of the line. Use 'normalizeLine' to make
+-- it unit length.
 vectorOf :: Line -> Vec2
 vectorOf (Line start end) = end `subtractVec2` start
 
@@ -201,16 +204,21 @@ angledLine start angle (Distance len) = Line start end
     end = rotateAround start angle (start `addVec2` Vec2 len 0)
 
 lineLength :: Line -> Distance
-lineLength (Line start end) = norm (end `subtractVec2` start)
+lineLength = norm . vectorOf
 
 -- | Resize a line, keeping the starting point.
 resizeLine :: Line -> (Distance -> Distance) -> Line
 resizeLine line@(Line start _end) f
-  = angledLine start (angleOfLine line) (f (lineLength line))
+  = let v = vectorOf line
+        len@(Distance d) = norm v
+        Distance d' = f len
+        v' = mulVec2 (d'/d) v
+        end' = start `addVec2` v'
+    in Line start end'
 
 -- | Resize a line, extending in both directions.
 resizeLineSymmetric :: Line -> (Distance -> Distance) -> Line
-resizeLineSymmetric line f = centerLine (resizeLine line f )
+resizeLineSymmetric line f = centerLine (resizeLine line f)
 
 -- | Move the line so that its center is where the start used to be.
 --
@@ -225,7 +233,7 @@ centerLine line@(Line start end) = move delta line
 normalizeLine :: Line -> Line
 normalizeLine line = resizeLine line (const (Distance 1))
 
--- | Switch defining points of a line
+-- | Switch defining points of a line.
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
@@ -556,10 +564,8 @@ billardProcess edges = go (const True)
                 in reflectionStart : go (/= edgeReflectedOn) reflectionRay
 
     liesAheadOf :: Vec2 -> Line -> Bool
-    liesAheadOf p ray@(Line rayStart _)
-      = let ray2 = Line rayStart p
-            Angle angle = angleBetween ray ray2
-        in cos angle > 0
+    liesAheadOf point (Line rayStart rayEnd)
+      = dotProduct (subtractVec2 point rayStart) (subtractVec2 rayEnd rayStart) > 0
 
     distanceFrom :: Vec2 -> Vec2 -> Vec2 -> Ordering
     distanceFrom start p q

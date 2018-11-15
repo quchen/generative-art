@@ -18,7 +18,8 @@ tests :: TestTree
 tests = testGroup "Properties"
     [ angleBetweenTest
     , areaTest
-    , intersectionLLTest ]
+    , intersectionLLTest
+    , lengthOfAngledLine ]
 
 newtype Tolerance = Tolerance Double
 
@@ -91,3 +92,14 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
     dist = fmap Distance (choose (-100, 100))
+
+lengthOfAngledLine :: TestTree
+lengthOfAngledLine = testProperty "Length of angled line" (forAll
+    ((,,) <$> vec2 <*> arbitrary <*> arbitrary)
+    (\(start, angle, Positive len) ->
+        let Distance actual = lineLength (angledLine start angle (Distance len))
+            expected = len
+        in actual ~== expected ))
+  where
+    coord = choose (-100, 100 :: Double)
+    vec2 = liftA2 Vec2 coord coord
