@@ -25,6 +25,7 @@ cutTest = renderAllFormats 230 380 "test/out/cut" (do
     cutSquareDrawing
     translate 0 110
     cutComplicatedPolygon
+    -- cutMissesPolygon
     )
 
 cutLineDrawing :: Render ()
@@ -112,3 +113,10 @@ cutComplicatedPolygon = do
     setFontSize 12
     moveTo (-10) 100
     showText (show (length cutResult) ++ " polygons")
+
+cutMissesPolygon :: Render ()
+cutMissesPolygon = do
+    let scissors = Line (Vec2 0 100) (Vec2 10 100)
+        square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+        cutResult = cutPolygon scissors square
+    cutResult `seq` pure ()
