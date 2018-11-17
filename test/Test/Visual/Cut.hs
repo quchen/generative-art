@@ -15,21 +15,19 @@ import Test.Visual.Common
 
 
 tests :: TestTree
-tests = testCase "Cut my line into pieces" cutTest
+tests = testGroup "Cutting things"
+    [ testCase "Cut my line into pieces" lineTest
+    , testCase "Convex polygon" cutSquareDrawingTest
+    , testCase "Concave polygon" complicatedPolygonTest
+    , testCase "Cut misses polygon" cutMissesPolygonTest
+    ]
 
-cutTest :: IO ()
-cutTest = renderAllFormats 230 380 "test/out/cut" (do
-    translate 10 40
-    cutLineDrawing
-    translate 120 110
-    cutSquareDrawing
-    translate 0 110
-    cutComplicatedPolygon
-    cutMissesPolygon
-    )
+lineTest :: IO ()
+lineTest = renderAllFormats 220 100 "test/out/cut_1_line" cutLineDrawing
 
 cutLineDrawing :: Render ()
 cutLineDrawing = do
+    translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
         scissors = perpendicularBisector paper
         Cut paperStart p paperEnd = cutLine scissors paper
@@ -81,8 +79,12 @@ polyCutDraw scissors cutResults = do
         fill
         )
 
+cutSquareDrawingTest :: IO ()
+cutSquareDrawingTest = renderAllFormats 170 90 "test/out/cut_2_square" cutSquareDrawing
+
 cutSquareDrawing :: Render ()
 cutSquareDrawing = do
+    translate 90 10
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
         cutResult = cutPolygon scissors square
@@ -93,9 +95,13 @@ cutSquareDrawing = do
     moveTo (-10) 70
     showText (show (length cutResult) ++ " polygons")
 
+complicatedPolygonTest :: IO ()
+complicatedPolygonTest = renderAllFormats 230 130 "test/out/cut_3_complicated" cutComplicatedPolygon
+
 cutComplicatedPolygon :: Render ()
 cutComplicatedPolygon = do
-    let polygon = move (Vec2 35 35) (spiral 9)
+    translate 170 60
+    let polygon = spiral 9
         spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
           where
             instructions = concat [ zip [1..n] (repeat turnLeft)
@@ -109,19 +115,24 @@ cutComplicatedPolygon = do
                 go ((len, rotate) : rest) direction = mulVec2 (10*len) direction : go rest (rotate direction)
             turnLeft  (Vec2 x y) = Vec2   y  (-x)
             turnRight (Vec2 x y) = Vec2 (-y)   x
-        scissors = centerLine (angledLine (Vec2 (60/2) (60/2)) (deg 140) (Distance 150))
+        scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw scissors (move (Vec2 (-100) 0) polygon : cutResult)
+    polyCutDraw scissors (move (Vec2 (-120) 0) polygon : cutResult)
 
     mmaColor 1 1
     setFontSize 12
-    moveTo (-10) 100
+    moveTo (-40) 60
     showText (show (length cutResult) ++ " polygons")
+
+cutMissesPolygonTest :: IO ()
+cutMissesPolygonTest = renderAllFormats 130 90 "test/out/cut_4_miss" cutMissesPolygon
 
 cutMissesPolygon :: Render ()
 cutMissesPolygon = do
-    let scissors = Line (Vec2 0 100) (Vec2 10 100)
-        square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
-        cutResult = cutPolygon scissors square
-    cutResult `seq` pure ()
+    translate 70 10
+    let scissors = Line (Vec2 0 70) (Vec2 50 60)
+        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+        cutResult = cutPolygon scissors polygon
+
+    polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
