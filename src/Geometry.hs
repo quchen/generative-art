@@ -371,11 +371,6 @@ isConvex (Polygon ps)
 -- two values.
 data OneOrTwo a = One a | Two a a
 
--- | Used to keep track of whether a) another cut point was already reached and
--- the next cut point will finish a polygon, or b) whether the next cut point
--- will mark the beginning of a different polygon.
-data CutState = NoCutActive | CutActive Vec2
-
 -- | Cut a polygon in multiple pieces with a line.
 --
 -- For convex polygons, the result is either just the polygon (if the line
@@ -385,50 +380,41 @@ cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon = \scissors polygon ->
     reconstructPolygons
         (edgeMap scissors
-            (cutAllEdges scissors polygon))
+            (cutAll scissors
+                (polygonEdges polygon)))
   where
 
     -- Generate a list of all the edges of a polygon, extended with additional
     -- points on the edges that are crossed by the scissors.
-    cutAllEdges :: Line -> Polygon -> [CutLine]
-    cutAllEdges scissors polygon = map (cutLine scissors) (polygonEdges polygon)
-
-    cutPoints allCuts = [ p | Cut _ p _ <- allCuts ]
-    cutPointsSorted scissors allCuts = sortBy (comparing (inDirectionOf scissors)) (cutPoints allCuts)
-
-    inDirectionOf :: Line -> Vec2 -> Double
-    inDirectionOf scissors@(Line start _) p = dotProduct (vectorOf scissors) (vectorOf (Line start p))
+    cutAll :: Line -> [Line] -> [CutLine]
+    cutAll scissors edges = map (cutLine scissors) edges
 
     edgeMap :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2)
     edgeMap scissors allCuts = (newCutsEdgeMapBuilder scissors allCuts . polygonEdgeMapBuilder allCuts) M.empty
 
     newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
-    newCutsEdgeMapBuilder scissors allCuts = go (cutPointsSorted scissors allCuts)
+    newCutsEdgeMapBuilder scissors@(Line scissorsStart _) cuts = go cutPointsSorted
       where
         go (p:q:rest) = (p --> q) . (q --> p) . go rest
         go _ = id
+
+        cutPointsSorted :: [Vec2]
+        cutPointsSorted = sortBy (comparing scissorCoordinate) [ p | Cut _ p _ <- cuts ]
+
+        -- How far ahead/behind the start of the line is the point?
+        --
+        -- In mathematical terms, this yields the coordinate of a point in the
+        -- 1-dimensional vector space that is the scissors line.
+        scissorCoordinate :: Vec2 -> Double
+        scissorCoordinate p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
 
     -- A polygon can be described by an adjacency list of corners to the next
     -- corner. A cut simply introduces two new corners (of polygons to be) that
     -- point to each other.
     polygonEdgeMapBuilder :: [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
-    polygonEdgeMapBuilder = go
-      where
-        go :: [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
-        go (Cut p sourceCut q : rest)
-          = (p --> sourceCut)
-            . (sourceCut --> q)
-            . go rest
-        go (Cut p targetCut q : rest)
-          = (p --> targetCut)
-            . (targetCut --> q)
-            . go rest
-        go (NoCut p q : rest)
-          = (p --> q) . go rest
-        go [] = id
-        go [] = error "Unpaired cut edge in polygon cutting\
-                                    \ algorithm, should never happen! Please\
-                                    \ report this as a bug."
+    polygonEdgeMapBuilder (Cut p sourceCut q : rest) = (p --> sourceCut) . (sourceCut --> q) . polygonEdgeMapBuilder rest
+    polygonEdgeMapBuilder (NoCut p q : rest) = (p --> q) . polygonEdgeMapBuilder rest
+    polygonEdgeMapBuilder [] = id
 
     -- Insert a value into a (1 to 2) multimap.
     (-->) :: Ord k => k -> v -> Map k (OneOrTwo v) -> Map k (OneOrTwo v)
