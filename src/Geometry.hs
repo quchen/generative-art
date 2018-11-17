@@ -68,7 +68,6 @@ import           Data.List
 import           Data.Map      (Map)
 import qualified Data.Map      as M
 import           Data.Ord
-import           Data.Set      (Set)
 import qualified Data.Set      as S
 import           Text.Printf
 
@@ -446,29 +445,34 @@ cutPolygon = \scissors polygon ->
     reconstructPolygons = \edgeGraph -> case M.lookupMin edgeGraph of
         Nothing -> []
         Just (edgeStart, _end) ->
-            let (poly, edgeGraph') = extractSinglePolygon [] S.empty edgeStart edgeGraph
+            let (poly, edgeGraph') = extractSinglePolygon Nothing S.empty edgeStart edgeGraph
             in poly : reconstructPolygons edgeGraph'
       where
-        extractSinglePolygon cornersSoFar visited pivot edgeGraph
+        extractSinglePolygon lastPivot visited pivot edgeGraph
           = case M.lookup pivot edgeGraph of
                 _ | S.member pivot visited
-                                       -> (Polygon (reverse cornersSoFar), edgeGraph)
-                Nothing                -> (Polygon (reverse cornersSoFar), edgeGraph)
-                Just (One next)        -> extractSinglePolygon (pivot:cornersSoFar)
-                                                               (S.insert pivot visited)
-                                                               next
-                                                               (M.delete pivot edgeGraph)
+                                       -> (Polygon [], edgeGraph)
+                Nothing                -> (Polygon [], edgeGraph)
+                Just (One next)        ->
+                    let (Polygon rest, edgeGraph') = extractSinglePolygon
+                            (Just pivot)
+                            (S.insert pivot visited)
+                            next
+                            (M.delete pivot edgeGraph)
+                    in (Polygon (pivot:rest), edgeGraph')
                 Just (Two next1 next2) ->
-                    let endAtSmallestAngle = case cornersSoFar of
-                            [] -> next1 -- arbitrary starting point WLOG
-                            from:_ -> let forwardness end = dotProduct (direction (Line from pivot))
-                                                                       (direction (Line pivot end))
+                    let endAtSmallestAngle = case lastPivot of
+                            Nothing -> next1 -- arbitrary starting point WLOG
+                            Just from -> let forwardness end = dotProduct (direction (Line from pivot))
+                                                                          (direction (Line pivot end))
                                       in minimumBy (comparing forwardness) (filter (/= from) [next1, next2])
                         unusedNext = if endAtSmallestAngle == next1 then next2 else next1
-                        edgeGraph' = M.insert pivot (One unusedNext) edgeGraph
-                        visited' = S.insert pivot visited
-                        corners' = pivot:cornersSoFar
-                    in extractSinglePolygon corners' visited' endAtSmallestAngle edgeGraph'
+                        (Polygon rest, edgeGraph') = extractSinglePolygon
+                            (Just pivot)
+                            (S.insert pivot visited)
+                            endAtSmallestAngle
+                            (M.insert pivot (One unusedNext) edgeGraph)
+                    in (Polygon (pivot:rest), edgeGraph')
 
 data CutLine
     = NoCut Vec2 Vec2
