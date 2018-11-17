@@ -3,7 +3,7 @@ module Test.Visual.Cut (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (x,y,rotate)
+import Graphics.Rendering.Cairo hiding (rotate, x, y)
 
 import Draw
 import Geometry
@@ -95,30 +95,21 @@ cutSquareDrawing = do
 
 cutComplicatedPolygon :: Render ()
 cutComplicatedPolygon = do
-    let polygon = Polygon (scanl addVec2 (Vec2 0 0)
-            [ Vec2 60 0
-            , Vec2 0 40
-            , Vec2 (-20) 0
-            , Vec2 0 (-20)
-            , Vec2 (-20) 0
-            , Vec2 0 40
-            , Vec2 40 0
-            , Vec2 0 20
-            , Vec2 (-60) 0 ])
-        -- spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
-        --   where
-        --     instructions = concat [ zip [1..n] (repeat turnLeft)
-        --                           , [(1, turnLeft)]
-        --                           , [(n-1, turnRight)]
-        --                           , zip [n-3, n-4 .. 1] (repeat turnRight)
-        --                           ]
-        --     relativeSpiral = go instructions (Vec2 1 0)
-        --       where
-        --         go [] _dir = []
-        --         go ((len, rotate) : rest) direction = mulVec2 (10*len) direction : go rest (rotate direction)
-        --     turnLeft  (Vec2 x y) = Vec2   y  (-x)
-        --     turnRight (Vec2 x y) = Vec2 (-y)   x
-        scissors = centerLine (angledLine (Vec2 (60/2) (60/2)) (deg 130) (Distance 150))
+    let polygon = move (Vec2 35 35) (spiral 9)
+        spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
+          where
+            instructions = concat [ zip [1..n] (repeat turnLeft)
+                                  , [(1, turnLeft)]
+                                  , [(n-1, turnRight)]
+                                  , zip [n-3, n-4 .. 1] (repeat turnRight)
+                                  ]
+            relativeSpiral = go instructions (Vec2 1 0)
+              where
+                go [] _dir = []
+                go ((len, rotate) : rest) direction = mulVec2 (10*len) direction : go rest (rotate direction)
+            turnLeft  (Vec2 x y) = Vec2   y  (-x)
+            turnRight (Vec2 x y) = Vec2 (-y)   x
+        scissors = centerLine (angledLine (Vec2 (60/2) (60/2)) (deg 140) (Distance 150))
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw scissors (move (Vec2 (-100) 0) polygon : cutResult)
