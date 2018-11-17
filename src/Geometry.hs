@@ -446,16 +446,18 @@ cutPolygon = \scissors polygon ->
     reconstructPolygons = \edgeGraph -> case M.lookupMin edgeGraph of
         Nothing -> []
         Just (edgeStart, _end) ->
-            let (poly, edgeGraph') = extractSinglePolygon [] edgeStart S.empty edgeGraph
+            let (poly, edgeGraph') = extractSinglePolygon [] S.empty edgeStart edgeGraph
             in poly : reconstructPolygons edgeGraph'
       where
-        extractSinglePolygon :: [Vec2] -> Vec2 -> Set Vec2 -> Map Vec2 (OneOrTwo Vec2) -> (Polygon, Map Vec2 (OneOrTwo Vec2))
-        extractSinglePolygon cornersSoFar pivot pointsVisited edgeGraph
+        extractSinglePolygon cornersSoFar visited pivot edgeGraph
           = case M.lookup pivot edgeGraph of
-                _ | S.member pivot pointsVisited
+                _ | S.member pivot visited
                                        -> (Polygon (reverse cornersSoFar), edgeGraph)
                 Nothing                -> (Polygon (reverse cornersSoFar), edgeGraph)
-                Just (One next)        -> extractSinglePolygon (pivot:cornersSoFar) next (S.insert pivot pointsVisited) (M.delete pivot edgeGraph)
+                Just (One next)        -> extractSinglePolygon (pivot:cornersSoFar)
+                                                               (S.insert pivot visited)
+                                                               next
+                                                               (M.delete pivot edgeGraph)
                 Just (Two next1 next2) ->
                     let endAtSmallestAngle = case cornersSoFar of
                             [] -> next1 -- arbitrary starting point WLOG
@@ -464,7 +466,9 @@ cutPolygon = \scissors polygon ->
                                       in minimumBy (comparing forwardness) (filter (/= from) [next1, next2])
                         unusedNext = if endAtSmallestAngle == next1 then next2 else next1
                         edgeGraph' = M.insert pivot (One unusedNext) edgeGraph
-                    in extractSinglePolygon (pivot:cornersSoFar) endAtSmallestAngle (S.insert pivot pointsVisited) edgeGraph'
+                        visited' = S.insert pivot visited
+                        corners' = pivot:cornersSoFar
+                    in extractSinglePolygon corners' visited' endAtSmallestAngle edgeGraph'
 
 data CutLine
     = NoCut Vec2 Vec2
