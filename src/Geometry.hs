@@ -384,9 +384,8 @@ data CutState = NoCutActive | CutActive Vec2
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon = \scissors polygon ->
     reconstructPolygons
-        (gatherAllEdges
-            (rotateToOutermostCut
-                (cutAllEdges scissors polygon)))
+        (edgeMap scissors
+            (cutAllEdges scissors polygon))
   where
 
     -- Generate a list of all the edges of a polygon, extended with additional
@@ -394,42 +393,40 @@ cutPolygon = \scissors polygon ->
     cutAllEdges :: Line -> Polygon -> [CutLine]
     cutAllEdges scissors polygon = map (cutLine scissors) (polygonEdges polygon)
 
-    -- In order to start at a cut point that starts (not finalizes) a polygon,
-    -- it is important we start at a point that is at the beginning or end of
-    -- the cutting line. We arbitrarily choose the maximum here, but the minimum
-    -- would do just as well.
-    rotateToOutermostCut :: [CutLine] -> [CutLine]
-    rotateToOutermostCut cutLines
-      = let -- We use cutP•cutP instead of norm here so this works with rational
-            -- numbers just as well as it does for Doubles. :-)
-            cuts = [(dotProduct cutP cutP, cut) | cut@(Cut _ cutP _) <- cutLines]
-        in if null cuts
-            then []
-            else let outermost = snd (maximumBy (comparing fst) cuts)
-                 in zipWith const
-                        (dropWhile (/= outermost) (cutLines ++ cutLines))
-                        cutLines
+    cutPoints allCuts = [ p | Cut _ p _ <- allCuts ]
+    cutPointsSorted scissors allCuts = sortBy (comparing (inDirectionOf scissors)) (cutPoints allCuts)
+
+    inDirectionOf :: Line -> Vec2 -> Double
+    inDirectionOf scissors@(Line start _) p = dotProduct (vectorOf scissors) (vectorOf (Line start p))
+
+    edgeMap :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2)
+    edgeMap scissors allCuts = (newCutsEdgeMapBuilder scissors allCuts . polygonEdgeMapBuilder allCuts) M.empty
+
+    newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
+    newCutsEdgeMapBuilder scissors allCuts = go (cutPointsSorted scissors allCuts)
+      where
+        go (p:q:rest) = (p --> q) . (q --> p) . go rest
+        go _ = id
 
     -- A polygon can be described by an adjacency list of corners to the next
     -- corner. A cut simply introduces two new corners (of polygons to be) that
     -- point to each other.
-    gatherAllEdges :: [CutLine] -> Map Vec2 (OneOrTwo Vec2)
-    gatherAllEdges = go NoCutActive
+    polygonEdgeMapBuilder :: [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
+    polygonEdgeMapBuilder = go
       where
-        go :: CutState -> [CutLine] -> Map Vec2 (OneOrTwo Vec2)
-        go NoCutActive (Cut p sourceCut q : rest)
-          = ((p --> sourceCut) . (sourceCut --> q))
-            (go (CutActive sourceCut) rest)
-        go (CutActive sourceCut) (Cut p targetCut q : rest)
-          = ((p --> targetCut) . (targetCut --> q) . (sourceCut --> targetCut) . (targetCut --> sourceCut))
-            (go NoCutActive rest)
-
-        go lastCut (NoCut p q : rest)
-          = (p --> q) (go lastCut rest)
-
-        -- Out of potential cuts, terminate
-        go NoCutActive [] = M.empty
-        go (CutActive _) [] = error "Unpaired cut edge in polygon cutting\
+        go :: [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
+        go (Cut p sourceCut q : rest)
+          = (p --> sourceCut)
+            . (sourceCut --> q)
+            . go rest
+        go (Cut p targetCut q : rest)
+          = (p --> targetCut)
+            . (targetCut --> q)
+            . go rest
+        go (NoCut p q : rest)
+          = (p --> q) . go rest
+        go [] = id
+        go [] = error "Unpaired cut edge in polygon cutting\
                                     \ algorithm, should never happen! Please\
                                     \ report this as a bug."
 
