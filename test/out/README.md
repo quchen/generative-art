@@ -22,6 +22,8 @@ over quickly.
 
 ![](cut_4_miss.svg)
 
+![](cut_5_through_corner.svg)
+
 ![](intersection.svg)
 
 ![](mirror.svg)

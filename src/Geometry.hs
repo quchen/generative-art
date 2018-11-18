@@ -377,6 +377,7 @@ isConvex (Polygon ps)
 -- | Used in the implementation of a multimap where each entry can have one or
 -- two values.
 data OneOrTwo a = One a | Two a a
+    deriving (Eq, Ord, Show)
 
 -- | Cut a polygon in multiple pieces with a line.
 --
@@ -426,12 +427,20 @@ cutPolygon = \scissors polygon ->
         []               -> id
 
     -- Insert a value into a (1 to 2) multimap.
-    (-->) :: (Ord k, Eq v) => k -> v -> Map k (OneOrTwo v) -> Map k (OneOrTwo v)
+    (-->) :: (Ord k, Eq v, Show v, Show k) => k -> v -> Map k (OneOrTwo v) -> Map k (OneOrTwo v)
     (k --> v) db = case M.lookup k db of
         Nothing       -> M.insert k (One v) db
         Just (One v') -> M.insert k (Two v v') db
         Just (Two v' v'')
-            | elem v [v', v''] -> bugError "Edge already present" -- TODO: this happens when the scissors go through a point, implement that corner case
+            -- If the line cut is directly through a corner, we insert two
+            -- reflexive arrows into the map:
+            --
+            --   (Cut p x x) generates (x --> x) for the first line
+            --   (Cut x x q) generates (x --> x) for the second line
+            --
+            -- This guard makes sure we don’t bail in that case, but return the
+            -- map unmodified.
+            | elem v [v', v''] -> db
             | otherwise        -> bugError "Third edge in cutting algorithm"
 
     -- Given a list of corners that point to other corners, we can reconstruct

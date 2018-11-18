@@ -20,13 +20,11 @@ tests = testGroup "Cutting things"
     , testCase "Convex polygon" cutSquareDrawingTest
     , testCase "Concave polygon" complicatedPolygonTest
     , testCase "Cut misses polygon" cutMissesPolygonTest
+    , testCase "Cut through corner" cutThroughCorner
     ]
 
 lineTest :: IO ()
-lineTest = renderAllFormats 220 100 "test/out/cut_1_line" cutLineDrawing
-
-cutLineDrawing :: Render ()
-cutLineDrawing = do
+lineTest = renderAllFormats 220 100 "test/out/cut_1_line" (do
     translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
         scissors = perpendicularBisector paper
@@ -51,6 +49,7 @@ cutLineDrawing = do
     setFontSize 12
     moveTo 60 10
     showText "Cut my line in two pieces"
+    )
 
 polyCutDraw :: Line -> [Polygon] -> Render ()
 polyCutDraw scissors cutResults = do
@@ -80,10 +79,7 @@ polyCutDraw scissors cutResults = do
         )
 
 cutSquareDrawingTest :: IO ()
-cutSquareDrawingTest = renderAllFormats 170 90 "test/out/cut_2_square" cutSquareDrawing
-
-cutSquareDrawing :: Render ()
-cutSquareDrawing = do
+cutSquareDrawingTest = renderAllFormats 170 90 "test/out/cut_2_square" (do
     translate 90 10
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
@@ -94,12 +90,10 @@ cutSquareDrawing = do
     setFontSize 12
     moveTo (-10) 70
     showText (show (length cutResult) ++ " polygons")
+    )
 
 complicatedPolygonTest :: IO ()
-complicatedPolygonTest = renderAllFormats 230 130 "test/out/cut_3_complicated" cutComplicatedPolygon
-
-cutComplicatedPolygon :: Render ()
-cutComplicatedPolygon = do
+complicatedPolygonTest = renderAllFormats 230 130 "test/out/cut_3_complicated" (do
     translate 170 60
     let polygon = spiral 9
         spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
@@ -124,15 +118,26 @@ cutComplicatedPolygon = do
     setFontSize 12
     moveTo (-40) 60
     showText (show (length cutResult) ++ " polygons")
+    )
 
 cutMissesPolygonTest :: IO ()
-cutMissesPolygonTest = renderAllFormats 130 90 "test/out/cut_4_miss" cutMissesPolygon
-
-cutMissesPolygon :: Render ()
-cutMissesPolygon = do
+cutMissesPolygonTest = renderAllFormats 130 90 "test/out/cut_4_miss" (do
     translate 70 10
     let scissors = Line (Vec2 0 70) (Vec2 50 60)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
+    )
+
+cutThroughCorner :: IO ()
+cutThroughCorner = renderAllFormats 140 100 "test/out/cut_5_through_corner" (do
+    translate 70 30
+    let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
+        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+        cutResult = cutPolygon scissors polygon
+
+    polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
+    )
+
+-- TODO: corner cases from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
