@@ -16,17 +16,17 @@ import Test.Visual.Common
 
 tests :: TestTree
 tests = testGroup "Billard process"
-    [ testCase "Rectangular table" rectangularTableTest
-    , testCase "Hole in table" holeInTableTest
-    , testCase "Lambda-shaped table" lambdaTableTest
-    , testCase "Broken table" brokenTableTest
+    [ rectangularTableTest
+    , holeInTableTest
+    , lambdaTableTest
+    , brokenTableTest
     ]
 
-rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: IO ()
-rectangularTableTest = renderAllFormats 320 240 "test/out/billard_1_rectangular" rectangularTable
-holeInTableTest      = renderAllFormats 320 240 "test/out/billard_2_hole"        holeInTable
-lambdaTableTest      = renderAllFormats 330 360 "test/out/billard_3_lambda"      lambdaTable
-brokenTableTest      = renderAllFormats 160 120 "test/out/billard_4_broken"      brokenTable
+rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: TestCase
+rectangularTableTest = testCase "Rectangular table"   (renderAllFormats 320 240 "test/out/billard/1_rectangular" rectangularTable)
+holeInTableTest      = testCase "Hole in table"       (renderAllFormats 320 240 "test/out/billard/2_hole"        holeInTable)
+lambdaTableTest      = testCase "Lambda-shaped table" (renderAllFormats 330 360 "test/out/billard/3_lambda"      lambdaTable)
+brokenTableTest      = testCase "Broken table"        (renderAllFormats 160 120 "test/out/billard/4_broken"      brokenTable)
 
 rectangularTable :: Render ()
 rectangularTable = do
