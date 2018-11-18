@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="130pt" height="90pt" viewBox="0 0 130 90" version="1.1">
-<g id="cut_4_miss">
+<g id="4_miss">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-dasharray:2,4;stroke-miterlimit:10;" d="M 0 70 L 50 60 " transform="matrix(1,0,0,1,70,10)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 50 60 L 46.167969 63.210938 M 50 60 L 45.226562 58.511719 " transform="matrix(1,0,0,1,70,10)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M -60 0 L -10 0 M -35 0 L -38.511719 1.917969 M -35 0 L -38.511719 -1.917969 " transform="matrix(1,0,0,1,70,10)"/>

@@ -34,7 +34,7 @@
 </symbol>
 </g>
 </defs>
-<g id="cut_2_square">
+<g id="2_square">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-dasharray:2,4;stroke-miterlimit:10;" d="M -21.984375 7.898438 L 71.984375 42.101562 " transform="matrix(1,0,0,1,90,10)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 71.984375 42.101562 L 67.042969 42.851562 M 71.984375 42.101562 L 68.679688 38.347656 " transform="matrix(1,0,0,1,90,10)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M -80 0 L -30 0 M -55 0 L -58.511719 1.917969 M -55 0 L -58.511719 -1.917969 " transform="matrix(1,0,0,1,90,10)"/>

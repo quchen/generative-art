@@ -69,14 +69,14 @@ cartesianCoordinateSystemDraw :: (Int, Int) -> (Int, Int) -> Render ()
 cartesianCoordinateSystemDraw (minX, maxX) (minY, maxY) = do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
-    hsva 0 0 0 0.8
+    hsva 0 0 0 0.5
     sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
               | x <- [minX, minX+100 .. maxX] ]
     sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
               | y <- [minY, minY+100 .. maxY] ]
     stroke
 
-    hsva 0 0 0 0.5
+    hsva 0 0 0 0.2
     sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
               | x <- [minX, minX+10 .. maxX]
               , mod x 100 /= 0 ]

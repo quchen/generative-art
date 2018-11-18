@@ -22,7 +22,7 @@ tests = testGroup "Billard process"
     , brokenTableTest
     ]
 
-rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: TestCase
+rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: TestTree
 rectangularTableTest = testCase "Rectangular table"   (renderAllFormats 320 240 "test/out/billard/1_rectangular" rectangularTable)
 holeInTableTest      = testCase "Hole in table"       (renderAllFormats 320 240 "test/out/billard/2_hole"        holeInTable)
 lambdaTableTest      = testCase "Lambda-shaped table" (renderAllFormats 330 360 "test/out/billard/3_lambda"      lambdaTable)
