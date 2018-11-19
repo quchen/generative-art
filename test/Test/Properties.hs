@@ -85,7 +85,7 @@ areaTest = testGroup "Area"
 
     square = testProperty "Square" (forAll
         ((,,,,) <$> vec2 <*> vec2 <*> vec2 <*> vec2 <*> arbitrary)
-        (\((Vec2 x1 y1), (Vec2 x2 y2), center, moveVec, angle) ->
+        (\(Vec2 x1 y1, Vec2 x2 y2, center, moveVec, angle) ->
             let poly = (move moveVec . rotateAround center angle . Polygon)
                            [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
                 actual = polygonArea poly

@@ -282,8 +282,8 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
 
     intersectionPoint
       = let denominator = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4)
-        in Vec2 ( ((det v1 v2) * (x3-x4) - (x1-x2) * (det v3 v4)) / denominator )
-                ( ((det v1 v2) * (y3-y4) - (y1-y2) * (det v3 v4)) / denominator )
+        in Vec2 ( (det v1 v2 * (x3-x4) - (x1-x2) * det v3 v4) / denominator )
+                ( (det v1 v2 * (y3-y4) - (y1-y2) * det v3 v4) / denominator )
 
     t = det (v1 -. v3) (v3 -. v4) / det (v1 -. v2) (v3 -. v4)
     intersectionInsideL = t >= 0 && t <= 1
@@ -315,10 +315,11 @@ countEdgeTraversals p edges = length intersections
         leftmostPolyX = minimum (edges >>= \(Line (Vec2 x1 _) (Vec2 x2 _)) -> [x1,x2])
         Vec2 _ pointY = p
 
-    intersections = flip filter edges (\edge ->
+    intersections = filter (\edge ->
         case intersectionLL testRay edge of
             (_, IntersectionReal) -> True
             _other -> False)
+        edges
 
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
@@ -410,7 +411,7 @@ cutPolygon = \scissors polygon ->
         go [] = id
 
         cutPointsSorted :: [(Vec2, Int)]
-        cutPointsSorted = (map (\xs -> (head xs, length xs)) . group . sortBy (comparing scissorCoordinate)) [ p | Cut _ p _ <- cuts ]
+        cutPointsSorted = (map (\xs -> (head xs, length xs)) . group . sortOn scissorCoordinate) [ p | Cut _ p _ <- cuts ]
 
         -- How far ahead/behind the start of the line is the point?
         --

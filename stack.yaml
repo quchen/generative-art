@@ -1,6 +1,5 @@
 flags: {}
 packages:
-- .
+    - .
 extra-deps:
-- hsnoise-0.0.2
-resolver: lts-12.14
+resolver: lts-12.19

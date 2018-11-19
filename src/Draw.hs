@@ -205,5 +205,5 @@ grouped render afterwards = do
     pushGroup
     result <- render
     popGroupToSource
-    afterwards
+    _ <- afterwards
     pure result
