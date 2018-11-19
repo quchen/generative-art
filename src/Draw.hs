@@ -1,12 +1,39 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Draw where
+module Draw (
+    -- * Colors
+      hsva
+    , mmaColor
+
+    -- * Drawing presets
+    , lineSketch
+    , ArrowSpec(..)
+    , arrowSketch
+    , circleSketch
+    , crossSketch
+    , arcSketch
+    , polygonSketch
+
+    -- * Orientation helpers
+    , cartesianCoordinateSystem
+    , radialCoordinateSystem
+
+    -- * Temporary Cairo modifications
+    , withOperator
+    , withSavedState
+    , grouped
+
+    -- * Convenience
+    , module Data.Default.Class
+)where
 
 
 
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
 import Data.Foldable
+import Control.Monad
+import Data.Default.Class
 import Graphics.Rendering.Cairo hiding (x, y)
 
 import Geometry
@@ -39,8 +66,48 @@ mmaColor n alpha = setSourceRGBA r g b alpha
         14 -> (0.28026441037696703, 0.715, 0.4292089322474965)
         _other -> error "modulus in mmaColor is broken"
 
+moveToVec, lineToVec :: Vec2 -> Render ()
+moveToVec (Vec2 x y) = moveTo x y
+lineToVec (Vec2 x y) = lineTo x y
+
 lineSketch :: Line -> Render ()
-lineSketch (Line (Vec2 x1 y1) (Vec2 x2 y2)) = moveTo x1 y1 >> lineTo x2 y2
+lineSketch (Line start end) = do
+    moveToVec start
+    lineToVec end
+
+data ArrowSpec = ArrowSpec
+    { arrowheadRelPos :: Distance
+    , arrowheadSize   :: Distance
+    , arrowDrawBody   :: Bool
+    , arrowheadAngle  :: Angle
+    }
+
+instance Default ArrowSpec where
+    def = ArrowSpec
+        { arrowheadRelPos = Distance 1
+        , arrowheadSize   = Distance 10
+        , arrowDrawBody   = True
+        , arrowheadAngle  = Angle 0.5
+        }
+
+arrowSketch :: Line -> ArrowSpec -> Render ()
+arrowSketch line ArrowSpec{..} = do
+    when arrowDrawBody (lineSketch line)
+
+    let Line start end = line
+        Angle rawLineAngle = angleOfLine line
+        Angle rawArrowheadAngle = arrowheadAngle
+        Distance rawRelPos = arrowheadRelPos
+
+        arrowTip = start +. (rawRelPos *. (end -. start))
+        ((+.), (*.), (-.)) = (addVec2, mulVec2, subtractVec2)
+
+    let arrowheadHalf (+-) = angledLine arrowTip (Angle (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
+        Line _ arrowLeftEnd  = arrowheadHalf (+)
+        Line _ arrowRightEnd = arrowheadHalf (-)
+    moveToVec arrowLeftEnd
+    lineToVec arrowTip
+    lineToVec arrowRightEnd
 
 circleSketch :: Vec2 -> Distance -> Render ()
 circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)
@@ -65,8 +132,12 @@ polygonSketch (Polygon (Vec2 x y : vecs)) = do
     closePath
 
 -- | Draw a caresian coordinate system in range (x,x') (y,y')
-cartesianCoordinateSystemDraw :: (Int, Int) -> (Int, Int) -> Render ()
-cartesianCoordinateSystemDraw (minX, maxX) (minY, maxY) = do
+cartesianCoordinateSystem :: Render ()
+cartesianCoordinateSystem = do
+    let minMax :: (Int, Int)
+        minMax = (0, 1000)
+        (minX, maxX) = minMax
+        (minY, maxY) = minMax
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
     hsva 0 0 0 0.5
@@ -85,8 +156,8 @@ cartesianCoordinateSystemDraw (minX, maxX) (minY, maxY) = do
               , mod y 100 /= 0]
     stroke
 
-radialCoordinateSystemDraw :: Vec2 -> Int -> Render ()
-radialCoordinateSystemDraw center maxR = do
+radialCoordinateSystem :: Vec2 -> Int -> Render ()
+radialCoordinateSystem center maxR = do
     let distance = Distance . fromIntegral
     setLineWidth 1
     hsva 0 0 0 1

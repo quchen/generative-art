@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 40ea66694b74fbb9f13d5883ab453cc3bed5fec1ca5c865614ce4222dffd9e4e
+-- hash: 43fb6e0da753380b486bc464a4d869d6c35c3b4f539ab4e61c6130ed618fe97e
 
 name:           generative-art
 version:        0.1.0.0
@@ -38,6 +38,7 @@ library
     , cairo
     , colour
     , containers
+    , data-default-class
   default-language: Haskell2010
 
 executable haskell-logo-billard
@@ -52,6 +53,7 @@ executable haskell-logo-billard
     , cairo
     , colour
     , containers
+    , data-default-class
     , generative-art
   default-language: Haskell2010
 
@@ -77,6 +79,7 @@ test-suite generative-art-test
     , cairo
     , colour
     , containers
+    , data-default-class
     , generative-art
     , process
     , tasty

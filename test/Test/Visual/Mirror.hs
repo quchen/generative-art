@@ -68,7 +68,7 @@ mirror1 = do
             stroke
 
             hsva 0 0 0 0.5
-            arrowSketch (Line p p')
+            arrowSketch (Line p p') def
             stroke )
 
 mirror2 :: Render ()
@@ -87,8 +87,8 @@ mirror2 = do
     setLineWidth 1
     let mirrorLineTest line = do
             let mirrored = mirrorAlong mirror line
-            originalC 1 >> arrowSketch line >> stroke
-            mirroredC 1 >> arrowSketch mirrored >> stroke
+            originalC 1 >> arrowSketch line def >> stroke
+            mirroredC 1 >> arrowSketch mirrored def >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg (20)) (Distance 100))
     mirrorLineTest (angledLine (Vec2 150 10) (deg 90) (Distance 100))
     mirrorLineTest (angledLine (Vec2 160 10) (deg 90) (Distance 150))

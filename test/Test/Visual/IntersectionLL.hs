@@ -52,11 +52,11 @@ testDraw line1 line2 = do
 
     setLineWidth 1
     mmaColor 0 1
-    arrowSketch line1
+    arrowSketch line1 def{arrowheadSize = Distance 8}
     stroke
 
     mmaColor 1 1
-    arrowSketch line2
+    arrowSketch line2 def{arrowheadSize = Distance 8}
     stroke
 
     mmaColor 3 1

@@ -20,6 +20,7 @@ dependencies:
     - cairo
     - colour
     - containers
+    - data-default-class
 
 ghc-options:
     - -Wall

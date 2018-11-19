@@ -55,31 +55,31 @@ lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
 
 polyCutDraw :: Polygon -> Line -> [Polygon] -> Render ()
 polyCutDraw initialPolygon scissors cutResults = do
-
-    do -- Cut arrow
+    drawCutArrow
+    drawPolygon 0 initialPolygon
+    for_ (zip [0..] cutResults) (\(color, poly) -> drawPolygon color poly)
+  where
+    drawCutArrow = do
         setLineWidth 1
         hsva 0 0 0 1
         setDash [2,4] 0
         lineSketch scissors
         stroke
         setDash [] 0
-        arrowHead scissors (Distance 5)
+        arrowSketch scissors def{arrowheadSize = Distance 5, arrowDrawBody = False}
         stroke
-
-    let drawPoly color poly = do
-            mmaColor color 1
-            for_ (polygonEdges poly) (\edge -> do
-                lineSketch edge
-                let Line start end = edge
-                arrowHead (Line start (mulVec2 0.5 (end `addVec2` start))) (Distance 4)
-                stroke
-                )
-
-            polygonSketch poly
-            mmaColor color 0.1
-            fill
-    drawPoly 0 initialPolygon
-    for_ (zip [0..] cutResults) (\(color, poly) -> drawPoly color poly)
+    drawPolygon color poly = do
+        mmaColor color 1
+        for_ (polygonEdges poly) (\edge -> do
+            lineSketch edge
+            arrowSketch edge def
+                { arrowheadRelPos = Distance 0.45
+                , arrowheadSize   = Distance 4
+                }
+            stroke )
+        polygonSketch poly
+        mmaColor color 0.1
+        fill
 
 cutSquareTest :: IO ()
 cutSquareTest = renderAllFormats 170 90 "test/out/cut/2_square" (do
