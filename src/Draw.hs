@@ -102,3 +102,34 @@ radialCoordinateSystemDraw center maxR = do
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
+
+-- | Temporarily draw using a different operator. Useful e.g. to delete somthing
+-- from the current drawing and then going on as before.
+withOperator :: Operator -> Render a -> Render a
+withOperator op render = do
+    formerOp <- getOperator
+    setOperator op
+    result <- render
+    setOperator formerOp
+    pure result
+
+-- | Render something with a new Cairo state, restoring the old one afterwards.
+--
+-- Handles the bookkeeping with 'save' and 'restore' internally, and can be used
+-- to e.g. temporarily change the transformation matrix.
+withSavedState :: Render a -> Render a
+withSavedState render = do
+    save
+    result <- render
+    restore
+    pure result
+
+-- | Render something as a group, as in encapsulate it in 'pushGroup' and
+-- 'popGroupToSource'. Don’t forget to call 'paint' or 'paintWithAlpha'
+-- afterwards to paint the popped group to the current surface.
+grouped :: Render a -> Render a
+grouped render = do
+    pushGroup
+    result <- render
+    popGroupToSource
+    pure result

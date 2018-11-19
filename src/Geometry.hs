@@ -403,7 +403,7 @@ cutPolygon = \scissors polygon ->
     newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
     newCutsEdgeMapBuilder scissors@(Line scissorsStart _) cuts = go cutPointsSorted
       where
-        go ((p, multiplicity) : _)
+        go ((_, multiplicity) : _)
             | multiplicity > 2 = bugError "Cut multiplicity > 2"
         go ((p,_) : (q,_) : rest) = (p --> q) . (q --> p) . go rest
         go (_:_) = bugError "Unpaired cut point"
@@ -431,10 +431,10 @@ cutPolygon = \scissors polygon ->
     -- Insert a value into a (1 to 2) multimap. Self-references are not allowed.
     (-->) :: Ord a => a -> a -> Map a (OneOrTwo a) -> Map a (OneOrTwo a)
     (k --> v) db = case M.lookup k db of
-        _ | k == v        -> db
-        Nothing           -> M.insert k (One v) db
-        Just (One v')     -> M.insert k (Two v v') db
-        Just (Two v' v'') -> bugError "Third edge in cutting algorithm"
+        _ | k == v    -> db
+        Nothing       -> M.insert k (One v) db
+        Just (One v') -> M.insert k (Two v v') db
+        Just Two{}    -> bugError "Third edge in cutting algorithm"
 
     -- Given a list of corners that point to other corners, we can reconstruct
     -- all the polygons described by them by finding the smallest cycles, i.e.
