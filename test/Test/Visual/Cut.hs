@@ -154,28 +154,60 @@ cutThroughCornerTest = renderAllFormats 150 90 "test/out/cut/5_through_corner" (
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cornerCasesTest :: IO ()
-cornerCasesTest = renderAllFormats 240 700 "test/out/cut/6_corner_cases"
+cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
     (sequence_ (intersperse (translate 0 100) [
-        ror,
+        ooo,
         lol,
+        ror,
+        ool,
         oor,
         loo,
-        roo,
-        ool,
-        ooo
+        roo
         ]))
   where
-    scissors = Line (Vec2 (-60) 0) (Vec2 60 0)
-    specialCase polygon = do
+    scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
+    specialCase polygon description = withSavedState $ do
+        translate 0 10
         let cutResult = const [polygon] $ cutPolygon scissors polygon
-        polyCutDraw
-            (move (Vec2 50 50) polygon)
-            (move (Vec2 170 50) scissors)
-            (move (Vec2 170 50) cutResult)
-    ror = specialCase (Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)])
-    lol = specialCase (Polygon [Vec2 0 0, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 40])
-    oor = specialCase (Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0])
-    loo = specialCase (Polygon [Vec2 0 0, Vec2 (-40) 0, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 40, Vec2 0 40])
-    roo = specialCase (Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)])
-    ool = specialCase (Polygon [Vec2 0 0, Vec2 0 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 0])
-    ooo = specialCase (Polygon [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0, Vec2 0 40])
+            placeOriginal, placeCut :: Move a => a -> a
+            placeOriginal = move (Vec2 70 0)
+            placeCut = move (Vec2 190 0)
+        grouped (do
+            polyCutDraw
+                (placeOriginal polygon)
+                (placeOriginal scissors)
+                (placeCut cutResult)
+            for_ cutResult (\poly ->
+                for_ (let Polygon corners = poly in corners) (\corner -> do
+                    let clearingCircle p = do
+                            circleSketch p (Distance 2.5)
+                            withOperator OperatorClear fillPreserve
+                            stroke
+                    mmaColor 0 1
+                    clearingCircle (placeOriginal corner)
+                    clearingCircle (placeCut corner) )))
+        paint
+        let renderDescription = do
+                mmaColor 1 1
+                let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0
+                setFontSize 12
+                extents <- textExtents description
+                relMoveTo 0 (textExtentsHeight extents / 2)
+                showText description
+        renderDescription
+
+    ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
+          in specialCase (Polygon (Vec2 0 40 : colinearPoints))
+                         "on -> on -> on"
+    lol = specialCase (Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)])
+                      "left → on → left"
+    ror = specialCase (Polygon [Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 0])
+                      "right → on → right"
+    ool = specialCase (Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0])
+                      "on → on → left"
+    oor = specialCase (Polygon [Vec2 0 40, Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 0, Vec2 0 0])
+                      "on → on → right"
+    loo = specialCase (Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)])
+                      "left → on → on"
+    roo = specialCase (Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0])
+                      "right → on → on"
