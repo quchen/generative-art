@@ -177,15 +177,13 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                 (placeOriginal polygon)
                 (placeOriginal scissors)
                 (placeCut cutResult)
-            for_ cutResult (\poly ->
-                for_ (let Polygon corners = poly in corners) (\corner -> do
-                    let clearingCircle p = do
-                            circleSketch p (Distance 2.5)
-                            withOperator OperatorClear fillPreserve
-                            stroke
+            for_ cutResult $ \poly ->
+                for_ (let Polygon corners = poly in corners) $ \corner -> do
                     mmaColor 0 1
-                    clearingCircle (placeOriginal corner)
-                    clearingCircle (placeCut corner) ))
+                    circleSketch (placeOriginal corner) (Distance 2.5)
+                    stroke
+                    circleSketch (placeCut corner) (Distance 2.5)
+                    stroke
         let renderDescription = do
                 mmaColor 1 1
                 let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0
