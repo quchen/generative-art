@@ -68,16 +68,16 @@ polyCutDraw initialPolygon scissors cutResults = do
         setDash [] 0
         arrowSketch scissors def{arrowheadSize = Distance 5, arrowDrawBody = False}
         stroke
-    drawPolygon color poly = do
+    drawPolygon color poly = grouped paint $ do
         mmaColor color 1
         for_ (polygonEdges poly) (\edge -> do
-            lineSketch edge
             arrowSketch edge def
                 { arrowheadRelPos = Distance 0.45
                 , arrowheadSize   = Distance 4
                 }
             stroke )
         polygonSketch poly
+        strokePreserve
         mmaColor color 0.1
         fill
 
@@ -172,7 +172,7 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
             placeOriginal, placeCut :: Move a => a -> a
             placeOriginal = move (Vec2 70 0)
             placeCut = move (Vec2 190 0)
-        grouped (do
+        grouped paint $ do
             polyCutDraw
                 (placeOriginal polygon)
                 (placeOriginal scissors)
@@ -185,8 +185,7 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                             stroke
                     mmaColor 0 1
                     clearingCircle (placeOriginal corner)
-                    clearingCircle (placeCut corner) )))
-        paint
+                    clearingCircle (placeCut corner) ))
         let renderDescription = do
                 mmaColor 1 1
                 let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0

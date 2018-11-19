@@ -29,11 +29,11 @@ module Draw (
 
 
 
+import Control.Monad
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
-import Data.Foldable
-import Control.Monad
 import Data.Default.Class
+import Data.Foldable
 import Graphics.Rendering.Cairo hiding (x, y)
 
 import Geometry
@@ -196,11 +196,14 @@ withSavedState render = do
     pure result
 
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
--- 'popGroupToSource'. Don’t forget to call 'paint' or 'paintWithAlpha'
--- afterwards to paint the popped group to the current surface.
-grouped :: Render a -> Render a
-grouped render = do
+-- 'popGroupToSource'.
+--
+-- The second parameter can be used to specify an action to be run after
+-- grouping, such as 'paintWithAlpha'.
+grouped :: Render a -> Render b -> Render a
+grouped render afterwards = do
     pushGroup
     result <- render
     popGroupToSource
+    afterwards
     pure result
