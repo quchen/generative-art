@@ -403,12 +403,14 @@ cutPolygon = \scissors polygon ->
     newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
     newCutsEdgeMapBuilder scissors@(Line scissorsStart _) cuts = go cutPointsSorted
       where
-        go (p:q:rest) = (p --> q) . (q --> p) . go rest
+        go ((p, multiplicity) : _)
+            | multiplicity > 2 = bugError "Cut multiplicity > 2"
+        go ((p,_) : (q,_) : rest) = (p --> q) . (q --> p) . go rest
         go (_:_) = bugError "Unpaired cut point"
         go [] = id
 
-        cutPointsSorted :: [Vec2]
-        cutPointsSorted = (map head . group . sortBy (comparing scissorCoordinate)) [ p | Cut _ p _ <- cuts ]
+        cutPointsSorted :: [(Vec2, Int)]
+        cutPointsSorted = (map (\xs -> (head xs, length xs)) . group . sortBy (comparing scissorCoordinate)) [ p | Cut _ p _ <- cuts ]
 
         -- How far ahead/behind the start of the line is the point?
         --

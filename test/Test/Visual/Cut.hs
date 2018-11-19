@@ -18,7 +18,7 @@ import Test.Visual.Common
 tests :: TestTree
 tests = testGroup "Cutting things"
     [ testCase "Cut my line into pieces" lineTest
-    , testCase "Convex polygon" cutSquareDrawingTest
+    , testCase "Convex polygon" cutSquareTest
     , testCase "Concave polygon" complicatedPolygonTest
     , testCase "Cut misses polygon" cutMissesPolygonTest
     , testCase "Cut through corner" cutThroughCornerTest
@@ -53,8 +53,8 @@ lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
     showText "Cut my line in two pieces"
     )
 
-polyCutDraw :: Line -> [Polygon] -> Render ()
-polyCutDraw scissors cutResults = do
+polyCutDraw :: Polygon -> Line -> [Polygon] -> Render ()
+polyCutDraw initialPolygon scissors cutResults = do
 
     do -- Cut arrow
         setLineWidth 1
@@ -66,37 +66,40 @@ polyCutDraw scissors cutResults = do
         arrowHead scissors (Distance 5)
         stroke
 
-    for_ (zip [0..] cutResults) (\(color, poly) -> do
-        mmaColor color 1
-        for_ (polygonEdges poly) (\edge -> do
-            lineSketch edge
-            let Line start end = edge
-            arrowHead (Line start (mulVec2 0.5 (end `addVec2` start))) (Distance 4)
-            stroke
-            )
+    let drawPoly color poly = do
+            mmaColor color 1
+            for_ (polygonEdges poly) (\edge -> do
+                lineSketch edge
+                let Line start end = edge
+                arrowHead (Line start (mulVec2 0.5 (end `addVec2` start))) (Distance 4)
+                stroke
+                )
 
-        polygonSketch poly
-        mmaColor color 0.1
-        fill
-        )
+            polygonSketch poly
+            mmaColor color 0.1
+            fill
+    drawPoly 0 initialPolygon
+    for_ (zip [0..] cutResults) (\(color, poly) -> drawPoly color poly)
 
-cutSquareDrawingTest :: IO ()
-cutSquareDrawingTest = renderAllFormats 170 90 "test/out/cut/2_square" (do
-    translate 90 10
+cutSquareTest :: IO ()
+cutSquareTest = renderAllFormats 170 90 "test/out/cut/2_square" (do
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
         cutResult = cutPolygon scissors square
-    polyCutDraw scissors (move (Vec2 (-80) 0) square : cutResult)
+
+    polyCutDraw
+        (move (Vec2 10 10) square)
+        (move (Vec2 90 10) scissors)
+        (move (Vec2 90 10) cutResult)
 
     mmaColor 1 1
     setFontSize 12
-    moveTo (-10) 70
+    moveTo 90 80
     showText (show (length cutResult) ++ " polygons")
     )
 
 complicatedPolygonTest :: IO ()
-complicatedPolygonTest = renderAllFormats 230 130 "test/out/cut/3_complicated" (do
-    translate 170 60
+complicatedPolygonTest = renderAllFormats 240 110 "test/out/cut/3_complicated" (do
     let polygon = spiral 9
         spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
           where
@@ -114,48 +117,65 @@ complicatedPolygonTest = renderAllFormats 230 130 "test/out/cut/3_complicated" (
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw scissors (move (Vec2 (-120) 0) polygon : cutResult)
+    polyCutDraw
+        (move (Vec2 50 60) polygon)
+        (move (Vec2 180 60) scissors)
+        (move (Vec2 180 60) cutResult)
 
     mmaColor 1 1
     setFontSize 12
-    moveTo (-40) 60
+    moveTo 140 15
     showText (show (length cutResult) ++ " polygons")
     )
 
 cutMissesPolygonTest :: IO ()
 cutMissesPolygonTest = renderAllFormats 130 90 "test/out/cut/4_miss" (do
-    translate 70 10
     let scissors = Line (Vec2 0 70) (Vec2 50 60)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
+    polyCutDraw
+        (move (Vec2 10 10) polygon)
+        (move (Vec2 70 10) scissors)
+        (move (Vec2 70 10) cutResult)
     )
 
 cutThroughCornerTest :: IO ()
-cutThroughCornerTest = renderAllFormats 140 100 "test/out/cut/5_through_corner" (do
-    translate 70 30
+cutThroughCornerTest = renderAllFormats 150 90 "test/out/cut/5_through_corner" (do
     let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
+    polyCutDraw
+        (move (Vec2 10 20) polygon)
+        (move (Vec2 80 20) scissors)
+        (move (Vec2 80 20) cutResult)
     )
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cornerCasesTest :: IO ()
-cornerCasesTest = renderAllFormats 200 500 "test/out/cut/6_corner_cases" (do
-    cartesianCoordinateSystemDraw (0,1000) (0,1000)
-    sequence_ (intersperse (translate 0 50) [ror, lol, oor, loo, roo, ool])
-    )
+cornerCasesTest = renderAllFormats 240 700 "test/out/cut/6_corner_cases"
+    (sequence_ (intersperse (translate 0 100) [
+        ror,
+        lol,
+        oor,
+        loo,
+        roo,
+        ool,
+        ooo
+        ]))
   where
-    scissors = Line (Vec2 0 0) (Vec2 100 0)
+    scissors = Line (Vec2 (-60) 0) (Vec2 60 0)
     specialCase polygon = do
-        let cutResult = cutPolygon scissors polygon
-        polyCutDraw scissors (move (Vec2 (-60) 0) polygon : cutResult)
-    ror = specialCase (Polygon [Vec2 0 0, Vec2 20 (-20), Vec2 20 20, Vec2 (-20) 20, Vec2 (-20) (-20)])
-    lol = specialCase (Polygon [Vec2 0 0, Vec2 (-20) 20, Vec2 (-20) (-20), Vec2 20 (-20), Vec2 20 20])
-    oor = specialCase (Polygon [Vec2 0 0, Vec2 0 (-20), Vec2 20 (-20), Vec2 20 20, Vec2 (-20) 20, Vec2 (-20) 0])
-    loo = specialCase (Polygon [Vec2 0 0, Vec2 (-20) 0, Vec2 (-20) (-20), Vec2 20 (-20), Vec2 20 20, Vec2 0 20])
-    roo = specialCase (Polygon [Vec2 0 0, Vec2 0 20, Vec2 20 20, Vec2 (-20) 20, Vec2 (-20) (-20), Vec2 0 (-20)])
-    ool = specialCase (Polygon [Vec2 0 0, Vec2 0 20, Vec2 (-20) 20, Vec2 (-20) (-20), Vec2 20 (-20), Vec2 20 0])
+        let cutResult = const [polygon] $ cutPolygon scissors polygon
+        polyCutDraw
+            (move (Vec2 50 50) polygon)
+            (move (Vec2 170 50) scissors)
+            (move (Vec2 170 50) cutResult)
+    ror = specialCase (Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)])
+    lol = specialCase (Polygon [Vec2 0 0, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 40])
+    oor = specialCase (Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0])
+    loo = specialCase (Polygon [Vec2 0 0, Vec2 (-40) 0, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 40, Vec2 0 40])
+    roo = specialCase (Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)])
+    ool = specialCase (Polygon [Vec2 0 0, Vec2 0 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 40 (-40), Vec2 40 0])
+    ooo = specialCase (Polygon [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0, Vec2 0 40])
