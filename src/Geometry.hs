@@ -404,14 +404,11 @@ cutPolygon = \scissors polygon ->
     newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
     newCutsEdgeMapBuilder scissors@(Line scissorsStart _) cuts = go cutPointsSorted
       where
-        go ((_, multiplicity) : _)
-            | multiplicity > 2 = bugError "Cut multiplicity > 2"
-        go ((p,_) : (q,_) : rest) = (p --> q) . (q --> p) . go rest
+        go (p : q : rest) = (p --> q) . (q --> p) . go rest
         go (_:_) = bugError "Unpaired cut point"
         go [] = id
 
-        cutPointsSorted :: [(Vec2, Int)]
-        cutPointsSorted = (map (\xs -> (head xs, length xs)) . group . sortOn scissorCoordinate) [ p | Cut _ p _ <- cuts ]
+        cutPointsSorted = sortOn scissorCoordinate [ p | Cut _ p _ <- cuts ]
 
         -- How far ahead/behind the start of the line is the point?
         --
@@ -419,6 +416,18 @@ cutPolygon = \scissors polygon ->
         -- 1-dimensional vector space that is the scissors line.
         scissorCoordinate :: Vec2 -> Double
         scissorCoordinate p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
+
+        cutPointsWithNeighbourPoints :: [(Vec2, Vec2, Vec2, Vec2, Vec2)]
+        cutPointsWithNeighbourPoints
+          = [ (pp, p, x, q, qq)
+                | (pp, Just (p, x, q), qq) <- zip3
+                    [ case cut of NoCut p _ -> p      ; Cut p _ _ -> p            | cut <- cuts ]
+                    [ case cut of NoCut{}   -> Nothing; Cut p x q -> Just (p,x,q) | cut <- tail (cycle cuts) ]
+                    [ case cut of NoCut _ q -> q      ; Cut _ _ q -> q            | cut <- tail (tail (cycle cuts)) ]
+                ]
+
+        cutPointsCategorized = _todo_categorize cutPointsWithNeighbourPoints
+
 
     -- A polygon can be described by an adjacency list of corners to the next
     -- corner. A cut simply introduces two new corners (of polygons to be) that
