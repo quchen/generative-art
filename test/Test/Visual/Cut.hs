@@ -70,36 +70,38 @@ polyCutDraw initialPolygon scissors cutResults = do
         stroke
     drawPolygon color poly = grouped paint $ do
         mmaColor color 1
-        for_ (polygonEdges poly) (\edge -> do
+        for_ (polygonEdges poly) $ \edge -> do
             arrowSketch edge def
                 { arrowheadRelPos = Distance 0.45
                 , arrowheadSize   = Distance 4
                 }
-            stroke )
+            stroke
         polygonSketch poly
         strokePreserve
         mmaColor color 0.1
         fill
 
 cutSquareTest :: IO ()
-cutSquareTest = renderAllFormats 170 90 "test/out/cut/2_square" (do
+cutSquareTest = do
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
         cutResult = cutPolygon scissors square
 
-    polyCutDraw
-        (move (Vec2 10 10) square)
-        (move (Vec2 90 10) scissors)
-        (move (Vec2 90 10) cutResult)
+    renderAllFormats 170 90 "test/out/cut/2_square" $ do
+        polyCutDraw
+            (move (Vec2 10 10) square)
+            (move (Vec2 90 10) scissors)
+            (move (Vec2 90 10) cutResult)
 
-    mmaColor 1 1
-    setFontSize 12
-    moveTo 90 80
-    showText (show (length cutResult) ++ " polygons")
-    )
+        mmaColor 1 1
+        setFontSize 12
+        moveTo 90 80
+        showText (show (length cutResult) ++ " polygons")
+
+    assertEqual "Number of resulting polygons" 2 (length cutResult)
 
 complicatedPolygonTest :: IO ()
-complicatedPolygonTest = renderAllFormats 240 110 "test/out/cut/3_complicated" (do
+complicatedPolygonTest = do
     let polygon = spiral 9
         spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
           where
@@ -117,40 +119,45 @@ complicatedPolygonTest = renderAllFormats 240 110 "test/out/cut/3_complicated" (
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw
-        (move (Vec2 50 60) polygon)
-        (move (Vec2 180 60) scissors)
-        (move (Vec2 180 60) cutResult)
+    renderAllFormats 240 110 "test/out/cut/3_complicated" $ do
+        polyCutDraw
+            (move (Vec2 50 60) polygon)
+            (move (Vec2 180 60) scissors)
+            (move (Vec2 180 60) cutResult)
 
-    mmaColor 1 1
-    setFontSize 12
-    moveTo 140 15
-    showText (show (length cutResult) ++ " polygons")
-    )
+        mmaColor 1 1
+        setFontSize 12
+        moveTo 140 15
+        showText (show (length cutResult) ++ " polygons")
+    assertEqual "Number of resulting polygons" 5 (length cutResult)
 
 cutMissesPolygonTest :: IO ()
-cutMissesPolygonTest = renderAllFormats 130 90 "test/out/cut/4_miss" (do
+cutMissesPolygonTest = do
     let scissors = Line (Vec2 0 70) (Vec2 50 60)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw
-        (move (Vec2 10 10) polygon)
-        (move (Vec2 70 10) scissors)
-        (move (Vec2 70 10) cutResult)
-    )
+    renderAllFormats 130 90 "test/out/cut/4_miss"
+        (polyCutDraw
+            (move (Vec2 10 10) polygon)
+            (move (Vec2 70 10) scissors)
+            (move (Vec2 70 10) cutResult))
+
+    assertEqual "Number of resulting polygons" 1 (length cutResult)
 
 cutThroughCornerTest :: IO ()
-cutThroughCornerTest = renderAllFormats 150 90 "test/out/cut/5_through_corner" (do
+cutThroughCornerTest = do
     let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    polyCutDraw
-        (move (Vec2 10 20) polygon)
-        (move (Vec2 80 20) scissors)
-        (move (Vec2 80 20) cutResult)
-    )
+    renderAllFormats 150 90 "test/out/cut/5_through_corner"
+        (polyCutDraw
+            (move (Vec2 10 20) polygon)
+            (move (Vec2 80 20) scissors)
+            (move (Vec2 80 20) cutResult))
+
+    assertEqual "Number of resulting polygons" 2 (length cutResult)
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cornerCasesTest :: IO ()
@@ -168,7 +175,7 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
     specialCase polygon description = withSavedState $ do
         translate 0 10
-        let cutResult = const [polygon] $ cutPolygon scissors polygon
+        let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Move a => a -> a
             placeOriginal = move (Vec2 70 0)
             placeCut = move (Vec2 190 0)

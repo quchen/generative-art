@@ -23,6 +23,7 @@
 - ignore: {name: "Avoid lambda using `infix`"}
 
 - ignore: {name: "Reduce duplication"}
+- ignore: {name: "Use infix"}
 
 # AMP fallout
 - error:
