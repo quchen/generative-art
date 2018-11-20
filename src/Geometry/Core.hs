@@ -75,7 +75,27 @@ import Text.Printf
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 -- | Polygon, defined by its corners.
-newtype Polygon = Polygon [Vec2] deriving (Eq, Ord, Show)
+newtype Polygon = Polygon [Vec2]
+
+normalizePolygon :: Polygon -> Polygon
+normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) corners)
+
+instance Eq Polygon where
+    p1 == p2 = let Polygon corners1 = normalizePolygon p1
+                   Polygon corners2 = normalizePolygon p2
+               in corners1 == corners2
+
+instance Show Polygon where
+    show poly = let Polygon corners = normalizePolygon poly
+                in "Polygon " ++ show corners
+
+-- | Rotate a list until the predicate holds. If it never holds, return the
+-- input list.
+rotateUntil :: (a -> Bool) -> [a] -> [a]
+rotateUntil p xs = zipWith
+    (flip const)
+    xs
+    (dropWhile (not . p) (cycle xs))
 
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)

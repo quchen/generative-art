@@ -8,6 +8,7 @@ import Graphics.Rendering.Cairo hiding (rotate, x, y)
 
 import Draw
 import Geometry
+import Geometry.Cut.Internal
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -17,13 +18,39 @@ import Test.Visual.Common
 
 tests :: TestTree
 tests = testGroup "Cutting things"
-    [ testCase "Cut my line into pieces" lineTest
-    , testCase "Convex polygon" cutSquareTest
-    , testCase "Concave polygon" complicatedPolygonTest
-    , testCase "Cut misses polygon" cutMissesPolygonTest
-    , testCase "Cut through corner" cutThroughCornerTest
-    , testCase "Edge cases" cornerCasesTest
+    [ testGroup "Internal Helper functions"
+        [ testCase "Rebuild simple edge graph" rebuildSimpleEdgeGraphTest
+        ]
+    , testGroup "Public API"
+        [ testCase "Cut my line into pieces" lineTest
+        , testCase "Convex polygon" cutSquareTest
+        , testCase "Concave polygon" complicatedPolygonTest
+        , testCase "Cut misses polygon" cutMissesPolygonTest
+        , testCase "Cut through corner" cutThroughCornerTest
+        , testCase "Edge cases" cornerCasesTest
+        ]
     ]
+
+rebuildSimpleEdgeGraphTest :: IO ()
+rebuildSimpleEdgeGraphTest
+  = let cutEdgeGraph :: CutEdgeGraph
+        cutEdgeGraph = foldr (.) id
+            [ Vec2 0 0 --> Vec2 1 0       -- +---------+
+            , Vec2 1 0 --> Vec2 1 1       -- |         |
+            , Vec2 1 1 --> Vec2 0 1       -- |         |
+            , Vec2 0 1 --> Vec2 0 0       -- |         |
+                                          -- +---------+
+            , Vec2 1 0 --> Vec2 0 0       -- |         |
+            , Vec2 0 0 --> Vec2 0 (-1)    -- |         |
+            , Vec2 0 (-1) --> Vec2 1 (-1) -- |         |
+            , Vec2 1 (-1) --> Vec2 1 0    -- +---------+
+            ]
+            (CutEdgeGraph mempty)
+        actual = reconstructPolygons cutEdgeGraph
+        expected = [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
+                   , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1]
+                   ]
+    in assertEqual "" expected actual -- TODO this should work for any order of polygons in the input/output
 
 lineTest :: IO ()
 lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
@@ -113,7 +140,7 @@ complicatedPolygonTest = do
             relativeSpiral = go instructions (Vec2 1 0)
               where
                 go [] _dir = []
-                go ((len, rotate) : rest) direction = mulVec2 (10*len) direction : go rest (rotate direction)
+                go ((len, rotate) : rest) dir = mulVec2 (10*len) dir : go rest (rotate dir)
             turnLeft  (Vec2 x y) = Vec2   y  (-x)
             turnRight (Vec2 x y) = Vec2 (-y)   x
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))
