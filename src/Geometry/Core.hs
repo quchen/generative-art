@@ -65,10 +65,10 @@ module Geometry.Core (
 
 
 
-import           Control.Monad
-import           Data.Fixed
-import           Data.List
-import           Text.Printf
+import Control.Monad
+import Data.Fixed
+import Data.List
+import Text.Printf
 
 
 

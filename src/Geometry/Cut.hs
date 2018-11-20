@@ -7,12 +7,12 @@ module Geometry.Cut (
 
 
 import           Data.List
-import           Data.Map      (Map)
-import qualified Data.Map      as M
+import           Data.Map   (Map)
+import qualified Data.Map   as M
 import           Data.Maybe
 import           Data.Ord
-import qualified Data.Set      as S
-import  Data.Set      (Set)
+import           Data.Set   (Set)
+import qualified Data.Set   as S
 
 import Geometry.Core
 
