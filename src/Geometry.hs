@@ -67,6 +67,7 @@ import           Data.Fixed
 import           Data.List
 import           Data.Map      (Map)
 import qualified Data.Map      as M
+import           Data.Maybe
 import           Data.Ord
 import qualified Data.Set      as S
 import           Text.Printf
@@ -404,11 +405,20 @@ cutPolygon = \scissors polygon ->
     newCutsEdgeMapBuilder :: Line -> [CutLine] -> Map Vec2 (OneOrTwo Vec2) -> Map Vec2 (OneOrTwo Vec2)
     newCutsEdgeMapBuilder scissors@(Line scissorsStart _) cuts = go cutPointsSorted
       where
-        go (p : q : rest) = (p --> q) . (q --> p) . go rest
+        go ((p, pTy) : (q, qTy) : rest)
+            | isSourceType pTy && isTargetType qTy = (p --> q) . (q --> p) . go rest
         go (_:_) = bugError "Unpaired cut point"
         go [] = id
 
-        cutPointsSorted = sortOn scissorCoordinate [ p | Cut _ p _ <- cuts ]
+        cutPointsSorted :: [(Vec2, CutType)]
+        cutPointsSorted = sortOn (scissorCoordinate . fst) (M.toList recordedNeighbours)
+
+        recordedNeighbours :: Map Vec2 CutType
+        recordedNeighbours
+          = M.fromList (catMaybes (zipWith3 recordNeighbours
+                                            cuts
+                                            (tail (cycle cuts))
+                                            (tail (tail (cycle cuts)))))
 
         -- How far ahead/behind the start of the line is the point?
         --
@@ -417,17 +427,42 @@ cutPolygon = \scissors polygon ->
         scissorCoordinate :: Vec2 -> Double
         scissorCoordinate p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
 
-        cutPointsWithNeighbourPoints :: [(Vec2, Vec2, Vec2, Vec2, Vec2)]
-        cutPointsWithNeighbourPoints
-          = [ (pp, p, x, q, qq)
-                | (pp, Just (p, x, q), qq) <- zip3
-                    [ case cut of NoCut p _ -> p      ; Cut p _ _ -> p            | cut <- cuts ]
-                    [ case cut of NoCut{}   -> Nothing; Cut p x q -> Just (p,x,q) | cut <- tail (cycle cuts) ]
-                    [ case cut of NoCut _ q -> q      ; Cut _ _ q -> q            | cut <- tail (tail (cycle cuts)) ]
-                ]
+        recordNeighbours
+            :: CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
+        recordNeighbours cutL (Cut pM xM qM) cutR
+            | pM == xM = case cutL of
+                NoCut  pL    _qLpM -> Just (xM, classifyCut ((False, pL), (False, qM)))
+                Cut   _pL xL _qLpM -> Just (xM, classifyCut ((True,  xL), (False, qM)))
+            | xM == qM = case cutR of
+                NoCut _qMpR     qR -> Just (xM, classifyCut ((False, pM), (False, qR)))
+                Cut   _qMpR xR _qR -> Just (xM, classifyCut ((False, pM), (True,  xR)))
+        recordNeighbours _ _ _ = Nothing
 
-        cutPointsCategorized = _todo_categorize cutPointsWithNeighbourPoints
+        -- ( (<is left  on scissors>, <left  neighbour>)
+        -- , (<is right on scissors>, <right neighbour>)
+        -- )
+        classifyCut :: ((Bool, Vec2), (Bool, Vec2)) -> CutType
+        classifyCut ((False, p), (False, q)) = case (sideOfScissors p, sideOfScissors q) of
+            (LeftOfLine,  LeftOfLine)  -> LOL
+            (LeftOfLine,  RightOfLine) -> LOR
+            (RightOfLine, LeftOfLine)  -> ROL
+            (RightOfLine, RightOfLine) -> ROR
+            _other -> error "Point on scissors that is has not been recorded as such!"
+        classifyCut ((False, p), (True,  _)) = case sideOfScissors p of
+            LeftOfLine  -> LOO
+            RightOfLine -> ROO
+            _other -> error "Point on scissors that is has not been recorded as such!"
+        classifyCut ((True, _), (False, q)) = case sideOfScissors q of
+            LeftOfLine  -> OOL
+            RightOfLine -> OOR
+            _other -> error "Point on scissors that is has not been recorded as such!"
+        classifyCut ((True, _), (True,  _)) = OOO
 
+        sideOfScissors :: Vec2 -> SideOfLine
+        sideOfScissors p = case compare 0 (det (vectorOf scissors) (vectorOf (Line scissorsStart p))) of
+            LT -> LeftOfLine
+            EQ -> DirectlyOnLine
+            GT -> RightOfLine
 
     -- A polygon can be described by an adjacency list of corners to the next
     -- corner. A cut simply introduces two new corners (of polygons to be) that
@@ -492,6 +527,99 @@ data CutLine
     | Cut Vec2 Vec2 Vec2
         -- ^ (start, cut, end). The input was divided in two lines.
     deriving (Eq, Ord, Show)
+
+data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
+    deriving (Eq, Ord, Show)
+
+data CutType
+    = LOL
+        -- ^
+        -- @
+        --    p     q
+        --     \   /
+        --      \ /
+        -- ===== x =====>
+        -- @
+
+    | LOO
+        -- ^
+        -- @
+        --       p
+        --       |
+        --       |
+        -- ===== x ----- q =====>
+        -- @
+
+    | LOR
+        -- ^
+        -- @
+        --       p
+        --       |
+        --       |
+        -- ===== x =====>
+        --       |
+        --       |
+        --       q
+        -- @
+
+    | OOL
+        -- ^
+        -- @
+        --               q
+        --               |
+        --               |
+        -- ===== p ----- x =====>
+        -- @
+
+    | OOO
+        -- ^
+        -- @
+        -- ===== p ----- x ----- q =====>
+        -- @
+
+    | OOR
+        -- ^
+        -- @
+        -- ===== p ----- x =====>
+        --               |
+        --               |
+        --               q
+        -- @
+
+    | ROL
+        -- ^
+        -- @
+        --       q
+        --       |
+        --       |
+        -- ===== x =====>
+        --       |
+        --       |
+        --       p
+        -- @
+
+    | ROO
+        -- ^
+        -- @
+        -- ===== x ----- q =====>
+        --       |
+        --       |
+        --       p
+        -- @
+
+    | ROR
+        -- ^
+        -- @
+        -- ===== x =====>
+        --      / \
+        --     /   \
+        --    p     q
+        -- @
+    deriving (Eq, Ord, Show)
+
+isSourceType, isTargetType :: CutType -> Bool
+isSourceType x = elem x [LOL, LOO, LOR, OOR, ROR]
+isTargetType x = elem x [LOL, OOL, ROL, ROO, ROR]
 
 -- | Cut a finite piece of paper in one or two parts with an infinite line
 cutLine :: Line -> Line -> CutLine
