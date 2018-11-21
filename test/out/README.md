@@ -14,6 +14,8 @@ over quickly.
 
 ![](./billard/4_broken.svg)
 
+![](./convex_hull.svg)
+
 ![](./cut/1_line.svg)
 
 ![](./cut/2_square.svg)

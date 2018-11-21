@@ -24,6 +24,7 @@
 
 - ignore: {name: "Reduce duplication"}
 - ignore: {name: "Use infix"}
+- ignore: {name: "Redundant compare"} # suggests infinite loops
 
 # AMP fallout
 - error:

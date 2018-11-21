@@ -35,8 +35,9 @@ module Geometry.Core (
     , polygonAverage
     , polygonCircumference
     , polygonArea
-    , isConvex
     , polygonEdges
+    , isConvex
+    , convexHull
 
     -- ** Angles
     , Angle(..)
@@ -84,9 +85,7 @@ normalizePolygon :: Polygon -> Polygon
 normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) corners)
 
 instance Eq Polygon where
-    p1 == p2 = let Polygon corners1 = normalizePolygon p1
-                   Polygon corners2 = normalizePolygon p2
-               in corners1 == corners2
+    p1 == p2 = compare p1 p2 == EQ
 
 instance Ord Polygon where
     compare p1 p2
@@ -323,6 +322,27 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
 
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
+
+-- | The smallest convex polygon that contains all points.
+--
+-- The result is oriented in mathematically positive direction.
+convexHull :: [Vec2] -> Polygon
+-- Graham Scan
+convexHull points
+  = let pivot = minimumBy
+            (\(Vec2 x1 y1) (Vec2 x2 y2) -> compare y1 y2 <> compare x1 x2)
+            points
+        pointsSortedByXAngle = sortOn
+            (\p -> dotProduct (p `subtractVec2` pivot) (Vec2 1 0))
+            points
+        isCcw p q r = det (vectorOf (Line p q)) (vectorOf (Line q r)) >= 0
+        go [] (p:ps) = go [p] ps
+        go [s] (p:ps) = go [p,s] ps
+        go (s:t:ack) pp@(p:ps)
+            | isCcw t s p = go (p:s:t:ack) ps
+            | otherwise   = go (t:ack)     pp
+        go stack [] = Polygon stack
+    in go [] pointsSortedByXAngle
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.

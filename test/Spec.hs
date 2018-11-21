@@ -12,6 +12,7 @@ import qualified Test.Visual.Cut
 import qualified Test.Visual.IntersectionLL
 import qualified Test.Visual.Mirror
 import qualified Test.Visual.Reflection
+import qualified Test.Visual.ConvexHull
 import qualified Test.Visual.SimpleOperations
 
 import Test.Tasty
@@ -30,10 +31,11 @@ tests = testGroup "Test suite"
     , testGroup "Visual tests"
         [ Test.Visual.SimpleOperations.tests
         , Test.Visual.Billard.tests
+        , Test.Visual.ConvexHull.tests
+        , Test.Visual.Cut.tests
         , Test.Visual.IntersectionLL.tests
         , Test.Visual.Mirror.tests
         , Test.Visual.Reflection.tests
-        , Test.Visual.Cut.tests
         ]
     ]
 

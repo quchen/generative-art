@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: fc5521b4cac8111b71d8732b43de02eaa471ef138d4bb3f105ba2b4765ca7248
+-- hash: 92dc6f9fd010d3538141b2186dfa75940c215e04e15d64e70a0c18cbabb9f973
 
 name:           generative-art
 version:        0.1.0.0
@@ -64,9 +64,11 @@ test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.Instances
       Test.Properties
       Test.Visual.Billard
       Test.Visual.Common
+      Test.Visual.ConvexHull
       Test.Visual.Cut
       Test.Visual.IntersectionLL
       Test.Visual.Mirror
@@ -85,6 +87,7 @@ test-suite generative-art-test
     , data-default-class
     , generative-art
     , process
+    , random
     , tasty
     , tasty-hunit
     , tasty-quickcheck

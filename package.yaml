@@ -56,6 +56,7 @@ tests:
             - cairo
             - process
             - QuickCheck
+            - random
             - tasty
             - tasty-hunit
             - tasty-quickcheck
