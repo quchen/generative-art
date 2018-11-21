@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Test.Visual.ConvexHull (tests) where
 
 
@@ -7,6 +9,7 @@ import Data.List
 import Graphics.Rendering.Cairo hiding (x,y)
 import System.Random
 import Data.Default.Class
+import GHC.Generics
 
 import Draw
 import Geometry
@@ -15,13 +18,15 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Visual.Common
-import Test.Instances
+import Test.Instances()
+
+import Debug.Trace
 
 
 
 tests :: TestTree
 tests = testGroup "Convex hull"
-    [ testCase "Visual" visualTest
+    [ testCase "Visualll" visualTest
     , idempotencyTest
     , allPointsInHullTest
     ]
@@ -49,7 +54,7 @@ randomRadialPoints (Seed seed)
 
 visualTest :: IO ()
 visualTest = do
-    let points = (take 250 . filter (\vec -> norm vec <= Distance 100) . map (mulVec2 100))
+    let points = (take 120 . filter (\vec -> norm vec <= Distance 100) . map (mulVec2 30))
                     (randomGaussianPoints (Seed 10))
         hull = convexHull points
 
@@ -57,7 +62,6 @@ visualTest = do
     assertions points hull
   where
     renderVisual points hull = renderAllFormats 220 220 "test/out/convex_hull" $ do
-        cartesianCoordinateSystem
         translate 110 110
         setLineWidth 1
         mmaColor 1 1
@@ -93,15 +97,13 @@ idempotencyTest = testProperty "Idempotency" (forAll gen prop)
                   in hull === hull'
 
 newtype LotsOfGaussianPoints = LotsOfGaussianPoints [Vec2]
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Generic)
 
 instance Arbitrary LotsOfGaussianPoints where
     arbitrary = do
         Large seed <- arbitrary
         numPoints <- choose (10, 100)
         (pure . LotsOfGaussianPoints . take numPoints . randomGaussianPoints) (Seed seed)
-    -- shrink (LotsOfGaussianPoints xs) = fmap LotsOfGaussianPoints (filter ((>= 3) . length) (shrink xs))
-    -- TODO shrinking?
 
 allPointsInHullTest :: TestTree
 allPointsInHullTest = testProperty "All points are inside the hull" $

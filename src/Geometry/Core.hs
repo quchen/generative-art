@@ -69,6 +69,7 @@ module Geometry.Core (
 
 import Control.Monad
 import Data.Fixed
+import Data.Ord
 import Data.List
 import Text.Printf
 
@@ -200,7 +201,13 @@ dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 -- | Euclidean norm.
 norm :: Vec2 -> Distance
-norm v = Distance (sqrt (dotProduct v v))
+norm = Distance . sqrt . normSquare
+
+-- | Squared Euclidean norm. Does not require a square root, and is thus
+-- suitable for sorting points by distance without excluding certain kinds of
+-- numbers such as rationals.
+normSquare :: Vec2 -> Double
+normSquare v = dotProduct v v
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
@@ -325,22 +332,31 @@ polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
 -- | The smallest convex polygon that contains all points.
 --
--- The result is oriented in mathematically positive direction.
+-- The result is oriented in mathematically positive direction. (Note that Cairo
+-- uses a left-handed coordinate system, so mathematically positive is drawn as
+-- clockwise.)
 convexHull :: [Vec2] -> Polygon
 -- Graham Scan
 convexHull points
   = let pivot = minimumBy
             (\(Vec2 x1 y1) (Vec2 x2 y2) -> compare y1 y2 <> compare x1 x2)
             points
-        pointsSortedByXAngle = sortOn
-            (\p -> dotProduct (p `subtractVec2` pivot) (Vec2 1 0))
+        -- TODO: make this compatible with rationals
+        angleMonotonous p = angleBetween (Line pivot p) (Line (Vec2 0 0) (Vec2 1 0))
+        pointsSortedByXAngle = sortBy
+            (comparing angleMonotonous <> comparing normSquare)
             points
-        isCcw p q r = det (vectorOf (Line p q)) (vectorOf (Line q r)) >= 0
+
         go [] (p:ps) = go [p] ps
         go [s] (p:ps) = go [p,s] ps
-        go (s:t:ack) pp@(p:ps)
-            | isCcw t s p = go (p:s:t:ack) ps
-            | otherwise   = go (t:ack)     pp
+        go (s:t:ack) (p:ps)
+          = let (-.) = subtractVec2
+                angleSign a b c = compare (det (b -. a) (c -. b)) 0
+            in case angleSign t s p of
+                LT -> go (p:s:t:ack)    ps
+                -- TODO: test polygon with colinear points for ---v
+                EQ -> go (    t:ack) (p:ps) -- Ignore closer points with identical angle
+                GT -> go (    t:ack) (p:ps)
         go stack [] = Polygon stack
     in go [] pointsSortedByXAngle
 

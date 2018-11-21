@@ -14,6 +14,8 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
+import Test.Instances()
+
 
 
 tests :: TestTree
@@ -61,9 +63,6 @@ instance EqApprox Angle where
             Angle y'' = rad (y+pi)
         in approxEqualTolerance tol x' y' || approxEqualTolerance tol x'' y''
 
-instance Arbitrary Vec2 where
-    arbitrary = Vec2 <$> arbitrary <*> arbitrary
-
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
     (\angle1@(Angle angle1Raw) angle2@(Angle angle2Raw) ->
@@ -80,9 +79,6 @@ angleBetweenTest = testProperty "Angle between two lines"
                      , "  Δ expected: " ++ show expectedAngle
                      ])
             (expectedAngle ~== actualAngle) )
-
-instance Arbitrary Angle where
-    arbitrary = fmap deg (choose (0, 360-1))
 
 areaTest :: TestTree
 areaTest = testGroup "Area"

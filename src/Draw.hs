@@ -135,7 +135,7 @@ polygonSketch (Polygon (Vec2 x y : vecs)) = do
 cartesianCoordinateSystem :: Render ()
 cartesianCoordinateSystem = do
     let minMax :: (Int, Int)
-        minMax = (0, 1000)
+        minMax = (-1000, 1000)
         (minX, maxX) = minMax
         (minY, maxY) = minMax
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
@@ -155,6 +155,17 @@ cartesianCoordinateSystem = do
               | y <- [minY, minY+10 .. maxY]
               , mod y 100 /= 0]
     stroke
+
+    let centeredText :: Int -> Int -> String -> Render ()
+        centeredText x y str = do
+            TextExtents{textExtentsWidth = w, textExtentsHeight = h} <- textExtents str
+            moveTo (fromIntegral x - w/2) (fromIntegral y + h)
+            showText str
+    setFontSize 8
+    mmaColor 0 1
+    sequence_ [ centeredText x y (show x ++ "," ++ show y)
+              | x <- [minX, minX+100 .. maxX]
+              , y <- [minY, minY+100 .. maxY] ]
 
 radialCoordinateSystem :: Vec2 -> Int -> Render ()
 radialCoordinateSystem center maxR = do
