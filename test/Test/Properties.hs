@@ -174,9 +174,11 @@ dotProductTest = testGroup "Dot product"
             in forAll ((,) <$> nonZeroVec <*> nonZeroVec) $ \(v1, v2) ->
                 let v0 = Vec2 0 0
                     angle@(Angle a) = angleBetween (Line v0 v1) (Line v0 v2)
-                in counterexample
-                    (printf "%s•%s = %f\nangle; cos = %s; %.2f"
-                            (show v1) (show v2) (dotProduct v1 v2) (show angle) (cos a))
-                    (signum (cos a) ~== signum (dotProduct v1 v2))
+                    prod = dotProduct v1 v2
+                in -- Exclude almost-90° angles to avoid blinker tests
+                    abs (cos a) >= 1e-10 ==> counterexample
+                    (printf "%s • %s = %f\nangle; cos = %s; %.2f"
+                            (show v1) (show v2) prod (show angle) (cos a))
+                    (signum (cos a) ~== signum prod)
         ]
     ]
