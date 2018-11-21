@@ -46,11 +46,10 @@ rebuildSimpleEdgeGraphTest
             , Vec2 1 (-1) --> Vec2 1 0    -- +---------+
             ]
             (CutEdgeGraph mempty)
-        actual = reconstructPolygons cutEdgeGraph
-        expected = [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
-                   , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1]
-                   ]
-    in assertEqual "" expected actual -- TODO this should work for any order of polygons in the input/output
+        actual = sort (reconstructPolygons cutEdgeGraph)
+        expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
+                        , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
+    in assertEqual "" expected actual
 
 lineTest :: IO ()
 lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
