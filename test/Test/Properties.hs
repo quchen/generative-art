@@ -11,8 +11,8 @@ import Geometry
 
 import Test.QuickCheck
 import Test.Tasty
-import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 
 
 
@@ -169,8 +169,7 @@ dotProductTest = testGroup "Dot product"
             in signum (dotProduct v1 vGen) == signum x
         , testProperty "…with arbitrary vectors" $
             let nonZeroVec = do
-                    (NonZero a, b) <- arbitrary
-                    xy <- arbitrary
+                    (NonZero a, b, xy) <- arbitrary
                     pure (if xy then Vec2 a b else Vec2 b a)
             in forAll ((,) <$> nonZeroVec <*> nonZeroVec) $ \(v1, v2) ->
                 let v0 = Vec2 0 0
