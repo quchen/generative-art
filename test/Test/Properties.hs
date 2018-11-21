@@ -5,12 +5,14 @@ module Test.Properties (tests) where
 
 
 import Control.Applicative
+import Text.Printf
 
 import Geometry
 
 import Test.QuickCheck
 import Test.Tasty
 import Test.Tasty.QuickCheck
+import Test.Tasty.HUnit
 
 
 
@@ -19,19 +21,23 @@ tests = testGroup "Properties"
     [ angleBetweenTest
     , areaTest
     , intersectionLLTest
-    , lengthOfAngledLine ]
+    , lengthOfAngledLineTest
+    , detCrossTest
+    , dotProductTest
+     ]
 
 newtype Tolerance = Tolerance Double
 
 class EqApprox a where
     approxEqualTolerance :: Tolerance -> a -> a -> Bool
 
+infix 4 ~==
 (~==) :: EqApprox a => a -> a -> Bool
 (~==) = approxEqualTolerance (Tolerance 1e-10)
 
 instance EqApprox Double where
     approxEqualTolerance (Tolerance tolerance) reference value
-      = abs (reference - value) / reference <= tolerance
+      = abs (reference - value) <= tolerance
 
 instance EqApprox Vec2 where
     approxEqualTolerance (Tolerance tolerance) v1 v2
@@ -54,6 +60,9 @@ instance EqApprox Angle where
             Angle x'' = rad (x+pi)
             Angle y'' = rad (y+pi)
         in approxEqualTolerance tol x' y' || approxEqualTolerance tol x'' y''
+
+instance Arbitrary Vec2 where
+    arbitrary = Vec2 <$> arbitrary <*> arbitrary
 
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
@@ -118,8 +127,8 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
     vec2 = liftA2 Vec2 coord coord
     dist = fmap Distance (choose (-100, 100))
 
-lengthOfAngledLine :: TestTree
-lengthOfAngledLine = testProperty "Length of angled line" (forAll
+lengthOfAngledLineTest :: TestTree
+lengthOfAngledLineTest = testProperty "Length of angled line" (forAll
     ((,,) <$> vec2 <*> arbitrary <*> arbitrary)
     (\(start, angle, Positive len) ->
         let actual = lineLength (angledLine start angle (Distance len))
@@ -128,3 +137,47 @@ lengthOfAngledLine = testProperty "Length of angled line" (forAll
   where
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
+
+detCrossTest :: TestTree
+detCrossTest = testGroup "Determinant/cross product"
+    [ testCase "Positive" (assertBool "Positive" (det (Vec2 1 0) (Vec2 0   1)  > 0))
+    , testCase "Negative" (assertBool "Negative" (det (Vec2 1 0) (Vec2 0 (-1)) < 0))
+    , testProperty "Antisymmetric" $ \v1 v2 ->
+        let Vec2 x1 y1 = v1
+            Vec2 x2 y2 = v2
+            detA  = det v1 v2
+            detA' = det v2 v1
+        in counterexample (printf " det (%f,%f) (%f,%f) =  %f,\n-det (%f,%f) (%f,%f) = %f"
+                                        x1 y1   x2 y2    detA        x2 y2   x1 y1    detA')
+                          (detA ~== -detA')
+    , testProperty "Invariant: transposition" $ \x1 y1 x2 y2 ->
+        let detA  = det (Vec2 x1 y1) (Vec2 x2 y2)
+            detAT = det (Vec2 x1 x2) (Vec2 y1 y2)
+        in counterexample (printf "det (%f,%f) (%f,%f) = %f,\ndet (%f,%f) (%f,%f) = %f"
+                                        x1 y1   x2 y2    detA      x1 x2   y1 y2    detAT)
+                          (detA ~== detAT)
+    ]
+
+dotProductTest :: TestTree
+dotProductTest = testGroup "Dot product"
+    [ testProperty "Commutativity" (\v1 v2 -> dotProduct v1 v2 ~== dotProduct v2 v1)
+    , testProperty "Zero is eliminator" (\v1 -> dotProduct v1 (Vec2 0 0) ~== 0)
+    , testGroup "Measure of colinearity"
+        [ testProperty "…with unit vector" $ \vGen ->
+            let v1 = Vec2 1 0
+                Vec2 x _ = vGen
+            in signum (dotProduct v1 vGen) == signum x
+        , testProperty "…with arbitrary vectors" $
+            let nonZeroVec = do
+                    (NonZero a, b) <- arbitrary
+                    xy <- arbitrary
+                    pure (if xy then Vec2 a b else Vec2 b a)
+            in forAll ((,) <$> nonZeroVec <*> nonZeroVec) $ \(v1, v2) ->
+                let v0 = Vec2 0 0
+                    angle@(Angle a) = angleBetween (Line v0 v1) (Line v0 v2)
+                in counterexample
+                    (printf "%s•%s = %f\nangle; cos = %s; %.2f"
+                            (show v1) (show v2) (dotProduct v1 v2) (show angle) (cos a))
+                    (signum (cos a) ~== signum (dotProduct v1 v2))
+        ]
+    ]
