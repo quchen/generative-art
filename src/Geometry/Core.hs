@@ -29,6 +29,7 @@ module Geometry.Core (
 
     -- ** Polygons
     , Polygon(..)
+    , normalizePolygon
     , pointInPolygon
     , countEdgeTraversals
     , polygonAverage
@@ -77,6 +78,8 @@ data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 -- | Polygon, defined by its corners.
 newtype Polygon = Polygon [Vec2]
 
+-- | List-rotate the polygon’s corners until the minimum is the first entry in
+-- the corner list.
 normalizePolygon :: Polygon -> Polygon
 normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) corners)
 
@@ -84,6 +87,12 @@ instance Eq Polygon where
     p1 == p2 = let Polygon corners1 = normalizePolygon p1
                    Polygon corners2 = normalizePolygon p2
                in corners1 == corners2
+
+instance Ord Polygon where
+    compare p1 p2
+      = let Polygon p1Edges = normalizePolygon p1
+            Polygon p2Edges = normalizePolygon p2
+        in compare p1Edges p2Edges
 
 instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
