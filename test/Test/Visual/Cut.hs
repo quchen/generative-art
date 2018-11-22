@@ -24,6 +24,7 @@ tests = testGroup "Cutting things"
     [ testGroup "Internal Helper functions"
         [ rebuildSimpleEdgeGraphTest
         , reconstructConvexPolygonTest
+        , classifyCutTest
         ]
     , testGroup "Public API"
         [ testCase "Cut my line into pieces" lineTest
@@ -255,3 +256,19 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                       "left → on → on"
     roo = specialCase (Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0])
                       "right → on → on"
+
+classifyCutTest :: TestTree
+classifyCutTest
+  = let scissors = Line (Vec2 0 0) (Vec2 1 0)
+        test name spec expected
+          = let actual = classifyCut scissors spec
+            in testCase name (assertEqual "" expected actual)
+    in (testGroup "Classify cuts" . map (\(name, expected, spec) -> test name spec expected))
+        [ ("on    → on → on",    OOO, ((True,  Vec2 0   0),  (True,  Vec2 1   0)))
+        , ("left  → on → left",  LOL, ((False, Vec2 0   1),  (False, Vec2 1   1)))
+        , ("right → on → right", ROR, ((False, Vec2 0 (-1)), (False, Vec2 1 (-1))))
+        , ("on    → on → left",  OOL, ((True,  Vec2 0   0),  (False, Vec2 1   1)))
+        , ("on    → on → right", OOR, ((True,  Vec2 0   0),  (False, Vec2 1 (-1))))
+        , ("left  → on → on",    LOO, ((False, Vec2 0   1),  (True,  Vec2 1   0)))
+        , ("right → on → on",    ROO, ((False, Vec2 0 (-1)), (True,  Vec2 1   0)))
+        ]
