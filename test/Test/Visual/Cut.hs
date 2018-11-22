@@ -25,6 +25,7 @@ tests = testGroup "Cutting things"
         [ rebuildSimpleEdgeGraphTest
         , reconstructConvexPolygonTest
         , classifyCutTest
+        , sideOfScissorsTest
         ]
     , testGroup "Public API"
         [ testCase "Cut my line into pieces" lineTest
@@ -272,3 +273,14 @@ classifyCutTest
         , ("left  → on → on",    LOO, ((False, Vec2 0   1),  (True,  Vec2 1   0)))
         , ("right → on → on",    ROO, ((False, Vec2 0 (-1)), (True,  Vec2 1   0)))
         ]
+
+sideOfScissorsTest :: TestTree
+sideOfScissorsTest = testProperty "Side of scissors" $
+    \(GaussianVec vec@(Vec2 _ y)) ->
+        let scissors = Line (Vec2 0 0) (Vec2 1 0)
+            actual = sideOfScissors scissors vec
+            expected = case compare y 0 of
+                LT -> RightOfLine
+                EQ -> DirectlyOnLine
+                GT -> LeftOfLine
+        in actual === expected

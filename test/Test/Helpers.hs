@@ -26,6 +26,7 @@ instance Arbitrary Angle where
     arbitrary = fmap deg (choose (0, 360-1))
 
 newtype GaussianVec = GaussianVec Vec2
+    deriving (Eq, Ord, Show)
 
 instance Arbitrary GaussianVec where
     arbitrary = do
