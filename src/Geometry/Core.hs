@@ -69,8 +69,8 @@ module Geometry.Core (
 
 import Control.Monad
 import Data.Fixed
-import Data.Ord
 import Data.List
+import Data.Ord
 import Text.Printf
 
 

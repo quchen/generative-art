@@ -8,11 +8,11 @@ import System.Process
 
 import qualified Test.Properties
 import qualified Test.Visual.Billard
+import qualified Test.Visual.ConvexHull
 import qualified Test.Visual.Cut
 import qualified Test.Visual.IntersectionLL
 import qualified Test.Visual.Mirror
 import qualified Test.Visual.Reflection
-import qualified Test.Visual.ConvexHull
 import qualified Test.Visual.SimpleOperations
 
 import Test.Tasty

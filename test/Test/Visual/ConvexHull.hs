@@ -4,23 +4,21 @@ module Test.Visual.ConvexHull (tests) where
 
 
 
+import Data.Default.Class
 import Data.Foldable
 import Data.List
-import Graphics.Rendering.Cairo hiding (x,y)
-import System.Random
-import Data.Default.Class
 import GHC.Generics
+import Graphics.Rendering.Cairo hiding (x, y)
+import System.Random
 
 import Draw
 import Geometry
 
+import Test.Instances        ()
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Visual.Common
-import Test.Instances()
-
-import Debug.Trace
 
 
 
