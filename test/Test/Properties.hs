@@ -43,7 +43,7 @@ instance EqApprox Double where
 
 instance EqApprox Vec2 where
     approxEqualTolerance (Tolerance tolerance) v1 v2
-      = let Distance distance = norm (v2 `subtractVec2` v1)
+      = let Distance distance = norm (v2 -. v1)
         in distance <= tolerance
 
 instance EqApprox Distance where
@@ -100,7 +100,7 @@ areaTest = testGroup "Area"
     parallelogram = testProperty "Parallelogram" (forAll
         ((,) <$> vec2 <*> vec2)
         (\(v1, v2) ->
-            let actual = polygonArea (Polygon [zero, v1, v1 `addVec2` v2, v2])
+            let actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
                 zero = Vec2 0 0
                 Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
                 Distance v1norm = norm v1

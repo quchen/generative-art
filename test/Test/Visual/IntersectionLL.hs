@@ -67,7 +67,7 @@ testDraw line1 line2 = do
     stroke
 
     do let fontSize = 10
-           Vec2 x y = point `addVec2` Vec2 15 15
+           Vec2 x y = point +. Vec2 15 15
            Angle alpha = angleBetween line1 line2
            angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
            tyStr = case ty of

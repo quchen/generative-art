@@ -54,7 +54,7 @@ randomRadialPoints (Seed seed)
 
 visualTest :: IO ()
 visualTest = do
-    let points = (take 120 . filter (\vec -> norm vec <= Distance 100) . map (mulVec2 30))
+    let points = (take 120 . filter (\vec -> norm vec <= Distance 100) . map (30 *.))
                     (randomGaussianPoints (Seed 10))
         hull = convexHull points
 

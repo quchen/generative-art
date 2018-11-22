@@ -4,10 +4,10 @@ module Geometry.Core (
     -- * Primitives
     -- ** Vectors
     Vec2(..)
-    , addVec2
+    , (+.)
     , negateVec2
-    , subtractVec2
-    , mulVec2
+    , (-.)
+    , (*.)
     , dotProduct
     , norm
 
@@ -128,7 +128,7 @@ moveRad :: Move geo => Angle -> Distance -> geo -> geo
 moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
 
 instance Move Vec2 where
-    move = addVec2
+    move = (+.)
 
 instance Move Polygon where
     move offset (Polygon points) = Polygon (map (move offset) points)
@@ -172,7 +172,7 @@ instance Mirror Vec2 where
     mirrorAlong mirror p
       = let perpendicular = perpendicularLineThrough p mirror
             (foot, _ty) = intersectionLL mirror perpendicular
-        in foot `addVec2` foot `subtractVec2` p
+        in foot +. foot -. p
 
 instance Mirror Line where
     mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
@@ -181,20 +181,23 @@ instance Mirror Line where
 instance Mirror Polygon where
     mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
 
-infixl 6 `addVec2`, `subtractVec2`
-infixl 7 `mulVec2`, `dotProduct`
+infixl 6 +., -.
+infixl 7 *.
 
-addVec2 :: Vec2 -> Vec2 -> Vec2
-addVec2 (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
+(+.), (-.) :: Vec2 -> Vec2 -> Vec2
+(*.) :: Double -> Vec2 -> Vec2
+
+-- | Vector addition
+Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
+
+-- | Vector subtraction
+v1 -. v2 = v1 +. negateVec2 v2
+
+-- | Scalar multiplication
+a *. Vec2 x y = Vec2 (a*x) (a*y)
 
 negateVec2 :: Vec2 -> Vec2
 negateVec2 (Vec2 x y) = Vec2 (-x) (-y)
-
-subtractVec2 :: Vec2 -> Vec2 -> Vec2
-subtractVec2 v1 v2 = addVec2 v1 (negateVec2 v2)
-
-mulVec2 :: Double -> Vec2 -> Vec2
-mulVec2 a (Vec2 x y) = Vec2 (a*x) (a*y)
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
@@ -221,7 +224,7 @@ rad r = Angle (r `mod'` (2*pi))
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
 -- it unit length.
 vectorOf :: Line -> Vec2
-vectorOf (Line start end) = end `subtractVec2` start
+vectorOf (Line start end) = end -. start
 
 -- | Angle of a single line, relative to the x axis.
 angleOfLine :: Line -> Angle
@@ -236,7 +239,7 @@ angleBetween line1 line2
 angledLine :: Vec2 -> Angle -> Distance -> Line
 angledLine start angle (Distance len) = Line start end
   where
-    end = rotateAround start angle (start `addVec2` Vec2 len 0)
+    end = rotateAround start angle (start +. Vec2 len 0)
 
 lineLength :: Line -> Distance
 lineLength = norm . vectorOf
@@ -247,8 +250,8 @@ resizeLine line@(Line start _end) f
   = let v = vectorOf line
         len@(Distance d) = norm v
         Distance d' = f len
-        v' = mulVec2 (d'/d) v
-        end' = start `addVec2` v'
+        v' = (d'/d) *. v
+        end' = start +. v'
     in Line start end'
 
 -- | Resize a line, extending in both directions.
@@ -261,8 +264,8 @@ resizeLineSymmetric line f = centerLine (resizeLine line f)
 centerLine :: Line -> Line
 centerLine line@(Line start end) = move delta line
   where
-    middle = mulVec2 0.5 (start `addVec2` end)
-    delta = start `subtractVec2` middle
+    middle = 0.5 *. (start +. end)
+    delta = start -. middle
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
@@ -325,8 +328,6 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
     u = - det (v1 -. v2) (v1 -. v3) / det (v1 -. v2) (v3 -. v4)
     intersectionInsideR = u >= 0 && u <= 1
 
-    (-.) = subtractVec2
-
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
@@ -350,8 +351,7 @@ convexHull points
         go [] (p:ps) = go [p] ps
         go [s] (p:ps) = go [p,s] ps
         go (s:t:ack) (p:ps)
-          = let (-.) = subtractVec2
-                angleSign a b c = compare (det (b -. a) (c -. b)) 0
+          = let angleSign a b c = compare (det (b -. a) (c -. b)) 0
             in case angleSign t s p of
                 LT -> go (p:s:t:ack)    ps
                 -- TODO: test polygon with colinear points for ---v
@@ -391,8 +391,8 @@ pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 -- | Average of polygon vertices
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
-  = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, addVec2 vec corner)) (0, Vec2 0 0) corners
-    in mulVec2 (1/num) total
+  = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
+    in (1/num) *. total
 
 polygonCircumference :: Polygon -> Distance
 polygonCircumference poly = foldl'
@@ -444,7 +444,7 @@ isConvex (Polygon ps)
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
-    middle = mulVec2 0.5 (start `addVec2` end)
+    middle = 0.5 *. (start +. end)
 
 -- | Line perpendicular to a given line through a point.
 --
@@ -521,7 +521,7 @@ billardProcess edges = go (const True)
 
     liesAheadOf :: Vec2 -> Line -> Bool
     liesAheadOf point (Line rayStart rayEnd)
-      = dotProduct (subtractVec2 point rayStart) (subtractVec2 rayEnd rayStart) > 0
+      = dotProduct (point -. rayStart) (rayEnd -. rayStart) > 0
 
     distanceFrom :: Vec2 -> Vec2 -> Vec2 -> Ordering
     distanceFrom start p q

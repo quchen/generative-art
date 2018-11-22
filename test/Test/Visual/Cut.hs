@@ -129,7 +129,7 @@ cutSquareTest = do
 complicatedPolygonTest :: IO ()
 complicatedPolygonTest = do
     let polygon = spiral 9
-        spiral n = Polygon (scanl addVec2 (Vec2 0 0) relativeSpiral)
+        spiral n = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
           where
             instructions = concat [ zip [1..n] (repeat turnLeft)
                                   , [(1, turnLeft)]
@@ -139,7 +139,7 @@ complicatedPolygonTest = do
             relativeSpiral = go instructions (Vec2 1 0)
               where
                 go [] _dir = []
-                go ((len, rotate) : rest) dir = mulVec2 (10*len) dir : go rest (rotate dir)
+                go ((len, rotate) : rest) dir = 10*len *. dir : go rest (rotate dir)
             turnLeft  (Vec2 x y) = Vec2   y  (-x)
             turnRight (Vec2 x y) = Vec2 (-y)   x
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))

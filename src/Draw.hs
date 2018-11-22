@@ -100,7 +100,6 @@ arrowSketch line ArrowSpec{..} = do
         Distance rawRelPos = arrowheadRelPos
 
         arrowTip = start +. (rawRelPos *. (end -. start))
-        ((+.), (*.), (-.)) = (addVec2, mulVec2, subtractVec2)
 
     let arrowheadHalf (+-) = angledLine arrowTip (Angle (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
         Line _ arrowLeftEnd  = arrowheadHalf (+)
@@ -114,7 +113,7 @@ circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)
 
 crossSketch :: Vec2 -> Distance -> Render ()
 crossSketch center (Distance r) = do
-    let lowerRight = rotateAround center (deg 45) (center `addVec2` Vec2 r 0)
+    let lowerRight = rotateAround center (deg 45) (center +. Vec2 r 0)
         line1 = angledLine lowerRight (deg (45+180)) (Distance (2*r))
         line2 = rotateAround center (deg 90) line1
     lineSketch line1
