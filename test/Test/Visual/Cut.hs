@@ -12,14 +12,18 @@ import Geometry.Cut.Internal
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
 import Test.Visual.Common
+
+import Test.Helpers
 
 
 
 tests :: TestTree
 tests = testGroup "Cutting things"
     [ testGroup "Internal Helper functions"
-        [ testCase "Rebuild simple edge graph" rebuildSimpleEdgeGraphTest
+        [ rebuildSimpleEdgeGraphTest
+        , reconstructConvexPolygonTest
         ]
     , testGroup "Public API"
         [ testCase "Cut my line into pieces" lineTest
@@ -31,10 +35,10 @@ tests = testGroup "Cutting things"
         ]
     ]
 
-rebuildSimpleEdgeGraphTest :: IO ()
-rebuildSimpleEdgeGraphTest
-  = let cutEdgeGraph :: CutEdgeGraph
-        cutEdgeGraph = foldr (.) id
+rebuildSimpleEdgeGraphTest :: TestTree
+rebuildSimpleEdgeGraphTest =  testCase "Rebuild simple edge graph" $
+    let cutEdgeGraph :: CutEdgeGraph
+        cutEdgeGraph = foldl' (\db f -> f db) mempty
             [ Vec2 0 0 --> Vec2 1 0       -- +---------+
             , Vec2 1 0 --> Vec2 1 1       -- |         |
             , Vec2 1 1 --> Vec2 0 1       -- |         |
@@ -45,11 +49,21 @@ rebuildSimpleEdgeGraphTest
             , Vec2 0 (-1) --> Vec2 1 (-1) -- |         |
             , Vec2 1 (-1) --> Vec2 1 0    -- +---------+
             ]
-            (CutEdgeGraph mempty)
         actual = sort (reconstructPolygons cutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
                         , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
     in assertEqual "" expected actual
+
+reconstructConvexPolygonTest :: TestTree
+reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
+    \(LotsOfGaussianPoints points) ->
+        let convexPolygon = convexHull points
+            maxY = maximum (map (\(Vec2 _ y) -> y) points)
+            scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (Angle 0) (Distance 1)
+            cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
+            actual = reconstructPolygons (polygonEdgeGraph cuts mempty)
+            expected = [convexPolygon]
+        in actual === expected
 
 lineTest :: IO ()
 lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
