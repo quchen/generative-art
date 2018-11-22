@@ -5,7 +5,6 @@ module Test.Visual.ConvexHull (tests) where
 import Data.Default.Class
 import Data.Foldable
 import Data.List
-import Data.Ord
 import Graphics.Rendering.Cairo hiding (x, y)
 
 import Draw
@@ -25,7 +24,6 @@ tests = testGroup "Convex hull"
     , idempotencyTest
     , allPointsInHullTest
     , convexHullIsConvexTest
-    , sameResultAsGrahamScan
     , isNotSelfIntersecting
     ]
 
@@ -87,53 +85,6 @@ allPointsInHullTest = testProperty "All points are inside the hull" $
 convexHullIsConvexTest :: TestTree
 convexHullIsConvexTest = testProperty "Convex hull is convex" $
     \(LotsOfGaussianPoints points) -> isConvex (convexHull points)
-
-sameResultAsGrahamScan :: TestTree
-sameResultAsGrahamScan = testProperty "Equivalence to Graham Scan algorithm" $
-    \(LotsOfGaussianPoints points) ->
-        let actual@(Polygon actualPs) = normalizePolygon (convexHull points)
-            reference@(Polygon referencePs) = normalizePolygon (convexHullGrahamScan points)
-        in counterexample
-            (unlines
-                [ "Implementation does not match reference (Graham Scan)"
-                , "Actual:    " ++ show actual
-                , "Reference: " ++ show reference
-                , "Points in actual, but not in reference:"
-                , "    " ++ show (actualPs \\ referencePs)
-                , "Points in reference, but not in actual:"
-                , "    " ++ show (referencePs \\ actualPs)
-                ])
-            (actual == reference)
-
--- Graham Scan algorithm.
---
--- This algorithm uses angles to compute the complex hull, so it is unsuitable
--- for rational arithmetic, which is why we use Andrew’s algorithm in the
--- library instead.
-convexHullGrahamScan :: [Vec2] -> Polygon
-convexHullGrahamScan points
-  = let pivot = minimumBy
-            (\(Vec2 x1 y1) (Vec2 x2 y2) -> compare y1 y2 <> compare x1 x2)
-            points
-        -- TODO: make this compatible with rationals
-        -- angleMonotonous p = angleBetween (Line pivot p) (Line (Vec2 0 0) (Vec2 1 0))
-        angleMonotonous p@(Vec2 px py)
-          =  dotProduct (p -. pivot) (Vec2 px (-py) -. pivot)
-            / normSquare (p -. pivot)
-        pointsSortedByXAngle = sortBy
-            (comparing angleMonotonous <> comparing normSquare)
-            points
-
-        go [] (p:ps) = go [p] ps
-        go [s] (p:ps) = go [p,s] ps
-        go (s:t:ack) (p:ps)
-          = let angleSign a b c = compare (det (b -. a) (c -. b)) 0
-            in case angleSign t s p of
-                LT -> go (p:s:t:ack)    ps
-                EQ -> go (    t:ack) (p:ps) -- Ignore closer points with identical angle
-                GT -> go (    t:ack) (p:ps)
-        go stack [] = Polygon stack
-    in go [] pointsSortedByXAngle
 
 isNotSelfIntersecting :: TestTree
 isNotSelfIntersecting = testProperty "Result is not self-intersecting" $
