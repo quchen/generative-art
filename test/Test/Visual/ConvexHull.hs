@@ -20,15 +20,15 @@ import Test.Visual.Common
 
 tests :: TestTree
 tests = testGroup "Convex hull"
-    [ testCase "Visualll" visualTest
-    , idempotencyTest
+    [ idempotencyTest
     , allPointsInHullTest
     , convexHullIsConvexTest
     , isNotSelfIntersecting
+    , visualTest
     ]
 
-visualTest :: IO ()
-visualTest = do
+visualTest :: TestTree
+visualTest = testCase "Visual" $ do
     let points = (take 128 . filter (\vec -> norm vec <= Distance 100) . map (30 *.))
                     (gaussianVecs (Seed 55))
         hull = convexHull points

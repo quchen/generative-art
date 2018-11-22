@@ -4,8 +4,8 @@ module Test.Helpers where
 
 
 
-import System.Random
 import Data.List
+import System.Random
 
 import Geometry
 
@@ -15,12 +15,8 @@ import Test.Tasty.QuickCheck
 
 instance Arbitrary Vec2 where
     arbitrary = Vec2 <$> arbitrary <*> arbitrary
-    shrink (Vec2 x y) = Vec2   0   0
-                      : Vec2   1   0
-                      : Vec2   0   1
-                      : Vec2 (-1)  0
-                      : Vec2   0 (-1)
-                      : [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
+    shrink (Vec2 x y) = [ Vec2 x' y' | x' <- [0,1,-1], y' <- [0,1,-1] ]
+                     ++ [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
 
 instance Arbitrary Angle where
     arbitrary = fmap deg (choose (0, 360-1))

@@ -39,17 +39,16 @@ tests = testGroup "Cutting things"
 
 rebuildSimpleEdgeGraphTest :: TestTree
 rebuildSimpleEdgeGraphTest =  testCase "Rebuild simple edge graph" $
-    let cutEdgeGraph :: CutEdgeGraph
-        cutEdgeGraph = foldl' (\db f -> f db) mempty
-            [ Vec2 0 0 --> Vec2 1 0       -- +---------+
-            , Vec2 1 0 --> Vec2 1 1       -- |         |
-            , Vec2 1 1 --> Vec2 0 1       -- |         |
-            , Vec2 0 1 --> Vec2 0 0       -- |         |
+    let cutEdgeGraph = foldl' (\db f -> f db) mempty
+            [ Vec2 0   0  --> Vec2 1   0  -- +---------+
+            , Vec2 1   0  --> Vec2 1   1  -- |         |
+            , Vec2 1   1  --> Vec2 0   1  -- |         |
+            , Vec2 0   1  --> Vec2 0   0  -- |         |
                                           -- +---------+
-            , Vec2 1 0 --> Vec2 0 0       -- |         |
-            , Vec2 0 0 --> Vec2 0 (-1)    -- |         |
+            , Vec2 1   0  --> Vec2 0   0  -- |         |
+            , Vec2 0   0  --> Vec2 0 (-1) -- |         |
             , Vec2 0 (-1) --> Vec2 1 (-1) -- |         |
-            , Vec2 1 (-1) --> Vec2 1 0    -- +---------+
+            , Vec2 1 (-1) --> Vec2 1   0  -- +---------+
             ]
         actual = sort (reconstructPolygons cutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]

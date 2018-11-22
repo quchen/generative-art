@@ -410,7 +410,6 @@ polygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
     in Area (abs (sum determinants / 2))
 
--- UNTESTED
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
