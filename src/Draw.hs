@@ -210,8 +210,8 @@ withSavedState render = do
 --
 -- The second parameter can be used to specify an action to be run after
 -- grouping, such as 'paintWithAlpha'.
-grouped :: Render a -> Render b -> Render a
-grouped render afterwards = do
+grouped :: Render after -> Render a -> Render a
+grouped afterwards render = do
     pushGroup
     result <- render
     popGroupToSource
