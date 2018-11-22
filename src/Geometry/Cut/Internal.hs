@@ -37,11 +37,10 @@ cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
 createEdgeGraph :: Line -> [CutLine] -> CutEdgeGraph
-createEdgeGraph scissors allCuts = (addCutEdges . addOriginalPolygon) emptyGraph
+createEdgeGraph scissors allCuts = (addCutEdges . addOriginalPolygon) mempty
   where
     addCutEdges = newCutsEdgeGraph scissors allCuts
     addOriginalPolygon = polygonEdgeGraph allCuts
-    emptyGraph = CutEdgeGraph mempty
 
 newCutsEdgeGraph :: Line -> [CutLine] -> CutEdgeGraph -> CutEdgeGraph
 newCutsEdgeGraph scissors@(Line scissorsStart _) cuts = go cutPointsSorted
@@ -87,6 +86,12 @@ polygonEdgeGraph cuts = case cuts of
 
 newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 (OneOrTwo Vec2))
     deriving (Eq, Ord, Show)
+
+instance Semigroup CutEdgeGraph where
+    CutEdgeGraph g1 <> CutEdgeGraph g2 = CutEdgeGraph (g1 <> g2)
+
+instance Monoid CutEdgeGraph where
+    mempty = CutEdgeGraph mempty
 
 -- Given a list of corners that point to other corners, we can reconstruct
 -- all the polygons described by them by finding the smallest cycles, i.e.

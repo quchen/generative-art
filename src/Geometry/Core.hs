@@ -10,6 +10,7 @@ module Geometry.Core (
     , (*.)
     , dotProduct
     , norm
+    , normSquare
 
     -- ** Lines
     , Line(..)
@@ -37,6 +38,7 @@ module Geometry.Core (
     , polygonArea
     , polygonEdges
     , isConvex
+    , selfIntersections
     , convexHull
 
     -- ** Angles
@@ -70,7 +72,6 @@ module Geometry.Core (
 import Control.Monad
 import Data.Fixed
 import Data.List
-import Data.Ord
 import Text.Printf
 
 
@@ -437,6 +438,20 @@ isConvex (Polygon ps)
         -- NB: head is safe here, since all short-circuits for empty xs
         allSameSign xs = all (\p -> signum p == signum (head xs)) xs
     in allSameSign angleDotProducts
+
+-- | Find all self intersections of a polygon’s edges.
+selfIntersections :: Polygon -> [(Line, Line)]
+selfIntersections poly
+  = let edges = polygonEdges poly
+    in [ (edge1, edge2) | edge1:_:restEdges <- tails edges
+                        , edge2 <- restEdges
+                        -- Skip neighbouring edge because neighbours always intersect
+                        , let Line e11 _e12 = edge1
+                        , let Line _e21 e22 = edge2
+                        -- , e12 /= e21
+                        , e11 /= e22
+                        , (_, IntersectionReal) <- [intersectionLL edge1 edge2]
+                        ]
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.
