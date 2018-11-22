@@ -354,7 +354,6 @@ convexHull points
           = let angleSign a b c = compare (det (b -. a) (c -. b)) 0
             in case angleSign t s p of
                 LT -> go (p:s:t:ack)    ps
-                -- TODO: test polygon with colinear points for ---v
                 EQ -> go (    t:ack) (p:ps) -- Ignore closer points with identical angle
                 GT -> go (    t:ack) (p:ps)
         go stack [] = Polygon stack
