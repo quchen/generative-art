@@ -338,27 +338,19 @@ polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 -- uses a left-handed coordinate system, so mathematically positive is drawn as
 -- clockwise.)
 convexHull :: [Vec2] -> Polygon
--- Graham Scan
+-- Andrew’s algorithm
 convexHull points
-  = let pivot = minimumBy
-            (\(Vec2 x1 y1) (Vec2 x2 y2) -> compare y1 y2 <> compare x1 x2)
-            points
-        -- TODO: make this compatible with rationals
-        angleMonotonous p = angleBetween (Line pivot p) (Line (Vec2 0 0) (Vec2 1 0))
-        pointsSortedByXAngle = sortBy
-            (comparing angleMonotonous <> comparing normSquare)
-            points
+  = let pointsSorted = sort points
+        angleSign a b c = signum (det (b -. a) (c -. b))
+        go :: (Double -> Double -> Bool) -> [Vec2] -> [Vec2] -> [Vec2]
+        go cmp [] (p:ps) = go cmp [p] ps
+        go cmp [s] (p:ps) = go cmp [p,s] ps
+        go cmp (s:t:ack) (p:ps)
+            | angleSign t s p `cmp` 0 = go cmp (p:s:t:ack) ps
+            | otherwise = go cmp (t:ack) (p:ps)
+        go _ stack [] = stack
 
-        go [] (p:ps) = go [p] ps
-        go [s] (p:ps) = go [p,s] ps
-        go (s:t:ack) (p:ps)
-          = let angleSign a b c = compare (det (b -. a) (c -. b)) 0
-            in case angleSign t s p of
-                LT -> go (p:s:t:ack)    ps
-                EQ -> go (    t:ack) (p:ps) -- Ignore closer points with identical angle
-                GT -> go (    t:ack) (p:ps)
-        go stack [] = Polygon stack
-    in go [] pointsSortedByXAngle
+    in Polygon (drop 1 (go (<=) [] pointsSorted) ++ drop 1 (reverse (go (>=) [] pointsSorted)))
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.

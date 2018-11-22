@@ -14,7 +14,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
-import Test.Instances ()
+import Test.Helpers ()
 
 
 
