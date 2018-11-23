@@ -267,18 +267,19 @@ drawSimpleCutEdgeGraphTest :: TestTree
 drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
     [ testCase "Simple handcrafted graph" $
         renderAllFormats 120 220 "test/out/cut/7_handcrafted_edge_graph" $ do
-            translate 10 110
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
                 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
                   where
                     modify (k, One v) = (f k, One (f v))
                     modify (k, Two v v') = (f k, Two (f v) (f v'))
+            translate 10 110
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "test/out/cut/8_calculated_edge_graph" $ do
             let polygon = Geometry.transform (scale' 50 50) (Polygon [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
+            translate 60 60
             drawCutEdgeGraph cutEdgeGraph
     ]
   where
@@ -288,7 +289,6 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
 
     drawCutEdgeGraph ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons ceg
-        translate 60 60
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             mmaColor 0 1
