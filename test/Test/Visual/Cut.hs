@@ -267,6 +267,10 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
         renderAllFormats 120 220 "test/out/cut/7_handcrafted_edge_graph" $ do
             translate 10 110
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
+                transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
+                  where
+                    modify (k, One v) = (f k, One (f v))
+                    modify (k, Two v v') = (f k, Two (f v) (f v'))
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "test/out/cut/8_calculated_edge_graph" $ do
@@ -308,17 +312,6 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             strokePreserve
             mmaColor i 0.1
             fill
-
-
-
-transformAllVecs :: (Vec2 -> Vec2) -> CutEdgeGraph -> CutEdgeGraph
-transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
-  where
-    modify (k, One v) = (f k, One (f v))
-    modify (k, Two v v') = (f k, Two (f v) (f v'))
-
-
-
 
 classifyCutTest :: TestTree
 classifyCutTest
