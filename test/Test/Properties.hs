@@ -8,6 +8,7 @@ import Control.Applicative
 import Text.Printf
 
 import Geometry
+import Util
 
 import Test.QuickCheck
 import Test.Tasty
@@ -26,6 +27,7 @@ tests = testGroup "Properties"
     , lengthOfAngledLineTest
     , detCrossTest
     , dotProductTest
+    , polygonInstancesTest
      ]
 
 newtype Tolerance = Tolerance Double
@@ -178,3 +180,21 @@ dotProductTest = testGroup "Dot product"
                     (signum (cos a) ~== signum prod)
         ]
     ]
+
+polygonInstancesTest :: TestTree
+polygonInstancesTest = testGroup "Eq Polygon"
+    [ equalPolygonsTest
+    ]
+  where
+    equalPolygonsTest = testProperty "Polygons with rotated corner order" (forAll gen test)
+      where
+        gen = do
+            size <- getSize
+            len <- fmap (+3) (choose (0, size))
+            polygon <- fmap Polygon (Test.QuickCheck.vectorOf len arbitrary)
+            rot <- choose (0, len-1)
+            pure (rot, polygon)
+        test (rot, polygon)
+          = let Polygon corners = polygon
+                polygon' = Polygon (rotate rot corners)
+            in polygon === polygon'

@@ -74,6 +74,8 @@ import Data.Fixed
 import Data.List
 import Text.Printf
 
+import Util
+
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
@@ -87,7 +89,11 @@ normalizePolygon :: Polygon -> Polygon
 normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) corners)
 
 instance Eq Polygon where
-    p1 == p2 = compare p1 p2 == EQ
+    p1 == p2
+      = let Polygon p1Edges@(edge1:_) = p1
+            Polygon p2Edges = p2
+            p2Edges' = rotateUntil (== edge1) p2Edges
+        in p1Edges == p2Edges'
 
 instance Ord Polygon where
     compare p1 p2
@@ -98,14 +104,6 @@ instance Ord Polygon where
 instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
                 in "Polygon " ++ show corners
-
--- | Rotate a list until the predicate holds. If it never holds, return the
--- input list.
-rotateUntil :: (a -> Bool) -> [a] -> [a]
-rotateUntil p xs = zipWith
-    (flip const)
-    xs
-    (dropWhile (not . p) (cycle xs))
 
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
