@@ -36,6 +36,7 @@ module Geometry.Core (
     , polygonAverage
     , polygonCircumference
     , polygonArea
+    , signedPolygonArea
     , polygonEdges
     , isConvex
     , selfIntersections
@@ -482,6 +483,11 @@ polygonArea :: Polygon -> Area
 polygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
     in Area (abs (sum determinants / 2))
+
+signedPolygonArea :: Polygon -> Area
+signedPolygonArea (Polygon ps)
+  = let determinants = zipWith det ps (tail (cycle ps))
+    in Area (sum determinants / 2)
 
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)

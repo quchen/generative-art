@@ -21,6 +21,10 @@ import Geometry.Core
 data OneOrTwo a = One a | Two a a
     deriving (Eq, Ord, Show)
 
+-- | Orientation of a polygon
+data Orientation = Positive | Negative
+    deriving (Eq, Ord, Show)
+
 -- | Cut a polygon in multiple pieces with a line.
 --
 -- For convex polygons, the result is either just the polygon (if the line
@@ -29,26 +33,31 @@ data OneOrTwo a = One a | Two a a
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon scissors polygon =
     reconstructPolygons
-        (createEdgeGraph scissors
+        (createEdgeGraph scissors (polygonOrientation polygon)
             (cutAll scissors
                 (polygonEdges polygon)))
+
+polygonOrientation :: Polygon -> Orientation
+polygonOrientation polygon
+    | signedPolygonArea polygon >= Area 0 = Positive
+    | otherwise                           = Negative
 
 -- Generate a list of all the edges of a polygon, extended with additional
 -- points on the edges that are crossed by the scissors.
 cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
-createEdgeGraph :: Line -> [CutLine] -> CutEdgeGraph
-createEdgeGraph scissors allCuts = (addCutEdges . addOriginalPolygon) mempty
+createEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph
+createEdgeGraph scissors orientation allCuts = (addCutEdges . addOriginalPolygon) mempty
   where
-    addCutEdges = newCutsEdgeGraph scissors allCuts
+    addCutEdges = newCutsEdgeGraph scissors orientation allCuts
     addOriginalPolygon = polygonEdgeGraph allCuts
 
-newCutsEdgeGraph :: Line -> [CutLine] -> CutEdgeGraph -> CutEdgeGraph
-newCutsEdgeGraph scissors@(Line scissorsStart _) cuts = go cutPointsSorted
+newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph -> CutEdgeGraph
+newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
   where
     go ((p, pTy) : (q, qTy) : rest)
-        | isSourceType pTy && isTargetType qTy = (p --> q) . (q --> p) . go rest
+        | isSourceType orientation pTy && isTargetType orientation qTy = (p --> q) . (q --> p) . go rest
     go (_:_) = bugError "Unpaired cut point"
     go [] = id
 
@@ -280,9 +289,12 @@ data CutType
         -- @
     deriving (Eq, Ord, Show)
 
-isSourceType, isTargetType :: CutType -> Bool
-isSourceType x = elem x [LOL, LOO, LOR, OOR, ROR]
-isTargetType x = elem x [LOL, OOL, ROL, ROO, ROR]
+isSourceType, isTargetType :: Orientation -> CutType -> Bool
+isSourceType Positive x = elem x [LOL, LOO, LOR, OOR, ROR]
+isSourceType Negative x = isTargetType Positive x
+
+isTargetType Positive x = elem x [LOL, OOL, ROL, ROO, ROR]
+isTargetType Negative x = isSourceType Positive x
 
 -- | Cut a finite piece of paper in one or two parts with an infinite line
 cutLine :: Line -> Line -> CutLine

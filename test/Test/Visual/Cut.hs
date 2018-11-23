@@ -270,9 +270,9 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "test/out/cut/8_calculated_edge_graph" $ do
-            let polygon = Geometry.transform (scale' 50 50) (Polygon $ reverse [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
+            let polygon = Geometry.transform (scale' 50 50) (Polygon [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
-                cutEdgeGraph = createEdgeGraph scissors (cutAll scissors (polygonEdges polygon))
+                cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
             drawCutEdgeGraph cutEdgeGraph
     ]
   where
