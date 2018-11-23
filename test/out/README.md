@@ -28,6 +28,8 @@ over quickly.
 
 ![](./cut/6_corner_cases.svg)
 
+![](./cut/7_edge_graph.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)

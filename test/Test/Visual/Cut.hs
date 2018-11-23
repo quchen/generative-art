@@ -2,9 +2,10 @@ module Test.Visual.Cut (tests) where
 
 
 
-import Data.Foldable
-import Data.List
-import Graphics.Rendering.Cairo hiding (rotate, x, y)
+import           Data.Foldable
+import           Data.List
+import qualified Data.Map                 as M
+import           Graphics.Rendering.Cairo hiding (rotate, x, y)
 
 import Draw
 import Geometry
@@ -26,6 +27,7 @@ tests = testGroup "Cutting things"
         , reconstructConvexPolygonTest
         , classifyCutTest
         , sideOfScissorsTest
+        , drawSimpleCutEdgeGraphTest
         ]
     , testGroup "Public API"
         [ testCase "Cut my line into pieces" lineTest
@@ -37,20 +39,22 @@ tests = testGroup "Cutting things"
         ]
     ]
 
+simpleCutEdgeGraph :: CutEdgeGraph
+simpleCutEdgeGraph = foldl' (\db f -> f db) mempty
+    [ Vec2 0   0  --> Vec2 1   0  -- +---------+
+    , Vec2 1   0  --> Vec2 1   1  -- |         |
+    , Vec2 1   1  --> Vec2 0   1  -- |         |
+    , Vec2 0   1  --> Vec2 0   0  -- |         |
+                                  -- +---------+
+    , Vec2 1   0  --> Vec2 0   0  -- |         |
+    , Vec2 0   0  --> Vec2 0 (-1) -- |         |
+    , Vec2 0 (-1) --> Vec2 1 (-1) -- |         |
+    , Vec2 1 (-1) --> Vec2 1   0  -- +---------+
+    ]
+
 rebuildSimpleEdgeGraphTest :: TestTree
-rebuildSimpleEdgeGraphTest =  testCase "Rebuild simple edge graph" $
-    let cutEdgeGraph = foldl' (\db f -> f db) mempty
-            [ Vec2 0   0  --> Vec2 1   0  -- +---------+
-            , Vec2 1   0  --> Vec2 1   1  -- |         |
-            , Vec2 1   1  --> Vec2 0   1  -- |         |
-            , Vec2 0   1  --> Vec2 0   0  -- |         |
-                                          -- +---------+
-            , Vec2 1   0  --> Vec2 0   0  -- |         |
-            , Vec2 0   0  --> Vec2 0 (-1) -- |         |
-            , Vec2 0 (-1) --> Vec2 1 (-1) -- |         |
-            , Vec2 1 (-1) --> Vec2 1   0  -- +---------+
-            ]
-        actual = sort (reconstructPolygons cutEdgeGraph)
+rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
+    let actual = sort (reconstructPolygons simpleCutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
                         , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
     in assertEqual "" expected actual
@@ -256,6 +260,44 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                       "left → on → on"
     roo = specialCase (Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0])
                       "right → on → on"
+
+drawSimpleCutEdgeGraphTest :: TestTree
+drawSimpleCutEdgeGraphTest = testCase "Draw simple cut edge graph" $
+    renderAllFormats 120 220 "test/out/cut/7_edge_graph" $ do
+        translate 10 110
+
+        let CutEdgeGraph graph = transformAllVecs (100 *.) simpleCutEdgeGraph
+            moveRight (Distance d) line
+              = move (d *. direction (perpendicularBisector line)) line
+            nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
+            arrowSpec = def{arrowheadSize = Distance 5, arrowheadRelPos = Distance 0.5}
+        setLineWidth 1
+        for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
+            mmaColor 0 1
+            circleSketch start (Distance 3)
+            strokePreserve
+            mmaColor 0 0.3
+            fill
+
+            mmaColor i 1
+            case ends of
+                One end -> do
+                    arrowSketch (nudge (Line start end)) arrowSpec
+                    stroke
+                Two end1 end2 -> do
+                    arrowSketch (nudge (Line start end1)) arrowSpec
+                    stroke
+                    arrowSketch (nudge (Line start end2)) arrowSpec
+                    stroke
+
+transformAllVecs :: (Vec2 -> Vec2) -> CutEdgeGraph -> CutEdgeGraph
+transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
+  where
+    modify (k, One v) = (f k, One (f v))
+    modify (k, Two v v') = (f k, Two (f v) (f v'))
+
+
+
 
 classifyCutTest :: TestTree
 classifyCutTest
