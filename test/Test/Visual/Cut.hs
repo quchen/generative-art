@@ -35,7 +35,7 @@ tests = testGroup "Cutting things"
         , testCase "Concave polygon" complicatedPolygonTest
         , testCase "Cut misses polygon" cutMissesPolygonTest
         , testCase "Cut through corner" cutThroughCornerTest
-        , testCase "Edge cases" cornerCasesTest
+        , cornerCasesTest
         ]
     ]
 
@@ -205,20 +205,15 @@ cutThroughCornerTest = do
     assertEqual "Number of resulting polygons" 2 (length cutResult)
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
-cornerCasesTest :: IO ()
-cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
-    (sequence_ (intersperse (translate 0 100) [
-        ooo,
-        lol,
-        ror,
-        ool,
-        oor,
-        loo,
-        roo
-        ]))
+cornerCasesTest :: TestTree
+cornerCasesTest = testGroup "Corner cases" $
+    do (name, filenameSuffix, polygon) <- [ooo, lol, ror, ool, oor, loo, roo]
+       [testCase name
+           (renderAllFormats 380 660 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
+               (specialCaseTest name polygon))]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
-    specialCase polygon description = withSavedState $ do
+    specialCaseTest name polygon = withSavedState $ do
         translate 0 10
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Move a => a -> a
@@ -240,26 +235,33 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                 mmaColor 1 1
                 let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0
                 setFontSize 12
-                extents <- textExtents description
+                extents <- textExtents name
                 relMoveTo 0 (textExtentsHeight extents / 2)
-                showText description
+                showText name
         renderDescription
 
     ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
-          in specialCase (Polygon (Vec2 0 40 : colinearPoints))
-                         "on -> on -> on"
-    lol = specialCase (Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)])
-                      "left → on → left"
-    ror = specialCase (Polygon [Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 0])
-                      "right → on → right"
-    ool = specialCase (Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0])
-                      "on → on → left"
-    oor = specialCase (Polygon [Vec2 0 40, Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 0, Vec2 0 0])
-                      "on → on → right"
-    loo = specialCase (Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)])
-                      "left → on → on"
-    roo = specialCase (Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0])
-                      "right → on → on"
+          in ( "on -> on -> on"
+             , "ooo"
+             , Polygon (Vec2 0 40 : colinearPoints))
+    lol = ( "left → on → left"
+          , "lol"
+          , Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)] )
+    ror = ( "right → on → right"
+          , "ror"
+          , Polygon [Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 0] )
+    ool = ( "on → on → left"
+          , "ool"
+          , Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0] )
+    oor = ( "on → on → right"
+          , "oor"
+          , Polygon [Vec2 0 40, Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 0, Vec2 0 0] )
+    loo = ( "left → on → on"
+          , "loo"
+          , Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)] )
+    roo = ( "right → on → on"
+          , "roo"
+          , Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0] )
 
 drawSimpleCutEdgeGraphTest :: TestTree
 drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"

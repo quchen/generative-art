@@ -26,9 +26,19 @@ over quickly.
 
 ![](./cut/5_through_corner.svg)
 
-![](./cut/6_corner_cases.svg)
+![](./cut/6_corner_cases_lol.svg)
 
-![](./cut/7_edge_graph.svg)
+![](./cut/6_corner_cases_loo.svg)
+
+![](./cut/6_corner_cases_ool.svg)
+
+![](./cut/6_corner_cases_ooo.svg)
+
+![](./cut/6_corner_cases_oor.svg)
+
+![](./cut/6_corner_cases_roo.svg)
+
+![](./cut/6_corner_cases_ror.svg)
 
 ![](./cut/7_handcrafted_edge_graph.svg)
 
