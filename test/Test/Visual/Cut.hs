@@ -267,10 +267,12 @@ drawSimpleCutEdgeGraphTest = testCase "Draw simple cut edge graph" $
         translate 10 110
 
         let CutEdgeGraph graph = transformAllVecs (100 *.) simpleCutEdgeGraph
+            reconstructedPolygons = map (\(Polygon ps) -> Polygon (map (100 *.) ps))
+                                        (sort (reconstructPolygons simpleCutEdgeGraph))
             moveRight (Distance d) line
               = move (d *. direction (perpendicularBisector line)) line
-            nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
-            arrowSpec = def{arrowheadSize = Distance 5, arrowheadRelPos = Distance 0.5}
+            nudge = moveRight (Distance 3.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
+            arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5}
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             mmaColor 0 1
@@ -289,6 +291,16 @@ drawSimpleCutEdgeGraphTest = testCase "Draw simple cut edge graph" $
                     stroke
                     arrowSketch (nudge (Line start end2)) arrowSpec
                     stroke
+        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
+            withSavedState $ do
+                polygonSketch polygon
+                setDash [2,2] 0
+                mmaColor i 1
+                strokePreserve
+                mmaColor i 0.1
+                fill
+
+
 
 transformAllVecs :: (Vec2 -> Vec2) -> CutEdgeGraph -> CutEdgeGraph
 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
