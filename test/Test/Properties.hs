@@ -190,7 +190,7 @@ dotProductTest = testGroup "Dot product"
                     abs (cos a) >= 1e-10 ==> counterexample
                     (printf "%s • %s = %f\nangle; cos = %s; %.2f"
                             (show v1) (show v2) prod (show angle) (cos a))
-                    (signum (cos a) ~== signum prod)
+                    (signum (cos a) == signum prod)
         ]
     ]
 
