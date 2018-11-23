@@ -55,6 +55,15 @@ module Geometry.Core (
     , moveRad
     , Rotate(..)
     , Mirror(..)
+    , Transformation(..)
+    , identityTransformation
+    , transformationProduct
+    , inverseTransformation
+    , Transform(..)
+    , translate'
+    , rotate'
+    , scale'
+
 
     -- * Processes
     , reflection
@@ -104,6 +113,67 @@ instance Ord Polygon where
 instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
                 in "Polygon " ++ show corners
+
+-- | Affine transformation,
+--
+-- > transformation a b c
+-- >                d e f
+-- > ==>
+-- > / a b \ + / c \
+-- > \ d e /   \ f /
+data Transformation = Transformation Double Double Double
+                                     Double Double Double
+                                     deriving (Eq, Ord, Show)
+
+identityTransformation :: Transformation
+identityTransformation = Transformation
+    1 0 0
+    0 1 0
+
+transformationProduct :: Transformation -> Transformation -> Transformation
+transformationProduct (Transformation a1 b1 c1
+                                      d1 e1 f1)
+                      (Transformation a2 b2 c2
+                                      d2 e2 f2)
+                    =  Transformation (a1*a2 + b1*d2) (a1*b2 + b1*e2) (a1*c2 + b1*f2 + c1)
+                                      (d1*a2 + e1*d2) (d1*b2 + e1*e2) (d1*c2 + e1*f2 + f1)
+
+inverseTransformation :: Transformation -> Transformation
+inverseTransformation (Transformation a b c
+                                      d e f)
+                     = let x = 1 / (a*e - b*d)
+                       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
+                                         (x*(-d)) (x*a) (x*(d*c - a*f))
+
+class Transform geo where
+    transform :: Transformation -> geo -> geo
+
+instance Transform Vec2 where
+    transform (Transformation a b c
+                              d e f)
+              (Vec2 x y)
+            = Vec2 (a*x + b*y + c) (d*x + e*y + f)
+
+instance Transform Line where
+    transform t (Line start end) = Line (transform t start) (transform t end)
+
+instance Transform Polygon where
+    transform t (Polygon ps) = Polygon (map (transform t) ps)
+
+translate' :: Double -> Double -> Transformation
+translate' dx dy = Transformation
+    1 0 dx
+    0 1 dy
+
+rotate' :: Angle -> Transformation
+rotate' (Angle a) = Transformation
+    (cos a) (-sin a) 0
+    (sin a) ( cos a) 0
+
+scale' :: Double -> Double -> Transformation
+scale' x y = Transformation
+    x 0 0
+    0 y 0
 
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
@@ -397,10 +467,8 @@ polygonCircumference poly = foldl'
 
 -- | Determinant of the matrix
 --
--- @
--- / x1 x2 \\
--- \\ y1 y2 /
--- @
+-- > / x1 x2 \
+-- > \ y1 y2 /
 --
 -- This is useful to calculate the (signed) area of the parallelogram spanned by
 -- two vectors.
