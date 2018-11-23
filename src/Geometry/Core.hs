@@ -244,8 +244,8 @@ lineLength :: Line -> Distance
 lineLength = norm . vectorOf
 
 -- | Resize a line, keeping the starting point.
-resizeLine :: Line -> (Distance -> Distance) -> Line
-resizeLine line@(Line start _end) f
+resizeLine :: (Distance -> Distance) -> Line -> Line
+resizeLine f line@(Line start _end)
   = let v = vectorOf line
         len@(Distance d) = norm v
         Distance d' = f len
@@ -253,9 +253,13 @@ resizeLine line@(Line start _end) f
         end' = start +. v'
     in Line start end'
 
--- | Resize a line, extending in both directions.
-resizeLineSymmetric :: Line -> (Distance -> Distance) -> Line
-resizeLineSymmetric line f = centerLine (resizeLine line f)
+-- | Resize a line, keeping the middle point.
+resizeLineSymmetric :: (Distance -> Distance) -> Line -> Line
+resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . move delta) line
+  where
+    middle = 0.5 *. (start +. end)
+    delta = middle -. start
+
 
 -- | Move the line so that its center is where the start used to be.
 --
@@ -268,7 +272,7 @@ centerLine line@(Line start end) = move delta line
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
-normalizeLine line = resizeLine line (const (Distance 1))
+normalizeLine = resizeLine (const (Distance 1))
 
 direction :: Line -> Vec2
 direction = vectorOf . normalizeLine
