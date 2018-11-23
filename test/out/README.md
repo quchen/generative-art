@@ -30,6 +30,10 @@ over quickly.
 
 ![](./cut/7_edge_graph.svg)
 
+![](./cut/7_handcrafted_edge_graph.svg)
+
+![](./cut/8_calculated_edge_graph.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)

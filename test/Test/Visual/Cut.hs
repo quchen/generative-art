@@ -262,17 +262,27 @@ cornerCasesTest = renderAllFormats 380 660 "test/out/cut/6_corner_cases"
                       "right → on → on"
 
 drawSimpleCutEdgeGraphTest :: TestTree
-drawSimpleCutEdgeGraphTest = testCase "Draw simple cut edge graph" $
-    renderAllFormats 120 220 "test/out/cut/7_edge_graph" $ do
-        translate 10 110
+drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
+    [ testCase "Simple handcrafted graph" $
+        renderAllFormats 120 220 "test/out/cut/7_handcrafted_edge_graph" $ do
+            translate 10 110
+            let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
+            drawCutEdgeGraph cutEdgeGraph
+    , testCase "Simple calculated graph" $
+        renderAllFormats 120 120  "test/out/cut/8_calculated_edge_graph" $ do
+            let polygon = Geometry.transform (scale' 50 50) (Polygon $ reverse [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
+                scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
+                cutEdgeGraph = createEdgeGraph scissors (cutAll scissors (polygonEdges polygon))
+            drawCutEdgeGraph cutEdgeGraph
+    ]
+  where
+    moveRight (Distance d) line = move (d *. direction (perpendicularBisector line)) line
+    nudge = moveRight (Distance 3.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
+    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5}
 
-        let CutEdgeGraph graph = transformAllVecs (100 *.) simpleCutEdgeGraph
-            reconstructedPolygons = map (\(Polygon ps) -> Polygon (map (100 *.) ps))
-                                        (sort (reconstructPolygons simpleCutEdgeGraph))
-            moveRight (Distance d) line
-              = move (d *. direction (perpendicularBisector line)) line
-            nudge = moveRight (Distance 3.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
-            arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5}
+    drawCutEdgeGraph ceg@(CutEdgeGraph graph) = do
+        let reconstructedPolygons = reconstructPolygons ceg
+        translate 60 60
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             mmaColor 0 1
@@ -291,14 +301,13 @@ drawSimpleCutEdgeGraphTest = testCase "Draw simple cut edge graph" $
                     stroke
                     arrowSketch (nudge (Line start end2)) arrowSpec
                     stroke
-        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
-            withSavedState $ do
-                polygonSketch polygon
-                setDash [2,2] 0
-                mmaColor i 1
-                strokePreserve
-                mmaColor i 0.1
-                fill
+        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> withSavedState $ do
+            polygonSketch polygon
+            setDash [2,2] 0
+            mmaColor i 1
+            strokePreserve
+            mmaColor i 0.1
+            fill
 
 
 
@@ -314,17 +323,17 @@ transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify .
 classifyCutTest :: TestTree
 classifyCutTest
   = let scissors = Line (Vec2 0 0) (Vec2 1 0)
-        test name spec expected
-          = let actual = classifyCut scissors spec
+        test name specP specQ expected
+          = let actual = classifyCut scissors specP specQ
             in testCase name (assertEqual "" expected actual)
-    in (testGroup "Classify cuts" . map (\(name, expected, spec) -> test name spec expected))
-        [ ("on    → on → on",    OOO, ((True,  Vec2 0   0),  (True,  Vec2 1   0)))
-        , ("left  → on → left",  LOL, ((False, Vec2 0   1),  (False, Vec2 1   1)))
-        , ("right → on → right", ROR, ((False, Vec2 0 (-1)), (False, Vec2 1 (-1))))
-        , ("on    → on → left",  OOL, ((True,  Vec2 0   0),  (False, Vec2 1   1)))
-        , ("on    → on → right", OOR, ((True,  Vec2 0   0),  (False, Vec2 1 (-1))))
-        , ("left  → on → on",    LOO, ((False, Vec2 0   1),  (True,  Vec2 1   0)))
-        , ("right → on → on",    ROO, ((False, Vec2 0 (-1)), (True,  Vec2 1   0)))
+    in (testGroup "Classify cuts" . map (\(name, expected, specP, specQ) -> test name specP specQ expected))
+        [ ("on    → on → on",    OOO, (True,  Vec2 0   0),  (True,  Vec2 1   0))
+        , ("left  → on → left",  LOL, (False, Vec2 0   1),  (False, Vec2 1   1))
+        , ("right → on → right", ROR, (False, Vec2 0 (-1)), (False, Vec2 1 (-1)))
+        , ("on    → on → left",  OOL, (True,  Vec2 0   0),  (False, Vec2 1   1))
+        , ("on    → on → right", OOR, (True,  Vec2 0   0),  (False, Vec2 1 (-1)))
+        , ("left  → on → on",    LOO, (False, Vec2 0   1),  (True,  Vec2 1   0))
+        , ("right → on → on",    ROO, (False, Vec2 0 (-1)), (True,  Vec2 1   0))
         ]
 
 sideOfScissorsTest :: TestTree

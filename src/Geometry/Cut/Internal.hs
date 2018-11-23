@@ -144,33 +144,36 @@ extractSinglePolygon lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap)
 
 recordNeighbours :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
 recordNeighbours scissors cutL (Cut pM xM qM) cutR
+    -- Cut through start of edge
     | pM == xM = case cutL of
-        NoCut  pL    _qLpM -> Just (xM, classifyCut scissors ((False, pL), (False, qM)))
-        Cut   _pL xL _qLpM -> Just (xM, classifyCut scissors ((True,  xL), (False, qM)))
+        NoCut  pL    _qLpM -> Just (xM, classifyCut scissors (False, pL) (False, qM))
+        Cut   _pL xL _qLpM -> Just (xM, classifyCut scissors (True,  xL) (False, qM))
+    -- Cut through end of edge
     | xM == qM = case cutR of
-        NoCut _qMpR     qR -> Just (xM, classifyCut scissors ((False, pM), (False, qR)))
-        Cut   _qMpR xR _qR -> Just (xM, classifyCut scissors ((False, pM), (True,  xR)))
-recordNeighbours _ _ _ _ = Nothing
+        NoCut _qMpR     qR -> Just (xM, classifyCut scissors (False, pM) (False, qR))
+        Cut   _qMpR xR _qR -> Just (xM, classifyCut scissors (False, pM) (True,  xR))
+    -- Cut somewhere between start and end of edge (the standard case)
+    | otherwise             = Just (xM, classifyCut scissors (False, pM) (False, qM))
+recordNeighbours _scissors _cutL NoCut{} _cutR = Nothing
 
--- ( (<is left  on scissors?>, <left  neighbour>)
--- , (<is right on scissors?>, <right neighbour>)
--- )
-classifyCut :: Line -> ((Bool, Vec2), (Bool, Vec2)) -> CutType
-classifyCut scissors ((False, p), (False, q)) = case (sideOfScissors scissors p, sideOfScissors scissors q) of
+-- (<is left  on scissors?>, <left  neighbour>)
+-- (<is right on scissors?>, <right neighbour>)
+classifyCut :: Line -> (Bool, Vec2) -> (Bool, Vec2) -> CutType
+classifyCut scissors (False, p) (False, q) = case (sideOfScissors scissors p, sideOfScissors scissors q) of
     (LeftOfLine,  LeftOfLine)  -> LOL
     (LeftOfLine,  RightOfLine) -> LOR
     (RightOfLine, LeftOfLine)  -> ROL
     (RightOfLine, RightOfLine) -> ROR
     _other -> error "Point on scissors that is has not been recorded as such! [XOY type]"
-classifyCut scissors ((False, p), (True,  _)) = case sideOfScissors scissors p of
+classifyCut scissors (False, p) (True,  _) = case sideOfScissors scissors p of
     LeftOfLine  -> LOO
     RightOfLine -> ROO
     _other -> error "Point on scissors that is has not been recorded as such! [XOO type]"
-classifyCut scissors ((True, _), (False, q)) = case sideOfScissors scissors q of
+classifyCut scissors (True, _) (False, q) = case sideOfScissors scissors q of
     LeftOfLine  -> OOL
     RightOfLine -> OOR
     _other -> error "Point on scissors that is has not been recorded as such! [OOX type]"
-classifyCut _scissors ((True, _), (True,  _)) = OOO
+classifyCut _scissors (True, _) (True,  _) = OOO
 
 sideOfScissors :: Line -> Vec2 -> SideOfLine
 sideOfScissors scissors@(Line scissorsStart _) p
