@@ -63,8 +63,8 @@ module Geometry.Core (
     -- * Useful stuff
     , vectorOf
     , det
-    , bugError
     , direction
+    , bugError
 ) where
 
 
@@ -274,6 +274,7 @@ centerLine line@(Line start end) = move delta line
 normalizeLine :: Line -> Line
 normalizeLine = resizeLine (const (Distance 1))
 
+-- | Direction vector of a line.
 direction :: Line -> Vec2
 direction = vectorOf . normalizeLine
 
@@ -396,8 +397,10 @@ polygonCircumference poly = foldl'
 
 -- | Determinant of the matrix
 --
--- / x1 x2 \
--- \ y1 y2 /
+-- @
+-- / x1 x2 \\
+-- \\ y1 y2 /
+-- @
 --
 -- This is useful to calculate the (signed) area of the parallelogram spanned by
 -- two vectors.
