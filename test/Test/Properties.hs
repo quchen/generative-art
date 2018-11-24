@@ -132,7 +132,7 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
             line2 = Line start end2
             line2' = moveRad (angleOfLine line2) dist2 line2
             (expectedIntersection, _ty) = intersectionLL line1' line2'
-        in start ~== expectedIntersection ))
+        in approxEqualTolerance (Tolerance 1e-8) start expectedIntersection ))
   where
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
@@ -238,12 +238,12 @@ transformationTest = testGroup "Affine transformations"
         , invertibilityTest "Combination of transformations" $ do
             size <- getSize
             n <- choose (2, min size 10)
-            (Test.Tasty.QuickCheck.vectorOf n (frequency
+            Test.Tasty.QuickCheck.vectorOf n (frequency
                 [ (1, pure identityTransformation)
                 , (3, rotate' <$> arbitrary)
                 , (3, translate' <$> choose (-100,100) <*> choose (-100,100))
                 , (3, scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
-                             <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ]))
+                             <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
     ]
   where

@@ -18,6 +18,18 @@ import Geometry.Core
 
 
 
+-- | Cut a finite piece of paper in one or two parts with an infinite line
+cutLine :: Line -> Line -> CutLine
+cutLine scissors paper = case intersectionLL scissors paper of
+    (p, IntersectionReal)           -> cut p
+    (p, IntersectionVirtualInsideR) -> cut p
+    (_, IntersectionVirtualInsideL) -> noCut
+    (_, IntersectionVirtual)        -> noCut
+  where
+    Line paperStart paperEnd = paper
+    cut p = Cut paperStart p paperEnd
+    noCut = NoCut paperStart paperEnd
+
 -- | Used in the implementation of a multimap where each entry can have one or
 -- two values.
 data OneOrTwo a = One a | Two a a
@@ -313,15 +325,3 @@ isSourceType Negative x = isTargetType Positive x
 
 isTargetType Positive x = elem x [LOL, OOL, ROL, ROO, ROR]
 isTargetType Negative x = isSourceType Positive x
-
--- | Cut a finite piece of paper in one or two parts with an infinite line
-cutLine :: Line -> Line -> CutLine
-cutLine scissors paper = case intersectionLL scissors paper of
-    (p, IntersectionReal)           -> cut p
-    (p, IntersectionVirtualInsideR) -> cut p
-    (_, IntersectionVirtualInsideL) -> noCut
-    (_, IntersectionVirtual)        -> noCut
-  where
-    Line paperStart paperEnd = paper
-    cut p = Cut paperStart p paperEnd
-    noCut = NoCut paperStart paperEnd
