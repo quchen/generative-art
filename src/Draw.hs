@@ -81,18 +81,22 @@ lineSketch (Line start end) = do
     lineToVec end
 
 data ArrowSpec = ArrowSpec
-    { arrowheadRelPos :: Distance
-    , arrowheadSize   :: Distance
-    , arrowDrawBody   :: Bool
-    , arrowheadAngle  :: Angle
+    { arrowheadRelPos    :: Distance
+    , arrowheadSize      :: Distance
+    , arrowDrawBody      :: Bool
+    , arrowheadAngle     :: Angle
+    , arrowheadDrawRight :: Bool
+    , arrowheadDrawLeft  :: Bool
     }
 
 instance Default ArrowSpec where
     def = ArrowSpec
-        { arrowheadRelPos = Distance 1
-        , arrowheadSize   = Distance 10
-        , arrowDrawBody   = True
-        , arrowheadAngle  = Angle 0.5
+        { arrowheadRelPos    = Distance 1
+        , arrowheadSize      = Distance 10
+        , arrowDrawBody      = True
+        , arrowheadAngle     = Angle 0.5
+        , arrowheadDrawRight = True
+        , arrowheadDrawLeft  = True
         }
 
 arrowSketch :: Line -> ArrowSpec -> Render ()
@@ -109,9 +113,18 @@ arrowSketch line ArrowSpec{..} = do
     let arrowheadHalf (+-) = angledLine arrowTip (Angle (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
         Line _ arrowLeftEnd  = arrowheadHalf (+)
         Line _ arrowRightEnd = arrowheadHalf (-)
-    moveToVec arrowLeftEnd
-    lineToVec arrowTip
-    lineToVec arrowRightEnd
+    case (arrowheadDrawRight, arrowheadDrawLeft) of
+        (True, True) -> do
+            moveToVec arrowLeftEnd
+            lineToVec arrowTip
+            lineToVec arrowRightEnd
+        (False, True) -> do
+            moveToVec arrowLeftEnd
+            lineToVec arrowTip
+        (True, False) -> do
+            moveToVec arrowRightEnd
+            lineToVec arrowTip
+        (False, False) -> pure ()
 
 circleSketch :: Vec2 -> Distance -> Render ()
 circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)

@@ -119,6 +119,7 @@ polyCutDraw initialPolygon scissors cutResults = do
             arrowSketch edge def
                 { arrowheadRelPos = Distance 0.45
                 , arrowheadSize   = Distance 4
+                , arrowheadDrawLeft = False
                 }
             stroke
         polygonSketch poly
