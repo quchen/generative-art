@@ -214,7 +214,7 @@ cornerCasesTest = testGroup "Corner cases" $
                (specialCaseTest name polygon))]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
-    specialCaseTest name polygon = withSavedState $ do
+    specialCaseTest name polygon = restoreStateAfter $ do
         translate 0 50
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Move a => a -> a
@@ -311,7 +311,7 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
                     stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             mmaColor i 1
-            withSavedState $ do
+            restoreStateAfter $ do
                 polygonSketch polygon
                 setDash [2,2] 0
                 strokePreserve

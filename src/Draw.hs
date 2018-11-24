@@ -20,7 +20,7 @@ module Draw (
 
     -- * Temporary Cairo modifications
     , withOperator
-    , withSavedState
+    , restoreStateAfter
     , grouped
 
     -- * Text
@@ -216,8 +216,8 @@ withOperator op render = do
 --
 -- Handles the bookkeeping with 'save' and 'restore' internally, and can be used
 -- to e.g. temporarily change the transformation matrix.
-withSavedState :: Render a -> Render a
-withSavedState render = do
+restoreStateAfter :: Render a -> Render a
+restoreStateAfter render = do
     save
     result <- render
     restore
