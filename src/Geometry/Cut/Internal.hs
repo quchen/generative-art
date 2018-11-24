@@ -163,14 +163,24 @@ recordNeighbours :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutTyp
 recordNeighbours scissors cutL (Cut pM xM qM) cutR
     -- Cut through start of edge
     | pM == xM = case cutL of
-        NoCut  pL    _qLpM -> Just (xM, classifyCut scissors (False, pL) (False, qM))
-        Cut   _pL xL _qLpM -> Just (xM, classifyCut scissors (True,  xL) (False, qM))
+        NoCut pL _qLpM -> case cutR of
+            Cut pR xR _qR | pR == xR -> classifyNeighboursAs (False, pL) (True, qM)
+            _otherwise               -> classifyNeighboursAs (False, pL) (False, qM)
+        Cut _pL xL _qLpM -> case cutR of
+            Cut pR xR _qR | pR == xR -> classifyNeighboursAs (True,  xL) (True, qM)
+            _otherwise               -> classifyNeighboursAs (True,  xL) (False, qM)
     -- Cut through end of edge
     | xM == qM = case cutR of
-        NoCut _qMpR     qR -> Just (xM, classifyCut scissors (False, pM) (False, qR))
-        Cut   _qMpR xR _qR -> Just (xM, classifyCut scissors (False, pM) (True,  xR))
+        NoCut _qMpR qR -> case cutL of
+            Cut _pL xL qL | xL == qL -> classifyNeighboursAs (True, pM) (False, qR)
+            _otherwise               -> classifyNeighboursAs (False, pM) (False, qR)
+        Cut _qMpR xR _qR -> case cutL of
+            Cut _pL xL qL | xL == qL -> classifyNeighboursAs (True, pM) (True,  xR)
+            _otherwise               -> classifyNeighboursAs (False, pM) (True,  xR)
     -- Cut somewhere between start and end of edge (the standard case)
-    | otherwise             = Just (xM, classifyCut scissors (False, pM) (False, qM))
+    | otherwise             = classifyNeighboursAs (False, pM) (False, qM)
+  where
+    classifyNeighboursAs l r = Just (xM, classifyCut scissors l r)
 recordNeighbours _scissors _cutL NoCut{} _cutR = Nothing
 
 -- (<is left  on scissors?>, <left  neighbour>)
@@ -181,24 +191,24 @@ classifyCut scissors (False, p) (False, q) = case (sideOfScissors scissors p, si
     (LeftOfLine,  RightOfLine) -> LOR
     (RightOfLine, LeftOfLine)  -> ROL
     (RightOfLine, RightOfLine) -> ROR
-    _other -> error "Point on scissors that is has not been recorded as such! [XOY type]"
+    (a,b) -> bugError ("Point on scissors that is has not been recorded as such! [XOY type: " ++ show a ++ ", " ++ show b ++ "]")
 classifyCut scissors (False, p) (True,  _) = case sideOfScissors scissors p of
     LeftOfLine  -> LOO
     RightOfLine -> ROO
-    _other -> error "Point on scissors that is has not been recorded as such! [XOO type]"
+    a -> bugError ("Point on scissors that is has not been recorded as such! [XOO type, " ++ show a ++ "]")
 classifyCut scissors (True, _) (False, q) = case sideOfScissors scissors q of
     LeftOfLine  -> OOL
     RightOfLine -> OOR
-    _other -> error "Point on scissors that is has not been recorded as such! [OOX type]"
+    b -> bugError ("Point on scissors that is has not been recorded as such! [OOX type, " ++ show b ++ "]")
 classifyCut _scissors (True, _) (True,  _) = OOO
 
 sideOfScissors :: Line -> Vec2 -> SideOfLine
 sideOfScissors scissors@(Line scissorsStart _) p
   = let scissorsCrossPoint = det (vectorOf scissors) (vectorOf (Line scissorsStart p))
-    in case compare 0 scissorsCrossPoint of
-        LT -> LeftOfLine
+    in case compare scissorsCrossPoint 0 of
+        LT -> RightOfLine
         EQ -> DirectlyOnLine
-        GT -> RightOfLine
+        GT -> LeftOfLine
 
 data CutLine
     = NoCut Vec2 Vec2
