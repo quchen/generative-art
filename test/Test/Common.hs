@@ -1,4 +1,4 @@
-module Test.Visual.Common
+module Test.Common
     ( angleSketch
     , renderAllFormats
     , hsva

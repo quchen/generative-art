@@ -1,4 +1,4 @@
-module Test.Visual.IntersectionLL (tests) where
+module Test.IntersectionLL (tests) where
 
 import Graphics.Rendering.Cairo hiding (x, y)
 
@@ -11,7 +11,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Visual.Common
+import Test.Common
 
 
 

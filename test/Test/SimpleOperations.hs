@@ -1,4 +1,4 @@
-module Test.Visual.SimpleOperations (tests) where
+module Test.SimpleOperations (tests) where
 
 
 
@@ -10,7 +10,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Visual.Common
+import Test.Common
 
 
 

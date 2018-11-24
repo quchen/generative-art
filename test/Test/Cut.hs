@@ -1,4 +1,4 @@
-module Test.Visual.Cut (tests) where
+module Test.Cut (tests) where
 
 
 
@@ -14,7 +14,7 @@ import Geometry.Cut.Internal
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Test.Visual.Common
+import Test.Common
 
 import Test.Helpers
 

@@ -7,13 +7,13 @@ import System.Exit
 import System.Process
 
 import qualified Test.Properties
-import qualified Test.Visual.Billard
-import qualified Test.Visual.ConvexHull
-import qualified Test.Visual.Cut
-import qualified Test.Visual.IntersectionLL
-import qualified Test.Visual.Mirror
-import qualified Test.Visual.Reflection
-import qualified Test.Visual.SimpleOperations
+import qualified Test.Billard
+import qualified Test.ConvexHull
+import qualified Test.Cut
+import qualified Test.IntersectionLL
+import qualified Test.Mirror
+import qualified Test.Reflection
+import qualified Test.SimpleOperations
 
 import Test.Tasty
 
@@ -29,13 +29,13 @@ tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
-        [ Test.Visual.SimpleOperations.tests
-        , Test.Visual.Billard.tests
-        , Test.Visual.ConvexHull.tests
-        , Test.Visual.Cut.tests
-        , Test.Visual.IntersectionLL.tests
-        , Test.Visual.Mirror.tests
-        , Test.Visual.Reflection.tests
+        [ Test.SimpleOperations.tests
+        , Test.Billard.tests
+        , Test.ConvexHull.tests
+        , Test.Cut.tests
+        , Test.IntersectionLL.tests
+        , Test.Mirror.tests
+        , Test.Reflection.tests
         ]
     ]
 

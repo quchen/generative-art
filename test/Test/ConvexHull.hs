@@ -1,4 +1,4 @@
-module Test.Visual.ConvexHull (tests) where
+module Test.ConvexHull (tests) where
 
 
 
@@ -14,7 +14,7 @@ import Test.Helpers
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Test.Visual.Common
+import Test.Common
 
 
 

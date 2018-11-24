@@ -1,4 +1,4 @@
-module Test.Visual.Mirror (tests) where
+module Test.Mirror (tests) where
 
 
 
@@ -10,7 +10,7 @@ import Geometry
 
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Visual.Common
+import Test.Common
 
 
 
