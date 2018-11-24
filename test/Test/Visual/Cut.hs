@@ -102,7 +102,7 @@ polyCutDraw :: Polygon -> Line -> [Polygon] -> Render ()
 polyCutDraw initialPolygon scissors cutResults = do
     drawCutArrow
     drawPolygon 0 initialPolygon
-    for_ (zip [0..] cutResults) (\(color, poly) -> drawPolygon color poly)
+    for_ (zip [0..] cutResults) (\(i, poly) -> drawPolygon i poly)
   where
     drawCutArrow = do
         setLineWidth 1
@@ -113,18 +113,18 @@ polyCutDraw initialPolygon scissors cutResults = do
         setDash [] 0
         arrowSketch scissors def{arrowheadSize = Distance 5, arrowDrawBody = False}
         stroke
-    drawPolygon color poly = grouped paint $ do
-        mmaColor color 1
-        for_ (polygonEdges poly) $ \edge -> do
+    drawPolygon i polygon = grouped paint $ do
+        mmaColor i 1
+        for_ (polygonEdges polygon) $ \edge -> do
             arrowSketch edge def
-                { arrowheadRelPos = Distance 0.45
-                , arrowheadSize   = Distance 4
+                { arrowheadRelPos   = Distance 0.45
+                , arrowheadSize     = Distance 6
                 , arrowheadDrawLeft = False
                 }
             stroke
-        polygonSketch poly
+        polygonSketch polygon
         strokePreserve
-        mmaColor color 0.1
+        mmaColor i 0.1
         fill
 
 cutSquareTest :: IO ()
@@ -285,8 +285,8 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
     ]
   where
     moveRight (Distance d) line = move (d *. direction (perpendicularBisector line)) line
-    nudge = moveRight (Distance 3.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
-    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5}
+    nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
+    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5, arrowheadDrawLeft = False}
 
     drawCutEdgeGraph ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons ceg
