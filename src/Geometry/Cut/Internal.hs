@@ -1,5 +1,7 @@
 -- | __INTERNAL MODULE__, contents may change arbitrarily
 
+{-# LANGUAGE MultiWayIf #-}
+
 module Geometry.Cut.Internal where
 
 
@@ -57,9 +59,15 @@ newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph -> CutEdgeG
 newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
   where
     go ((p, pTy) : (q, qTy) : rest)
-        | isSourceType orientation pTy && isTargetType orientation qTy = (p --> q) . (q --> p) . go rest
-        | isTargetType orientation pTy = bugError "Target without source"
-        | otherwise = go ((q, qTy) : rest)
+      = let pIsSource = isSourceType orientation pTy
+            pIsTarget = isTargetType orientation pTy
+            qIsSource = isSourceType orientation qTy
+            qIsTarget = isTargetType orientation qTy
+        in if
+            | pIsSource && qIsTarget -> (p --> q) . (q --> p) . go rest
+            | pIsTarget -> bugError "Target without source"
+            | pIsSource && qIsSource -> go ((q, qTy) : rest)
+            | otherwise -> bugError "dunno"
     go (_:_) = bugError "Unpaired cut point"
     go [] = id
 
