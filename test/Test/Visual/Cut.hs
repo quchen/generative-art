@@ -210,12 +210,12 @@ cornerCasesTest :: TestTree
 cornerCasesTest = testGroup "Corner cases" $
     do (name, filenameSuffix, polygon) <- [ooo, lol, ror, ool, oor, loo, roo]
        [testCase name
-           (renderAllFormats 380 660 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
+           (renderAllFormats 380 100 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
                (specialCaseTest name polygon))]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
     specialCaseTest name polygon = withSavedState $ do
-        translate 0 10
+        translate 0 50
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Move a => a -> a
             placeOriginal = move (Vec2 70 0)
@@ -225,11 +225,12 @@ cornerCasesTest = testGroup "Corner cases" $
                 (placeOriginal polygon)
                 (placeOriginal scissors)
                 (placeCut cutResult)
-            for_ cutResult $ \poly ->
-                for_ (let Polygon corners = poly in corners) $ \corner -> do
-                    mmaColor 0 1
-                    circleSketch (placeOriginal corner) (Distance 2.5)
-                    stroke
+            mmaColor 0 1
+            for_ (let Polygon corners = polygon in corners) $ \corner -> do
+                circleSketch (placeOriginal corner) (Distance 2.5)
+                stroke
+            for_ cutResult $ \cutPoly ->
+                for_ (let Polygon corners = cutPoly in corners) $ \corner -> do
                     circleSketch (placeCut corner) (Distance 2.5)
                     stroke
         let renderDescription = do

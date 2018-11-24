@@ -58,6 +58,8 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
   where
     go ((p, pTy) : (q, qTy) : rest)
         | isSourceType orientation pTy && isTargetType orientation qTy = (p --> q) . (q --> p) . go rest
+        | isTargetType orientation pTy = bugError "Target without source"
+        | otherwise = go ((q, qTy) : rest)
     go (_:_) = bugError "Unpaired cut point"
     go [] = id
 
