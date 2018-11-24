@@ -307,13 +307,19 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
                     stroke
                     arrowSketch (nudge (Line start end2)) arrowSpec
                     stroke
-        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> withSavedState $ do
-            polygonSketch polygon
-            setDash [2,2] 0
+        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             mmaColor i 1
-            strokePreserve
-            mmaColor i 0.1
-            fill
+            withSavedState $ do
+                polygonSketch polygon
+                setDash [2,2] 0
+                strokePreserve
+                mmaColor i 0.1
+                fill
+
+            let Vec2 midX midY = polygonAverage polygon
+            moveTo midX midY
+            showTextAligned HCenter VCenter (show i)
+
 
 classifyCutTest :: TestTree
 classifyCutTest

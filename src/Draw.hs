@@ -23,6 +23,11 @@ module Draw (
     , withSavedState
     , grouped
 
+    -- * Text
+    , showTextAligned
+    , HAlign(..)
+    , VAlign(..)
+
     -- * Convenience
     , module Data.Default.Class
 )where
@@ -217,3 +222,21 @@ grouped afterwards render = do
     popGroupToSource
     _ <- afterwards
     pure result
+
+data VAlign = VTop | VCenter | VBottom
+data HAlign = HLeft | HCenter | HRight
+
+showTextAligned :: HAlign -> VAlign -> String -> Render ()
+showTextAligned hAlign vAlign str = do
+    (w,h) <- do ex <- textExtents str
+                pure (textExtentsWidth ex, textExtentsHeight ex)
+    let dx = case hAlign of
+            HLeft   -> 0
+            HCenter -> -w/2
+            HRight  -> -w
+        dy = case vAlign of
+            VTop    -> h
+            VCenter -> h/2
+            VBottom -> 0
+    relMoveTo dx dy
+    showText str
