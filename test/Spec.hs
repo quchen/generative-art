@@ -6,12 +6,12 @@ import Control.Exception
 import System.Exit
 import System.Process
 
-import qualified Test.Properties
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
+import qualified Test.Properties
 import qualified Test.Reflection
 import qualified Test.SimpleOperations
 

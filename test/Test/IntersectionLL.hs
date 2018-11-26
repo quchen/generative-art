@@ -9,9 +9,9 @@ import Text.Printf
 import Draw
 import Geometry
 
+import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
-import Test.Common
 
 
 

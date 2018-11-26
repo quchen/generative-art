@@ -11,10 +11,10 @@ import Draw
 import Geometry
 import Geometry.Cut.Internal
 
+import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Test.Common
 
 import Test.Helpers
 
