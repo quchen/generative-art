@@ -11,7 +11,6 @@ import           Data.Map   (Map)
 import qualified Data.Map   as M
 import           Data.Maybe
 import           Data.Ord
-import           Data.Set   (Set)
 import qualified Data.Set   as S
 
 import Geometry.Core
@@ -135,41 +134,44 @@ reconstructPolygons :: CutEdgeGraph -> [Polygon]
 reconstructPolygons edgeGraph@(CutEdgeGraph graphMap) = case M.lookupMin graphMap of
     Nothing -> []
     Just (edgeStart, _end) ->
-        let (poly, edgeGraph') = extractSinglePolygon Nothing S.empty edgeStart edgeGraph
+        let (poly, edgeGraph') = extractSinglePolygon edgeStart edgeGraph
         in poly : reconstructPolygons edgeGraph'
 
 -- | Extract a single polygon from an edge map by finding a minimal circular
 -- connection.
 extractSinglePolygon
-    :: Maybe Vec2              -- ^ Last point visited
-    -> Set Vec2                -- ^ All previously visited points
-    -> Vec2                    -- ^ Point currently visited
+    :: Vec2                    -- ^ Starting point
     -> CutEdgeGraph            -- ^ Edge map
     -> (Polygon, CutEdgeGraph) -- ^ Extracted polygon and remaining edge map
-extractSinglePolygon lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap)
-  = case M.lookup pivot edgeMap of
-        _ | S.member pivot visited -> (Polygon [], edgeGraph)
-        Nothing -> (Polygon [], edgeGraph)
-        Just (One next) ->
-            let (Polygon rest, edgeGraph') = extractSinglePolygon
-                    (Just pivot)
-                    (S.insert pivot visited)
-                    next
-                    (CutEdgeGraph (M.delete pivot edgeMap))
-            in (Polygon (pivot:rest), edgeGraph')
-        Just (Two next1 next2) ->
-            let endAtSmallestAngle = case lastPivot of
-                    Nothing -> next1 -- arbitrary starting point WLOG
-                    Just from -> let forwardness end = dotProduct (direction (Line from pivot))
-                                                                  (direction (Line pivot end))
-                                 in minimumBy (comparing forwardness) (filter (/= from) [next1, next2])
-                unusedNext = if endAtSmallestAngle == next1 then next2 else next1
-                (Polygon rest, edgeGraph') = extractSinglePolygon
-                    (Just pivot)
-                    (S.insert pivot visited)
-                    endAtSmallestAngle
-                    (CutEdgeGraph (M.insert pivot (One unusedNext) edgeMap))
-            in (Polygon (pivot:rest), edgeGraph')
+extractSinglePolygon = go Nothing S.empty
+  where
+    go lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap)
+      = case M.lookup pivot edgeMap of
+            _ | S.member pivot visited -> (Polygon [], edgeGraph)
+            Nothing -> (Polygon [], edgeGraph)
+            Just (One next) ->
+                let (Polygon rest, edgeGraph') = go
+                        (Just pivot)
+                        (S.insert pivot visited)
+                        next
+                        (CutEdgeGraph (M.delete pivot edgeMap))
+                in (Polygon (pivot:rest), edgeGraph')
+            Just (Two next1 next2) ->
+                let useAsNext = case lastPivot of
+                        Nothing -> next1 -- arbitrary starting point WLOG
+                        Just from -> let forwardness end = dotProduct
+                                             (direction (Line from pivot))
+                                             (direction (Line pivot end))
+                                     in minimumBy (comparing forwardness)
+                                                  (filter (/= from) [next1, next2])
+                    unusedNext | useAsNext == next1 = next2
+                               | otherwise = next1
+                    (Polygon rest, edgeGraph') = go
+                        (Just pivot)
+                        (S.insert pivot visited)
+                        useAsNext
+                        (CutEdgeGraph (M.insert pivot (One unusedNext) edgeMap))
+                in (Polygon (pivot:rest), edgeGraph')
 
 recordNeighbours :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
 recordNeighbours scissors cutL (Cut pM xM qM) cutR
