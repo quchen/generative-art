@@ -206,11 +206,12 @@ cutThroughCornerTest = do
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cornerCasesTest :: TestTree
-cornerCasesTest = testGroup "Corner cases" $
-    do (name, filenameSuffix, polygon) <- [ooo, lol, ror, ool, oor, loo, roo]
-       [testCase name
-           (renderAllFormats 380 100 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
-               (specialCaseTest name polygon))]
+cornerCasesTest = testGroup "Corner cases" $ do
+    (name, filenameSuffix, polygon, expectedNumPolys) <- [ooo, lol, ror, ool, oor, loo, roo]
+    [ testCase name $ do
+        renderAllFormats 380 100 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
+            (specialCaseTest name polygon)
+        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon)) ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
     specialCaseTest name polygon = restoreStateAfter $ do
@@ -244,25 +245,32 @@ cornerCasesTest = testGroup "Corner cases" $
     ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
           in ( "on -> on -> on"
              , "ooo"
-             , Polygon (Vec2 0 40 : colinearPoints))
+             , Polygon (Vec2 0 40 : colinearPoints)
+             , 1 )
     lol = ( "left → on → left"
           , "lol"
-          , Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)] )
+          , Polygon [Vec2 0 0, Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40)]
+          , 3 )
     ror = ( "right → on → right"
           , "ror"
-          , Polygon [Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 0] )
+          , Polygon [Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 0]
+          , 3 )
     ool = ( "on → on → left"
           , "ool"
-          , Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0] )
+          , Polygon [Vec2 0 0, Vec2 0 (-40), Vec2 40 (-40), Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) 0]
+          , 2 )
     oor = ( "on → on → right"
           , "oor"
-          , Polygon [Vec2 0 40, Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 0, Vec2 0 0] )
+          , Polygon [Vec2 0 40, Vec2 40 40, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 0, Vec2 0 0]
+          , 2 )
     loo = ( "left → on → on"
           , "loo"
-          , Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)] )
+          , Polygon [Vec2 0 0, Vec2 40 0, Vec2 40 40, Vec2 (-40) 40, Vec2 (-40) (-40), Vec2 0 (-40)]
+          , 2 )
     roo = ( "right → on → on"
           , "roo"
-          , Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0] )
+          , Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0]
+          , 2 )
 
 drawSimpleCutEdgeGraphTest :: TestTree
 drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
