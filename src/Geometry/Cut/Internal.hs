@@ -76,19 +76,21 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
             | isSource pTy && isTarget qTy -> (p --> q) . (q --> p) . go rest
             | isTarget pTy -> bugError "Target without source"
             | isSource pTy && isSource qTy -> go ((q, qTy) : rest)
-            | otherwise -> bugError "dunno"
+            | otherwise -> bugError "Bad source/target"
     go (_:_) = bugError "Unpaired cut point"
     go [] = id
 
     cutPointsSorted :: [(Vec2, CutType)]
     cutPointsSorted = sortOn (scissorCoordinate . fst) (M.toList recordedNeighbours)
 
+    _cuts0 : cuts1 : cuts2 : _ = iterate tail (cycle cuts)
+
     recordedNeighbours :: Map Vec2 CutType
     recordedNeighbours
-      = M.fromList (catMaybes (zipWith3 (recordNeighbours scissors)
+      = M.fromList (catMaybes (zipWith3 (classifyCut scissors)
                                         cuts
-                                        (tail (cycle cuts))
-                                        (tail (tail (cycle cuts)))))
+                                        cuts1
+                                        cuts2 ))
 
     -- How far ahead/behind the start of the line is the point?
     --
@@ -173,48 +175,42 @@ extractSinglePolygon = go Nothing S.empty
                         (CutEdgeGraph (M.insert pivot (One unusedNext) edgeMap))
                 in (Polygon (pivot:rest), edgeGraph')
 
-recordNeighbours :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
-recordNeighbours scissors cutL (Cut pM xM qM) cutR
-    -- Cut through start of edge
-    | pM == xM = case cutL of
-        NoCut pL _qLpM -> case cutR of
-            Cut pR xR _qR | pR == xR -> classifyNeighboursAs (False, pL) (True, qM)
-            _otherwise               -> classifyNeighboursAs (False, pL) (False, qM)
-        Cut _pL xL _qLpM -> case cutR of
-            Cut pR xR _qR | pR == xR -> classifyNeighboursAs (True,  xL) (True, qM)
-            _otherwise               -> classifyNeighboursAs (True,  xL) (False, qM)
-    -- Cut through end of edge
-    | xM == qM = case cutR of
-        NoCut _qMpR qR -> case cutL of
-            Cut _pL xL qL | xL == qL -> classifyNeighboursAs (True, pM) (False, qR)
-            _otherwise               -> classifyNeighboursAs (False, pM) (False, qR)
-        Cut _qMpR xR _qR -> case cutL of
-            Cut _pL xL qL | xL == qL -> classifyNeighboursAs (True, pM) (True,  xR)
-            _otherwise               -> classifyNeighboursAs (False, pM) (True,  xR)
-    -- Cut somewhere between start and end of edge (the standard case)
-    | otherwise             = classifyNeighboursAs (False, pM) (False, qM)
-  where
-    classifyNeighboursAs l r = Just (xM, classifyCut scissors l r)
-recordNeighbours _scissors _cutL NoCut{} _cutR = Nothing
+classifyCut :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
+classifyCut _ _ NoCut{} _ = Nothing
+-- -- OOO
+-- classifyCut _ Cut{} (Cut _ x _) Cut{} = Just (x, OOO)
+-- -- OOX
+-- classifyCut scissors Cut{} (Cut _ x _) r
+--   = case sideOfScissors scissors (endPoint r) of
+--         LeftOfLine     -> Just (x, OOL)
+--         RightOfLine    -> Just (x, OOR)
+--         DirectlyOnLine -> Just (x, OOO)
+-- -- XOO
+-- classifyCut scissors l (Cut _ x _) Cut{}
+--   = case sideOfScissors scissors (startPoint l) of
+--         LeftOfLine     -> Just (x, LOO)
+--         RightOfLine    -> Just (x, ROO)
+--         DirectlyOnLine -> Just (x, OOO)
+-- XOY
+classifyCut scissors l (Cut _ x _) r
+  = case (sideOfScissors scissors (startPoint l), sideOfScissors scissors (endPoint r)) of
+        (LeftOfLine,     LeftOfLine)     -> Just (x, LOL)
+        (LeftOfLine,     RightOfLine)    -> Just (x, LOR)
+        (RightOfLine,    LeftOfLine)     -> Just (x, ROL)
+        (RightOfLine,    RightOfLine)    -> Just (x, ROR)
+        (DirectlyOnLine, LeftOfLine)     -> Just (x, OOL)
+        (DirectlyOnLine, RightOfLine)    -> Just (x, OOR)
+        (RightOfLine,    DirectlyOnLine) -> Just (x, ROO)
+        (LeftOfLine,     DirectlyOnLine) -> Just (x, LOO)
+        (DirectlyOnLine, DirectlyOnLine) -> Just (x, OOO)
 
--- (<is left  on scissors?>, <left  neighbour>)
--- (<is right on scissors?>, <right neighbour>)
-classifyCut :: Line -> (Bool, Vec2) -> (Bool, Vec2) -> CutType
-classifyCut scissors (False, p) (False, q) = case (sideOfScissors scissors p, sideOfScissors scissors q) of
-    (LeftOfLine,  LeftOfLine)  -> LOL
-    (LeftOfLine,  RightOfLine) -> LOR
-    (RightOfLine, LeftOfLine)  -> ROL
-    (RightOfLine, RightOfLine) -> ROR
-    (a,b) -> bugError ("Point on scissors that is has not been recorded as such! [XOY type: " ++ show a ++ ", " ++ show b ++ "]")
-classifyCut scissors (False, p) (True,  _) = case sideOfScissors scissors p of
-    LeftOfLine  -> LOO
-    RightOfLine -> ROO
-    a -> bugError ("Point on scissors that is has not been recorded as such! [XOO type, " ++ show a ++ "]")
-classifyCut scissors (True, _) (False, q) = case sideOfScissors scissors q of
-    LeftOfLine  -> OOL
-    RightOfLine -> OOR
-    b -> bugError ("Point on scissors that is has not been recorded as such! [OOX type, " ++ show b ++ "]")
-classifyCut _scissors (True, _) (True,  _) = OOO
+startPoint :: CutLine -> Vec2
+startPoint (NoCut p _) = p
+startPoint (Cut p _ _) = p
+
+endPoint :: CutLine -> Vec2
+endPoint (NoCut _ q) = q
+endPoint (Cut _ _ q) = q
 
 sideOfScissors :: Line -> Vec2 -> SideOfLine
 sideOfScissors scissors@(Line scissorsStart _) p
