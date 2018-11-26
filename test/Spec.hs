@@ -22,7 +22,8 @@ import Test.Tasty
 main :: IO ()
 main = catch (defaultMain tests)
              (\e -> do normalizeSvg
-                       generateVisualTestReadme
+                       generateVisualTestReadmeMarkdown
+                       generateVisualTestReadmeHtml
                        throwIO (e :: ExitCode))
 
 tests :: TestTree
@@ -46,5 +47,8 @@ tests = testGroup "Test suite"
 normalizeSvg :: IO ()
 normalizeSvg = runCommand "./test/out/normalize_svg.sh" >> pure ()
 
-generateVisualTestReadme :: IO ()
-generateVisualTestReadme = runCommand "./test/out/generate_readme.sh" >> pure ()
+generateVisualTestReadmeMarkdown :: IO ()
+generateVisualTestReadmeMarkdown = runCommand "./test/out/generate_readme.sh" >> pure ()
+
+generateVisualTestReadmeHtml :: IO ()
+generateVisualTestReadmeHtml = runCommand "./test/out/generate_html.sh" >> pure ()

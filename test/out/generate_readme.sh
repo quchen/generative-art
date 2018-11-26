@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-echo "Generating visual testsuite file"
+echo "Generating visual testsuite file (Markdown for Github)"
 cd "$(git rev-parse --show-toplevel)/test/out"
 
 FILE=README.md

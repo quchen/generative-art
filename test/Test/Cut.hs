@@ -25,7 +25,6 @@ tests = testGroup "Cutting things"
     [ testGroup "Internal Helper functions"
         [ rebuildSimpleEdgeGraphTest
         , reconstructConvexPolygonTest
-        , classifyCutTest
         , sideOfScissorsTest
         , drawSimpleCutEdgeGraphTest
         ]
@@ -321,23 +320,6 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             let Vec2 midX midY = polygonAverage polygon
             moveTo midX midY
             showTextAligned HCenter VCenter (show i)
-
-
-classifyCutTest :: TestTree
-classifyCutTest
-  = let scissors = Line (Vec2 0 0) (Vec2 1 0)
-        test name specP specQ expected
-          = let actual = classifyCut scissors specP specQ
-            in testCase name (assertEqual "" expected actual)
-    in (testGroup "Classify cuts" . map (\(name, expected, specP, specQ) -> test name specP specQ expected))
-        [ ("on    → on → on",    OOO, (True,  Vec2 0   0),  (True,  Vec2 1   0))
-        , ("left  → on → left",  LOL, (False, Vec2 0   1),  (False, Vec2 1   1))
-        , ("right → on → right", ROR, (False, Vec2 0 (-1)), (False, Vec2 1 (-1)))
-        , ("on    → on → left",  OOL, (True,  Vec2 0   0),  (False, Vec2 1   1))
-        , ("on    → on → right", OOR, (True,  Vec2 0   0),  (False, Vec2 1 (-1)))
-        , ("left  → on → on",    LOO, (False, Vec2 0   1),  (True,  Vec2 1   0))
-        , ("right → on → on",    ROO, (False, Vec2 0 (-1)), (True,  Vec2 1   0))
-        ]
 
 sideOfScissorsTest :: TestTree
 sideOfScissorsTest = testProperty "Side of scissors" $
