@@ -40,9 +40,9 @@ over quickly.
 
 ![](./cut/6_corner_cases_ror.svg)
 
-![](./cut/7_handcrafted_edge_graph.svg)
+![](./cut/7_1_handcrafted_edge_graph.svg)
 
-![](./cut/8_calculated_edge_graph.svg)
+![](./cut/7_2_calculated_edge_graph.svg)
 
 ![](./intersection.svg)
 

@@ -61,24 +61,27 @@ cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
 createEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph
-createEdgeGraph scissors orientation allCuts = (addCutEdges . addOriginalPolygon) mempty
+createEdgeGraph scissors orientation allCuts = buildGraph (addCutEdges ++ addOriginalPolygon)
   where
     addCutEdges = newCutsEdgeGraph scissors orientation allCuts
     addOriginalPolygon = polygonEdgeGraph allCuts
 
-newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph -> CutEdgeGraph
+buildGraph :: [CutEdgeGraph -> CutEdgeGraph] -> CutEdgeGraph
+buildGraph = foldl' (\graph insertEdge -> insertEdge graph) mempty
+
+newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
 newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
   where
     go ((p, pTy) : (q, qTy) : rest)
       = let isSource = isSourceType orientation
             isTarget = isTargetType orientation
         in if
-            | isSource pTy && isTarget qTy -> (p --> q) . (q --> p) . go rest
+            | isSource pTy && isTarget qTy -> (p --> q) : (q --> p) : go rest
             | isTarget pTy -> bugError "Target without source"
             | isSource pTy && isSource qTy -> go ((q, qTy) : rest)
             | otherwise -> bugError "Bad source/target"
     go (_:_) = bugError "Unpaired cut point"
-    go [] = id
+    go [] = []
 
     cutPointsSorted :: [(Vec2, CutType)]
     cutPointsSorted = sortOn (scissorCoordinate . fst) (M.toList recordedNeighbours)
@@ -102,11 +105,11 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
 -- A polygon can be described by an adjacency list of corners to the next
 -- corner. A cut simply introduces two new corners (of polygons to be) that
 -- point to each other.
-polygonEdgeGraph :: [CutLine] -> CutEdgeGraph -> CutEdgeGraph
+polygonEdgeGraph :: [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
 polygonEdgeGraph cuts = case cuts of
-    Cut p x q : rest -> (p --> x) . (x --> q) . polygonEdgeGraph rest
-    NoCut p q : rest -> (p --> q) . polygonEdgeGraph rest
-    []               -> id
+    Cut p x q : rest -> (p --> x) : (x --> q) : polygonEdgeGraph rest
+    NoCut p q : rest -> (p --> q) : polygonEdgeGraph rest
+    []               -> []
 
 -- Insert a (corner -> corner) edge
 (-->) :: Vec2 -> Vec2 -> CutEdgeGraph -> CutEdgeGraph

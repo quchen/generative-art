@@ -157,27 +157,30 @@ cartesianCoordinateSystem = do
         (minY, maxY) = minMax
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
-    hsva 0 0 0 0.5
-    sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
-              | x <- [minX, minX+100 .. maxX] ]
-    sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
-              | y <- [minY, minY+100 .. maxY] ]
-    stroke
 
-    hsva 0 0 0 0.2
-    sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
-              | x <- [minX, minX+10 .. maxX]
-              , mod x 100 /= 0 ]
-    sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
-              | y <- [minY, minY+10 .. maxY]
-              , mod y 100 /= 0]
-    stroke
+    restoreStateAfter $ do
+        hsva 0 0 0 0.5
+        sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
+                  | x <- [minX, minX+100 .. maxX] ]
+        sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
+                  | y <- [minY, minY+100 .. maxY] ]
+        stroke
+
+    restoreStateAfter $ do
+        hsva 0 0 0 0.2
+        setDash [4,6] 2
+        sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
+                  | x <- [minX, minX+10 .. maxX]
+                  , mod x 100 /= 0 ]
+        sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
+                  | y <- [minY, minY+10 .. maxY]
+                  , mod y 100 /= 0]
+        stroke
 
     let centeredText :: Int -> Int -> String -> Render ()
         centeredText x y str = do
-            TextExtents{textExtentsWidth = w, textExtentsHeight = h} <- textExtents str
-            moveTo (fromIntegral x - w/2) (fromIntegral y + h)
-            showText str
+            moveTo (fromIntegral x) (fromIntegral y)
+            showTextAligned HCenter VTop str
     setFontSize 8
     mmaColor 0 1
     sequence_ [ centeredText x y (show x ++ "," ++ show y)
@@ -213,28 +216,20 @@ withOperator op render = do
     pure result
 
 -- | Render something with a new Cairo state, restoring the old one afterwards.
+-- The state includes things like current color, line width, dashing, and
+-- transformation matrix.
 --
--- Handles the bookkeeping with 'save' and 'restore' internally, and can be used
--- to e.g. temporarily change the transformation matrix.
+-- Handles the bookkeeping with 'save' and 'restore' internally.
 restoreStateAfter :: Render a -> Render a
-restoreStateAfter render = do
-    save
-    result <- render
-    restore
-    pure result
+restoreStateAfter render = save *> render <* restore
 
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
 -- 'popGroupToSource'.
 --
--- The second parameter can be used to specify an action to be run after
+-- The first parameter can be used to specify an action to be run after
 -- grouping, such as 'paintWithAlpha'.
 grouped :: Render after -> Render a -> Render a
-grouped afterwards render = do
-    pushGroup
-    result <- render
-    popGroupToSource
-    _ <- afterwards
-    pure result
+grouped afterwards render = pushGroup *> render <* popGroupToSource <* afterwards
 
 data VAlign = VTop | VCenter | VBottom
 data HAlign = HLeft | HCenter | HRight

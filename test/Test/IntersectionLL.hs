@@ -51,32 +51,39 @@ testDraw line1 line2 = do
     let (point, ty) = intersectionLL line1 line2
 
     setLineWidth 1
-    mmaColor 0 1
-    arrowSketch line1 def{arrowheadSize = Distance 8}
-    stroke
 
-    mmaColor 1 1
-    arrowSketch line2 def{arrowheadSize = Distance 8}
-    stroke
+    restoreStateAfter $ do
+        mmaColor 0 1
+        arrowSketch line1 def{arrowheadSize = Distance 8}
+        stroke
 
-    mmaColor 3 1
-    circleSketch point (Distance 3)
-    fill
+    restoreStateAfter $ do
+        mmaColor 1 1
+        arrowSketch line2 def{arrowheadSize = Distance 8}
+        stroke
 
-    angleSketch point (angleOfLine line1) (angleOfLine line2)
-    stroke
+    restoreStateAfter $ do
+        mmaColor 3 1
+        circleSketch point (Distance 3)
+        fill
 
-    do let fontSize = 10
-           Vec2 x y = point +. Vec2 15 15
-           Angle alpha = angleBetween line1 line2
-           angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
-           tyStr = case ty of
-               IntersectionVirtual        -> "Virtual"
-               IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
-               IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
-               IntersectionReal           -> "Intersection"
+    restoreStateAfter $ do
+        mmaColor 3 1
+        angleSketch point (angleOfLine line1) (angleOfLine line2)
+        stroke
 
-       hsva 0 0 0 1
-       moveTo x y
-       setFontSize fontSize
-       showText (tyStr ++ ", " ++ angleDeg ++ "°")
+    restoreStateAfter $ do
+        let fontSize = 10
+            Vec2 x y = point +. Vec2 15 15
+            Angle alpha = angleBetween line1 line2
+            angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
+            tyStr = case ty of
+                IntersectionVirtual        -> "Virtual"
+                IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
+                IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
+                IntersectionReal           -> "Intersection"
+
+        hsva 0 0 0 1
+        moveTo x y
+        setFontSize fontSize
+        showText (tyStr ++ ", " ++ angleDeg ++ "°")

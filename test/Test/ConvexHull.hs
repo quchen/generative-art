@@ -53,7 +53,6 @@ visualTest = testCase "Visual" $ do
         setFontSize 12
         showText "Convex hull"
 
-        newPath
         mmaColor 0 0.5
         let Polygon hullPoints = hull
         for_ (points \\ hullPoints) $ \p -> do
@@ -69,9 +68,9 @@ idempotencyTest :: TestTree
 idempotencyTest = testProperty "Idempotency" (forAll gen prop)
   where
     gen = do
-        Large seed <- arbitrary
+        seed <- arbitrary
         numPoints <- choose (10, 100)
-        pure (take numPoints (gaussianVecs (Seed seed)))
+        pure (take numPoints (gaussianVecs seed))
     prop points = let Polygon hull  = convexHull points
                       Polygon hull' = convexHull hull
                   in hull === hull'

@@ -25,22 +25,17 @@ angleSketch point angle1 angle2@(Angle rawAngle2) = do
         { arrowheadSize = Distance 6
         , arrowDrawBody = False }
 
-
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
 renderPng picWidth picHeight filename drawing = do
     surface <- createImageSurface FormatARGB32 picWidth picHeight
-    renderWith surface (do
-        background picWidth picHeight
+    renderWith surface $ do
+        restoreStateAfter $ do
+            rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
+            hsva 0 0 0 0
+            setLineWidth 0
+            fill
         drawing
-        )
     surfaceWriteToPNG surface filename
-
-background :: Int -> Int -> Render ()
-background picWidth picHeight = do
-    rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
-    hsva 0 0 0 1
-    setLineWidth 1
-    stroke
 
 renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
 renderSvg picWidth picHeight filename drawing

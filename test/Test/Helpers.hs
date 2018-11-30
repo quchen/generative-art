@@ -19,7 +19,7 @@ instance Arbitrary Vec2 where
                      ++ [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
 
 instance Arbitrary Angle where
-    arbitrary = fmap deg (choose (0, 360-1))
+    arbitrary = fmap deg (choose (0, 360))
 
 newtype GaussianVec = GaussianVec Vec2
     deriving (Eq, Ord, Show)
@@ -55,18 +55,17 @@ newtype Seed = Seed Int
     deriving (Eq, Ord, Show)
 
 instance Arbitrary Seed where
-    arbitrary = do
-        Large seed <- arbitrary
-        pure (Seed seed)
+    arbitrary = fmap (\(Large s) -> Seed s) arbitrary
 
 gaussianVecs :: Seed -> [Vec2]
 gaussianVecs (Seed seed)
-  = let go (u1:u2:rest)
+  = let go (u1:rest)
             | u1 <= 0 = go rest -- to avoid diverging on log(0)
-            | otherwise = let root1 = sqrt (-2 * log u1)
-                              pi2u2 = 2 * pi * u2
-                              x = root1 * cos pi2u2
-                              y = root1 * sin pi2u2
-                          in Vec2 x y : go rest
+        go (u1:u2:rest)
+            = let root1 = sqrt (-2 * log u1)
+                  pi2u2 = 2 * pi * u2
+                  x = root1 * cos pi2u2
+                  y = root1 * sin pi2u2
+              in Vec2 x y : go rest
         go _ = error "Can’t happen, input is infinite"
     in go (randomRs (0, 1) (mkStdGen seed))

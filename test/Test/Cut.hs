@@ -26,7 +26,7 @@ tests = testGroup "Cutting things"
         [ rebuildSimpleEdgeGraphTest
         , reconstructConvexPolygonTest
         , sideOfScissorsTest
-        , drawSimpleCutEdgeGraphTest
+        , drawCutEdgeGraphTest
         ]
     , testGroup "Public API"
         [ testCase "Cut my line into pieces" lineTest
@@ -65,7 +65,7 @@ reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
             maxY = maximum (map (\(Vec2 _ y) -> y) points)
             scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (Angle 0) (Distance 1)
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
-            actual = reconstructPolygons (polygonEdgeGraph cuts mempty)
+            actual = reconstructPolygons (buildGraph (polygonEdgeGraph cuts))
             expected = [convexPolygon]
         in actual === expected
 
@@ -272,10 +272,10 @@ cornerCasesTest = testGroup "Corner cases" $ do
           , Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0]
           , 2 )
 
-drawSimpleCutEdgeGraphTest :: TestTree
-drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
+drawCutEdgeGraphTest :: TestTree
+drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
     [ testCase "Simple handcrafted graph" $
-        renderAllFormats 120 220 "test/out/cut/7_handcrafted_edge_graph" $ do
+        renderAllFormats 120 220 "test/out/cut/7_1_handcrafted_edge_graph" $ do
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
                 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
                   where
@@ -284,7 +284,7 @@ drawSimpleCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             translate 10 110
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
-        renderAllFormats 120 120  "test/out/cut/8_calculated_edge_graph" $ do
+        renderAllFormats 120 120  "test/out/cut/7_2_calculated_edge_graph" $ do
             let polygon = Geometry.transform (scale' 50 50) (Polygon [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))

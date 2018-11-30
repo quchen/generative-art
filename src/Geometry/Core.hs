@@ -83,6 +83,7 @@ import Control.Monad
 import Data.Fixed
 import Data.List
 import Text.Printf
+import Data.Ratio
 
 import Util
 
@@ -537,7 +538,7 @@ perpendicularBisector line@(Line start end) = perpendicularLineThrough middle li
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
-    -- Move line to it starts at the origin
+    -- Move line so it starts at the origin
     Line start0 end0 = move (negateVec2 start) line
     -- Rotate end point 90° CCW
     end0' = let Vec2 x y  = end0
@@ -612,3 +613,25 @@ billardProcess edges = go (const True)
       = let Distance pDistance = lineLength (Line start p)
             Distance qDistance = lineLength (Line start q)
         in compare pDistance qDistance
+
+-- | Approximate a rational number with one that has a maximum denominator.
+fareyApproximate
+    :: Integer -- ^ Maximum denominator
+    -> Ratio Integer -- ^ Number to approximate
+    -> Ratio Integer
+fareyApproximate maxD exact = go 0 (ceilRatio exact)
+  where
+    ceilRatio x = denominator x * (quot (numerator x) (denominator x) + 1) % 1
+    mediant x y = (numerator x + numerator y) % (denominator x + denominator y)
+    go x y
+      = let m = mediant x y
+            dx = denominator x
+            dy = denominator y
+        in case compare exact m of
+            _ | dx > maxD -> y
+              | dy < maxD -> x
+            LT -> go m y
+            GT -> go x m
+            EQ | dx + dy <= denominator exact -> m
+               | dy > dx -> y
+               | otherwise -> x

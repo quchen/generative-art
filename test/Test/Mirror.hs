@@ -51,15 +51,16 @@ mirror1 = do
   where
     testDraw :: Line -> [Vec2] -> Render ()
     testDraw mirror ps = do
-        setMirrorStyle
-        lineSketch mirror
-        stroke
-        setDash [] 0
+        setLineWidth 1
+
+        restoreStateAfter $ do
+            setMirrorStyle
+            lineSketch mirror
+            stroke
 
         for_ ps (\p -> do
             let p' = mirrorAlong mirror p
 
-            setLineWidth 1
             mirroredC 1
             crossSketch p (Distance 5)
             stroke
@@ -75,10 +76,10 @@ mirror2 :: Render ()
 mirror2 = do
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
-    setMirrorStyle
-    lineSketch mirror
-    stroke
-    setDash [] 0
+    restoreStateAfter $ do
+        setMirrorStyle
+        lineSketch mirror
+        stroke
 
     setFontSize 12
     originalC 1 >> moveTo 180 30 >> showText "Original"

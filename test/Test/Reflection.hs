@@ -18,18 +18,20 @@ tests :: TestTree
 tests = testCase "Reflection of rays on a mirror" testReflection
 
 testReflection :: IO ()
-testReflection = renderAllFormats 520 300 "test/out/reflection" (do
+testReflection = renderAllFormats 520 300 "test/out/reflection" $ do
 
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
-    setLineWidth 2
-    hsva 0 0 0 0.5
-    lineSketch mirror
-    stroke
+    setLineWidth 1
 
-    do
+    restoreStateAfter $ do
+        setLineWidth 2
+        hsva 0 0 0 0.5
+        lineSketch mirror
+        stroke
+
+    restoreStateAfter $ do
         let rayOrigin = Vec2 180 250
-        setLineWidth 1
         hsva 0 1 0.7 1
         circleSketch rayOrigin (Distance 5)
         stroke
@@ -42,9 +44,8 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" (do
             lineSketch ray
             lineSketch ray'
             stroke )
-    do
+    restoreStateAfter $ do
         let rayOrigin = Vec2 350 30
-        setLineWidth 1
         hsva 180 1 0.7 1
         circleSketch rayOrigin (Distance 5)
         stroke
@@ -57,5 +58,3 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" (do
             lineSketch ray
             lineSketch ray'
             stroke )
-
-    )

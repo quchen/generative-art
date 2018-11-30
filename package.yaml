@@ -21,6 +21,7 @@ dependencies:
     - colour
     - containers
     - data-default-class
+    - vector
 
 ghc-options:
     - -Wall
