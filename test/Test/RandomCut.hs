@@ -2,8 +2,8 @@ module Test.RandomCut (tests) where
 
 
 
-import Graphics.Rendering.Cairo hiding (x, y)
 import Data.Foldable
+import Graphics.Rendering.Cairo hiding (x, y)
 import System.Random
 
 import Draw

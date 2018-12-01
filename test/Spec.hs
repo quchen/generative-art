@@ -12,8 +12,8 @@ import qualified Test.Cut
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Properties
-import qualified Test.Reflection
 import qualified Test.RandomCut
+import qualified Test.Reflection
 import qualified Test.SimpleOperations
 
 import Test.Tasty

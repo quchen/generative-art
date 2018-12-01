@@ -3,8 +3,8 @@ module Geometry.Processes.RandomCut (cutProcess) where
 
 
 
-import System.Random
 import Data.List
+import System.Random
 
 
 import Geometry
