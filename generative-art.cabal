@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8175636eb22a8a16132388edd419ea0e51bca9ce98b2293bc86253661f0146ec
+-- hash: 64e74e741ac5223f7adba46c04828d8c15ba026ca3b5056c99797e62cf4a75a2
 
 name:           generative-art
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
       Geometry.Cut
       Geometry.Cut.Internal
       Util
+      Why
   other-modules:
       Paths_generative_art
   hs-source-dirs:
