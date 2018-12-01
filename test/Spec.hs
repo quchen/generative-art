@@ -13,6 +13,7 @@ import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Properties
 import qualified Test.Reflection
+import qualified Test.RandomCut
 import qualified Test.SimpleOperations
 
 import Test.Tasty
@@ -37,6 +38,7 @@ tests = testGroup "Test suite"
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Reflection.tests
+        , Test.RandomCut.tests
         ]
     ]
 

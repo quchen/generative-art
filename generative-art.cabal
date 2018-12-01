@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 64e74e741ac5223f7adba46c04828d8c15ba026ca3b5056c99797e62cf4a75a2
+-- hash: dd96ee0247987d5954a92ff4fa002616733534380f488fa9699a19c09b0cbccf
 
 name:           generative-art
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Geometry.Core
       Geometry.Cut
       Geometry.Cut.Internal
+      Geometry.Processes.RandomCut
       Util
       Why
   other-modules:
@@ -45,6 +46,7 @@ library
     , colour
     , containers
     , data-default-class
+    , random
     , vector
   default-language: Haskell2010
 
@@ -62,6 +64,7 @@ executable haskell-logo-billard
     , containers
     , data-default-class
     , generative-art
+    , random
     , vector
   default-language: Haskell2010
 
@@ -77,6 +80,7 @@ test-suite generative-art-test
       Test.IntersectionLL
       Test.Mirror
       Test.Properties
+      Test.RandomCut
       Test.Reflection
       Test.SimpleOperations
       Paths_generative_art

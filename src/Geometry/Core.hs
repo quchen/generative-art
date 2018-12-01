@@ -87,6 +87,7 @@ import Util
 
 
 
+
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 -- | Polygon, defined by its corners.

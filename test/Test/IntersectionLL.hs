@@ -1,9 +1,8 @@
 module Test.IntersectionLL (tests) where
 
+
+
 import Graphics.Rendering.Cairo hiding (x, y)
-
-
-
 import Text.Printf
 
 import Draw

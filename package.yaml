@@ -21,6 +21,7 @@ dependencies:
     - colour
     - containers
     - data-default-class
+    - random
     - vector
 
 ghc-options:

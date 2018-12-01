@@ -44,6 +44,10 @@ over quickly.
 
 ![](./cut/7_2_calculated_edge_graph.svg)
 
+![](./cut_random/1_square.svg)
+
+![](./cut_random/2_square_iterated.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)
