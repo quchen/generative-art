@@ -46,8 +46,6 @@ over quickly.
 
 ![](./cut_random/1_square.svg)
 
-![](./cut_random/2_square_iterated.svg)
-
 ![](./intersection.svg)
 
 ![](./mirror.svg)

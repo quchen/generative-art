@@ -22,6 +22,7 @@ dependencies:
     - containers
     - data-default-class
     - random
+    - transformers
     - vector
 
 ghc-options:

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dd96ee0247987d5954a92ff4fa002616733534380f488fa9699a19c09b0cbccf
+-- hash: 92a0fd2297a5addd60bc9d2bf47d1eee2681c9ce05bb70ca09414b7f67712228
 
 name:           generative-art
 version:        0.1.0.0
@@ -47,6 +47,7 @@ library
     , containers
     , data-default-class
     , random
+    , transformers
     , vector
   default-language: Haskell2010
 
@@ -65,6 +66,7 @@ executable haskell-logo-billard
     , data-default-class
     , generative-art
     , random
+    , transformers
     , vector
   default-language: Haskell2010
 
@@ -100,5 +102,6 @@ test-suite generative-art-test
     , tasty
     , tasty-hunit
     , tasty-quickcheck
+    , transformers
     , vector
   default-language: Haskell2010
