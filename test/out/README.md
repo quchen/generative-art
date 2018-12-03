@@ -46,6 +46,8 @@ over quickly.
 
 ![](./cut_random/1_square.svg)
 
+![](./cut_random/2_haskell_logo.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)
