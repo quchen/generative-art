@@ -5,9 +5,9 @@ module Geometry.Processes.RandomCut (
 
 
 
+import Control.Monad.Trans.State
 import Data.List
 import System.Random
-import Control.Monad.Trans.State
 
 import Geometry
 
