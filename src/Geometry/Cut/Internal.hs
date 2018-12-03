@@ -79,7 +79,7 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
             | isSource pTy && isTarget qTy -> (p --> q) : (q --> p) : go rest
             | isTarget pTy -> bugError "Target without source"
             | isSource pTy && isSource qTy -> go ((q, qTy) : rest)
-            | otherwise -> bugError "Bad source/target"
+            | otherwise -> bugError ("Bad source/target (" ++ show (isSource pTy) ++ "/" ++ show (isTarget pTy) ++ ")")
     go (_:_) = bugError "Unpaired cut point"
     go [] = []
 

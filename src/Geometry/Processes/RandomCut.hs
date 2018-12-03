@@ -38,10 +38,9 @@ randomCutS acceptCut polygon = findGoodCut
     (Vec2 minX minY, Vec2 maxX maxY) = boundingBoxPoly polygon
 
     findGoodCut = do
-        x <- randomR' (minX, maxX)
-        y <- randomR' (minY, maxY)
-        angle <- randomR' (0, 360)
-        let cutResult = cutPolygon (angledLine (Vec2 x y) (deg angle) (Distance 1)) polygon
+        p <- Vec2 <$> randomR' (minX, maxX) <*> randomR' (minY, maxY)
+        angle <- fmap deg (randomR' (0, 360))
+        let cutResult = cutPolygon (angledLine p angle (Distance 1)) polygon
         if acceptCut cutResult
             then pure cutResult
             else findGoodCut
