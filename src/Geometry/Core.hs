@@ -353,7 +353,7 @@ lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
 bugError :: String -> a
-bugError msg = error (msg ++ ", this should never happen! Please report his as a bug.")
+bugError msg = errorWithoutStackTrace (msg ++ "\nThis should never happen! Please report it as a bug.")
 
 data LLIntersection
     = IntersectionReal
