@@ -2,6 +2,7 @@ module Test.Cut (tests) where
 
 
 
+import           Control.Monad
 import           Data.Foldable
 import           Data.List
 import qualified Data.Map                 as M
@@ -128,13 +129,13 @@ polyCutDraw initialPolygon scissors cutResults = do
 
 cutSquareTest :: IO ()
 cutSquareTest = do
-    let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+    let polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
-        cutResult = cutPolygon scissors square
+        cutResult = cutPolygon scissors polygon
 
     renderAllFormats 170 90 "test/out/cut/2_square" $ do
         polyCutDraw
-            (move (Vec2 10 10) square)
+            (move (Vec2 10 10) polygon)
             (move (Vec2 90 10) scissors)
             (move (Vec2 90 10) cutResult)
 
@@ -144,6 +145,7 @@ cutSquareTest = do
         showText (show (length cutResult) ++ " polygons")
 
     assertEqual "Number of resulting polygons" 2 (length cutResult)
+    liftIO (assertAreaConserved polygon cutResult)
 
 complicatedPolygonTest :: IO ()
 complicatedPolygonTest = do
@@ -175,6 +177,7 @@ complicatedPolygonTest = do
         moveTo 140 15
         showText (show (length cutResult) ++ " polygons")
     assertEqual "Number of resulting polygons" 5 (length cutResult)
+    liftIO (assertAreaConserved polygon cutResult)
 
 cutMissesPolygonTest :: IO ()
 cutMissesPolygonTest = do
@@ -189,6 +192,7 @@ cutMissesPolygonTest = do
             (move (Vec2 70 10) cutResult))
 
     assertEqual "Number of resulting polygons" 1 (length cutResult)
+    liftIO (assertAreaConserved polygon cutResult)
 
 cutThroughCornerTest :: IO ()
 cutThroughCornerTest = do
@@ -203,6 +207,7 @@ cutThroughCornerTest = do
             (move (Vec2 80 20) cutResult))
 
     assertEqual "Number of resulting polygons" 2 (length cutResult)
+    liftIO (assertAreaConserved polygon cutResult)
 
 -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
 cornerCasesTest :: TestTree
@@ -242,6 +247,8 @@ cornerCasesTest = testGroup "Corner cases" $ do
                 showText name
         renderDescription
 
+        liftIO (assertAreaConserved polygon cutResult)
+
     ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
           in ( "on -> on -> on"
              , "ooo"
@@ -271,6 +278,17 @@ cornerCasesTest = testGroup "Corner cases" $ do
           , "roo"
           , Polygon [Vec2 40 0, Vec2 40 (-40), Vec2 (-40) (-40), Vec2 (-40) 40, Vec2 0 40, Vec2 0 0]
           , 2 )
+
+assertAreaConserved :: Polygon -> [Polygon] -> Assertion
+assertAreaConserved polygon cutResult = do
+    let Area originalArea = signedPolygonArea polygon
+        sumOfCutAreas = sum [ a | Area a <- map signedPolygonArea cutResult ]
+    unless (originalArea ~== sumOfCutAreas) (assertFailure (unlines
+        ("Total area is not conserved!"
+        : map ("    " ++)
+            [ "original = " ++ show originalArea
+            , "Σ cuts   = " ++ show sumOfCutAreas
+            , "|Δ|      = " ++ show (abs (originalArea - sumOfCutAreas)) ])))
 
 drawCutEdgeGraphTest :: TestTree
 drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
