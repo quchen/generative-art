@@ -73,13 +73,26 @@ newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> [CutEdgeGraph -> CutEdge
 newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
   where
     go ((p, pTy) : (q, qTy) : rest)
-      = let isSource = isSourceType orientation
-            isTarget = isTargetType orientation
+      = let pIsSource = isSourceType orientation pTy
+            qIsSource = isSourceType orientation qTy
+            pIsTarget = isTargetType orientation pTy
+            qIsTarget = isTargetType orientation qTy
         in if
-            | isSource pTy && isTarget qTy -> (p --> q) : (q --> p) : go rest
-            | isTarget pTy -> bugError "Target without source"
-            | isSource pTy && isSource qTy -> go ((q, qTy) : rest)
-            | otherwise -> bugError ("Bad source/target (" ++ show (isSource pTy) ++ "/" ++ show (isTarget pTy) ++ ")")
+            -- Connect to source+target vertex: continue from that vertex
+            | pIsSource && qIsTarget && qIsSource -> (p --> q) : (q --> p) : go ((q, qTy) : rest)
+            -- Connect to target-only vertex: consume both vertices, continue after them
+            | pIsSource && qIsTarget && not qIsSource -> (p --> q) : (q --> p) : go rest
+            -- Skip non-target vertices
+            | pIsSource && not qIsTarget -> go ((p, pTy) : rest)
+            -- Only use the last source in a chain of them
+            | pIsSource && qIsSource -> go ((q, qTy) : rest)
+            | pIsTarget -> bugError "Target without source"
+            | otherwise -> bugError (unlines
+                [ "Bad vertex!"
+                , "       (type, isSource, isTarget)"
+                , "    p: " ++ show (pTy, pIsSource, pIsTarget)
+                , "    q: " ++ show (qTy, qIsSource, qIsTarget)
+                ])
     go (_:_) = bugError "Unpaired cut point"
     go [] = []
 
@@ -180,32 +193,35 @@ extractSinglePolygon = go Nothing S.empty
 
 classifyCut :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
 classifyCut _ _ NoCut{} _ = Nothing
--- -- OOO
--- classifyCut _ Cut{} (Cut _ x _) Cut{} = Just (x, OOO)
--- -- OOX
--- classifyCut scissors Cut{} (Cut _ x _) r
---   = case sideOfScissors scissors (endPoint r) of
---         LeftOfLine     -> Just (x, OOL)
---         RightOfLine    -> Just (x, OOR)
---         DirectlyOnLine -> Just (x, OOO)
--- -- XOO
--- classifyCut scissors l (Cut _ x _) Cut{}
---   = case sideOfScissors scissors (startPoint l) of
---         LeftOfLine     -> Just (x, LOO)
---         RightOfLine    -> Just (x, ROO)
---         DirectlyOnLine -> Just (x, OOO)
+-- OOO
+classifyCut _ Cut{} (Cut _ x _) Cut{} = Just (x, OOO)
+-- OOX
+classifyCut scissors Cut{} (Cut _ x r) NoCut{}
+  = case sideOfScissors scissors r of
+        LeftOfLine     -> Just (x, OOL)
+        RightOfLine    -> Just (x, OOR)
+        DirectlyOnLine -> Just (x, OOO)
+-- XOO
+classifyCut scissors NoCut{} (Cut l x _) Cut{}
+  = case sideOfScissors scissors l of
+        LeftOfLine     -> Just (x, LOO)
+        RightOfLine    -> Just (x, ROO)
+        DirectlyOnLine -> Just (x, OOO)
 -- XOY
-classifyCut scissors l (Cut _ x _) r
-  = case (sideOfScissors scissors (startPoint l), sideOfScissors scissors (endPoint r)) of
+classifyCut scissors NoCut{} (Cut l x r) NoCut{}
+  = case (sideOfScissors scissors l, sideOfScissors scissors r) of
         (LeftOfLine,     LeftOfLine)     -> Just (x, LOL)
         (LeftOfLine,     RightOfLine)    -> Just (x, LOR)
         (RightOfLine,    LeftOfLine)     -> Just (x, ROL)
         (RightOfLine,    RightOfLine)    -> Just (x, ROR)
+
+        -- The »directly on line« are numerical corner case quirks, but we
+        -- include them to please the exhaustiveness checker.
+        (DirectlyOnLine, DirectlyOnLine) -> Just (x, OOO)
         (DirectlyOnLine, LeftOfLine)     -> Just (x, OOL)
         (DirectlyOnLine, RightOfLine)    -> Just (x, OOR)
-        (RightOfLine,    DirectlyOnLine) -> Just (x, ROO)
         (LeftOfLine,     DirectlyOnLine) -> Just (x, LOO)
-        (DirectlyOnLine, DirectlyOnLine) -> Just (x, OOO)
+        (RightOfLine,    DirectlyOnLine) -> Just (x, ROO)
 
 startPoint :: CutLine -> Vec2
 startPoint (NoCut p _) = p

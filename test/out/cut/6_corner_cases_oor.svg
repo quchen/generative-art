@@ -63,11 +63,11 @@
   <rect width="380" height="100"/>
 </clipPath>
 <g id="surface_2" clip-path="url(#clip3)">
-<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 190 0 L 230 0 M 202.734375 2.875 L 208 0 " transform="matrix(1,0,0,1,0,50)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 150 0 L 230 0 M 180.734375 2.875 L 186 0 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 230 0 L 230 -40 M 232.875 -12.734375 L 230 -18 " transform="matrix(1,0,0,1,0,50)"/>
-<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 230 -40 L 190 0 M 213.6875 -27.757812 L 212 -22 " transform="matrix(1,0,0,1,0,50)"/>
-<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 190 0 L 230 0 L 230 -40 Z M 190 0 " transform="matrix(1,0,0,1,0,50)"/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.1;" d="M 190 50 L 230 50 L 230 10 Z M 190 50 "/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 230 -40 L 150 0 M 197.421875 -26.925781 L 194 -22 " transform="matrix(1,0,0,1,0,50)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 150 0 L 230 0 L 230 -40 Z M 150 0 " transform="matrix(1,0,0,1,0,50)"/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.1;" d="M 150 50 L 230 50 L 230 10 Z M 150 50 "/>
 </g>
 </defs>
 <g id="6_corner_cases_oor">
@@ -88,7 +88,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 192.5 40 C 192.5 43.332031 187.5 43.332031 187.5 40 C 187.5 36.667969 192.5 36.667969 192.5 40 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 232.5 40 C 232.5 43.332031 227.5 43.332031 227.5 40 C 227.5 36.667969 232.5 36.667969 232.5 40 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 232.5 0 C 232.5 3.332031 227.5 3.332031 227.5 0 C 227.5 -3.332031 232.5 -3.332031 232.5 0 " transform="matrix(1,0,0,1,0,50)"/>
-<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 192.5 0 C 192.5 3.332031 187.5 3.332031 187.5 0 C 187.5 -3.332031 192.5 -3.332031 192.5 0 " transform="matrix(1,0,0,1,0,50)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 152.5 0 C 152.5 3.332031 147.5 3.332031 147.5 0 C 147.5 -3.332031 152.5 -3.332031 152.5 0 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 232.5 0 C 232.5 3.332031 227.5 3.332031 227.5 0 C 227.5 -3.332031 232.5 -3.332031 232.5 0 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 232.5 -40 C 232.5 -36.667969 227.5 -36.667969 227.5 -40 C 227.5 -43.332031 232.5 -43.332031 232.5 -40 " transform="matrix(1,0,0,1,0,50)"/>
 <g style="fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:1;">
