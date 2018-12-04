@@ -234,90 +234,10 @@ data CutLine
 data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
     deriving (Eq, Ord, Show)
 
-data CutType
-    = LOL
-        -- ^
-        -- @
-        --    p     q
-        --     \   /
-        --      \ /
-        -- ===== x =====>
-        -- @
-
-    | LOO
-        -- ^
-        -- @
-        --       p
-        --       |
-        --       |
-        -- ===== x ----- q =====>
-        -- @
-
-    | LOR
-        -- ^
-        -- @
-        --       p
-        --       |
-        --       |
-        -- ===== x =====>
-        --       |
-        --       |
-        --       q
-        -- @
-
-    | OOL
-        -- ^
-        -- @
-        --               q
-        --               |
-        --               |
-        -- ===== p ----- x =====>
-        -- @
-
-    | OOO
-        -- ^
-        -- @
-        -- ===== p ----- x ----- q =====>
-        -- @
-
-    | OOR
-        -- ^
-        -- @
-        -- ===== p ----- x =====>
-        --               |
-        --               |
-        --               q
-        -- @
-
-    | ROL
-        -- ^
-        -- @
-        --       q
-        --       |
-        --       |
-        -- ===== x =====>
-        --       |
-        --       |
-        --       p
-        -- @
-
-    | ROO
-        -- ^
-        -- @
-        -- ===== x ----- q =====>
-        --       |
-        --       |
-        --       p
-        -- @
-
-    | ROR
-        -- ^
-        -- @
-        -- ===== x =====>
-        --      / \
-        --     /   \
-        --    p     q
-        -- @
+-- | Nomenclature: Left/On/Right relative to scissors. LOR means that the cut is
+-- on the scissors, the edge leading to the cut comes from the left of it, and
+-- the outgoing edge extends to the right.
+data CutType = LOL | LOO | LOR | OOL | OOO | OOR | ROL | ROO | ROR
     deriving (Eq, Ord, Show)
 
 isSourceType, isTargetType :: Orientation -> CutType -> Bool
