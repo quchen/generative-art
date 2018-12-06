@@ -35,7 +35,7 @@ testSpiral :: TestTree
 testSpiral = localOption (mkTimeout (10^6)) $ testCase "Spiral" test
   where
     triangulation = triangulate (spiralPolygon 8 20)
-    test = renderAllFormats 200 200 "test/out/triangulation/2_spiral" $ do
+    test = renderAllFormats 300 300 "test/out/triangulation/2_spiral" $ do
         -- cartesianCoordinateSystem
         translate 110 110
         paintTriangulation triangulation
