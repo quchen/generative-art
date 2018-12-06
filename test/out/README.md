@@ -55,3 +55,7 @@ over quickly.
 ![](./reflection.svg)
 
 ![](./simple_operations.svg)
+
+![](./triangulation/1_haskell_logo.svg)
+
+![](./triangulation/2_spiral.svg)

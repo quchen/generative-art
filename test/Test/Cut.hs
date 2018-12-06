@@ -6,7 +6,7 @@ import           Control.Monad
 import           Data.Foldable
 import           Data.List
 import qualified Data.Map                 as M
-import           Graphics.Rendering.Cairo hiding (rotate, x, y)
+import           Graphics.Rendering.Cairo hiding (x, y)
 
 import Draw
 import Geometry
@@ -149,32 +149,19 @@ cutSquareTest = do
 
 complicatedPolygonTest :: IO ()
 complicatedPolygonTest = do
-    let polygon = spiral 9
-        spiral n = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
-          where
-            instructions = concat [ zip [1..n] (repeat turnLeft)
-                                  , [(1, turnLeft)]
-                                  , [(n-1, turnRight)]
-                                  , zip [n-3, n-4 .. 1] (repeat turnRight)
-                                  ]
-            relativeSpiral = go instructions (Vec2 1 0)
-              where
-                go [] _dir = []
-                go ((len, rotate) : rest) dir = 10*len *. dir : go rest (rotate dir)
-            turnLeft  (Vec2 x y) = Vec2   y  (-x)
-            turnRight (Vec2 x y) = Vec2 (-y)   x
-        scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 150))
+    let polygon = spiralPolygon 9 20
+        scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 220))
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 240 110 "test/out/cut/3_complicated" $ do
+    renderAllFormats 400 190 "test/out/cut/3_complicated" $ do
         polyCutDraw
-            (move (Vec2 50 60) polygon)
-            (move (Vec2 180 60) scissors)
-            (move (Vec2 180 60) cutResult)
+            (move (Vec2 90 100) polygon)
+            (move (Vec2 290 100) scissors)
+            (move (Vec2 290 100) cutResult)
 
         mmaColor 1 1
         setFontSize 12
-        moveTo 140 15
+        moveTo 250 15
         showText (show (length cutResult) ++ " polygons")
     assertEqual "Number of resulting polygons" 5 (length cutResult)
     liftIO (assertAreaConserved polygon cutResult)

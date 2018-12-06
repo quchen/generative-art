@@ -27,6 +27,7 @@ dependencies:
 
 ghc-options:
     - -Wall
+    - -Wno-type-defaults
 
 library:
     source-dirs: src
@@ -40,6 +41,7 @@ executables:
             - -rtsopts
             - -with-rtsopts=-N
             - -Wall
+            - -Wno-type-defaults
         dependencies:
             - generative-art
             - cairo
@@ -53,6 +55,7 @@ tests:
             - -rtsopts
             - -with-rtsopts=-N
             - -Wall
+            - -Wno-type-defaults
         dependencies:
             - generative-art
 

@@ -6,6 +6,8 @@ module Draw (
     , mmaColor
 
     -- * Drawing presets
+    , moveToVec
+    , lineToVec
     , lineSketch
     , ArrowSpec(..)
     , arrowSketch

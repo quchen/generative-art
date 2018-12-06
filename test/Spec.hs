@@ -15,30 +15,36 @@ import qualified Test.Properties
 import qualified Test.RandomCut
 import qualified Test.Reflection
 import qualified Test.SimpleOperations
+import qualified Test.Triangulate
 
 import Test.Tasty
 
 
 
 main :: IO ()
-main = catch (defaultMain tests)
+main = catch (defaultMain (defaultOptions tests))
              (\e -> do normalizeSvg
                        generateVisualTestReadmeMarkdown
                        generateVisualTestReadmeHtml
                        throwIO (e :: ExitCode))
 
+defaultOptions :: TestTree -> TestTree
+defaultOptions = foldr (.) id
+    [ localOption (Timeout 1000000 "1s") ]
+
 tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
-        [ Test.SimpleOperations.tests
-        , Test.Billard.tests
+        [ Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Cut.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
-        , Test.Reflection.tests
         , Test.RandomCut.tests
+        , Test.Reflection.tests
+        , Test.SimpleOperations.tests
+        , Test.Triangulate.tests
         ]
     ]
 

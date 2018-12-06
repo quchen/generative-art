@@ -34,10 +34,6 @@ cutLine scissors paper = case intersectionLL scissors paper of
 data OneOrTwo a = One a | Two a a
     deriving (Eq, Ord, Show)
 
--- | Orientation of a polygon
-data Orientation = Positive | Negative
-    deriving (Eq, Ord, Show)
-
 -- | Cut a polygon in multiple pieces with a line.
 --
 -- For convex polygons, the result is either just the polygon (if the line
@@ -50,17 +46,12 @@ cutPolygon scissors polygon =
             (cutAll scissors
                 (polygonEdges polygon)))
 
-polygonOrientation :: Polygon -> Orientation
-polygonOrientation polygon
-    | signedPolygonArea polygon >= Area 0 = Positive
-    | otherwise                           = Negative
-
 -- Generate a list of all the edges of a polygon, extended with additional
 -- points on the edges that are crossed by the scissors.
 cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
-createEdgeGraph :: Line -> Orientation -> [CutLine] -> CutEdgeGraph
+createEdgeGraph :: Line -> PolygonOrientation -> [CutLine] -> CutEdgeGraph
 createEdgeGraph scissors orientation allCuts = buildGraph (addCutEdges ++ addOriginalPolygon)
   where
     addCutEdges = newCutsEdgeGraph scissors orientation allCuts
@@ -69,7 +60,7 @@ createEdgeGraph scissors orientation allCuts = buildGraph (addCutEdges ++ addOri
 buildGraph :: [CutEdgeGraph -> CutEdgeGraph] -> CutEdgeGraph
 buildGraph = foldl' (\graph insertEdge -> insertEdge graph) mempty
 
-newCutsEdgeGraph :: Line -> Orientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
+newCutsEdgeGraph :: Line -> PolygonOrientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
 newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
   where
     go ((p, pTy) : (q, qTy) : rest)
@@ -256,9 +247,9 @@ data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
 data CutType = LOL | LOO | LOR | OOL | OOO | OOR | ROL | ROO | ROR
     deriving (Eq, Ord, Show)
 
-isSourceType, isTargetType :: Orientation -> CutType -> Bool
-isSourceType Positive x = elem x [LOL, LOO, LOR, OOR, ROR]
-isSourceType Negative x = isTargetType Positive x
+isSourceType, isTargetType :: PolygonOrientation -> CutType -> Bool
+isSourceType PolygonPositive x = elem x [LOL, LOO, LOR, OOR, ROR]
+isSourceType PolygonNegative x = isTargetType PolygonPositive x
 
-isTargetType Positive x = elem x [LOL, OOL, ROL, ROO, ROR]
-isTargetType Negative x = isSourceType Positive x
+isTargetType PolygonPositive x = elem x [LOL, OOL, ROL, ROO, ROR]
+isTargetType PolygonNegative x = isSourceType PolygonPositive x

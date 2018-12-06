@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 92a0fd2297a5addd60bc9d2bf47d1eee2681c9ce05bb70ca09414b7f67712228
+-- hash: 4213c64c37eefd1e0ad2e79e928e55654add15b95edf5968242f30fb18f805ec
 
 name:           generative-art
 version:        0.1.0.0
@@ -33,13 +33,14 @@ library
       Geometry.Cut
       Geometry.Cut.Internal
       Geometry.Processes.RandomCut
+      Geometry.Triangulate
       Util
       Why
   other-modules:
       Paths_generative_art
   hs-source-dirs:
       src
-  ghc-options: -Wall
+  ghc-options: -Wall -Wno-type-defaults
   build-depends:
       base >=4.7 && <5
     , cairo
@@ -57,7 +58,7 @@ executable haskell-logo-billard
       Paths_generative_art
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
   build-depends:
       base >=4.7 && <5
     , cairo
@@ -85,10 +86,11 @@ test-suite generative-art-test
       Test.RandomCut
       Test.Reflection
       Test.SimpleOperations
+      Test.Triangulate
       Paths_generative_art
   hs-source-dirs:
       test
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N -Wall
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
   build-depends:
       QuickCheck
     , base >=4.7 && <5

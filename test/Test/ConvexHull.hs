@@ -76,10 +76,12 @@ idempotencyTest = testProperty "Idempotency" (forAll gen prop)
                   in hull === hull'
 
 allPointsInHullTest :: TestTree
-allPointsInHullTest = testProperty "All points are inside the hull" $
-    \(LotsOfGaussianPoints points) ->
-        let hull@(Polygon hullPoints) = convexHull points
-        in all (\p -> pointInPolygon p hull) (points \\ hullPoints)
+allPointsInHullTest
+  = localOption (Timeout (10^6) "1 second") $
+    testProperty "All points are inside the hull" $
+        \(LotsOfGaussianPoints points) ->
+            let hull@(Polygon hullPoints) = convexHull points
+            in all (\p -> pointInPolygon p hull) (points \\ hullPoints)
 
 convexHullIsConvexTest :: TestTree
 convexHullIsConvexTest = testProperty "Convex hull is convex" $

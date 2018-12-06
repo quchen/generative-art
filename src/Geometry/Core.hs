@@ -41,6 +41,8 @@ module Geometry.Core (
     , isConvex
     , selfIntersections
     , convexHull
+    , PolygonOrientation(..)
+    , polygonOrientation
 
     -- ** Angles
     , Angle(..)
@@ -424,6 +426,16 @@ convexHull points
         go _ stack [] = stack
 
     in Polygon (drop 1 (go (<=) [] pointsSorted) ++ drop 1 (reverse (go (>=) [] pointsSorted)))
+
+
+-- | Orientation of a polygon
+data PolygonOrientation = PolygonPositive | PolygonNegative
+    deriving (Eq, Ord, Show)
+
+polygonOrientation :: Polygon -> PolygonOrientation
+polygonOrientation polygon
+    | signedPolygonArea polygon >= Area 0 = PolygonPositive
+    | otherwise                           = PolygonNegative
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
