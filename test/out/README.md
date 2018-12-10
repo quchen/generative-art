@@ -56,6 +56,10 @@ over quickly.
 
 ![](./simple_operations.svg)
 
-![](./triangulation/1_haskell_logo.svg)
+![](./triangulation/1_square.svg)
 
-![](./triangulation/2_spiral.svg)
+![](./triangulation/2_heptagon.svg)
+
+![](./triangulation/3_haskell_logo.svg)
+
+![](./triangulation/4_spiral.svg)

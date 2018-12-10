@@ -25,14 +25,14 @@
 </symbol>
 </g>
 </defs>
-<g id="2_spiral">
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.5;" d="M 110 110 L 130 110 L 130 70 Z M 110 110 "/>
+<g id="4_spiral">
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.5;" d="M 30 30 L 30 190 L 50 190 Z M 30 30 "/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph0-1" x="121.160156" y="100.316406"/>
+  <use xlink:href="#glyph0-1" x="34.496094" y="140.316406"/>
 </g>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.5;" d="M 30 30 L 30 190 L 50 190 Z M 30 30 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.5;" d="M 110 110 L 130 110 L 130 70 Z M 110 110 "/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph0-2" x="34.355469" y="140.378906"/>
+  <use xlink:href="#glyph0-2" x="121.019531" y="100.378906"/>
 </g>
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(56.0181%,69.1569%,19.4885%);fill-opacity:0.5;" d="M 110 90 L 110 110 L 130 70 Z M 110 90 "/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">

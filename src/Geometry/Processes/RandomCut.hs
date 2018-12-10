@@ -1,6 +1,6 @@
 module Geometry.Processes.RandomCut (
-      randomCutProcess
-    , minMaxAreaRatio
+      randomCutS
+    , randomCutProcess
 ) where
 
 
@@ -44,19 +44,6 @@ randomCutS acceptCut polygon = findGoodCut
         if acceptCut cutResult
             then pure cutResult
             else findGoodCut
-
--- | Calculate the min/max ratio of the areas of a list of polygons. Useful to
--- build cutoff predicates with, e.g.
---
--- @
--- \polys -> 'minMaxAreaRatio' polys >= 1/3
--- @
-minMaxAreaRatio :: [Polygon] -> Double
-minMaxAreaRatio cutResult
-  = let cutResultAreas = map polygonArea cutResult
-        Area minA = minimum cutResultAreas
-        Area maxA = maximum cutResultAreas
-    in minA / maxA
 
 randomCutProcess
     :: (Polygon -> Bool)   -- ^ Recursively subdivide the current polygon?

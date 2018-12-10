@@ -11,6 +11,7 @@ import           Graphics.Rendering.Cairo hiding (x, y)
 import Draw
 import Geometry
 import Geometry.Cut.Internal
+import Geometry.Shapes
 
 import Test.Common
 import Test.Tasty

@@ -4,28 +4,37 @@ module Geometry.Triangulate (
 
 
 
+import Data.List
+import Data.Ord
+
 import Geometry.Core
+import Util
 
 
 
 triangulate :: Polygon -> [Polygon]
 triangulate = earClipping
 
+isEar :: Polygon -> PolygonOrientation -> [Vec2] -> Bool
+isEar candidate parentOrientation forbiddenPoints =
+    not (any (\r -> pointInPolygon r candidate) forbiddenPoints)
+    && parentOrientation == polygonOrientation candidate
+
 -- | Ear-clipping algorithm – recursively find isolated triangles we can cut
 -- off. Probably terrible performance for large polygons.
 earClipping :: Polygon -> [Polygon]
-earClipping polygon = go [] polygon
+earClipping parentPolygon = go parentPolygon
   where
-    go skipped (Polygon (p:x:q:xs))
-      = let candidate = Polygon [p,x,q]
-            accept = not (any (\r -> pointInPolygon r candidate) xs)
-                     && not (any (\r -> pointInPolygon r candidate) skipped)
-                     && polygonOrientation polygon == polygonOrientation candidate
-        in if accept
-            then candidate : go skipped (Polygon (p:q:xs)) -- Good ear, cut it off
-            else go (p:skipped) (Polygon (x:q:xs)) -- Bad ear, try next triangle
+    parentOrientation = polygonOrientation parentPolygon
+    bestEar [] = bugError "No ears to cut off"
+    bestEar xs = maximumBy (\(e1,_,_) (e2,_,_) -> comparing polygonArea e1 e2) xs
+    onlyEars (candidate, eww, _) = isEar candidate parentOrientation eww
 
-    -- Not enough vertices, restore skipped ones
-    go skipped@(_:_) (Polygon xs) = go [] (Polygon (xs ++ reverse skipped))
+    go tri@(Polygon [_,_,_]) = [tri]
+    go polygon@(Polygon (_:_:_:_)) = case (bestEar . filter onlyEars . triples) polygon of
+        (ear, _, remainder) -> ear : go remainder
+    go _other = error "oh no"
 
-    go [] (Polygon _) = []
+triples :: Polygon -> [(Polygon, [Vec2], Polygon)]
+triples (Polygon ps)
+  = map (\(p:x:q:rest) -> (Polygon [p,x,q], rest, Polygon (p:q:rest))) (rotations ps)

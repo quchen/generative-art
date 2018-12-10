@@ -38,6 +38,7 @@ module Geometry.Core (
     , polygonArea
     , signedPolygonArea
     , polygonEdges
+    , polygonAngles
     , isConvex
     , selfIntersections
     , convexHull
@@ -93,6 +94,9 @@ import Util
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 -- | Polygon, defined by its corners.
+--
+-- A polygon has at least three corners; this invariant is assumed by many
+-- algorithms here, so be careful constructing them.
 newtype Polygon = Polygon [Vec2]
 
 -- | List-rotate the polygon’s corners until the minimum is the first entry in
@@ -162,6 +166,12 @@ instance Transform Line where
 
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (map (transform t) ps)
+
+instance Transform Transformation where
+    transform = transformationProduct
+
+instance Transform a => Transform [a] where
+    transform t = map (transform t)
 
 translate' :: Double -> Double -> Transformation
 translate' dx dy = Transformation
@@ -406,6 +416,15 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
 
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
+
+polygonAngles :: Polygon -> [Angle]
+polygonAngles polygon@(Polygon corners)
+  = let orient = case polygonOrientation polygon of
+            PolygonNegative -> flip
+            PolygonPositive -> id
+        angle p x q = orient angleBetween (Line x q) (Line x p)
+        _ : corners1 : corners2 : _ = iterate tail (cycle corners)
+    in zipWith3 angle corners corners1 corners2
 
 -- | The smallest convex polygon that contains all points.
 --

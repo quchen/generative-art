@@ -4,12 +4,11 @@ module Test.Common
     , hsva
     , haskellLogo
     , wonkyHaskellLogo
-    , spiralPolygon
     ) where
 
 
 
-import Graphics.Rendering.Cairo hiding (x,y, rotate, width)
+import Graphics.Rendering.Cairo hiding (rotate, width, x, y)
 import System.Random
 
 import Draw
@@ -73,18 +72,3 @@ wonkyHaskellLogo = map wigglePoly haskellLogo
                    in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
             (angle, _gen') = randomR (0, 360) (mkStdGen seed)
         in moveRad (Angle angle) (Distance 10) v
-
-spiralPolygon :: Int -> Double -> Polygon
-spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
-  where
-    instructions = concat [ zip [1..n] (repeat turnLeft)
-                          , [(1, turnLeft)]
-                          , [(n-1, turnRight)]
-                          , zip [n-3, n-4 .. 1] (repeat turnRight)
-                          ]
-    relativeSpiral = go instructions (Vec2 1 0)
-      where
-        go [] _dir = []
-        go ((len, rotate) : rest) dir = width*fromIntegral len *. dir : go rest (rotate dir)
-    turnLeft  (Vec2 x y) = Vec2   y  (-x)
-    turnRight (Vec2 x y) = Vec2 (-y)   x

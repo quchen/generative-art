@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4213c64c37eefd1e0ad2e79e928e55654add15b95edf5968242f30fb18f805ec
+-- hash: f403839d9f158514fc0a457d45fa89d05c582282693b8c5acde111bef6e3381e
 
 name:           generative-art
 version:        0.1.0.0
@@ -33,6 +33,7 @@ library
       Geometry.Cut
       Geometry.Cut.Internal
       Geometry.Processes.RandomCut
+      Geometry.Shapes
       Geometry.Triangulate
       Util
       Why
@@ -57,7 +58,26 @@ executable haskell-logo-billard
   other-modules:
       Paths_generative_art
   hs-source-dirs:
-      app
+      app/haskell_logo_billard
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base >=4.7 && <5
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , generative-art
+    , random
+    , transformers
+    , vector
+  default-language: Haskell2010
+
+executable haskell-logo-triangles
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      app/haskell_logo_triangles
   ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
   build-depends:
       base >=4.7 && <5

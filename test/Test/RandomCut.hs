@@ -12,6 +12,7 @@ import qualified Data.Set                  as S
 import           Graphics.Rendering.Cairo  hiding (x, y)
 import           System.Random
 
+import Comparison
 import Draw
 import Geometry
 import Geometry.Processes.RandomCut
@@ -48,8 +49,7 @@ testSquare = testCase "Square" test
             setColor 0.5
             fill
         restoreStateAfter $ do
-            for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> do
-                lineSketch edge
+            for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
             hsva 0 0 0 1
             setLineWidth 0.5
             stroke
@@ -75,8 +75,7 @@ testHaskellLogo = testCase "Haskell logo" test
             setColor
             fill
         restoreStateAfter $ do
-            for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> do
-                lineSketch edge
+            for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
             hsva 0 0 0 1
             setLineWidth 0.5
             stroke

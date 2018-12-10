@@ -35,7 +35,7 @@ library:
 executables:
     haskell-logo-billard:
         main:        Main.hs
-        source-dirs: app
+        source-dirs: app/haskell_logo_billard
         ghc-options:
             - -threaded
             - -rtsopts
@@ -45,6 +45,21 @@ executables:
         dependencies:
             - generative-art
             - cairo
+    haskell-logo-triangles:
+        main:        Main.hs
+        source-dirs: app/haskell_logo_triangles
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+        dependencies:
+            - generative-art
+            - cairo
+            - random
+            - transformers
+            - containers
 
 tests:
     generative-art-test:
