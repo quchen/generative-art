@@ -31,6 +31,8 @@ module Geometry.Core (
     -- ** Polygons
     , Polygon(..)
     , normalizePolygon
+    , PolygonError(..)
+    , validatePolygon
     , pointInPolygon
     , countEdgeTraversals
     , polygonAverage
@@ -40,7 +42,6 @@ module Geometry.Core (
     , polygonEdges
     , polygonAngles
     , isConvex
-    , selfIntersections
     , convexHull
     , PolygonOrientation(..)
     , polygonOrientation
@@ -90,13 +91,12 @@ import Util
 
 
 
-
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 -- | Polygon, defined by its corners.
 --
--- A polygon has at least three corners; this invariant is assumed by many
--- algorithms here, so be careful constructing them.
+-- Many algorithms assume certain invariants about polygons, see
+-- 'validatePolygon' for details.
 newtype Polygon = Polygon [Vec2]
 
 -- | List-rotate the polygon’s corners until the minimum is the first entry in
@@ -446,7 +446,6 @@ convexHull points
 
     in Polygon (drop 1 (go (<=) [] pointsSorted) ++ drop 1 (reverse (go (>=) [] pointsSorted)))
 
-
 -- | Orientation of a polygon
 data PolygonOrientation = PolygonPositive | PolygonNegative
     deriving (Eq, Ord, Show)
@@ -483,6 +482,51 @@ countEdgeTraversals p edges = length intersections
 
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
+
+data PolygonError
+    = NotEnoughCorners Int
+    | IdenticalPoints [Vec2]
+    | SelfIntersections [(Line, Line)]
+    deriving (Eq, Ord, Show)
+
+-- | Check whether the polygon satisfies the invariants assumed by many
+-- algorithms,
+--
+--   * At least three corners
+--   * No identical points
+--   * No self-intersections
+--
+-- Returns the provided polygon on success.
+validatePolygon :: Polygon -> Either PolygonError Polygon
+validatePolygon = \polygon -> do
+    threeCorners polygon
+    noIdenticalPoints polygon
+    noSelfIntersections polygon
+    pure polygon
+  where
+    threeCorners (Polygon ps) = case ps of
+        (_1:_2:_3:_) -> pure ()
+        _other       -> Left (NotEnoughCorners (length ps))
+
+    noIdenticalPoints (Polygon corners) = case nub' corners of
+        uniques | uniques == corners -> pure ()
+                | otherwise -> Left (IdenticalPoints (corners \\ uniques))
+
+    noSelfIntersections polygon = case selfIntersectionPairs polygon of
+        [] -> pure ()
+        intersections -> Left (SelfIntersections intersections)
+
+    selfIntersectionPairs :: Polygon -> [(Line, Line)]
+    selfIntersectionPairs poly
+      = [ (edge1, edge2) | _:edge1:_:restEdges <- tails (polygonEdges poly)
+                         , edge2 <- restEdges
+                         -- Skip neighbouring edge because neighbours always intersect
+                         -- , let Line e11 _e12 = edge1
+                         -- , let Line _e21 e22 = edge2
+                         -- -- , e12 /= e21
+                         -- , e11 /= e22
+                         , (_, IntersectionReal) <- [intersectionLL edge1 edge2]
+                         ]
 
 -- | Average of polygon vertices
 polygonAverage :: Polygon -> Vec2
@@ -538,20 +582,6 @@ isConvex (Polygon ps)
         -- NB: head is safe here, since all short-circuits for empty xs
         allSameSign xs = all (\p -> signum p == signum (head xs)) xs
     in allSameSign angleDotProducts
-
--- | Find all self intersections of a polygon’s edges.
-selfIntersections :: Polygon -> [(Line, Line)]
-selfIntersections poly
-  = let edges = polygonEdges poly
-    in [ (edge1, edge2) | edge1:_:restEdges <- tails edges
-                        , edge2 <- restEdges
-                        -- Skip neighbouring edge because neighbours always intersect
-                        , let Line e11 _e12 = edge1
-                        , let Line _e21 e22 = edge2
-                        -- , e12 /= e21
-                        , e11 /= e22
-                        , (_, IntersectionReal) <- [intersectionLL edge1 edge2]
-                        ]
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.

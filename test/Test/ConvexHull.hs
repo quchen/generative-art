@@ -77,8 +77,7 @@ idempotencyTest = testProperty "Idempotency" (forAll gen prop)
 
 allPointsInHullTest :: TestTree
 allPointsInHullTest
-  = localOption (Timeout (10^6) "1 second") $
-    testProperty "All points are inside the hull" $
+  = testProperty "All points are inside the hull" $
         \(LotsOfGaussianPoints points) ->
             let hull@(Polygon hullPoints) = convexHull points
             in all (\p -> pointInPolygon p hull) (points \\ hullPoints)
@@ -88,5 +87,7 @@ convexHullIsConvexTest = testProperty "Convex hull is convex" $
     \(LotsOfGaussianPoints points) -> isConvex (convexHull points)
 
 isNotSelfIntersecting :: TestTree
-isNotSelfIntersecting = testProperty "Result is not self-intersecting" $
-    \(LotsOfGaussianPoints points) -> null (selfIntersections (convexHull points))
+isNotSelfIntersecting = testProperty "Result is satisfies polygon invariants" $
+    \(LotsOfGaussianPoints points) -> case validatePolygon (convexHull points) of
+        Left err -> error (show err)
+        Right _ -> ()
