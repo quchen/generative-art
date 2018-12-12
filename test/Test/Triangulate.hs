@@ -48,7 +48,6 @@ testHaskellLogo = testCase "Haskell logo" test
   where
     triangulation = map triangulate wonkyHaskellLogo
     test = renderAllFormats 510 360 "test/out/triangulation/3_haskell_logo" $ do
-        -- errFrame 10
         translate 10 10
         for_ triangulation (restoreStateAfter . paintTriangulation)
 
@@ -64,21 +63,6 @@ testHaskellLogo = testCase "Haskell logo" test
                        in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
                 (angle, _gen') = randomR (0, 360) (mkStdGen seed)
             in moveRad (Angle angle) (Distance 10) v
-
-
-errFrame :: Double -> Render ()
-errFrame frameWidth = restoreStateAfter $ do
-    (w, h) <- withTargetSurface $ \surface ->
-                  (,) <$> imageSurfaceGetWidth surface
-                      <*> imageSurfaceGetHeight surface
-    liftIO (putStrLn ">>>>>>>>>>" >> print (w,h))
-    rectangle frameWidth frameWidth
-              (fromIntegral w - 2*frameWidth) (fromIntegral h - 2*frameWidth)
-    stroke
-    hsva 0 1 1 1
-    rectangle 0 0 (fromIntegral w) (fromIntegral h)
-    fill
-
 
 testSpiral :: TestTree
 testSpiral = localOption (mkTimeout (10^6)) $ testCase "Spiral" test
