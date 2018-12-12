@@ -6,10 +6,11 @@ module Main (main) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo
+import Graphics.Rendering.Cairo hiding (transform)
 
 import Draw
 import Geometry
+import Geometry.Shapes
 
 
 
@@ -39,7 +40,7 @@ runBillardSpec BillardSpec{..} =
 
 drawing :: Render ()
 drawing = do
-    let [left, lambda, upper, lower] = haskellLogo
+    let [left, lambda, upper, lower] = transform (scale' 340 340) haskellLogo
         billardLeft   = BillardSpec{ steps = 256, table = polygonEdges left,   startPos = Vec2 10  10,  startAngle = deg 40 }
         billardLambda = BillardSpec{ steps = 400, table = polygonEdges lambda, startPos = Vec2 230 175, startAngle = deg 40 }
         billardUpper  = BillardSpec{ steps = 120, table = polygonEdges upper,  startPos = Vec2 400 120, startAngle = deg 20 }
@@ -72,14 +73,6 @@ drawing = do
     hsva 304 0.45 0.56 1
     polygonSketch upper >> stroke
     polygonSketch lower >> stroke
-
-haskellLogo :: [Polygon]
-haskellLogo = [left, lambda, upper, lower]
-  where
-    left   = Polygon [Vec2 0 340.15625, Vec2 113.386719 170.078125, Vec2 0 0, Vec2 85.039062 0, Vec2 198.425781 170.078125, Vec2 85.039062 340.15625]
-    lambda = Polygon [Vec2 113.386719 340.15625, Vec2 226.773438 170.078125, Vec2 113.386719 0, Vec2 198.425781 0, Vec2 425.195312 340.15625, Vec2 340.15625 340.15625, Vec2 269.292969 233.859375, Vec2 198.425781 340.15625]
-    upper  = Polygon [Vec2 330.710938 155.90625, Vec2 292.914062 99.214844, Vec2 481.890625 99.210938, Vec2 481.890625 155.90625]
-    lower  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 481.890625 184.25, Vec2 481.890625 240.945312]
 
 mean :: [Double] -> Double
 mean xs = sumEntries / numEntries

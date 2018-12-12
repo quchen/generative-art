@@ -169,6 +169,11 @@ instance Transform Polygon where
 
 instance Transform Transformation where
     transform = transformationProduct
+    -- ^ Right argument will be applied first, so that
+    --
+    -- > rotate `transform` translate
+    --
+    -- will translate before rotating.
 
 instance Transform a => Transform [a] where
     transform t = map (transform t)

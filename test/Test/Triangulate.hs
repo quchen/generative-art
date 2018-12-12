@@ -4,7 +4,8 @@ module Test.Triangulate (tests) where
 
 import           Data.Foldable
 import qualified Data.Set                 as S
-import           Graphics.Rendering.Cairo hiding (x, y)
+import           Graphics.Rendering.Cairo hiding (transform, x, y)
+import           System.Random
 
 import Draw
 import Geometry
@@ -18,10 +19,12 @@ import Test.Tasty.HUnit
 
 tests :: TestTree
 tests = testGroup "Polygon triangulation"
-    [ testSquare
-    , testRegular9gon
-    , testHaskellLogo
-    , testSpiral
+    [ testGroup "Visual"
+        [ testSquare
+        , testRegular9gon
+        , testHaskellLogo
+        , testSpiral
+        ]
     ]
 
 testSquare :: TestTree
@@ -45,8 +48,37 @@ testHaskellLogo = testCase "Haskell logo" test
   where
     triangulation = map triangulate wonkyHaskellLogo
     test = renderAllFormats 510 360 "test/out/triangulation/3_haskell_logo" $ do
+        -- errFrame 10
         translate 10 10
         for_ triangulation (restoreStateAfter . paintTriangulation)
+
+    wonkyHaskellLogo :: [Polygon]
+    wonkyHaskellLogo = map wigglePoly (transform (scale' 340 340) haskellLogo)
+      where
+        wigglePoly :: Polygon -> Polygon
+        wigglePoly (Polygon corners) = Polygon (map wiggle corners)
+        wiggle :: Vec2 -> Vec2
+        wiggle v@(Vec2 x y)
+          = let seed = let (x1,x2) = decodeFloat x
+                           (y1,y2) = decodeFloat y
+                       in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
+                (angle, _gen') = randomR (0, 360) (mkStdGen seed)
+            in moveRad (Angle angle) (Distance 10) v
+
+
+errFrame :: Double -> Render ()
+errFrame frameWidth = restoreStateAfter $ do
+    (w, h) <- withTargetSurface $ \surface ->
+                  (,) <$> imageSurfaceGetWidth surface
+                      <*> imageSurfaceGetHeight surface
+    liftIO (putStrLn ">>>>>>>>>>" >> print (w,h))
+    rectangle frameWidth frameWidth
+              (fromIntegral w - 2*frameWidth) (fromIntegral h - 2*frameWidth)
+    stroke
+    hsva 0 1 1 1
+    rectangle 0 0 (fromIntegral w) (fromIntegral h)
+    fill
+
 
 testSpiral :: TestTree
 testSpiral = localOption (mkTimeout (10^6)) $ testCase "Spiral" test

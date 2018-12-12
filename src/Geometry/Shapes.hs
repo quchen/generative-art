@@ -28,18 +28,21 @@ import Geometry.Core
 haskellLogo :: [Polygon]
 haskellLogo = rescaleNormalizePolygons haskellLogoRaw
 
+-- | Rescale so that in drawing coordinates, the top/left is at the origin, and
+-- the height extents is 1.
 rescaleNormalizePolygons :: [Polygon] -> [Polygon]
 rescaleNormalizePolygons polygons
   = let (c:orners) = [ corner | Polygon corners <- polygons
                               , corner <- corners ]
-        (minX, maxX, minY, maxY)
-          = foldl' (\(!minX', !maxX', !minY', !maxY') (Vec2 x y)
-                        -> (min x minX', max x maxX', min y minY', max y maxY'))
-                   (let Vec2 x y = c in (x, x, y, y))
+        (minX, minY, maxY)
+          = foldl' (\(!minX', !minY', !maxY') (Vec2 x y)
+                        -> (min x minX', min y minY', max y maxY'))
+                   (let Vec2 x y = c in (x, y, y))
                    orners
-        transformation = translate' (- minX) (- minY)
+        scaleFactor = 1 / (maxY - minY)
+        transformation = scale' scaleFactor scaleFactor
                          `transform`
-                         scale' (maxX / minX) (maxY / minY)
+                         translate' (- minX) (- minY)
     in transform transformation polygons
 
 haskellLogoRaw :: [Polygon]
