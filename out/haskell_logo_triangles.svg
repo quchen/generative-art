@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500pt" height="360pt" viewBox="0 0 500 360" version="1.1">
-<g id="surface2">
+<g id="haskell_logo_triangles">
 <path style="fill-rule:nonzero;fill:rgb(22.348071%,67.687591%,97.00167%);fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(22.348071%,67.687591%,97.00167%);stroke-opacity:1;stroke-miterlimit:10;" d="M 0 340 L 49.597656 319.953125 L 48.203125 340 Z M 0 340 " transform="matrix(1,0,0,1,10,10)"/>
 <path style="fill-rule:nonzero;fill:rgb(20.620548%,58.088228%,84.310598%);fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(20.620548%,58.088228%,84.310598%);stroke-opacity:1;stroke-miterlimit:10;" d="M 48.203125 340 L 71.9375 318.332031 L 65.773438 340 Z M 48.203125 340 " transform="matrix(1,0,0,1,10,10)"/>
 <path style="fill-rule:nonzero;fill:rgb(12.438175%,54.260605%,88.247128%);fill-opacity:1;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(12.438175%,54.260605%,88.247128%);stroke-opacity:1;stroke-miterlimit:10;" d="M 86.507812 305.03125 L 85 340 L 65.773438 340 Z M 86.507812 305.03125 " transform="matrix(1,0,0,1,10,10)"/>

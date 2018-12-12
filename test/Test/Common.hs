@@ -7,11 +7,9 @@ module Test.Common
 
 
 import Graphics.Rendering.Cairo hiding (rotate, width, x, y)
-import System.Random
 
 import Draw
 import Geometry
-import Geometry.Shapes
 
 
 
