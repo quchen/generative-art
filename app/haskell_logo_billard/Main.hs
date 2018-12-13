@@ -50,8 +50,7 @@ drawing = do
             let points = runBillardSpec spec
                 billardLines = zipWith Line points (tail points)
             let lengths = [d | Distance d <- map lineLength billardLines]
-                meanLength = mean lengths
-                sigmaLength = standardDeviation lengths
+                (meanLength, sigmaLength) = meanStddev lengths
             for_ billardLines (\line ->
                 let alpha = case lineLength line of
                         Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
@@ -74,19 +73,14 @@ drawing = do
     polygonSketch upper >> stroke
     polygonSketch lower >> stroke
 
-mean :: [Double] -> Double
-mean xs = sumEntries / numEntries
+-- | Mean and standard deviation, calculated in a single pass. 😎
+meanStddev :: [Double] -> (Double, Double)
+meanStddev xs = (mu, sigma)
   where
-    (numEntries, sumEntries) = foldl'
-        (\(!count, !total) x -> (count+1, total+x))
-        (0, 0)
-        xs
-
-standardDeviation :: [Double] -> Double
-standardDeviation xs = sqrt (sumSquareDeltas / (numEntries-1))
-  where
-    m = mean xs
-    (numEntries, sumSquareDeltas) = foldl'
-        (\(!count, !squareDeltas) x -> (count+1, squareDeltas + (x - m)^(2::Int)))
-        (0, 0)
+    mu = total / count
+    sigma = sqrt ((totalSquares - total*mu) / (count - 1))
+    (count, total, totalSquares) = foldl'
+        (\(!countAcc, !totalAcc, !totalSquaresAcc) x
+            -> (countAcc+1, totalAcc+x, totalSquaresAcc + x*x))
+        (0, 0, 0)
         xs
