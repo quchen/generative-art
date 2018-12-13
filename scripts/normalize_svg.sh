@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Cairo has nondeterministic SVG output, because one of the generated IDs are
+# regenerated arbitrarily between runs. This shows up in Git as a change every
+# time the testsuite is run, so we use this script to normalize the generated
+# files.
+
 set -euo pipefail
 echo "Normalizing SVG so output is deterministic and doesn’t confuse Git"
 cd "$(git rev-parse --show-toplevel)"

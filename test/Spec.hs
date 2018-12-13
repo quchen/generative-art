@@ -3,7 +3,7 @@ module Main (main) where
 
 
 import Control.Exception
-import System.Exit
+import Data.Foldable
 import System.Process
 
 import qualified Test.Billard
@@ -22,11 +22,8 @@ import Test.Tasty
 
 
 main :: IO ()
-main = catch (defaultMain (defaultOptions tests))
-             (\e -> do normalizeSvg
-                       generateVisualTestReadmeMarkdown
-                       generateVisualTestReadmeHtml
-                       throwIO (e :: ExitCode))
+main = finally (defaultMain (defaultOptions tests))
+               runPostTestScripts
 
 defaultOptions :: TestTree -> TestTree
 defaultOptions = foldr (.) id
@@ -48,15 +45,11 @@ tests = testGroup "Test suite"
         ]
     ]
 
--- Cairo has nondeterministic SVG output, because one of the generated IDs are
--- regenerated arbitrarily between runs. This shows up in Git as a change every
--- time the testsuite is run, so we use this script to normalize the generated
--- files.
-normalizeSvg :: IO ()
-normalizeSvg = runCommand "./test/out/normalize_svg.sh" >> pure ()
-
-generateVisualTestReadmeMarkdown :: IO ()
-generateVisualTestReadmeMarkdown = runCommand "./test/out/generate_readme.sh" >> pure ()
-
-generateVisualTestReadmeHtml :: IO ()
-generateVisualTestReadmeHtml = runCommand "./test/out/generate_html.sh" >> pure ()
+runPostTestScripts :: IO ()
+runPostTestScripts = do
+    handles <- traverse runCommand
+        [ "./scripts/normalize_svg.sh"
+        , "./test/out/generate_readme.sh"
+        , "./test/out/generate_html.sh"
+        ]
+    traverse_ waitForProcess handles
