@@ -472,9 +472,15 @@ countEdgeTraversals
     -> Int    -- ^ Number of edges crossed
 countEdgeTraversals p edges = length intersections
   where
-    -- The test ray comes from outside the polygon from the left, and ends at
-    -- the point to be tested.
-    testRay = Line (Vec2 (leftmostPolyX - 1) pointY) p
+    -- The test ray comes from outside the polygon, and ends at the point to be
+    -- tested.
+    --
+    -- This ray is numerically sensitive, because exactly crossing a corner of
+    -- the polygon counts as two traversals (with each adjacent edge), when it
+    -- should only be one.  For this reason, we subtract 1 from the y coordinate
+    -- as well to get a bit of an odd angle, greatly reducing the chance of
+    -- exactly hitting a corner on the way.
+    testRay = Line (Vec2 (leftmostPolyX - 1) (pointY - 1)) p
       where
         leftmostPolyX = minimum (edges >>= \(Line (Vec2 x1 _) (Vec2 x2 _)) -> [x1,x2])
         Vec2 _ pointY = p

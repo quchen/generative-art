@@ -100,3 +100,13 @@ pointInPolygonTest = do
     setFontSize 12
     moveTo 60 20
     showText "Point in polygon?"
+
+-- This nasty point was inside the polygon, because the line leading towards it
+-- crossed the polygon in three places: once as a normal intersection, and twice
+-- as a single intersection with a corner. This led to the false claim that the
+-- point was inside the polygon.
+pointInPolygonRegression :: TestTree
+pointInPolygonRegression = testCase "Point in polygon regression" $ do
+    let polygon = Polygon [Vec2 (-80) (-80), Vec2 (-60) 80, Vec2 (-60) (-60)]
+        point = Vec2 40.0 (-60)
+    assertBool "Point should be outside of the polygon" (not (pointInPolygon point polygon))
