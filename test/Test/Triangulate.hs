@@ -2,14 +2,14 @@ module Test.Triangulate (tests) where
 
 
 
-import           Data.Foldable
-import qualified Data.Set                 as S
-import           Graphics.Rendering.Cairo hiding (transform, x, y)
-import           System.Random
+import Data.Foldable
+import Graphics.Rendering.Cairo hiding (transform, x, y)
+import System.Random
 
 import Draw
 import Geometry
 import Geometry.Shapes
+import Util
 
 import Test.Common
 import Test.Tasty
@@ -38,8 +38,8 @@ testSquare = testCase "Square" test
 testRegular9gon :: TestTree
 testRegular9gon = testCase "Regular 9-gon" test
   where
-    triangulation = triangulate (Polygon [ Geometry.transform (rotate' (deg (fromIntegral d))) (Vec2 0 50) | d <- [0::Int, 360 `div` 9 .. 360-1] ])
-    test = renderAllFormats 120 120 "test/out/triangulation/2_heptagon" $ do
+    triangulation = triangulate (transform (scale' 50 50) (regularPolygon 9))
+    test = renderAllFormats 120 120 "test/out/triangulation/2_regular_polygon" $ do
         translate 60 60
         paintTriangulation triangulation
 
@@ -65,15 +65,15 @@ testHaskellLogo = testCase "Haskell logo" test
             in moveRad (Angle angle) (Distance 10) v
 
 testSpiral :: TestTree
-testSpiral = localOption (mkTimeout (10^6)) $ testCase "Spiral" test
+testSpiral = testCase "Spiral" test
   where
-    triangulation = triangulate (spiralPolygon 8 20)
-    test = renderAllFormats 300 300 "test/out/triangulation/4_spiral" $ do
-        translate 110 110
+    triangulation = triangulate (spiralPolygon 13 20)
+    test = renderAllFormats 280 260 "test/out/triangulation/4_spiral" $ do
+        translate 130 130
         paintTriangulation triangulation
 
 nubLines :: [Line] -> [Line]
-nubLines = S.toList . S.fromList . map normalize
+nubLines = nub' . map normalize
   where
     normalize (Line v1 v2) = Line (min v1 v2) (max v1 v2)
 

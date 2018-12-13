@@ -58,7 +58,7 @@ over quickly.
 
 ![](./triangulation/1_square.svg)
 
-![](./triangulation/2_heptagon.svg)
+![](./triangulation/2_regular_polygon.svg)
 
 ![](./triangulation/3_haskell_logo.svg)
 

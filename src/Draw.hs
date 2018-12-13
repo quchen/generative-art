@@ -221,6 +221,10 @@ withOperator op render = do
 -- The state includes things like current color, line width, dashing, and
 -- transformation matrix.
 --
+-- This function is often used to introduce a kind of scope for Cairo drawing
+-- subsections, so the changes made there don’t leak into subseeuqnt parts of
+-- the drawing.
+--
 -- Handles the bookkeeping with 'save' and 'restore' internally.
 restoreStateAfter :: Render a -> Render a
 restoreStateAfter render = save *> render <* restore

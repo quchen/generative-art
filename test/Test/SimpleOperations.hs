@@ -15,10 +15,13 @@ import Test.Tasty.HUnit
 
 
 tests :: TestTree
-tests = testCase "Simple operations" testSimple
+tests = testGroup "Simple operations"
+    [ testVisual
+    , pointInPolygonRegression
+    ]
 
-testSimple :: IO ()
-testSimple = renderAllFormats 320 400 "test/out/simple_operations" (do
+testVisual :: TestTree
+testVisual = testCase "Visual" $ renderAllFormats 320 400 "test/out/simple_operations" (do
     translate 30 50 >> rotateLineTest
     translate  0 80 >> perpendicularBisectorTest
     translate  0 80 >> perpendicularLineThroughTest
