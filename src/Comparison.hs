@@ -36,8 +36,3 @@ minMaxAreaRatio cutResult
         Area minA = minimum cutResultAreas
         Area maxA = maximum cutResultAreas
     in minA / maxA
-
--- | Measure of how big the height of the minimal bounding box of a polygon is
--- compared to its width.
-excentricity :: Polygon -> Double
-excentricity = undefined
