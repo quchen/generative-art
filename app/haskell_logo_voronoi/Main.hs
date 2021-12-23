@@ -40,12 +40,11 @@ mainHaskellLogo = do
         haskellLogoCentered = fmap (fmap (transform (translate' (w/2 + 30) (h/2)) . transform (scale' 2 2))) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) count))
     points <- gaussianDistributedPoints gen (w, 380) (h, 380) (read count)
-    let allFaces = faces (voronoi points w h)
-        backgroundFaces = filter (\face -> not $ any (pointInPolygon (center face) . snd) haskellLogoCentered) allFaces
-        pictureFaces = mapMaybe (\face -> fmap (\(color, _) -> (color, face)) $ find (pointInPolygon (center face) . snd) haskellLogoCentered) allFaces
-    withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ do
-        for_ backgroundFaces $ \face       -> drawFace face darkGrey (lighten 0.2 darkGrey)
-        for_ pictureFaces $ \(color, face) -> drawFace face color (lighten 0.2 color)
+    let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) haskellLogoCentered) points
+        backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point . snd) haskellLogoCentered) points
+        allPoints = picturePoints ++ backgroundPoints
+        allFaces = faces (voronoi allPoints w h)
+    withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
 
 withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
 withSurface PNG = withPNGSurface
@@ -59,12 +58,14 @@ withPNGSurface file w h action = do
     surfaceWriteToPNG surface file
     pure result
 
-drawFace :: VoronoiFace -> RGB -> RGB -> Render ()
-drawFace VF{..} = drawPoly face
+drawFace :: VoronoiFace RGB -> Render ()
+drawFace VF{..} = drawPoly face props
 
-drawPoly :: Polygon -> RGB -> RGB -> Render ()
-drawPoly (Polygon []) _ _ = pure ()
-drawPoly poly fillColor lineColor = do
+drawPoly :: Polygon -> RGB -> Render ()
+drawPoly (Polygon []) _ = pure ()
+drawPoly poly color = do
+    let fillColor = color
+        lineColor = lighten 0.2 color
     polygonSketch poly
     setColor fillColor
     fillPreserve
