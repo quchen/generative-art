@@ -16,6 +16,7 @@ import           System.Random.MWC.Distributions (normal)
 import           Geometry
 import           Graphics.Rendering.Cairo        hiding (transform)
 import           Voronoi
+import           Draw
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
@@ -45,15 +46,6 @@ mainHaskellLogo = do
     withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ do
         for_ backgroundFaces $ \face       -> drawFace face darkGrey (lighten 0.2 darkGrey)
         for_ pictureFaces $ \(color, face) -> drawFace face color (lighten 0.2 color)
-  where
-    sample :: Int -> [a] -> [a]
-    sample n xs = case drop (n-1) xs of
-        [] -> []
-        y:ys -> y : sample n ys
-    sampleQuadratic :: Int -> [a] -> [a]
-    sampleQuadratic n xs = case drop (n-1) xs of
-        [] -> []
-        y:ys -> y : sampleQuadratic (n+1) ys
 
 withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
 withSurface PNG = withPNGSurface
@@ -72,11 +64,8 @@ drawFace VF{..} = drawPoly face
 
 drawPoly :: Polygon -> RGB -> RGB -> Render ()
 drawPoly (Polygon []) _ _ = pure ()
-drawPoly (Polygon (p:ps)) fillColor lineColor = do
-    newPath
-    let Vec2 x y = p in moveTo x y
-    for_ ps $ \p -> let Vec2 x y = p in lineTo x y
-    closePath
+drawPoly poly fillColor lineColor = do
+    polygonSketch poly
     setColor fillColor
     fillPreserve
     setColor lineColor
