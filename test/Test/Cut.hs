@@ -41,7 +41,7 @@ tests = testGroup "Cutting things"
     ]
 
 simpleCutEdgeGraph :: CutEdgeGraph
-simpleCutEdgeGraph = foldl' (\db f -> f db) mempty
+simpleCutEdgeGraph = foldl' (\db f -> f db) (CutEdgeGraph mempty)
     [ Vec2 0   0  --> Vec2 1   0  -- +---------+
     , Vec2 1   0  --> Vec2 1   1  -- |         |
     , Vec2 1   1  --> Vec2 0   1  -- |         |
