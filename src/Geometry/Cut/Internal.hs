@@ -41,6 +41,14 @@ data OneOrTwo a = One a | Two a a
 -- arbitrarily many pieces.
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon scissors polygon =
+    -- The idea here is as follows:
+    --
+    -- A polygon can be seen as a cyclic graph where each corner points to the
+    --next. We can reconstruct the polygon by looking for a cycle.
+    --
+    -- We can use this idea to cut the polygon: a cut introduces new edges into
+    -- our corner graph, going from the start of the cut to the end. We can then
+    -- get all the pieces of the cut by looking for all the cycles in that graph.
     reconstructPolygons
         (createEdgeGraph scissors (polygonOrientation polygon)
             (cutAll scissors
@@ -70,8 +78,8 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
             qIsTarget = isTargetType orientation qTy
         in if
             -- Connect to source+target vertex: continue from that vertex
-            | pIsSource && qIsTarget && qIsSource -> (p --> q) : (q --> p) : go ((q, qTy) : rest)
-            -- Connect to target-only vertex: consume both vertices, continue after them
+            | pIsSource && qIsTarget && qIsSource -> (p --> q) . (q --> p) : go ((q, qTy) : rest)
+            -- Happy path: connect to target-only vertex: consume both vertices, continue after them
             | pIsSource && qIsTarget && not qIsSource -> (p --> q) : (q --> p) : go rest
             -- Skip non-target vertices
             | pIsSource && not qIsTarget -> go ((p, pTy) : rest)
