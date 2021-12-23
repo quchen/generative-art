@@ -29,7 +29,7 @@ addPoint Voronoi{..} p = Voronoi bounds (newFace : faces')
     faces' = fmap (\f -> updateFace f (center newFace)) faces
 
 updateFace :: VoronoiFace -> Vec2 -> VoronoiFace
-updateFace f p = VF (center f) (clipFace (face f) (Line q d))
+updateFace f p = clipFace f (Line q d)
   where
     q = let Vec2 px py = p
             Vec2 fx fy = center f
@@ -39,5 +39,8 @@ updateFace f p = VF (center f) (clipFace (face f) (Line q d))
         in  Vec2 (qx - dy) (qy + dx)
 
 -- | Keep everything that's *left* of the line
-clipFace :: Polygon -> Line -> Polygon
-clipFace polygon line = let p:_ = cutPolygon line polygon in p --TODO
+clipFace :: VoronoiFace -> Line -> VoronoiFace
+clipFace f line =
+    -- There is exactly one polygon containing the original center
+    let [p] = filter (pointInPolygon (center f)) (cutPolygon line (face f))
+    in  f { face = p }
