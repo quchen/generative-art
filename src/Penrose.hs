@@ -141,9 +141,9 @@ thinFaceBase = [baseFace, mirror baseFace]
     baseFace = Face
         { faceType = Thin
         , faceOrientation = Positive
-        , faceP0 = rotate (rad (pi/10)) $ Vec2 1 0
+        , faceP0 = rotate (rad (-pi/10)) $ Vec2 1 0
         , faceP1 = Vec2 0 0
-        , faceP2 = rotate (rad (-pi/10)) $ Vec2 1 0
+        , faceP2 = rotate (rad (pi/10)) $ Vec2 1 0
         }
 
 thickFaceBase :: [Face]
@@ -152,9 +152,9 @@ thickFaceBase = [baseFace, mirror baseFace]
     baseFace = Face
         { faceType = Thick
         , faceOrientation = Positive
-        , faceP0 = Vec2 0 0
-        , faceP1 = rotate (rad (pi/5)) $ Vec2 1 0
-        , faceP2 = Vec2 phi 0
+        , faceP0 = Vec2 phi 0
+        , faceP1 = rotate (rad (-pi/5)) $ Vec2 1 0
+        , faceP2 = Vec2 0 0
         }
 
 decagonRose :: Vec2 -> Double -> [Face]
