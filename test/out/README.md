@@ -36,7 +36,7 @@ over quickly.
 
 ![](./mirror.svg)
 
-![](./penrose/1_decagon_rose.svg)
+![](./penrose/1_base_configurations.svg)
 
 ![](./penrose/2_subdivision.svg)
 
