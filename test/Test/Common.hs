@@ -26,8 +26,7 @@ angleSketch point angle1 angle2@(Angle rawAngle2) = do
         , arrowDrawBody = False }
 
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
-renderPng picWidth picHeight filename drawing = do
-    surface <- createImageSurface FormatARGB32 picWidth picHeight
+renderPng picWidth picHeight filename drawing = withPNGSurface filename picWidth picHeight $ \surface ->
     renderWith surface $ do
         restoreStateAfter $ do
             rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
@@ -35,7 +34,6 @@ renderPng picWidth picHeight filename drawing = do
             setLineWidth 0
             fill
         drawing
-    surfaceWriteToPNG surface filename
 
 renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
 renderSvg picWidth picHeight filename drawing

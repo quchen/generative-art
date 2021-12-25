@@ -9,7 +9,6 @@ import           Data.Maybe                      (mapMaybe)
 import           Data.Vector                     (fromList)
 import           Prelude                         hiding ((**))
 import           System.Environment              (getArgs)
-import           System.FilePath                 (splitExtension)
 import           System.Random.MWC               (GenIO, initialize, uniformR)
 import           System.Random.MWC.Distributions (normal)
 
@@ -22,13 +21,6 @@ import           Voronoi
 import           Draw
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
-
-data OutputFormat = PNG | SVG
-
-fromExtension :: String -> OutputFormat
-fromExtension ".png" = PNG
-fromExtension ".svg" = SVG
-fromExtension other  = error ("Unknown file format: " <> other)
 
 main :: IO ()
 main = UI.startGUI UI.defaultConfig setup
@@ -49,18 +41,6 @@ setup window = do
     onChanges bVoronoi $ \voronoi -> for_ (faces voronoi) $ \face -> drawFaceCanvas elemCanvas face
 
     pure ()
-
-withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Cairo.Surface -> IO a) -> IO a
-withSurface PNG = withPNGSurface
-withSurface SVG = \f w h -> Cairo.withSVGSurface f (fromIntegral w) (fromIntegral h)
-
-
-withPNGSurface :: FilePath -> Int -> Int -> (Cairo.Surface -> IO a) -> IO a
-withPNGSurface file w h action = do
-    surface <- Cairo.createImageSurface Cairo.FormatARGB32 w h
-    result <- action surface
-    Cairo.surfaceWriteToPNG surface file
-    pure result
 
 drawFaceCanvas :: UI.Element -> VoronoiFace a -> UI ()
 drawFaceCanvas elemCanvas (VF{..}) = case face of

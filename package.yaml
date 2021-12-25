@@ -72,7 +72,6 @@ executables:
         dependencies:
             - generative-art
             - cairo
-            - filepath
             - mwc-random
     voronoi-interactive:
         main: Main.hs
@@ -87,7 +86,6 @@ executables:
             - generative-art
             - cairo
             - threepenny-gui
-            - filepath
             - mwc-random
 
 

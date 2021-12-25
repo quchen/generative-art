@@ -21,11 +21,9 @@ picHeight = 360
 main :: IO ()
 main = png >> svg
   where
-    png = do
-        surface <- createImageSurface FormatARGB32 picWidth picHeight
-        renderWith surface drawing
-        surfaceWriteToPNG surface "out/haskell_logo_billard.png"
-    svg = withSVGSurface "out/haskell_logo_billard.svg" picWidth picHeight (\surface -> renderWith surface drawing)
+    png = withPNGSurface "out/haskell_logo_billard.png" picWidth picHeight renderDrawing
+    svg = withSVGSurface "out/haskell_logo_billard.svg" picWidth picHeight renderDrawing
+    renderDrawing surface = renderWith surface drawing
 
 data BillardSpec = BillardSpec
     { steps :: Int

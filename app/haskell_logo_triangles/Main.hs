@@ -26,11 +26,9 @@ haskellLogo' = transform (scale' 340 340) haskellLogo
 main :: IO ()
 main = png >> svg
   where
-    png = do
-        surface <- createImageSurface FormatARGB32 picWidth picHeight
-        renderWith surface drawing
-        surfaceWriteToPNG surface "out/haskell_logo_triangles.png"
-    svg = withSVGSurface "out/haskell_logo_triangles.svg" picWidth picHeight (\surface -> renderWith surface drawing)
+    png = withPNGSurface "out/haskell_logo_triangles.png" picWidth picHeight renderDrawing
+    svg = withSVGSurface "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
+    renderDrawing surface = renderWith surface drawing
 
 shatterProcessS
     :: (Polygon -> Bool)   -- ^ Recursively subdivide the current polygon?

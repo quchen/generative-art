@@ -1,8 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Draw (
+    -- * SVG and PNG file handling
+      withSurfaceAuto
+    , withSurface
+    , withPNGSurface
+    , OutputFormat(..)
+    , fromExtension
+
     -- * Colors
-      hsva
+    , hsva
     , mmaColor
 
     -- * Drawing presets
@@ -41,11 +48,36 @@ import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
 import Data.Default.Class
 import Data.Foldable
+import Data.List (isSuffixOf)
 import Graphics.Rendering.Cairo hiding (x, y)
 
 import Geometry
 
+-- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.
+withSurfaceAuto :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
+withSurfaceAuto filePath = withSurface (fromExtension filePath) filePath
 
+-- | Renders the drawng as PNG or SVG
+withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
+withSurface PNG = withPNGSurface
+withSurface SVG = \f w h -> withSVGSurface f (fromIntegral w) (fromIntegral h)
+
+data OutputFormat = PNG | SVG
+
+-- | Auto-detects the 'OutputFormat' based on the file extension.
+fromExtension :: String -> OutputFormat
+fromExtension filePath
+    | ".png" `isSuffixOf` filePath = PNG
+    | ".svg" `isSuffixOf` filePath = SVG
+    | otherwise = error ("Unknown file extension: " <> filePath <> ", expecting .png or .svg")
+
+-- | The equivalent to 'withSVGSurface' that is somehow missing from Cairo.
+withPNGSurface :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
+withPNGSurface file w h action = do
+    surface <- createImageSurface FormatARGB32 w h
+    result <- action surface
+    surfaceWriteToPNG surface file
+    pure result
 
 hsva :: Double -> Double -> Double -> Double -> Render ()
 hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a

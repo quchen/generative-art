@@ -9,7 +9,6 @@ import           Data.Maybe                      (mapMaybe)
 import           Data.Vector                     (fromList)
 import           Prelude                         hiding ((**))
 import           System.Environment              (getArgs)
-import           System.FilePath                 (splitExtension)
 import           System.Random.MWC               (GenIO, initialize, uniformR)
 import           System.Random.MWC.Distributions (normal)
 
@@ -21,20 +20,12 @@ import           Voronoi
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
-data OutputFormat = PNG | SVG
-
-fromExtension :: String -> OutputFormat
-fromExtension ".png" = PNG
-fromExtension ".svg" = SVG
-fromExtension other  = error ("Unknown file format: " <> other)
-
 main :: IO ()
 main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
     [count, file] <- getArgs
-    let (_, extension) = splitExtension file
     let w, h :: Num a => a
         w = 1200
         h = 1200
@@ -45,19 +36,7 @@ mainHaskellLogo = do
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
         allFaces = faces (mkVoronoi w h allPoints)
-    withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
-
-withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
-withSurface PNG = withPNGSurface
-withSurface SVG = \f w h -> withSVGSurface f (fromIntegral w) (fromIntegral h)
-
-
-withPNGSurface :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
-withPNGSurface file w h action = do
-    surface <- createImageSurface FormatARGB32 w h
-    result <- action surface
-    surfaceWriteToPNG surface file
-    pure result
+    withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
 
 drawFace :: VoronoiFace RGB -> Render ()
 drawFace VF{..} = drawPoly face props

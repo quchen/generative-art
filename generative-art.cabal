@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 946ee6bc36f9e9e440ea571cf3036c5fd45346d4b091c048ab3a967a2691143c
+-- hash: 6a168229121de1a1696e3670a4f87f535cd2fa2c59ec4587c2447a275f49463f
 
 name:           generative-art
 version:        0.1.0.0
@@ -106,7 +106,6 @@ executable haskell-logo-voronoi
     , colour
     , containers
     , data-default-class
-    , filepath
     , generative-art
     , mwc-random
     , random
@@ -127,7 +126,6 @@ executable voronoi-interactive
     , colour
     , containers
     , data-default-class
-    , filepath
     , generative-art
     , mwc-random
     , random
