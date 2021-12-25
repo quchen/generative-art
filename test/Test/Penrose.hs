@@ -17,6 +17,7 @@ tests :: TestTree
 tests = testGroup "Penrose tiling"
     [ testDecagonRose
     , testSubdivision
+    , testInscribedPentagons
     ]
 
 testDecagonRose :: TestTree
@@ -42,7 +43,14 @@ testSubdivision = testCase "Subdividing base rhombs" test
         translate 0 140
         for_ gen2 drawFace
 
-
+testInscribedPentagons :: TestTree
+testInscribedPentagons = testCase "Switch to pentagons & stars" test
+  where
+    test = renderAllFormats 200 200 "test/out/penrose/3_inscribed_pentagons" $
+        for_ (inscribedPentagons =<< decagonRose (Vec2 100 100) 100) $ \polygon ->
+            restoreStateAfter $ do
+                polygonSketchOpen polygon
+                stroke
 
 drawFace :: Face -> Render ()
 drawFace Face{..} = restoreStateAfter $ do
@@ -58,3 +66,9 @@ drawFace Face{..} = restoreStateAfter $ do
     strokePreserve
     mmaColor color 0.5
     fill
+
+polygonSketchOpen :: Polygon -> Render ()
+polygonSketchOpen (Polygon []) = pure ()
+polygonSketchOpen (Polygon (Vec2 x y : vecs)) = do
+    moveTo x y
+    for_ vecs (\(Vec2 x' y') -> lineTo x' y')
