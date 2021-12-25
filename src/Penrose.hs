@@ -2,10 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 module Penrose where
 
-import Data.Foldable (find, for_, traverse_)
 import Prelude hiding (length, flip)
-import qualified Prelude (flip)
-import Data.List (partition)
 import Geometry
 
 data Face = Face
@@ -22,17 +19,17 @@ instance Transform Face where
         , faceP1 = transform t faceP1
         , faceP2 = transform t faceP2 }
 
+instance Rotate Face where
+    rotateAround pivot theta = move pivot . transform (rotate' theta) . move (negateVec2 pivot)
+
+instance Move Face where
+    move (Vec2 x y) = transform (translate' x y)
+
 data FaceType = Thin | Thick
     deriving (Eq, Show)
 
 data FaceOrientation = Positive | Negative
     deriving (Eq, Show)
-
-rotateFace :: Vec2 -> Angle -> Face -> Face
-rotateFace pivot theta = translateFace pivot . transform (rotate' theta) . translateFace (negateVec2 pivot)
-
-translateFace :: Vec2 -> Face -> Face
-translateFace (Vec2 x y) = transform (translate' x y)
 
 subdivide :: Face -> [Face]
 subdivide Face{..} = case faceType of
@@ -90,9 +87,9 @@ p `inside` Face{..} = s1 == s2 && s1 == s3
     s2 = sign p faceP1 faceP2
     s3 = sign p faceP2 faceP0
 
-inscribedPentagons :: Face -> [[Vec2]]
+inscribedPentagons :: Face -> [Polygon]
 inscribedPentagons Face{..} = case faceType of
-    Thin -> [[p0, p1, p2, p3]]
+    Thin -> [Polygon [p0, p1, p2, p3]]
       where
         center = faceP2 +. a *. (faceP1 -. faceP2)
         v0 = p0 -. center
@@ -103,7 +100,7 @@ inscribedPentagons Face{..} = case faceType of
 
     Thick -> [pentagon1, pentagon2]
       where
-        pentagon1 = [p0, p1, p2, p3]
+        pentagon1 = Polygon [p0, p1, p2, p3]
           where
             center = faceP2 +. a *. (faceP0 -. faceP2)
             v1 = p1 -. center
@@ -111,7 +108,7 @@ inscribedPentagons Face{..} = case faceType of
             p1 = faceP2 +. a *. (faceP1 -. faceP2)
             p2 = center +. rotate theta v1
             p3 = center +. rotate (2*theta) v1
-        pentagon2 = [p0, p1, p2, p3]
+        pentagon2 = Polygon [p0, p1, p2, p3]
           where
             center = faceP1 +. a *. (faceP0 -. faceP1)
             v0 = p0 -. center
@@ -156,4 +153,4 @@ decagonRose center@(Vec2 x y) r =
                 , faceP2 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
                 , faceP1 = Vec2 (x + r) y
                 , faceP0 = Vec2 (x + r * cos (pi/5)) (y - r * sin (pi/5)) } ]
-    in (rotateFace center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces
+    in (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces
