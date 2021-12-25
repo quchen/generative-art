@@ -60,6 +60,36 @@ executables:
             - random
             - transformers
             - containers
+    haskell-logo-voronoi:
+        main: Main.hs
+        source-dirs: app/haskell_logo_voronoi
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+        dependencies:
+            - generative-art
+            - cairo
+            - filepath
+            - mwc-random
+    voronoi-interactive:
+        main: Main.hs
+        source-dirs: app/voronoi_interactive
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+        dependencies:
+            - generative-art
+            - cairo
+            - threepenny-gui
+            - filepath
+            - mwc-random
+
 
 tests:
     generative-art-test:

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.0.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f403839d9f158514fc0a457d45fa89d05c582282693b8c5acde111bef6e3381e
+-- hash: a8e6931f6cd0a632770bb0ebd1d6c3006f1b864e96ab70c89f8671447bed79e1
 
 name:           generative-art
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       Geometry.Shapes
       Geometry.Triangulate
       Util
+      Voronoi
       Why
   other-modules:
       Paths_generative_art
@@ -91,6 +92,49 @@ executable haskell-logo-triangles
     , vector
   default-language: Haskell2010
 
+executable haskell-logo-voronoi
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      app/haskell_logo_voronoi
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base >=4.7 && <5
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , filepath
+    , generative-art
+    , mwc-random
+    , random
+    , transformers
+    , vector
+  default-language: Haskell2010
+
+executable voronoi-interactive
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      app/voronoi_interactive
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base >=4.7 && <5
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , filepath
+    , generative-art
+    , mwc-random
+    , random
+    , threepenny-gui
+    , transformers
+    , vector
+  default-language: Haskell2010
+
 test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
@@ -107,6 +151,7 @@ test-suite generative-art-test
       Test.Reflection
       Test.SimpleOperations
       Test.Triangulate
+      Test.Voronoi
       Paths_generative_art
   hs-source-dirs:
       test
