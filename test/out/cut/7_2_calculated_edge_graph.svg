@@ -37,7 +37,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-dasharray:2,2;stroke-miterlimit:10;" d="M -50 -50 L -50 -18.199219 L 50 18.199219 L 50 -50 Z M -50 -50 " transform="matrix(1,0,0,1,60,60)"/>
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.1;" d="M 10 10 L 10 41.800781 L 110 78.199219 L 110 10 Z M 10 10 "/>
 <g style="fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:1;">
-  <use xlink:href="#glyph0-1" x="57.828125" y="38.648438"/>
+  <use xlink:href="#glyph0-1" x="57.828125" y="38.644531"/>
 </g>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(56.0181%,69.1569%,19.4885%);stroke-opacity:1;stroke-dasharray:2,2;stroke-miterlimit:10;" d="M -50 50 L 50 50 L 50 18.199219 L -50 -18.199219 Z M -50 50 " transform="matrix(1,0,0,1,60,60)"/>
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(56.0181%,69.1569%,19.4885%);fill-opacity:0.1;" d="M 10 110 L 110 110 L 110 78.199219 L 10 41.800781 Z M 10 110 "/>

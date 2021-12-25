@@ -34,7 +34,7 @@
 </symbol>
 </g>
 <clipPath id="clip1">
-  <rect width="170" height="90"/>
+  <rect x="0" y="0" width="170" height="90"/>
 </clipPath>
 <g id="surface_0" clip-path="url(#clip1)">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 60 10 M 27.234375 12.875 L 32.5 10 "/>
@@ -45,7 +45,7 @@
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 10 10 L 60 10 L 60 60 L 10 60 Z M 10 10 "/>
 </g>
 <clipPath id="clip2">
-  <rect width="170" height="90"/>
+  <rect x="0" y="0" width="170" height="90"/>
 </clipPath>
 <g id="surface_1" clip-path="url(#clip2)">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 10 L 140 10 M 107.234375 12.875 L 112.5 10 "/>
@@ -56,7 +56,7 @@
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 90 10 L 140 10 L 140 44.097656 L 90 25.902344 Z M 90 10 "/>
 </g>
 <clipPath id="clip3">
-  <rect width="170" height="90"/>
+  <rect x="0" y="0" width="170" height="90"/>
 </clipPath>
 <g id="surface_2" clip-path="url(#clip3)">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 25.902344 L 140 44.097656 M 106.566406 34.992188 L 112.5 34.089844 "/>
