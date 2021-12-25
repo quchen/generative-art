@@ -13,11 +13,11 @@ data Voronoi a = Voronoi { bounds :: Polygon, faces :: [VoronoiFace a] }
 
 type Voronoi' = Voronoi ()
 
-voronoi :: [(Vec2, a)] -> Double -> Double -> Voronoi a
-voronoi taggedPoints w h = foldl' addPoint (emptyVoronoi w h) taggedPoints
+mkVoronoi :: [(Vec2, a)] -> Double -> Double -> Voronoi a
+mkVoronoi taggedPoints w h = foldl' addPoint (emptyVoronoi w h) taggedPoints
 
-voronoi' :: [Vec2] -> Double -> Double -> Voronoi'
-voronoi' points w h = foldl' addPoint' (emptyVoronoi w h) points
+mkVoronoi' :: [Vec2] -> Double -> Double -> Voronoi'
+mkVoronoi' points w h = foldl' addPoint' (emptyVoronoi w h) points
 
 emptyVoronoi :: Double -> Double -> Voronoi a
 emptyVoronoi w h = Voronoi initialPolygon []
@@ -27,18 +27,18 @@ emptyVoronoi w h = Voronoi initialPolygon []
 addPoint :: Voronoi a -> (Vec2, a) -> Voronoi a
 addPoint Voronoi{..} (p, a) = Voronoi bounds (newFace : faces')
   where
-    newFace = foldl' (\nf f -> updateFace nf (center f)) (VF p bounds a) faces
-    faces' = fmap (\f -> updateFace f (center newFace)) faces
+    newFace = foldl' (\nf f -> updateFace (center f) nf) (VF p bounds a) faces
+    faces' = fmap (updateFace (center newFace)) faces
 
 addPoint' :: Voronoi' -> Vec2 -> Voronoi'
 addPoint' voronoi point = addPoint voronoi (point, ())
 
-updateFace :: VoronoiFace a -> Vec2 -> VoronoiFace a
-updateFace f p = clipFace f (perpendicularBisector (Line (center f) p))
+updateFace :: Vec2 -> VoronoiFace a -> VoronoiFace a
+updateFace p f = clipFace (perpendicularBisector (Line (center f) p)) f
 
 -- | Keep everything that's *left* of the line
-clipFace :: VoronoiFace a -> Line -> VoronoiFace a
-clipFace f line =
+clipFace :: Line -> VoronoiFace a -> VoronoiFace a
+clipFace line f =
     -- There is exactly one polygon containing the original center
     let [p] = filter (pointInPolygon (center f)) (cutPolygon line (face f))
     in  f { face = p }

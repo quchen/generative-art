@@ -43,7 +43,7 @@ mainHaskellLogo = do
     let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) haskellLogoCentered) points
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point . snd) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
-        allFaces = faces (voronoi allPoints w h)
+        allFaces = faces (mkVoronoi allPoints w h)
     withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
 
 withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
