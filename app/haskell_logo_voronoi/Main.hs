@@ -13,10 +13,11 @@ import           System.FilePath                 (splitExtension)
 import           System.Random.MWC               (GenIO, initialize, uniformR)
 import           System.Random.MWC.Distributions (normal)
 
+import           Draw
 import           Geometry
+import           Geometry.Shapes                 (haskellLogo)
 import           Graphics.Rendering.Cairo        hiding (transform)
 import           Voronoi
-import           Draw
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
@@ -37,11 +38,11 @@ mainHaskellLogo = do
     let w, h :: Num a => a
         w = 1200
         h = 1200
-        haskellLogoCentered = fmap (fmap (transform (translate' (w/2 + 30) (h/2)) . transform (scale' 2 2))) haskellLogo
+        haskellLogoCentered = transform (translate' (w/2 - 480) (h/2 - 340)) $ transform (scale' 680 680) $ haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) count))
     points <- gaussianDistributedPoints gen (w, 380) (h, 380) (read count)
-    let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) haskellLogoCentered) points
-        backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point . snd) haskellLogoCentered) points
+    let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
+        backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
         allFaces = faces (mkVoronoi w h allPoints)
     withSurface (fromExtension extension) file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
@@ -92,16 +93,9 @@ gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicate
             then randomCoordinate mx sigma
             else pure coord
 
--- 480 x 340, centered around (0, 0)
-haskellLogo :: [(RGB, Polygon)]
-haskellLogo = zip colors $ fmap (transform (translate' (-240) (-170))) [left, lambda, upper, lower]
-  where
-    left   = Polygon [Vec2 0 340.15625, Vec2 113.386719 170.078125, Vec2 0 0, Vec2 85.039062 0, Vec2 198.425781 170.078125, Vec2 85.039062 340.15625, Vec2 0 340.15625]
-    lambda = Polygon [Vec2 113.386719 340.15625, Vec2 226.773438 170.078125, Vec2 113.386719 0, Vec2 198.425781 0, Vec2 425.195312 340.15625, Vec2 340.15625 340.15625, Vec2 269.292969 233.859375, Vec2 198.425781 340.15625, Vec2 113.386719 340.15625]
-    upper  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 481.890625 184.25, Vec2 481.890625 240.945312, Vec2 387.402344 240.945312]
-    lower = Polygon [Vec2 330.710938 155.90625, Vec2 292.914062 99.214844, Vec2 481.890625 99.210938, Vec2 481.890625 155.90625, Vec2 330.710938 155.90625]
 
-    colors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
+haskellLogoColors :: [RGB]
+haskellLogoColors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
 
 parseHex :: String -> RGB
 parseHex [r1, r2, g1, g2, b1, b2] = RGB
