@@ -1,7 +1,5 @@
 module Test.Voronoi (tests) where
 
-
-
 import Data.Foldable
 import Graphics.Rendering.Cairo hiding (transform, x, y)
 
