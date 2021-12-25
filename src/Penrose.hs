@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 module Penrose where
 
-import Prelude hiding (length)
+import Prelude hiding (length, flip)
 import Geometry
 
 data Face = Face
@@ -25,6 +25,13 @@ instance Rotate Face where
 
 instance Move Face where
     move (Vec2 x y) = transform (translate' x y)
+
+instance Mirror Face where
+    mirrorAlong line face@Face{..} = face
+        { faceP0 = mirrorAlong line faceP0
+        , faceP1 = mirrorAlong line faceP1
+        , faceP2 = mirrorAlong line faceP2
+        }
 
 data FaceType = Thin | Thick
     deriving (Eq, Show)
@@ -67,8 +74,12 @@ subdivide Face{..} = case faceType of
         newPoint2 = faceP2 +. (1/phi-1) *. v2
         v2 = faceP2 -. faceP0
 
-mirror :: Face -> Face
-mirror f@Face{..} = f { faceP1 = mirrorAlong (Line faceP0 faceP2) faceP1 }
+twin :: Face -> Face
+twin f@Face{..} = f { faceP1 = mirrorAlong (Line faceP0 faceP2) faceP1 }
+
+-- | Keeps the same shape, but reverses the orientation.
+flip :: [Face] -> [Face]
+flip = fmap $ \f@Face{..} -> f { faceP0 = faceP2, faceP2 = faceP0 }
 
 inside :: Vec2 -> Face -> Bool
 p `inside` Face{..} = s1 == s2 && s1 == s3
@@ -118,7 +129,7 @@ phi :: Double
 phi = (1+sqrt 5)/2
 
 thinFaceBase :: [Face]
-thinFaceBase = [baseFace, mirror baseFace]
+thinFaceBase = [baseFace, twin baseFace]
   where
     baseFace = Face
         { faceType = Thin
@@ -128,7 +139,7 @@ thinFaceBase = [baseFace, mirror baseFace]
         }
 
 thickFaceBase :: [Face]
-thickFaceBase = [baseFace, mirror baseFace]
+thickFaceBase = [baseFace, twin baseFace]
   where
     baseFace = Face
         { faceType = Thick
@@ -139,11 +150,32 @@ thickFaceBase = [baseFace, mirror baseFace]
 
 decagonRose :: Vec2 -> Double -> [Face]
 decagonRose center r =
-    let inner = thickFaceBase
-        outer = fmap (move (Vec2 phi 0) . rotate (rad (7*pi/10))) thinFaceBase
-    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> (move center . transform (scale' (r/phi) (r/phi)) <$> (inner ++ outer))
+    let outer = move (Vec2 phi 0) . rotate (rad (7*pi/10)) $ thinFaceBase
+    in  star2 center r ++ ((rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r outer)
 
-star :: Vec2 -> Double -> [Face]
-star center r =
-    let inner = move (Vec2 (-phi) 0) thickFaceBase
-    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> (move center . transform (scale' (r/phi) (r/phi)) <$> inner)
+star1 :: Vec2 -> Double -> [Face]
+star1 center r =
+    let inner = flip thickFaceBase
+    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r inner
+
+star2 :: Vec2 -> Double -> [Face]
+star2 center r = scaleTo center r ((rotate . rad . (2*pi/5 *) <$> [0..4]) <*> thickFaceBase)
+
+asymmetricDecagon :: Vec2 -> Double -> [Face]
+asymmetricDecagon center r = scaleTo center r $ concat
+    [ offAxisFaces, mirrorY offAxisFaces, onAxisFaces ]
+  where
+    origin = Vec2 (-phi) 0
+    edge = Vec2 1 0
+    f1 = move origin $ rotate (rad (pi/5)) $ flip thickFaceBase
+    f2 = move (origin +. edge) $ rotate (rad (3*pi/10)) $ flip thinFaceBase
+    f3 = mirrorAlong (angledLine origin (rad (pi/5)) (Distance 1)) f2
+    f4 = move (origin +. edge) $ flip thickFaceBase
+    f5 = move edge $ rotate (rad (3*pi/5)) thickFaceBase
+    f6 = flip $ move (negateVec2 origin) $ rotate (rad (pi/2)) $ move (rotate (rad (9*pi/10)) edge) thinFaceBase
+    offAxisFaces = concat [f1, f2, f3, f5]
+    onAxisFaces = concat [f4, f6]
+
+
+scaleTo :: Vec2 -> Double -> [Face] -> [Face]
+scaleTo center size = fmap (move center . transform (scale' (size/phi) (size/phi)))
