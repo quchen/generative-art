@@ -51,7 +51,7 @@ subdivide Face{..} = case faceType of
             , faceP2 = newPoint } ]
       where
         newPoint = faceP2 +. (1/phi-1) *. v
-        v = faceP1 -. faceP2
+        v = faceP2 -. faceP1
     Thick ->
         [ Face
             { faceType = Thick
@@ -81,6 +81,12 @@ flip :: FaceOrientation -> FaceOrientation
 flip = \case
     Positive -> Negative
     Negative -> Positive
+
+mirror :: Face -> Face
+mirror f@Face{..} = f
+    { faceOrientation = flip faceOrientation
+    , faceP1 = mirrorAlong (Line faceP0 faceP2) faceP1
+    }
 
 inside :: Vec2 -> Face -> Bool
 p `inside` Face{..} = s1 == s2 && s1 == s3
@@ -129,35 +135,29 @@ inscribedPentagons Face{..} = case faceType of
 phi :: Double
 phi = (1+sqrt 5)/2
 
-thinFaceBase, thickFaceBase :: Vec2 -> Double -> [Face]
-thinFaceBase (Vec2 x y) r =
-    [ Face
+thinFaceBase :: [Face]
+thinFaceBase = [baseFace, mirror baseFace]
+  where
+    baseFace = Face
         { faceType = Thin
         , faceOrientation = Positive
-        , faceP2 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
-        , faceP1 = Vec2 (x + r) y
-        , faceP0 = Vec2 (x + r * cos (pi/5)) (y + r * sin (pi/5)) }
-    , Face
-        { faceType = Thin
-        , faceOrientation = Negative
-        , faceP2 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
-        , faceP1 = Vec2 (x + r) y
-        , faceP0 = Vec2 (x + r * cos (pi/5)) (y - r * sin (pi/5)) } ]
-thickFaceBase (Vec2 x y) r =
-    [ Face
+        , faceP0 = rotate (rad (pi/10)) $ Vec2 1 0
+        , faceP1 = Vec2 0 0
+        , faceP2 = rotate (rad (-pi/10)) $ Vec2 1 0
+        }
+
+thickFaceBase :: [Face]
+thickFaceBase = [baseFace, mirror baseFace]
+  where
+    baseFace = Face
         { faceType = Thick
         , faceOrientation = Positive
-        , faceP2 = Vec2 x y
-        , faceP1 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
-        , faceP0 = Vec2 (x + r) y }
-    , Face
-        { faceType = Thick
-        , faceOrientation = Negative
-        , faceP2 = Vec2 x y
-        , faceP1 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
-        , faceP0 = Vec2 (x + r) y } ]
+        , faceP0 = Vec2 0 0
+        , faceP1 = rotate (rad (pi/5)) $ Vec2 1 0
+        , faceP2 = Vec2 phi 0
+        }
 
 decagonRose :: Vec2 -> Double -> [Face]
 decagonRose center r =
-    let initialFaces = thinFaceBase center r ++ thickFaceBase center r
+    let initialFaces = fmap (move center . transform (scale' (r/phi) (r/phi))) (fmap (move (Vec2 phi 0) . rotate (rad (7*pi/10))) thinFaceBase ++ thickFaceBase)
     in (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces

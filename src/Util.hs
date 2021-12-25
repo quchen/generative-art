@@ -7,8 +7,8 @@ import qualified Data.Set as S
 
 
 -- | Rotate a list n times.
-rotate :: Int -> [a] -> [a]
-rotate n xs = let (a,b) = splitAt n xs in b ++ a
+rotateList :: Int -> [a] -> [a]
+rotateList n xs = let (a,b) = splitAt n xs in b ++ a
 
 -- | All rotations of a list.
 --

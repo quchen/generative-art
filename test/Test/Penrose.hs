@@ -28,13 +28,20 @@ testDecagonRose = testCase "Decagon rose" test
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    baseRhomb = thickFaceBase (Vec2 0 50) 100
-    subdividedRhomb = subdivide =<<  baseRhomb
-    test = renderAllFormats 240 120 "test/out/penrose/2_subdivision" $ do
+    fitToBox = transform (translate' 0 60) . transform (scale' 100 100)
+    baseRhombThick = fitToBox thickFaceBase
+    baseRhombThin = transform (translate' 200 0) $ fitToBox thinFaceBase
+    gen0 = baseRhombThick ++ baseRhombThin
+    gen1 = subdivide =<< gen0
+    gen2 = subdivide =<< gen1
+    test = renderAllFormats 420 420 "test/out/penrose/2_subdivision" $ do
         translate 10 10
-        for_ baseRhomb drawFace
-        translate 120 0
-        for_ subdividedRhomb drawFace
+        for_ gen0 drawFace
+        translate 0 140
+        for_ gen1 drawFace
+        translate 0 140
+        for_ gen2 drawFace
+
 
 
 drawFace :: Face -> Render ()
