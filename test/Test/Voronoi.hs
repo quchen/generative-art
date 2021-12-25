@@ -74,7 +74,7 @@ testPolygonCutting = testGroup "Adding polygons"
 testVoronoi :: TestTree
 testVoronoi = testCase "Full Voronoi pattern" test
   where
-    voronoiPattern = mkVoronoi (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..]) 100 100
+    voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
     test = renderAllFormats 120 120 "test/out/voronoi/3_full_voronoi" $ do
         translate 10 10
         drawVoronoi (faces voronoiPattern)
