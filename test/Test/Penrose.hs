@@ -12,6 +12,7 @@ import Penrose
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import Data.Vector.Unboxed.Base (Vector(V_Any))
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
@@ -24,7 +25,7 @@ testDecagonRose :: TestTree
 testDecagonRose = testCase "Decagon rose" test
   where
     test = renderAllFormats 200 200 "test/out/penrose/1_decagon_rose" $
-        for_ (decagonRose (Vec2 100 100) 100) drawFace
+        for_ (decagonRose (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
@@ -66,6 +67,26 @@ drawFace Face{..} = restoreStateAfter $ do
     strokePreserve
     mmaColor color 0.5
     fill
+
+drawConnectors :: Face -> Render ()
+drawConnectors face@Face{..} = restoreStateAfter $ do
+    let Distance length = norm (faceP0 -. faceP1)
+        r1 = Distance (0.3 * length)
+        r2 = Distance (0.2 * length)
+        r3 = Distance (0.8 * length)
+    polygonSketch (asPolygon face)
+    clip
+    case faceType of
+        Thin -> do
+            circleSketch faceP0 r1
+            stroke
+            circleSketch faceP2 r2
+            stroke
+        Thick -> do
+            circleSketch faceP0 r3
+            stroke
+            circleSketch faceP2 r1
+            stroke
 
 polygonSketchOpen :: Polygon -> Render ()
 polygonSketchOpen (Polygon []) = pure ()
