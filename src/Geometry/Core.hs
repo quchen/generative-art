@@ -231,6 +231,8 @@ instance Move geo => Move (Maybe geo) where
 
 class Rotate geo where
     rotateAround :: Vec2 -> Angle -> geo -> geo
+    rotate :: Angle -> geo -> geo
+    rotate = rotateAround (Vec2 0 0)
 
 instance Rotate Vec2 where
     rotateAround (Vec2 rx ry) (Angle angle) (Vec2 px py) = Vec2 px' py'
