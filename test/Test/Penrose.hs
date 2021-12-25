@@ -23,10 +23,14 @@ tests = testGroup "Penrose tiling"
 testBaseConfigurations :: TestTree
 testBaseConfigurations = testCase "Base configurations" test
   where
-    test = renderAllFormats 420 200 "test/out/penrose/1_base_configurations" $ do
+    test = renderAllFormats 860 200 "test/out/penrose/1_base_configurations" $ do
+        for_ (star1 (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        translate 220 0
+        for_ (star2 (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        translate 220 0
         for_ (decagonRose (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
         translate 220 0
-        for_ (star (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        for_ (asymmetricDecagon (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
