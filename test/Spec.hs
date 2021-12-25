@@ -16,6 +16,7 @@ import qualified Test.RandomCut
 import qualified Test.Reflection
 import qualified Test.SimpleOperations
 import qualified Test.Triangulate
+import qualified Test.Voronoi
 
 import Test.Tasty
 
@@ -42,6 +43,7 @@ tests = testGroup "Test suite"
         , Test.Reflection.tests
         , Test.SimpleOperations.tests
         , Test.Triangulate.tests
+        , Test.Voronoi.tests
         ]
     ]
 

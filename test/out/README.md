@@ -47,3 +47,9 @@ over quickly.
 ![](./triangulation/3_haskell_logo.svg)
 
 ![](./triangulation/4_spiral.svg)
+
+![](./voronoi/1_cut_polygon.svg)
+
+![](./voronoi/2_add_polygon.svg)
+
+![](./voronoi/3_full_voronoi.svg)
