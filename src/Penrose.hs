@@ -159,5 +159,11 @@ thickFaceBase = [baseFace, mirror baseFace]
 
 decagonRose :: Vec2 -> Double -> [Face]
 decagonRose center r =
-    let initialFaces = fmap (move center . transform (scale' (r/phi) (r/phi))) (fmap (move (Vec2 phi 0) . rotate (rad (7*pi/10))) thinFaceBase ++ thickFaceBase)
-    in (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces
+    let inner = thickFaceBase
+        outer = fmap (move (Vec2 phi 0) . rotate (rad (7*pi/10))) thinFaceBase
+    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> (move center . transform (scale' (r/phi) (r/phi)) <$> (inner ++ outer))
+
+star :: Vec2 -> Double -> [Face]
+star center r =
+    let inner = move (Vec2 (-phi) 0) thickFaceBase
+    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> (move center . transform (scale' (r/phi) (r/phi)) <$> inner)

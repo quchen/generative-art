@@ -12,20 +12,21 @@ import Penrose
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.Vector.Unboxed.Base (Vector(V_Any))
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
-    [ testDecagonRose
+    [ testBaseConfigurations
     , testSubdivision
     , testInscribedPentagons
     ]
 
-testDecagonRose :: TestTree
-testDecagonRose = testCase "Decagon rose" test
+testBaseConfigurations :: TestTree
+testBaseConfigurations = testCase "Base configurations" test
   where
-    test = renderAllFormats 200 200 "test/out/penrose/1_decagon_rose" $
+    test = renderAllFormats 420 200 "test/out/penrose/1_base_configurations" $ do
         for_ (decagonRose (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        translate 220 0
+        for_ (star (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
