@@ -24,30 +24,30 @@ testBaseConfigurations :: TestTree
 testBaseConfigurations = testCase "Base configurations" test
   where
     test = renderAllFormats 860 200 "test/out/penrose/1_base_configurations" $ do
-        for_ (star1 (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        for_ (star1 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
         translate 220 0
-        for_ (star2 (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        for_ (star2 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
         translate 220 0
-        for_ (decagonRose (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        for_ (decagonRose (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
         translate 220 0
-        for_ (asymmetricDecagon (Vec2 100 100) 100) $ \face -> drawFace face >> drawConnectors face
+        for_ (asymmetricDecagon (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
     fitToBox = transform (translate' 0 60) . transform (scale' 100 100)
-    baseRhombThick = fitToBox thickFaceBase
-    baseRhombThin = transform (translate' 200 0) $ fitToBox thinFaceBase
+    baseRhombThick = fitToBox thickTileBase
+    baseRhombThin = transform (translate' 200 0) $ fitToBox thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
     test = renderAllFormats 420 420 "test/out/penrose/2_subdivision" $ do
         translate 10 10
-        for_ gen0 drawFace
+        for_ gen0 drawTile
         translate 0 140
-        for_ gen1 drawFace
+        for_ gen1 drawTile
         translate 0 140
-        for_ gen2 drawFace
+        for_ gen2 drawTile
 
 testInscribedPentagons :: TestTree
 testInscribedPentagons = testCase "Switch to pentagons & stars" test
@@ -58,39 +58,39 @@ testInscribedPentagons = testCase "Switch to pentagons & stars" test
                 polygonSketchOpen polygon
                 stroke
 
-drawFace :: Face -> Render ()
-drawFace Face{..} = restoreStateAfter $ do
-    let color = case faceType of
+drawTile :: Tile -> Render ()
+drawTile Tile{..} = restoreStateAfter $ do
+    let color = case tileType of
             Thin -> 0
             Thick -> 1
     newPath
-    moveToVec faceP0
-    lineToVec faceP1
-    lineToVec faceP2
+    moveToVec tileP0
+    lineToVec tileP1
+    lineToVec tileP2
     clipPreserve
     mmaColor color 1
     strokePreserve
     mmaColor color 0.5
     fill
 
-drawConnectors :: Face -> Render ()
-drawConnectors face@Face{..} = restoreStateAfter $ do
-    let Distance length = norm (faceP0 -. faceP1)
+drawConnectors :: Tile -> Render ()
+drawConnectors tile@Tile{..} = restoreStateAfter $ do
+    let Distance length = norm (tileP0 -. tileP1)
         r1 = Distance (0.3 * length)
         r2 = Distance (0.2 * length)
         r3 = Distance (0.8 * length)
-    polygonSketch (asPolygon face)
+    polygonSketch (asPolygon tile)
     clip
-    case faceType of
+    case tileType of
         Thin -> do
-            circleSketch faceP0 r1
+            circleSketch tileP0 r1
             stroke
-            circleSketch faceP2 r2
+            circleSketch tileP2 r2
             stroke
         Thick -> do
-            circleSketch faceP0 r3
+            circleSketch tileP0 r3
             stroke
-            circleSketch faceP2 r1
+            circleSketch tileP2 r1
             stroke
 
 polygonSketchOpen :: Polygon -> Render ()
