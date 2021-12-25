@@ -45,16 +45,25 @@ setup window = do
     pure ()
 
 drawFaceCanvas :: UI.Element -> VoronoiFace a -> UI ()
-drawFaceCanvas elemCanvas (VF{..}) = case face of
-    Polygon [] -> pure ()
-    Polygon (p:ps) -> do
+drawFaceCanvas elemCanvas (VF{..}) = drawVFace >> drawVCenter
+  where
+    drawVCenter = do
         elemCanvas # UI.beginPath
-        elemCanvas # UI.moveTo (coordinates p)
-        for_ ps $ \p -> elemCanvas # UI.lineTo (coordinates p)
-        elemCanvas # set' UI.fillStyle (UI.htmlColor "#eeeeee")
+        let radius = 5
+        elemCanvas # UI.arc (coordinates center) radius 0 (2*pi)
+        elemCanvas # set' UI.fillStyle (UI.htmlColor "#5d81b4")
+        -- elemCanvas # UI.stroke
         elemCanvas # UI.fill
-        elemCanvas # set' UI.strokeStyle "#000000"
-        elemCanvas # UI.stroke
+    drawVFace = case face of
+        Polygon [] -> pure ()
+        Polygon (p:ps) -> do
+            elemCanvas # UI.beginPath
+            elemCanvas # UI.moveTo (coordinates p)
+            for_ ps $ \p -> elemCanvas # UI.lineTo (coordinates p)
+            elemCanvas # set' UI.fillStyle (UI.htmlColor "#eeeeee")
+            elemCanvas # UI.fill
+            elemCanvas # set' UI.strokeStyle "#5d81b4"
+            elemCanvas # UI.stroke
 
 coordinates :: Vec2 -> (Double, Double)
 coordinates (Vec2 x y) = (x, y)
