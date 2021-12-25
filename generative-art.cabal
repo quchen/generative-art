@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a8e6931f6cd0a632770bb0ebd1d6c3006f1b864e96ab70c89f8671447bed79e1
+-- hash: 8b9f38a0aeeba2064de09ee0780a61e95b03cb62cde2b9b633bb3650091b2052
 
 name:           generative-art
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Geometry.Processes.RandomCut
       Geometry.Shapes
       Geometry.Triangulate
+      Penrose
       Util
       Voronoi
       Why
