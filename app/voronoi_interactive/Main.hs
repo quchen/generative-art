@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 
+module Main (main) where
+
 import           Control.Applicative             (liftA2)
 import           Control.Monad                   (replicateM)
 import           Data.Char                       (ord)
