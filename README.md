@@ -7,5 +7,7 @@ Haskell and Cairo.
 
 ![](out/haskell_logo_triangles.svg)
 
+![](out/haskell_logo_voronoi.svg)
+
 More examples are shown as results of the [visual test
 suite](test/out/README.md).

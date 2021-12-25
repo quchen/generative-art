@@ -27,7 +27,7 @@ main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    [count, file] <- getArgs
+    let count = "2048"
     let w, h :: Num a => a
         w = 1200
         h = 1200
@@ -38,7 +38,8 @@ mainHaskellLogo = do
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
         allFaces = faces (mkVoronoi w h allPoints)
-    withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
+    withSurfaceAuto "out/haskell_logo_voronoi.png" w h $ \surface -> renderWith surface $ for_ allFaces drawFace
+    withSurfaceAuto "out/haskell_logo_voronoi.svg" w h $ \surface -> renderWith surface $ for_ allFaces drawFace
 
 drawFace :: VoronoiFace RGB -> Render ()
 drawFace VF{..} = drawPoly face props
