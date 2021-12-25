@@ -7,8 +7,6 @@ import Graphics.Rendering.Cairo hiding (transform, x, y)
 
 import Draw
 import Geometry
-import Geometry.Shapes
-import Util
 import Voronoi
 
 import Test.Common
@@ -29,18 +27,18 @@ testPolygonCutting = testGroup "Adding polygons"
     , testCase "Adding another polygon" test2
     ]
   where
-    bounds = Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
+    box = Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
     point1 = Vec2 20 40
     point2 = Vec2 80 90
     point3 = Vec2 60 30
-    face1 = VF point1 bounds 1
-    face2 = VF point2 bounds 2
-    face3 = VF point3 bounds 3
-    face1' = updateFace face1 point2
-    face1'' = updateFace face1' point3
-    face2' = updateFace face2 point1
-    face2'' = updateFace face2' point3
-    face3' = updateFace (updateFace face3 point1) point2
+    face1 = VF point1 box 1
+    face2 = VF point2 box 2
+    face3 = VF point3 box 3
+    face1' = updateFace point2 face1
+    face1'' = updateFace point3 face1'
+    face2' = updateFace point1 face2
+    face2'' = updateFace point3 face2'
+    face3' = updateFace point2 $ updateFace point1 $ face3
     test1 = renderAllFormats 360 240 "test/out/voronoi/1_cut_polygon" $ do
         translate 10 10
         drawVoronoi [face1]
@@ -78,7 +76,7 @@ testPolygonCutting = testGroup "Adding polygons"
 testVoronoi :: TestTree
 testVoronoi = testCase "Full Voronoi pattern" test
   where
-    voronoiPattern = voronoi (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..]) 100 100
+    voronoiPattern = mkVoronoi (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..]) 100 100
     test = renderAllFormats 120 120 "test/out/voronoi/3_full_voronoi" $ do
         translate 10 10
         drawVoronoi (faces voronoiPattern)
