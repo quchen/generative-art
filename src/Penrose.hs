@@ -2,20 +2,18 @@
 {-# LANGUAGE LambdaCase #-}
 module Penrose where
 
-import Prelude hiding (length, flip)
+import Prelude hiding (length)
 import Geometry
 
 data Face = Face
     { faceType :: FaceType
     , faceP0 :: Vec2
     , faceP1 :: Vec2
-    , faceP2 :: Vec2
-    , faceOrientation :: FaceOrientation }
+    , faceP2 :: Vec2 }
     deriving (Show)
 
 asPolygon :: Face -> Polygon
 asPolygon Face{..} = Polygon [faceP0, faceP1, faceP2]
-
 instance Transform Face where
     transform t f@Face{..} = f
         { faceP0 = transform t faceP0
@@ -31,21 +29,16 @@ instance Move Face where
 data FaceType = Thin | Thick
     deriving (Eq, Show)
 
-data FaceOrientation = Positive | Negative
-    deriving (Eq, Show)
-
 subdivide :: Face -> [Face]
 subdivide Face{..} = case faceType of
     Thin ->
         [ Face
             { faceType = Thick
-            , faceOrientation = flip faceOrientation
             , faceP0 = faceP0
             , faceP1 = newPoint
             , faceP2 = faceP1 }
         , Face
             { faceType = Thin
-            , faceOrientation = faceOrientation
             , faceP0 = faceP2
             , faceP1 = faceP0
             , faceP2 = newPoint } ]
@@ -55,19 +48,16 @@ subdivide Face{..} = case faceType of
     Thick ->
         [ Face
             { faceType = Thick
-            , faceOrientation = flip faceOrientation
             , faceP0 = newPoint2
             , faceP1 = newPoint1
             , faceP2 = faceP0 }
         , Face
             { faceType = Thin
-            , faceOrientation = faceOrientation
             , faceP0 = faceP1
             , faceP1 = newPoint2
             , faceP2 = newPoint1 }
         , Face
             { faceType = Thick
-            , faceOrientation = faceOrientation
             , faceP0 = faceP2
             , faceP1 = newPoint2
             , faceP2 = faceP1 } ]
@@ -77,16 +67,8 @@ subdivide Face{..} = case faceType of
         newPoint2 = faceP2 +. (1/phi-1) *. v2
         v2 = faceP2 -. faceP0
 
-flip :: FaceOrientation -> FaceOrientation
-flip = \case
-    Positive -> Negative
-    Negative -> Positive
-
 mirror :: Face -> Face
-mirror f@Face{..} = f
-    { faceOrientation = flip faceOrientation
-    , faceP1 = mirrorAlong (Line faceP0 faceP2) faceP1
-    }
+mirror f@Face{..} = f { faceP1 = mirrorAlong (Line faceP0 faceP2) faceP1 }
 
 inside :: Vec2 -> Face -> Bool
 p `inside` Face{..} = s1 == s2 && s1 == s3
@@ -97,7 +79,7 @@ p `inside` Face{..} = s1 == s2 && s1 == s3
     s3 = sign p faceP2 faceP0
 
 inscribedPentagons :: Face -> [Polygon]
-inscribedPentagons Face{..} = case faceType of
+inscribedPentagons f@Face{..} = case faceType of
     Thin -> [Polygon [p0, p1, p2, p3]]
       where
         center = faceP2 +. a *. (faceP1 -. faceP2)
@@ -127,9 +109,9 @@ inscribedPentagons Face{..} = case faceType of
             p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
   where
     a = 1 - 1/phi
-    theta = case faceOrientation of
-        Positive -> 2*pi/5
-        Negative -> -2*pi/5
+    theta = case polygonOrientation (asPolygon f) of
+        PolygonPositive -> 2*pi/5
+        PolygonNegative -> -2*pi/5
     rotate alpha = transform (rotate' (rad alpha))
 
 phi :: Double
@@ -140,7 +122,6 @@ thinFaceBase = [baseFace, mirror baseFace]
   where
     baseFace = Face
         { faceType = Thin
-        , faceOrientation = Positive
         , faceP0 = rotate (rad (-pi/10)) $ Vec2 1 0
         , faceP1 = Vec2 0 0
         , faceP2 = rotate (rad (pi/10)) $ Vec2 1 0
@@ -151,7 +132,6 @@ thickFaceBase = [baseFace, mirror baseFace]
   where
     baseFace = Face
         { faceType = Thick
-        , faceOrientation = Positive
         , faceP0 = Vec2 phi 0
         , faceP1 = rotate (rad (-pi/5)) $ Vec2 1 0
         , faceP2 = Vec2 0 0
