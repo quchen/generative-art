@@ -4,6 +4,7 @@ module Penrose where
 
 import Data.Foldable (find, for_, traverse_)
 import Prelude hiding (length, flip)
+import qualified Prelude (flip)
 import Data.List (partition)
 import Geometry
 
@@ -15,28 +16,23 @@ data Face = Face
     , faceOrientation :: FaceOrientation }
     deriving (Show)
 
+instance Transform Face where
+    transform t f@Face{..} = f
+        { faceP0 = transform t faceP0
+        , faceP1 = transform t faceP1
+        , faceP2 = transform t faceP2 }
+
 data FaceType = Thin | Thick
     deriving (Eq, Show)
 
 data FaceOrientation = Positive | Negative
     deriving (Eq, Show)
 
-rotateFace :: Vec2 -> Double -> Face -> Face
-rotateFace pivot theta face@Face{..} = face
-    { faceP0 = faceP0'
-    , faceP1 = faceP1'
-    , faceP2 = faceP2' }
-  where
-    faceP0' = rotateAroundPivot faceP0
-    faceP1' = rotateAroundPivot faceP1
-    faceP2' = rotateAroundPivot faceP2
-    rotateAroundPivot p = translate (rotate theta (p -. pivot)) pivot
+rotateFace :: Vec2 -> Angle -> Face -> Face
+rotateFace pivot theta = translateFace pivot . transform (rotate' theta) . translateFace (negateVec2 pivot)
 
 translateFace :: Vec2 -> Face -> Face
-translateFace v face@Face{..} = face
-    { faceP0 = translate v faceP0
-    , faceP1 = translate v faceP1
-    , faceP2 = translate v faceP2 }
+translateFace (Vec2 x y) = transform (translate' x y)
 
 subdivide :: Face -> [Face]
 subdivide Face{..} = case faceType of
@@ -54,7 +50,7 @@ subdivide Face{..} = case faceType of
             , faceP1 = faceP0
             , faceP2 = newPoint } ]
       where
-        newPoint = translate (v `vtimes` (-1+1/phi)) faceP2
+        newPoint = faceP2 +. (1/phi-1) *. v
         v = faceP1 -. faceP2
     Thick ->
         [ Face
@@ -76,10 +72,10 @@ subdivide Face{..} = case faceType of
             , faceP1 = newPoint2
             , faceP2 = faceP1 } ]
       where
-        newPoint1 = translate (v1 `vtimes` (-1+1/phi)) faceP1
+        newPoint1 = faceP1 +. (1/phi-1) *. v1
         v1 = faceP1 -. faceP0
-        newPoint2 = translate (v2 `vtimes` (-1+1/phi)) faceP2
-        v2 = faceP2 .- faceP0
+        newPoint2 = faceP2 +. (1/phi-1) *. v2
+        v2 = faceP2 -. faceP0
 
 flip :: FaceOrientation -> FaceOrientation
 flip = \case
@@ -98,36 +94,37 @@ inscribedPentagons :: Face -> [[Vec2]]
 inscribedPentagons Face{..} = case faceType of
     Thin -> [[p0, p1, p2, p3]]
       where
-        center = translate ((faceP1 -. faceP2) `vtimes` a) faceP2
+        center = faceP2 +. a *. (faceP1 -. faceP2)
         v0 = p0 -. center
-        p0 = translate ((faceP1 -. center) `vtimes` (1/phi)) center
-        p1 = translate (rotate theta v0) center
-        p2 = translate (rotate (2*theta) v0) center
-        p3 = translate ((rotate (2*theta) v0 `vplus` rotate (3*theta) v0) `vtimes` 0.5) center
+        p0 = center +. 1/phi *. (faceP1 -. center)
+        p1 = center +. rotate theta v0
+        p2 = center +. rotate (2*theta) v0
+        p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
 
     Thick -> [pentagon1, pentagon2]
       where
         pentagon1 = [p0, p1, p2, p3]
           where
-            center = translate ((faceP0 -. faceP2) `vtimes` a) faceP2
+            center = faceP2 +. a *. (faceP0 -. faceP2)
             v1 = p1 -. center
-            p0 = translate ((v1 `vplus` rotate (-theta) v1) `vtimes` 0.5) center
-            p1 = translate ((faceP1 -. faceP2) `vtimes` a) faceP2
-            p2 = translate (rotate theta v1) center
-            p3 = translate (rotate (2*theta) v1) center
+            p0 = center +. 0.5 *. (v1 +. rotate (-theta) v1)
+            p1 = faceP2 +. a *. (faceP1 -. faceP2)
+            p2 = center +. rotate theta v1
+            p3 = center +. rotate (2*theta) v1
         pentagon2 = [p0, p1, p2, p3]
           where
-            center = translate ((faceP0 -. faceP1) `vtimes` a) faceP1
+            center = faceP1 +. a *. (faceP0 -. faceP1)
             v0 = p0 -. center
-            p0 = translate ((faceP0 -. center) `vtimes` (1/phi)) center
-            p1 = translate (rotate theta v0) center
-            p2 = translate (rotate (2*theta) v0) center
-            p3 = translate ((rotate (2*theta) v0 `vplus` rotate (3*theta) v0) `vtimes` 0.5) center
+            p0 = center +. 1/phi *. (faceP0 -. center)
+            p1 = center +. rotate theta v0
+            p2 = center +. rotate (2*theta) v0
+            p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
   where
     a = 1 - 1/phi
     theta = case faceOrientation of
         Positive -> 2*pi/5
         Negative -> -2*pi/5
+    rotate alpha = transform (rotate' (rad alpha))
 
 phi :: Double
 phi = (1+sqrt 5)/2
@@ -159,4 +156,4 @@ decagonRose center@(Vec2 x y) r =
                 , faceP2 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
                 , faceP1 = Vec2 (x + r) y
                 , faceP0 = Vec2 (x + r * cos (pi/5)) (y - r * sin (pi/5)) } ]
-    in (rotateFace center . (2*pi/5*) <$> [0..4]) <*> initialFaces
+    in (rotateFace center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces
