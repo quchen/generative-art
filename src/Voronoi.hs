@@ -40,5 +40,7 @@ updateFace p f = clipFace (perpendicularBisector (Line (center f) p)) f
 clipFace :: Line -> VoronoiFace a -> VoronoiFace a
 clipFace line f =
     -- There is exactly one polygon containing the original center
-    let [p] = filter (pointInPolygon (center f)) (cutPolygon line (face f))
-    in  f { face = p }
+    case filter (pointInPolygon (center f)) (cutPolygon line (face f)) of
+        [p] -> f { face = p }
+        [] -> bugError "Could not identify the remaining Voronoi face. Perhaps the point was outside the face to start with?"
+        _ -> bugError "`cutPolygon` resulted in overlapping polygons."
