@@ -129,31 +129,35 @@ inscribedPentagons Face{..} = case faceType of
 phi :: Double
 phi = (1+sqrt 5)/2
 
+thinFaceBase, thickFaceBase :: Vec2 -> Double -> [Face]
+thinFaceBase (Vec2 x y) r =
+    [ Face
+        { faceType = Thin
+        , faceOrientation = Positive
+        , faceP2 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
+        , faceP1 = Vec2 (x + r) y
+        , faceP0 = Vec2 (x + r * cos (pi/5)) (y + r * sin (pi/5)) }
+    , Face
+        { faceType = Thin
+        , faceOrientation = Negative
+        , faceP2 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
+        , faceP1 = Vec2 (x + r) y
+        , faceP0 = Vec2 (x + r * cos (pi/5)) (y - r * sin (pi/5)) } ]
+thickFaceBase (Vec2 x y) r =
+    [ Face
+        { faceType = Thick
+        , faceOrientation = Positive
+        , faceP2 = Vec2 x y
+        , faceP1 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
+        , faceP0 = Vec2 (x + r) y }
+    , Face
+        { faceType = Thick
+        , faceOrientation = Negative
+        , faceP2 = Vec2 x y
+        , faceP1 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
+        , faceP0 = Vec2 (x + r) y } ]
+
 decagonRose :: Vec2 -> Double -> [Face]
-decagonRose center@(Vec2 x y) r =
-    let initialFaces =
-            [ Face
-                { faceType = Thick
-                , faceOrientation = Positive
-                , faceP2 = Vec2 x y
-                , faceP1 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
-                , faceP0 = Vec2 (x + r) y }
-            , Face
-                { faceType = Thick
-                , faceOrientation = Negative
-                , faceP2 = Vec2 x y
-                , faceP1 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
-                , faceP0 = Vec2 (x + r) y }
-            , Face
-                { faceType = Thin
-                , faceOrientation = Positive
-                , faceP2 = Vec2 (x + r/2) (y + r/2 * tan (pi/5))
-                , faceP1 = Vec2 (x + r) y
-                , faceP0 = Vec2 (x + r * cos (pi/5)) (y + r * sin (pi/5)) }
-            , Face
-                { faceType = Thin
-                , faceOrientation = Negative
-                , faceP2 = Vec2 (x + r/2) (y - r/2 * tan (pi/5))
-                , faceP1 = Vec2 (x + r) y
-                , faceP0 = Vec2 (x + r * cos (pi/5)) (y - r * sin (pi/5)) } ]
+decagonRose center r =
+    let initialFaces = thinFaceBase center r ++ thickFaceBase center r
     in (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> initialFaces
