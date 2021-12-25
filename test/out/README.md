@@ -36,6 +36,12 @@ over quickly.
 
 ![](./mirror.svg)
 
+![](./penrose/1_base_configurations.svg)
+
+![](./penrose/2_subdivision.svg)
+
+![](./penrose/3_inscribed_pentagons.svg)
+
 ![](./reflection.svg)
 
 ![](./simple_operations.svg)

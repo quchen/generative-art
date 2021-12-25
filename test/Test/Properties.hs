@@ -162,7 +162,7 @@ polygonInstancesTest = testGroup "Eq Polygon"
             pure (rot, polygon)
         test (rot, polygon)
           = let Polygon corners = polygon
-                polygon' = Polygon (rotate rot corners)
+                polygon' = Polygon (rotateList rot corners)
             in polygon === polygon'
 
 transformationTest :: TestTree

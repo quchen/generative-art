@@ -231,6 +231,8 @@ instance Move geo => Move (Maybe geo) where
 
 class Rotate geo where
     rotateAround :: Vec2 -> Angle -> geo -> geo
+    rotate :: Angle -> geo -> geo
+    rotate = rotateAround (Vec2 0 0)
 
 instance Rotate Vec2 where
     rotateAround (Vec2 rx ry) (Angle angle) (Vec2 px py) = Vec2 px' py'
@@ -252,8 +254,14 @@ instance Rotate Polygon where
     rotateAround pivot angle (Polygon points)
       = Polygon (map (rotateAround pivot angle) points)
 
+instance Rotate geo => Rotate [geo] where
+    rotateAround v a = fmap (rotateAround v a)
+
 class Mirror geo where
     mirrorAlong :: Line -> geo -> geo
+    mirrorX, mirrorY :: geo -> geo
+    mirrorX = mirrorAlong (Line (Vec2 0 0) (Vec2 0 1))
+    mirrorY = mirrorAlong (Line (Vec2 0 0) (Vec2 1 0))
 
 instance Mirror Vec2 where
     mirrorAlong mirror p
@@ -267,6 +275,9 @@ instance Mirror Line where
 
 instance Mirror Polygon where
     mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
+
+instance Mirror geo => Mirror [geo] where
+    mirrorAlong l = fmap (mirrorAlong l)
 
 infixl 6 +., -.
 infixl 7 *.
