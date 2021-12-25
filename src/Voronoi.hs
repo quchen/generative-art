@@ -34,14 +34,7 @@ addPoint' :: Voronoi' -> Vec2 -> Voronoi'
 addPoint' voronoi point = addPoint voronoi (point, ())
 
 updateFace :: VoronoiFace a -> Vec2 -> VoronoiFace a
-updateFace f p = clipFace f (Line q d)
-  where
-    q = let Vec2 px py = p
-            Vec2 fx fy = center f
-        in  Vec2 ((px + fx) / 2) ((py + fy) / 2)
-    d = let Vec2 qx qy = q
-            Vec2 dx dy = p -. center f
-        in  Vec2 (qx - dy) (qy + dx)
+updateFace f p = clipFace f (perpendicularBisector (Line (center f) p))
 
 -- | Keep everything that's *left* of the line
 clipFace :: VoronoiFace a -> Line -> VoronoiFace a
