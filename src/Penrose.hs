@@ -13,6 +13,9 @@ data Face = Face
     , faceOrientation :: FaceOrientation }
     deriving (Show)
 
+asPolygon :: Face -> Polygon
+asPolygon Face{..} = Polygon [faceP0, faceP1, faceP2]
+
 instance Transform Face where
     transform t f@Face{..} = f
         { faceP0 = transform t faceP0

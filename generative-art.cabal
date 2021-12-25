@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8b9f38a0aeeba2064de09ee0780a61e95b03cb62cde2b9b633bb3650091b2052
+-- hash: 946ee6bc36f9e9e440ea571cf3036c5fd45346d4b091c048ab3a967a2691143c
 
 name:           generative-art
 version:        0.1.0.0
@@ -147,6 +147,7 @@ test-suite generative-art-test
       Test.Helpers
       Test.IntersectionLL
       Test.Mirror
+      Test.Penrose
       Test.Properties
       Test.RandomCut
       Test.Reflection
