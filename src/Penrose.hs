@@ -126,8 +126,8 @@ inscribedPentagons f@Tile{..} = case tileType of
         v0 = p0 -. center
         p0 = center +. 1/phi *. (tileP1 -. center)
         p1 = center +. rotate theta v0
-        p2 = center +. rotate (2*theta) v0
-        p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
+        p2 = center +. rotate (2 *. theta) v0
+        p3 = center +. 0.5 *. (rotate (2 *. theta) v0 +. rotate (3 *. theta) v0)
 
     Thick -> [pentagon1, pentagon2]
       where
@@ -135,24 +135,23 @@ inscribedPentagons f@Tile{..} = case tileType of
           where
             center = tileP2 +. a *. (tileP0 -. tileP2)
             v1 = p1 -. center
-            p0 = center +. 0.5 *. (v1 +. rotate (-theta) v1)
+            p0 = center +. 0.5 *. (v1 +. rotate (negateV theta) v1)
             p1 = tileP2 +. a *. (tileP1 -. tileP2)
             p2 = center +. rotate theta v1
-            p3 = center +. rotate (2*theta) v1
+            p3 = center +. rotate (2 *. theta) v1
         pentagon2 = Polygon [p0, p1, p2, p3]
           where
             center = tileP1 +. a *. (tileP0 -. tileP1)
             v0 = p0 -. center
             p0 = center +. 1/phi *. (tileP0 -. center)
             p1 = center +. rotate theta v0
-            p2 = center +. rotate (2*theta) v0
-            p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
+            p2 = center +. rotate (2 *. theta) v0
+            p3 = center +. 0.5 *. (rotate (2 *. theta) v0 +. rotate (3 *. theta) v0)
   where
     a = 1 - 1/phi
     theta = case polygonOrientation (asPolygon f) of
-        PolygonPositive -> 2*pi/5
-        PolygonNegative -> -2*pi/5
-    rotate alpha = transform (rotate' (rad alpha))
+        PolygonPositive -> rad(2*pi/5)
+        PolygonNegative -> rad(-2*pi/5)
 
 phi :: Double
 phi = (1+sqrt 5)/2
@@ -212,10 +211,9 @@ asymmetricDecagon center r = scaleTo center r $ concat
     f3 = mirrorAlong (angledLine origin (rad (pi/5)) (Distance 1)) f2
     f4 = translate (origin +. edge) $ flipTile thickTileBase
     f5 = translate edge $ rotate (rad (3*pi/5)) thickTileBase
-    f6 = flipTile $ translate (negateVec2 origin) $ rotate (rad (pi/2)) $ translate (rotate (rad (9*pi/10)) edge) thinTileBase
+    f6 = flipTile $ translate (negateV origin) $ rotate (rad (pi/2)) $ translate (rotate (rad (9*pi/10)) edge) thinTileBase
     offAxisTiles = concat [f1, f2, f3, f5]
     onAxisTiles = concat [f4, f6]
-
 
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
 scaleTo center size = transform (translate' center <> scale' (size/phi) (size/phi))

@@ -1,14 +1,12 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DefaultSignatures #-}
 
 module Geometry.Core (
     -- * Primitives
-    -- ** Vectors
-    Vec2(..)
-    , (+.)
-    , negateVec2
-    , (-.)
-    , (*.)
+    -- ** Vector spaces
+      VectorSpace(..)
+
+    -- ** 2D Vectors
+    , Vec2(..)
     , dotProduct
     , norm
     , normSquare
@@ -134,17 +132,6 @@ instance Show Polygon where
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 
--- | Newtype safety wrapper.
-newtype Angle = Angle Double deriving (Eq, Ord)
-
-instance Show Angle where
-    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
-
--- | Newtype safety wrapper.
-newtype Distance = Distance Double deriving (Eq, Ord, Show)
-
--- | Newtype safety wrapper.
-newtype Area = Area Double deriving (Eq, Ord, Show)
 
 
 -- | Affine transformation,
@@ -273,23 +260,47 @@ mirrorAlong :: Transform geo => Line -> geo -> geo
 mirrorAlong line = transform (mirrorAlong' line)
 
 
+-- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
+-- space, but also concepts like 'Angle's or 'Distance's – anything that can be
+-- added, inverted, and multiplied with a scalar.
+--
+-- Vector space laws:
+--
+--     (1) Associativity of addition: @a +. (b +. c) = (a +. b) +. c@
+--     (2) Neutral ('zero'): @a +. 'zero' = a = 'zero' +. a@
+--     (3) Inverse ('negateV'): @a +. 'negateV' a = 'zero' = 'negateV' a +. a@. '(-.)' is a shorthand for the inverse: @a -. b = a +. negate b@.
+--     (4) Commutativity of addition: @a +. b = b +. a@
+--     (5) Distributivity of scalar multiplication 1: @a *. (b +. c) = a *. b +. a *. c@
+--     (6) Distributivity of scalar multiplication 2: @(a + b) *. c = a *. c +. b *. c@
+--     (7) Compatibility of scalar multiplication: @(a * b) *. c = a *. (b *. c)@
+--     (8) Scalar identity: @1 *. a = a@
+class VectorSpace v where
+    {-# MINIMAL (+.), (*.), ((-.) | negateV), zero #-}
+    -- | Vector addition
+    (+.) :: v -> v -> v
+
+    -- | Vector subtraction
+    (-.) :: v -> v -> v
+    a -. b = a +. negateV b
+
+    -- | Multiplication with a scalar
+    (*.) :: Double -> v -> v
+
+    -- | Inverse element
+    negateV :: v -> v
+    negateV a = zero -. a
+
+    -- | Neutral
+    zero :: v
+
 infixl 6 +., -.
 infixl 7 *.
 
-(+.), (-.) :: Vec2 -> Vec2 -> Vec2
-(*.) :: Double -> Vec2 -> Vec2
-
--- | Vector addition
-Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
-
--- | Vector subtraction
-v1 -. v2 = v1 +. negateVec2 v2
-
--- | Scalar multiplication
-a *. Vec2 x y = Vec2 (a*x) (a*y)
-
-negateVec2 :: Vec2 -> Vec2
-negateVec2 (Vec2 x y) = Vec2 (-x) (-y)
+instance VectorSpace Vec2 where
+    Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
+    a *. Vec2 x y = Vec2 (a*x) (a*y)
+    negateV (Vec2 x y) = Vec2 (-x) (-y)
+    zero = Vec2 0 0
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
@@ -304,13 +315,40 @@ norm = Distance . sqrt . normSquare
 normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
+-- | Newtype safety wrapper.
+newtype Angle = Angle Double deriving (Eq, Ord)
+
+instance Show Angle where
+    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+
+instance VectorSpace Angle where
+    Angle a +. Angle b = rad (a + b)
+    Angle a -. Angle b = rad (a - b)
+    a *. Angle b = rad (a * b)
+    negateV (Angle a) = rad (-a)
+    zero = Angle 0
+
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
-deg degrees = Angle (degrees / 360 * 2 * pi)
+deg degrees = rad (degrees / 360 * 2 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
+
+-- | Newtype safety wrapper.
+newtype Distance = Distance Double deriving (Eq, Ord, Show)
+
+instance VectorSpace Distance where
+    Distance a +. Distance b = Distance (a + b)
+    Distance a -. Distance b = Distance (a - b)
+    a *. Distance b = Distance (a * b)
+    negateV (Distance a) = Distance (-a)
+    zero = Distance 0
+
+-- | Newtype safety wrapper.
+newtype Area = Area Double deriving (Eq, Ord, Show)
+
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
@@ -614,7 +652,7 @@ perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
     -- Move line so it starts at the origin
-    Line start0 end0 = move (negateVec2 start) line
+    Line start0 end0 = move (negateV start) line
     -- Rotate end point 90° CCW
     end0' = let Vec2 x y  = end0
             in Vec2 (-y) x
