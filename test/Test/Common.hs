@@ -44,5 +44,5 @@ renderSvg picWidth picHeight filename drawing
 
 renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
-    if False then renderPng w h (filename ++ ".png") drawing else pure ()
+    renderPng w h (filename ++ ".png") drawing
     renderSvg w h (filename ++ ".svg") drawing

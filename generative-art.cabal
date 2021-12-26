@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6a168229121de1a1696e3670a4f87f535cd2fa2c59ec4587c2447a275f49463f
+-- hash: ab9f1bd370159c037897bc2621d51d134a054560749025c2e068bce22863cd01
 
 name:           generative-art
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Geometry.Processes.RandomCut
       Geometry.Shapes
       Geometry.Triangulate
+      Mondrian
       Penrose
       Util
       Voronoi
@@ -113,6 +114,27 @@ executable haskell-logo-voronoi
     , vector
   default-language: Haskell2010
 
+executable mondrian-interactive
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      app/mondrian_interactive
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base >=4.7 && <5
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , generative-art
+    , mwc-random
+    , random
+    , threepenny-gui
+    , transformers
+    , vector
+  default-language: Haskell2010
+
 executable voronoi-interactive
   main-is: Main.hs
   other-modules:
@@ -145,6 +167,7 @@ test-suite generative-art-test
       Test.Helpers
       Test.IntersectionLL
       Test.Mirror
+      Test.Mondrian
       Test.Penrose
       Test.Properties
       Test.RandomCut

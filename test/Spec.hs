@@ -11,6 +11,7 @@ import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
+import qualified Test.Mondrian
 import qualified Test.Penrose
 import qualified Test.Properties
 import qualified Test.RandomCut
@@ -46,6 +47,7 @@ tests = testGroup "Test suite"
         , Test.Triangulate.tests
         , Test.Voronoi.tests
         , Test.Penrose.tests
+        , Test.Mondrian.tests
         ]
     ]
 
