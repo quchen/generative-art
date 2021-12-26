@@ -3,7 +3,7 @@ module Test.SimpleOperations (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry
@@ -22,10 +22,10 @@ tests = testGroup "Simple operations"
 
 testVisual :: TestTree
 testVisual = testCase "Visual" $ renderAllFormats 320 400 "test/out/simple_operations" (do
-    translate 30 50 >> rotateLineTest
-    translate  0 80 >> perpendicularBisectorTest
-    translate  0 80 >> perpendicularLineThroughTest
-    translate  0 80 >> pointInPolygonTest
+    Cairo.translate 30 50 >> rotateLineTest
+    Cairo.translate  0 80 >> perpendicularBisectorTest
+    Cairo.translate  0 80 >> perpendicularLineThroughTest
+    Cairo.translate  0 80 >> pointInPolygonTest
     )
 
 rotateLineTest :: Render ()

@@ -3,7 +3,7 @@ module Test.Triangulate (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 import System.Random
 
 import Draw
@@ -32,7 +32,7 @@ testSquare = testCase "Square" test
   where
     triangulation = triangulate (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
     test = renderAllFormats 120 120 "test/out/triangulation/1_square" $ do
-        translate 10 10
+        Cairo.translate 10 10
         paintTriangulation triangulation
 
 testRegular9gon :: TestTree
@@ -40,7 +40,7 @@ testRegular9gon = testCase "Regular 9-gon" test
   where
     triangulation = triangulate (transform (scale' 50 50) (regularPolygon 9))
     test = renderAllFormats 120 120 "test/out/triangulation/2_regular_polygon" $ do
-        translate 60 60
+        Cairo.translate 60 60
         paintTriangulation triangulation
 
 testHaskellLogo :: TestTree
@@ -48,7 +48,7 @@ testHaskellLogo = testCase "Haskell logo" test
   where
     triangulation = map triangulate wonkyHaskellLogo
     test = renderAllFormats 510 360 "test/out/triangulation/3_haskell_logo" $ do
-        translate 10 10
+        Cairo.translate 10 10
         for_ triangulation (restoreStateAfter . paintTriangulation)
 
     wonkyHaskellLogo :: [Polygon]
@@ -69,7 +69,7 @@ testSpiral = testCase "Spiral" test
   where
     triangulation = triangulate (spiralPolygon 13 20)
     test = renderAllFormats 280 260 "test/out/triangulation/4_spiral" $ do
-        translate 130 130
+        Cairo.translate 130 130
         paintTriangulation triangulation
 
 nubLines :: [Line] -> [Line]

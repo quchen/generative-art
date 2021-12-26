@@ -31,7 +31,7 @@ mainHaskellLogo = do
     let w, h :: Num a => a
         w = 1200
         h = 1200
-        haskellLogoCentered = transform (translate' (w/2 - 480) (h/2 - 340)) $ transform (scale' 680 680) $ haskellLogo
+        haskellLogoCentered = transform (translate' (Vec2 (w/2 - 480) (h/2 - 340)) <> scale' 680 680) $ haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) count))
     points <- gaussianDistributedPoints gen (w, 380) (h, 380) (read count)
     let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points

@@ -2,7 +2,7 @@ module Test.IntersectionLL (tests) where
 
 
 
-import Graphics.Rendering.Cairo hiding (x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (translate, x, y)
 import Text.Printf
 
 import Draw
@@ -30,8 +30,8 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
         (angledLine (Vec2 50 190) (Angle ( pi/6)) (Distance 100))
         (angledLine (Vec2 50 300) (Angle (-pi/6)) (Distance 100))
     testVirtual2 = testDraw
-        (move (Vec2 30 380) (moveRad (Angle (-pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle (-pi/6)) (Distance 100))))
-        (move (Vec2 30 380) (moveRad (Angle ( pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle ( pi/6)) (Distance 100))))
+        (translate (Vec2 30 380) (moveRad (Angle (-pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle (-pi/6)) (Distance 100))))
+        (translate (Vec2 30 380) (moveRad (Angle ( pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle ( pi/6)) (Distance 100))))
     testVirtualInL = testDraw
         (angledLine (Vec2 300 180) (Angle      0) (Distance 100))
         (angledLine (Vec2 350 200) (Angle (pi/2)) (Distance  50))
@@ -42,8 +42,8 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
         (Line (Vec2 10  10) (Vec2 220 190))
         (Line (Vec2 270 50) (Vec2  30 160))
     testReal2 = testDraw
-        (move (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
-        (move (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
+        (translate (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
+        (translate (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
 
 testDraw :: Line -> Line -> Render ()
 testDraw line1 line2 = do

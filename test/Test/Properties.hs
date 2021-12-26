@@ -59,7 +59,7 @@ areaTest = testGroup "Area"
     square = testProperty "Square" (forAll
         ((,,,,) <$> vec2 <*> vec2 <*> vec2 <*> vec2 <*> arbitrary)
         (\(Vec2 x1 y1, Vec2 x2 y2, center, moveVec, angle) ->
-            let poly = (move moveVec . rotateAround center angle . Polygon)
+            let poly = (translate moveVec . rotateAround center angle . Polygon)
                            [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
                 actual = polygonArea poly
                 expected = Area (abs ((x2-x1) * (y2-y1)))
@@ -177,7 +177,7 @@ transformationTest = testGroup "Affine transformations"
         [ invertibilityTest "Identity"
             (pure [identityTransformation])
         , invertibilityTest "Translation"
-            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translate' x y])
+            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translate' (Vec2 x y)])
         , invertibilityTest "Scaling"
             (do let sign = elements [1,-1]
                     factor = choose (0.1,10)
@@ -194,7 +194,7 @@ transformationTest = testGroup "Affine transformations"
             Test.Tasty.QuickCheck.vectorOf n (frequency
                 [ (1, pure identityTransformation)
                 , (3, rotate' <$> arbitrary)
-                , (3, translate' <$> choose (-100,100) <*> choose (-100,100))
+                , (3, translate' <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
                 , (3, scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
                              <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
@@ -207,6 +207,6 @@ transformationTest = testGroup "Affine transformations"
                 vec <- arbitrary
                 pure (vec :: Vec2, transformation)
             test (vec, transformation) = approxEqualTolerance (Tolerance 1e-5)
-                ((transform (inverseTransformation transformation) . transform transformation) vec)
+                ((transform (inverse transformation) . transform transformation) vec)
                 vec
         in testProperty name (forAll gen test)

@@ -51,19 +51,6 @@ instance Transform Tile where
         , tileP1 = transform t tileP1
         , tileP2 = transform t tileP2 }
 
-instance Rotate Tile where
-    rotateAround pivot theta = move pivot . transform (rotate' theta) . move (negateVec2 pivot)
-
-instance Move Tile where
-    move (Vec2 x y) = transform (translate' x y)
-
-instance Mirror Tile where
-    mirrorAlong line tile@Tile{..} = tile
-        { tileP0 = mirrorAlong line tileP0
-        , tileP1 = mirrorAlong line tileP1
-        , tileP2 = mirrorAlong line tileP2
-        }
-
 -- | There are two Penrose rhombs: A thick rhomb with an angle of 72°, and a
 -- thin rhomb with an angle of 36°.
 data TileType = Thin | Thick
@@ -210,7 +197,7 @@ star2 center r = scaleTo center r ((rotate . rad . (2*pi/5 *) <$> [0..4]) <*> th
 -- around, forming a decagon.
 decagonRose :: Vec2 -> Double -> [Tile]
 decagonRose center r =
-    let outer = move (Vec2 phi 0) . rotate (rad (7*pi/10)) $ thinTileBase
+    let outer = translate (Vec2 phi 0) . rotate (rad (7*pi/10)) $ thinTileBase
     in  star2 center r ++ ((rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r outer)
 
 -- | Another Penrose fragment.
@@ -220,15 +207,15 @@ asymmetricDecagon center r = scaleTo center r $ concat
   where
     origin = Vec2 (-phi) 0
     edge = Vec2 1 0
-    f1 = move origin $ rotate (rad (pi/5)) $ flipTile thickTileBase
-    f2 = move (origin +. edge) $ rotate (rad (3*pi/10)) $ flipTile thinTileBase
+    f1 = translate origin $ rotate (rad (pi/5)) $ flipTile thickTileBase
+    f2 = translate (origin +. edge) $ rotate (rad (3*pi/10)) $ flipTile thinTileBase
     f3 = mirrorAlong (angledLine origin (rad (pi/5)) (Distance 1)) f2
-    f4 = move (origin +. edge) $ flipTile thickTileBase
-    f5 = move edge $ rotate (rad (3*pi/5)) thickTileBase
-    f6 = flipTile $ move (negateVec2 origin) $ rotate (rad (pi/2)) $ move (rotate (rad (9*pi/10)) edge) thinTileBase
+    f4 = translate (origin +. edge) $ flipTile thickTileBase
+    f5 = translate edge $ rotate (rad (3*pi/5)) thickTileBase
+    f6 = flipTile $ translate (negateVec2 origin) $ rotate (rad (pi/2)) $ translate (rotate (rad (9*pi/10)) edge) thinTileBase
     offAxisTiles = concat [f1, f2, f3, f5]
     onAxisTiles = concat [f4, f6]
 
 
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
-scaleTo center size = fmap (move center . transform (scale' (size/phi) (size/phi)))
+scaleTo center size = transform (translate' center <> scale' (size/phi) (size/phi))

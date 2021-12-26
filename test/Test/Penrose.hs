@@ -3,7 +3,7 @@
 module Test.Penrose (tests) where
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
 import Geometry
@@ -25,28 +25,28 @@ testBaseConfigurations = testCase "Base configurations" test
   where
     test = renderAllFormats 860 200 "test/out/penrose/1_base_configurations" $ do
         for_ (star1 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
+        Cairo.translate 220 0
         for_ (star2 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
+        Cairo.translate 220 0
         for_ (decagonRose (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
+        Cairo.translate 220 0
         for_ (asymmetricDecagon (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    fitToBox = transform (translate' 0 60) . transform (scale' 100 100)
+    fitToBox = transform (translate' (Vec2 0 60) <> scale' 100 100)
     baseRhombThick = fitToBox thickTileBase
-    baseRhombThin = transform (translate' 200 0) $ fitToBox thinTileBase
+    baseRhombThin = transform (translate' (Vec2 200 0)) $ fitToBox thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
     test = renderAllFormats 420 420 "test/out/penrose/2_subdivision" $ do
-        translate 10 10
+        Cairo.translate 10 10
         for_ gen0 drawTile
-        translate 0 140
+        Cairo.translate 0 140
         for_ gen1 drawTile
-        translate 0 140
+        Cairo.translate 0 140
         for_ gen2 drawTile
 
 testInscribedPentagons :: TestTree

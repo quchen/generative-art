@@ -40,9 +40,7 @@ rescaleNormalizePolygons polygons
                    (let Vec2 x y = c in (x, y, y))
                    orners
         scaleFactor = 1 / (maxY - minY)
-        transformation = scale' scaleFactor scaleFactor
-                         `transform`
-                         translate' (- minX) (- minY)
+        transformation = scale' scaleFactor scaleFactor <> translate' (Vec2 (- minX) (- minY))
     in transform transformation polygons
 
 haskellLogoRaw :: [Polygon]

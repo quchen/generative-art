@@ -6,7 +6,7 @@ module Main (main) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform)
+import Graphics.Rendering.Cairo as Cairo hiding (transform)
 
 import Draw
 import Geometry
@@ -54,7 +54,7 @@ drawing = do
                         Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
                 in setColor alpha >> lineSketch line >> stroke)
 
-    translate 10 10
+    Cairo.translate 10 10
 
     setLineWidth 1
     billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke

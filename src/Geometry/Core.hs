@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DefaultSignatures #-}
 
 module Geometry.Core (
     -- * Primitives
@@ -55,19 +56,28 @@ module Geometry.Core (
     , Distance(..)
     , Area(..)
 
-    -- ** Convenience classes
-    , Move(..)
+    -- * Transformations
     , moveRad
-    , Rotate(..)
-    , Mirror(..)
     , Transformation(..)
     , identityTransformation
     , transformationProduct
-    , inverseTransformation
+    , inverse
     , Transform(..)
     , translate'
+    , translate
     , rotate'
+    , rotate
+    , rotateAround
     , scale'
+    , scale
+    , scaleXY
+    , scaleAround
+    , scaleAroundXY
+    , mirror'
+    , mirrorAlong'
+    , mirrorX
+    , mirrorY
+    , mirrorAlong
 
     -- * Processes
     , reflection
@@ -121,6 +131,22 @@ instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
                 in "Polygon " ++ show corners
 
+-- | Line, defined by beginning and end.
+data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+
+-- | Newtype safety wrapper.
+newtype Angle = Angle Double deriving (Eq, Ord)
+
+instance Show Angle where
+    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+
+-- | Newtype safety wrapper.
+newtype Distance = Distance Double deriving (Eq, Ord, Show)
+
+-- | Newtype safety wrapper.
+newtype Area = Area Double deriving (Eq, Ord, Show)
+
+
 -- | Affine transformation,
 --
 -- > transformation a b c
@@ -145,12 +171,19 @@ transformationProduct (Transformation a1 b1 c1
                     =  Transformation (a1*a2 + b1*d2) (a1*b2 + b1*e2) (a1*c2 + b1*f2 + c1)
                                       (d1*a2 + e1*d2) (d1*b2 + e1*e2) (d1*c2 + e1*f2 + f1)
 
-inverseTransformation :: Transformation -> Transformation
-inverseTransformation (Transformation a b c
-                                      d e f)
-                     = let x = 1 / (a*e - b*d)
-                       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
-                                         (x*(-d)) (x*a) (x*(d*c - a*f))
+inverse :: Transformation -> Transformation
+inverse (Transformation a b c
+                        d e f)
+    = let x = 1 / (a*e - b*d)
+      in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
+                        (x*(-d)) (x*a) (x*(d*c - a*f))
+
+instance Semigroup Transformation where
+    (<>) = transformationProduct
+
+instance Monoid Transformation where
+    mempty = identityTransformation
+
 
 class Transform geo where
     transform :: Transformation -> geo -> geo
@@ -178,106 +211,67 @@ instance Transform Transformation where
 instance Transform a => Transform [a] where
     transform t = map (transform t)
 
-translate' :: Double -> Double -> Transformation
-translate' dx dy = Transformation
+translate' :: Vec2 -> Transformation
+translate' (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
+
+translate :: Transform geo => Vec2 -> geo -> geo
+translate v = transform (translate' v)
+
+-- deprecated
+move :: Transform geo => Vec2 -> geo -> geo
+move = translate
+
+-- deprecated? at least rename
+moveRad :: Transform geo => Angle -> Distance -> geo -> geo
+moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
 
 rotate' :: Angle -> Transformation
 rotate' (Angle a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
+rotate :: Transform geo => Angle -> geo -> geo
+rotate angle = transform (rotate' angle)
+
+rotateAround :: Transform geo => Vec2 -> Angle -> geo -> geo
+rotateAround pivot angle = transform (translate' pivot <> rotate' angle <> inverse (translate' pivot))
+
 scale' :: Double -> Double -> Transformation
 scale' x y = Transformation
     x 0 0
     0 y 0
 
--- | Line, defined by beginning and end.
-data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+scale :: Transform geo => Double -> geo -> geo
+scale factor = transform (scale' factor factor)
 
--- | Newtype safety wrapper.
-newtype Angle = Angle Double deriving (Eq, Ord)
+scaleAround :: Transform geo => Vec2 -> Double -> geo -> geo
+scaleAround pivot factor = transform (translate' pivot <> scale' factor factor <> inverse (translate' pivot))
 
--- | Newtype safety wrapper.
-newtype Distance = Distance Double deriving (Eq, Ord, Show)
+scaleXY :: Transform geo => Double -> Double -> geo -> geo
+scaleXY x y = transform (scale' x y)
 
--- | Newtype safety wrapper.
-newtype Area = Area Double deriving (Eq, Ord, Show)
+scaleAroundXY :: Transform geo => Vec2 -> Double -> Double -> geo -> geo
+scaleAroundXY pivot x y = transform (translate' pivot <> scale' x y <> inverse (translate' pivot))
 
-instance Show Angle where
-    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+mirror' :: Angle -> Transformation
+mirror' angle = rotate' angle <> mirrorVertically <> inverse (rotate' angle)
+  where
+    mirrorVertically = Transformation
+        1    0 0
+        0 (-1) 0
 
-class Move geo where
-    move :: Vec2 -> geo -> geo
+mirrorAlong' :: Line -> Transformation
+mirrorAlong' line@(Line p _) = translate' p <> mirror' (angleOfLine line) <> inverse (translate' p)
 
-moveRad :: Move geo => Angle -> Distance -> geo -> geo
-moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
+mirrorX, mirrorY :: Transform geo => geo -> geo
+mirrorX = transform (mirror' (deg 90))
+mirrorY = transform (mirror' (deg 0))
 
-instance Move Vec2 where
-    move = (+.)
+mirrorAlong :: Transform geo => Line -> geo -> geo
+mirrorAlong line = transform (mirrorAlong' line)
 
-instance Move Polygon where
-    move offset (Polygon points) = Polygon (map (move offset) points)
-
-instance Move Line where
-    move offset (Line a b) = Line (move offset a) (move offset b)
-
-instance Move geo => Move [geo] where
-    move offset = fmap (move offset)
-
-instance Move geo => Move (Maybe geo) where
-    move offset = fmap (move offset)
-
-class Rotate geo where
-    rotateAround :: Vec2 -> Angle -> geo -> geo
-    rotate :: Angle -> geo -> geo
-    rotate = rotateAround (Vec2 0 0)
-
-instance Rotate Vec2 where
-    rotateAround (Vec2 rx ry) (Angle angle) (Vec2 px py) = Vec2 px' py'
-      where
-        px0 = px - rx
-        py0 = py - ry
-
-        pxR = px0 * cos angle - py0 * sin angle
-        pyR = px0 * sin angle + py0 * cos angle
-
-        px' = pxR + rx
-        py' = pyR + ry
-
-instance Rotate Line where
-    rotateAround pivot angle (Line p1 p2)
-      = Line (rotateAround pivot angle p1) (rotateAround pivot angle p2)
-
-instance Rotate Polygon where
-    rotateAround pivot angle (Polygon points)
-      = Polygon (map (rotateAround pivot angle) points)
-
-instance Rotate geo => Rotate [geo] where
-    rotateAround v a = fmap (rotateAround v a)
-
-class Mirror geo where
-    mirrorAlong :: Line -> geo -> geo
-    mirrorX, mirrorY :: geo -> geo
-    mirrorX = mirrorAlong (Line (Vec2 0 0) (Vec2 0 1))
-    mirrorY = mirrorAlong (Line (Vec2 0 0) (Vec2 1 0))
-
-instance Mirror Vec2 where
-    mirrorAlong mirror p
-      = let perpendicular = perpendicularLineThrough p mirror
-            (foot, _ty) = intersectionLL mirror perpendicular
-        in foot +. foot -. p
-
-instance Mirror Line where
-    mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
-                                               (mirrorAlong mirror end)
-
-instance Mirror Polygon where
-    mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
-
-instance Mirror geo => Mirror [geo] where
-    mirrorAlong l = fmap (mirrorAlong l)
 
 infixl 6 +., -.
 infixl 7 *.
