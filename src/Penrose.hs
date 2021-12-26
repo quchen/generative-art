@@ -150,8 +150,8 @@ inscribedPentagons f@Tile{..} = case tileType of
   where
     a = 1 - 1/phi
     theta = case polygonOrientation (asPolygon f) of
-        PolygonPositive -> rad(2*pi/5)
-        PolygonNegative -> rad(-2*pi/5)
+        PolygonPositive -> 2 *. alpha
+        PolygonNegative -> negateV (2 *. alpha)
 
 phi :: Double
 phi = (1+sqrt 5)/2
@@ -174,7 +174,7 @@ thickTileBase = [baseTile, twin baseTile]
     baseTile = Tile
         { tileType = Thick
         , tileP0 = Vec2 phi 0
-        , tileP1 = rotate (rad (-pi/5)) $ Vec2 1 0
+        , tileP1 = rotate alpha $ Vec2 1 0
         , tileP2 = Vec2 0 0
         }
 
@@ -183,21 +183,21 @@ thickTileBase = [baseTile, twin baseTile]
 star1 :: Vec2 -> Double -> [Tile]
 star1 center r =
     let inner = flipTile thickTileBase
-    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r inner
+    in  (rotateAround center . (*. (2 *. alpha)) <$> [0..4]) <*> scaleTo center r inner
 
 -- | There are two star configurations, 'star1' and 'star2'. Depending on the
 -- orientation of the thick tiles, the pattern grows differently.
 --
 -- 'star2' is the base for 'decagonRose'.
 star2 :: Vec2 -> Double -> [Tile]
-star2 center r = scaleTo center r ((rotate . rad . (2*pi/5 *) <$> [0..4]) <*> thickTileBase)
+star2 center r = scaleTo center r ((rotate . (*. (2 *. alpha)) <$> [0..4]) <*> thickTileBase)
 
 -- | A basic Penrose fragment consisting of a 'star2' and some thin tiles
 -- around, forming a decagon.
 decagonRose :: Vec2 -> Double -> [Tile]
 decagonRose center r =
     let outer = translate (Vec2 phi 0) . rotate (rad (7*pi/10)) $ thinTileBase
-    in  star2 center r ++ ((rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r outer)
+    in  star2 center r ++ ((rotateAround center . (*. (2 *. alpha)) <$> [0..4]) <*> scaleTo center r outer)
 
 -- | Another Penrose fragment.
 asymmetricDecagon :: Vec2 -> Double -> [Tile]
@@ -206,14 +206,18 @@ asymmetricDecagon center r = scaleTo center r $ concat
   where
     origin = Vec2 (-phi) 0
     edge = Vec2 1 0
-    f1 = translate origin $ rotate (rad (pi/5)) $ flipTile thickTileBase
+    f1 = translate origin $ rotate alpha $ flipTile thickTileBase
     f2 = translate (origin +. edge) $ rotate (rad (3*pi/10)) $ flipTile thinTileBase
-    f3 = mirrorAlong (angledLine origin (rad (pi/5)) (Distance 1)) f2
+    f3 = mirrorAlong (angledLine origin alpha (Distance 1)) f2
     f4 = translate (origin +. edge) $ flipTile thickTileBase
-    f5 = translate edge $ rotate (rad (3*pi/5)) thickTileBase
-    f6 = flipTile $ translate (negateV origin) $ rotate (rad (pi/2)) $ translate (rotate (rad (9*pi/10)) edge) thinTileBase
+    f5 = translate edge $ rotate (3 *. alpha) thickTileBase
+    f6 = flipTile $ translate (negateV origin) $ rotate (deg 90) $ translate (rotate (rad (9*pi/10)) edge) thinTileBase
     offAxisTiles = concat [f1, f2, f3, f5]
     onAxisTiles = concat [f4, f6]
+
+-- | 36° is the base angle of Penrose tilings
+alpha :: Angle
+alpha = deg 36
 
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
 scaleTo center size = transform (translate' center <> scale' (size/phi) (size/phi))
