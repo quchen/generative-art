@@ -187,7 +187,7 @@ instance Transform Line where
     transform t (Line start end) = Line (transform t start) (transform t end)
 
 instance Transform Polygon where
-    transform t (Polygon ps) = Polygon (map (transform t) ps)
+    transform t (Polygon ps) = Polygon (transform t ps)
 
 instance Transform Transformation where
     transform = transformationProduct
@@ -208,11 +208,12 @@ translateT (Vec2 dx dy) = Transformation
 translate :: Transform geo => Vec2 -> geo -> geo
 translate v = transform (translateT v)
 
--- deprecated
+{-# DEPRECATED move "Use translate instead" #-}
 move :: Transform geo => Vec2 -> geo -> geo
 move = translate
 
--- deprecated? at least rename
+{-# DEPRECATED moveRad "Rename or remove this" #-}
+-- | Move along an angle/distance instead of x/y offsets
 moveRad :: Transform geo => Angle -> Distance -> geo -> geo
 moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
 
