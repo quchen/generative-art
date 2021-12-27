@@ -52,8 +52,7 @@ tests = testGroup "Test suite"
 runPostTestScripts :: IO ()
 runPostTestScripts = do
     handles <- traverse runCommand
-        [ "./scripts/normalize_svg.sh"
-        , "./test/out/generate_readme.sh"
+        [ "./test/out/generate_readme.sh"
         , "./test/out/generate_html.sh"
         ]
     traverse_ waitForProcess handles
