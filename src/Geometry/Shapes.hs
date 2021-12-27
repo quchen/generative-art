@@ -40,9 +40,7 @@ rescaleNormalizePolygons polygons
                    (let Vec2 x y = c in (x, y, y))
                    orners
         scaleFactor = 1 / (maxY - minY)
-        transformation = scale' scaleFactor scaleFactor
-                         `transform`
-                         translate' (- minX) (- minY)
+        transformation = scaleT scaleFactor scaleFactor <> translateT (Vec2 (- minX) (- minY))
     in transform transformation polygons
 
 haskellLogoRaw :: [Polygon]
@@ -68,7 +66,7 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
     relativeSpiral = go instructions (Vec2 1 0)
       where
         go [] _dir = []
-        go ((len, rotate) : rest) dir = width*fromIntegral len *. dir : go rest (rotate dir)
+        go ((len, makeCorner) : rest) dir = width*fromIntegral len *. dir : go rest (makeCorner dir)
     turnLeft  (Vec2 x y) = Vec2   y  (-x)
     turnRight (Vec2 x y) = Vec2 (-y)   x
 
@@ -76,5 +74,5 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
 -- and starting with the first corner on the positive x axis.
 regularPolygon :: Int -> Polygon
 regularPolygon n = Polygon
-    [ transform (rotate' (rad d)) (Vec2 1 0)
+    [ rotate (rad d) (Vec2 1 0)
         | d <- take n [0, 2*pi/fromIntegral n ..] ]

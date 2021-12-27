@@ -3,7 +3,7 @@
 module Test.Penrose (tests) where
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
 import Geometry
@@ -24,30 +24,37 @@ testBaseConfigurations :: TestTree
 testBaseConfigurations = testCase "Base configurations" test
   where
     test = renderAllFormats 860 200 "test/out/penrose/1_base_configurations" $ do
-        for_ (star1 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
-        for_ (star2 (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
-        for_ (decagonRose (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
-        translate 220 0
-        for_ (asymmetricDecagon (Vec2 100 100) 100) $ \tile -> drawTile tile >> drawConnectors tile
+        for_ (star1 (Vec2 100 100) 100) drawTileWithConnectors
+        Cairo.translate 220 0
+        for_ (star2 (Vec2 100 100) 100) drawTileWithConnectors
+        Cairo.translate 220 0
+        for_ (decagonRose (Vec2 100 100) 100) drawTileWithConnectors
+        Cairo.translate 220 0
+        for_ (asymmetricDecagon (Vec2 100 100) 100) drawTileWithConnectors
 
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    fitToBox = transform (translate' 0 60) . transform (scale' 100 100)
-    baseRhombThick = fitToBox thickTileBase
-    baseRhombThin = transform (translate' 200 0) $ fitToBox thinTileBase
+    fitToBox = scaleT 100 100
+    baseRhombThick = transform fitToBox thickTileBase
+    baseRhombThin = transform (translateT (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
-    test = renderAllFormats 420 420 "test/out/penrose/2_subdivision" $ do
-        translate 10 10
-        for_ gen0 drawTile
-        translate 0 140
-        for_ gen1 drawTile
-        translate 0 140
-        for_ gen2 drawTile
+    test = renderAllFormats 600 200 "test/out/penrose/2_subdivision" $ do
+        Cairo.translate 10 10
+        for_ gen0 drawTileWithConnectors
+        Cairo.translate 150 0
+        drawArrows
+        Cairo.translate 50 0
+        for_ gen1 drawTileWithConnectors
+        Cairo.translate 150 0
+        drawArrows
+        Cairo.translate 50 0
+        for_ gen2 drawTileWithConnectors
+    drawArrows = do
+        arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
+        arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
 
 testInscribedPentagons :: TestTree
 testInscribedPentagons = testCase "Switch to pentagons & stars" test
@@ -57,6 +64,9 @@ testInscribedPentagons = testCase "Switch to pentagons & stars" test
             restoreStateAfter $ do
                 polygonSketchOpen polygon
                 stroke
+
+drawTileWithConnectors :: Tile -> Render ()
+drawTileWithConnectors tile = drawTile tile >> drawConnectors tile
 
 drawTile :: Tile -> Render ()
 drawTile Tile{..} = restoreStateAfter $ do

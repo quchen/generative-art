@@ -3,7 +3,7 @@ module Test.Mirror (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo
+import Graphics.Rendering.Cairo as Cairo
 
 import Draw
 import Geometry
@@ -26,9 +26,9 @@ setMirrorStyle = hsva 0 0 0 0.5 >> setDash [5,5] 0 >> setLineWidth 1
 
 mirrorPointsTest :: IO ()
 mirrorPointsTest = renderAllFormats 550 550 "test/out/mirror" (do
-    translate 10 20
+    Cairo.translate 10 20
     mirror1
-    translate 0 230
+    Cairo.translate 0 230
     mirror2
     )
 

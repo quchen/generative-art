@@ -59,7 +59,7 @@ areaTest = testGroup "Area"
     square = testProperty "Square" (forAll
         ((,,,,) <$> vec2 <*> vec2 <*> vec2 <*> vec2 <*> arbitrary)
         (\(Vec2 x1 y1, Vec2 x2 y2, center, moveVec, angle) ->
-            let poly = (move moveVec . rotateAround center angle . Polygon)
+            let poly = (translate moveVec . rotateAround center angle . Polygon)
                            [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
                 actual = polygonArea poly
                 expected = Area (abs ((x2-x1) * (y2-y1)))
@@ -170,14 +170,14 @@ transformationTest = testGroup "Affine transformations"
     [ testGroup "Algebraic properties"
         [ testProperty "Multiple rotations add angles" $ \a1@(Angle a1') a2@(Angle a2') ->
             approxEqualTolerance (Tolerance 1e-5)
-                (transformationProduct (rotate' a1) (rotate' a2))
-                (rotate' (Angle (a1' + a2')))
+                (transformationProduct (rotateT a1) (rotateT a2))
+                (rotateT (Angle (a1' + a2')))
         ]
     , testGroup "Invertibility"
         [ invertibilityTest "Identity"
             (pure [identityTransformation])
         , invertibilityTest "Translation"
-            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translate' x y])
+            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translateT (Vec2 x y)])
         , invertibilityTest "Scaling"
             (do let sign = elements [1,-1]
                     factor = choose (0.1,10)
@@ -185,17 +185,17 @@ transformationTest = testGroup "Affine transformations"
                 ySign <- sign
                 xScale <- factor
                 yScale <- factor
-                pure [scale' (xSign*xScale) (ySign*yScale)])
+                pure [scaleT (xSign*xScale) (ySign*yScale)])
         , invertibilityTest "Rotation"
-            (do angle <- arbitrary; pure [rotate' angle])
+            (do angle <- arbitrary; pure [rotateT angle])
         , invertibilityTest "Combination of transformations" $ do
             size <- getSize
             n <- choose (2, min size 10)
             Test.Tasty.QuickCheck.vectorOf n (frequency
                 [ (1, pure identityTransformation)
-                , (3, rotate' <$> arbitrary)
-                , (3, translate' <$> choose (-100,100) <*> choose (-100,100))
-                , (3, scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
+                , (3, rotateT <$> arbitrary)
+                , (3, translateT <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
+                , (3, scaleT <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
                              <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
     ]
@@ -207,6 +207,6 @@ transformationTest = testGroup "Affine transformations"
                 vec <- arbitrary
                 pure (vec :: Vec2, transformation)
             test (vec, transformation) = approxEqualTolerance (Tolerance 1e-5)
-                ((transform (inverseTransformation transformation) . transform transformation) vec)
+                ((transform (inverse transformation) . transform transformation) vec)
                 vec
         in testProperty name (forAll gen test)

@@ -3,7 +3,7 @@ module Test.Reflection (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo
+import Graphics.Rendering.Cairo as Cairo
 
 import Draw
 import Geometry

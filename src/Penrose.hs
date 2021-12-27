@@ -51,19 +51,6 @@ instance Transform Tile where
         , tileP1 = transform t tileP1
         , tileP2 = transform t tileP2 }
 
-instance Rotate Tile where
-    rotateAround pivot theta = move pivot . transform (rotate' theta) . move (negateVec2 pivot)
-
-instance Move Tile where
-    move (Vec2 x y) = transform (translate' x y)
-
-instance Mirror Tile where
-    mirrorAlong line tile@Tile{..} = tile
-        { tileP0 = mirrorAlong line tileP0
-        , tileP1 = mirrorAlong line tileP1
-        , tileP2 = mirrorAlong line tileP2
-        }
-
 -- | There are two Penrose rhombs: A thick rhomb with an angle of 72°, and a
 -- thin rhomb with an angle of 36°.
 data TileType = Thin | Thick
@@ -139,8 +126,8 @@ inscribedPentagons f@Tile{..} = case tileType of
         v0 = p0 -. center
         p0 = center +. 1/phi *. (tileP1 -. center)
         p1 = center +. rotate theta v0
-        p2 = center +. rotate (2*theta) v0
-        p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
+        p2 = center +. rotate (2 *. theta) v0
+        p3 = center +. 0.5 *. (rotate (2 *. theta) v0 +. rotate (3 *. theta) v0)
 
     Thick -> [pentagon1, pentagon2]
       where
@@ -148,31 +135,36 @@ inscribedPentagons f@Tile{..} = case tileType of
           where
             center = tileP2 +. a *. (tileP0 -. tileP2)
             v1 = p1 -. center
-            p0 = center +. 0.5 *. (v1 +. rotate (-theta) v1)
+            p0 = center +. 0.5 *. (v1 +. rotate (negateV theta) v1)
             p1 = tileP2 +. a *. (tileP1 -. tileP2)
             p2 = center +. rotate theta v1
-            p3 = center +. rotate (2*theta) v1
+            p3 = center +. rotate (2 *. theta) v1
         pentagon2 = Polygon [p0, p1, p2, p3]
           where
             center = tileP1 +. a *. (tileP0 -. tileP1)
             v0 = p0 -. center
             p0 = center +. 1/phi *. (tileP0 -. center)
             p1 = center +. rotate theta v0
-            p2 = center +. rotate (2*theta) v0
-            p3 = center +. 0.5 *. (rotate (2*theta) v0 +. rotate (3*theta) v0)
+            p2 = center +. rotate (2 *. theta) v0
+            p3 = center +. 0.5 *. (rotate (2 *. theta) v0 +. rotate (3 *. theta) v0)
   where
     a = 1 - 1/phi
     theta = case polygonOrientation (asPolygon f) of
-        PolygonPositive -> 2*pi/5
-        PolygonNegative -> -2*pi/5
-    rotate alpha = transform (rotate' (rad alpha))
+        PolygonPositive -> 2 *. alpha
+        PolygonNegative -> (-2) *. alpha
 
+-- | The golden ratio. It occurs quite frequently in Penrose tilings, e.g. the
+-- ratio between the long diagonal and the edge of a thick tile is 'phi'.
 phi :: Double
 phi = (1+sqrt 5)/2
 
+-- | 36° is the base angle of Penrose tilings.
+alpha :: Angle
+alpha = deg 36
+
 -- | A thin tile with edge length 1 (two half tiles)
 thinTileBase :: [Tile]
-thinTileBase = [baseTile, twin baseTile]
+thinTileBase = rotate (rad (pi/10)) [baseTile, twin baseTile]
   where
     baseTile = Tile
         { tileType = Thin
@@ -183,12 +175,12 @@ thinTileBase = [baseTile, twin baseTile]
 
 -- | A thick tile with edge length 1 (two half tiles)
 thickTileBase :: [Tile]
-thickTileBase = [baseTile, twin baseTile]
+thickTileBase = rotate (rad (pi/5)) [baseTile, twin baseTile]
   where
     baseTile = Tile
         { tileType = Thick
         , tileP0 = Vec2 phi 0
-        , tileP1 = rotate (rad (-pi/5)) $ Vec2 1 0
+        , tileP1 = rotate alpha $ Vec2 1 0
         , tileP2 = Vec2 0 0
         }
 
@@ -197,21 +189,21 @@ thickTileBase = [baseTile, twin baseTile]
 star1 :: Vec2 -> Double -> [Tile]
 star1 center r =
     let inner = flipTile thickTileBase
-    in  (rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r inner
+    in  (rotateAround center . (*. (2 *. alpha)) <$> [0..4]) <*> scaleTo center r inner
 
 -- | There are two star configurations, 'star1' and 'star2'. Depending on the
 -- orientation of the thick tiles, the pattern grows differently.
 --
 -- 'star2' is the base for 'decagonRose'.
 star2 :: Vec2 -> Double -> [Tile]
-star2 center r = scaleTo center r ((rotate . rad . (2*pi/5 *) <$> [0..4]) <*> thickTileBase)
+star2 center r = scaleTo center r ((rotate . (*. (2 *. alpha)) <$> [0..4]) <*> thickTileBase)
 
 -- | A basic Penrose fragment consisting of a 'star2' and some thin tiles
 -- around, forming a decagon.
 decagonRose :: Vec2 -> Double -> [Tile]
 decagonRose center r =
-    let outer = move (Vec2 phi 0) . rotate (rad (7*pi/10)) $ thinTileBase
-    in  star2 center r ++ ((rotateAround center . rad . (2*pi/5 *) <$> [0..4]) <*> scaleTo center r outer)
+    let outer = rotateAround (Vec2 1 0) (7 *. alpha) $ flipTile thinTileBase
+    in  star2 center r ++ ((rotateAround center . (*. (2 *. alpha)) <$> [0..4]) <*> scaleTo center r outer)
 
 -- | Another Penrose fragment.
 asymmetricDecagon :: Vec2 -> Double -> [Tile]
@@ -220,15 +212,14 @@ asymmetricDecagon center r = scaleTo center r $ concat
   where
     origin = Vec2 (-phi) 0
     edge = Vec2 1 0
-    f1 = move origin $ rotate (rad (pi/5)) $ flipTile thickTileBase
-    f2 = move (origin +. edge) $ rotate (rad (3*pi/10)) $ flipTile thinTileBase
-    f3 = mirrorAlong (angledLine origin (rad (pi/5)) (Distance 1)) f2
-    f4 = move (origin +. edge) $ flipTile thickTileBase
-    f5 = move edge $ rotate (rad (3*pi/5)) thickTileBase
-    f6 = flipTile $ move (negateVec2 origin) $ rotate (rad (pi/2)) $ move (rotate (rad (9*pi/10)) edge) thinTileBase
+    f1 = translate origin $ flipTile thickTileBase
+    f2 = translate (origin +. edge) $ rotate alpha $ flipTile thinTileBase
+    f3 = mirrorAlong (angledLine origin alpha (Distance 1)) f2
+    f4 = translate (origin +. edge) $ rotate (negateV alpha) $ flipTile thickTileBase
+    f5 = translate edge $ rotate (2 *. alpha) thickTileBase
+    f6 = rotateAround (Vec2 1 0) (7 *. alpha) thinTileBase
     offAxisTiles = concat [f1, f2, f3, f5]
     onAxisTiles = concat [f4, f6]
 
-
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
-scaleTo center size = fmap (move center . transform (scale' (size/phi) (size/phi)))
+scaleTo center size = transform (translateT center <> scaleT (size/phi) (size/phi))

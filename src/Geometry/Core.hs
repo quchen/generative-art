@@ -2,12 +2,11 @@
 
 module Geometry.Core (
     -- * Primitives
-    -- ** Vectors
-    Vec2(..)
-    , (+.)
-    , negateVec2
-    , (-.)
-    , (*.)
+    -- ** Vector spaces
+      VectorSpace(..)
+
+    -- ** 2D Vectors
+    , Vec2(..)
     , dotProduct
     , norm
     , normSquare
@@ -55,19 +54,28 @@ module Geometry.Core (
     , Distance(..)
     , Area(..)
 
-    -- ** Convenience classes
-    , Move(..)
+    -- * Transformations
     , moveRad
-    , Rotate(..)
-    , Mirror(..)
     , Transformation(..)
     , identityTransformation
     , transformationProduct
-    , inverseTransformation
+    , inverse
     , Transform(..)
-    , translate'
-    , rotate'
-    , scale'
+    , translateT
+    , translate
+    , rotateT
+    , rotate
+    , rotateAround
+    , scaleT
+    , scale
+    , scaleXY
+    , scaleAround
+    , scaleAroundXY
+    , mirrorT
+    , mirrorAlongT
+    , mirrorX
+    , mirrorY
+    , mirrorAlong
 
     -- * Processes
     , reflection
@@ -121,6 +129,11 @@ instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
                 in "Polygon " ++ show corners
 
+-- | Line, defined by beginning and end.
+data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+
+
+
 -- | Affine transformation,
 --
 -- > transformation a b c
@@ -128,6 +141,9 @@ instance Show Polygon where
 -- > ==>
 -- > / a b \ + / c \
 -- > \ d e /   \ f /
+--
+-- Transformations can be chained using '<>', but in general it’s often more
+-- convenient to use the predefined functions such as 'rotateT with '.' as composition.
 data Transformation = Transformation Double Double Double
                                      Double Double Double
                                      deriving (Eq, Ord, Show)
@@ -145,12 +161,18 @@ transformationProduct (Transformation a1 b1 c1
                     =  Transformation (a1*a2 + b1*d2) (a1*b2 + b1*e2) (a1*c2 + b1*f2 + c1)
                                       (d1*a2 + e1*d2) (d1*b2 + e1*e2) (d1*c2 + e1*f2 + f1)
 
-inverseTransformation :: Transformation -> Transformation
-inverseTransformation (Transformation a b c
-                                      d e f)
-                     = let x = 1 / (a*e - b*d)
-                       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
-                                         (x*(-d)) (x*a) (x*(d*c - a*f))
+inverse :: Transformation -> Transformation
+inverse (Transformation a b c
+                        d e f)
+    = let x = 1 / (a*e - b*d)
+      in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
+                        (x*(-d)) (x*a) (x*(d*c - a*f))
+
+instance Semigroup Transformation where
+    (<>) = transformationProduct
+
+instance Monoid Transformation where
+    mempty = identityTransformation
 
 class Transform geo where
     transform :: Transformation -> geo -> geo
@@ -165,7 +187,7 @@ instance Transform Line where
     transform t (Line start end) = Line (transform t start) (transform t end)
 
 instance Transform Polygon where
-    transform t (Polygon ps) = Polygon (map (transform t) ps)
+    transform t (Polygon ps) = Polygon (transform t ps)
 
 instance Transform Transformation where
     transform = transformationProduct
@@ -178,124 +200,110 @@ instance Transform Transformation where
 instance Transform a => Transform [a] where
     transform t = map (transform t)
 
-translate' :: Double -> Double -> Transformation
-translate' dx dy = Transformation
+translateT :: Vec2 -> Transformation
+translateT (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
 
-rotate' :: Angle -> Transformation
-rotate' (Angle a) = Transformation
+translate :: Transform geo => Vec2 -> geo -> geo
+translate v = transform (translateT v)
+
+{-# DEPRECATED move "Use translate instead" #-}
+move :: Transform geo => Vec2 -> geo -> geo
+move = translate
+
+{-# DEPRECATED moveRad "Rename or remove this" #-}
+-- | Move along an angle/distance instead of x/y offsets
+moveRad :: Transform geo => Angle -> Distance -> geo -> geo
+moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
+
+rotateT :: Angle -> Transformation
+rotateT (Angle a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
-scale' :: Double -> Double -> Transformation
-scale' x y = Transformation
+rotate :: Transform geo => Angle -> geo -> geo
+rotate angle = transform (rotateT angle)
+
+rotateAround :: Transform geo => Vec2 -> Angle -> geo -> geo
+rotateAround pivot angle = transform (translateT pivot <> rotateT angle <> inverse (translateT pivot))
+
+scaleT :: Double -> Double -> Transformation
+scaleT x y = Transformation
     x 0 0
     0 y 0
 
--- | Line, defined by beginning and end.
-data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+scale :: Transform geo => Double -> geo -> geo
+scale factor = transform (scaleT factor factor)
 
--- | Newtype safety wrapper.
-newtype Angle = Angle Double deriving (Eq, Ord)
+scaleAround :: Transform geo => Vec2 -> Double -> geo -> geo
+scaleAround pivot factor = transform (translateT pivot <> scaleT factor factor <> inverse (translateT pivot))
 
--- | Newtype safety wrapper.
-newtype Distance = Distance Double deriving (Eq, Ord, Show)
+scaleXY :: Transform geo => Double -> Double -> geo -> geo
+scaleXY x y = transform (scaleT x y)
 
--- | Newtype safety wrapper.
-newtype Area = Area Double deriving (Eq, Ord, Show)
+scaleAroundXY :: Transform geo => Vec2 -> Double -> Double -> geo -> geo
+scaleAroundXY pivot x y = transform (translateT pivot <> scaleT x y <> inverse (translateT pivot))
 
-instance Show Angle where
-    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+mirrorT :: Angle -> Transformation
+mirrorT angle = rotateT angle <> mirrorVertically <> inverse (rotateT angle)
+  where
+    mirrorVertically = Transformation
+        1    0 0
+        0 (-1) 0
 
-class Move geo where
-    move :: Vec2 -> geo -> geo
+mirrorAlongT :: Line -> Transformation
+mirrorAlongT line@(Line p _) = translateT p <> mirrorT (angleOfLine line) <> inverse (translateT p)
 
-moveRad :: Move geo => Angle -> Distance -> geo -> geo
-moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
+mirrorX, mirrorY :: Transform geo => geo -> geo
+mirrorX = transform (mirrorT (deg 90))
+mirrorY = transform (mirrorT (deg 0))
 
-instance Move Vec2 where
-    move = (+.)
+mirrorAlong :: Transform geo => Line -> geo -> geo
+mirrorAlong line = transform (mirrorAlongT line)
 
-instance Move Polygon where
-    move offset (Polygon points) = Polygon (map (move offset) points)
 
-instance Move Line where
-    move offset (Line a b) = Line (move offset a) (move offset b)
+-- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
+-- space, but also concepts like 'Angle's or 'Distance's – anything that can be
+-- added, inverted, and multiplied with a scalar.
+--
+-- Vector space laws:
+--
+--     (1) Associativity of addition: @a +. (b +. c) = (a +. b) +. c@
+--     (2) Neutral ('zero'): @a +. 'zero' = a = 'zero' +. a@
+--     (3) Inverse ('negateV'): @a +. 'negateV' a = 'zero' = 'negateV' a +. a@. '(-.)' is a shorthand for the inverse: @a -. b = a +. negate b@.
+--     (4) Commutativity of addition: @a +. b = b +. a@
+--     (5) Distributivity of scalar multiplication 1: @a *. (b +. c) = a *. b +. a *. c@
+--     (6) Distributivity of scalar multiplication 2: @(a + b) *. c = a *. c +. b *. c@
+--     (7) Compatibility of scalar multiplication: @(a * b) *. c = a *. (b *. c)@
+--     (8) Scalar identity: @1 *. a = a@
+class VectorSpace v where
+    {-# MINIMAL (+.), (*.), ((-.) | negateV), zero #-}
+    -- | Vector addition
+    (+.) :: v -> v -> v
 
-instance Move geo => Move [geo] where
-    move offset = fmap (move offset)
+    -- | Vector subtraction
+    (-.) :: v -> v -> v
+    a -. b = a +. negateV b
 
-instance Move geo => Move (Maybe geo) where
-    move offset = fmap (move offset)
+    -- | Multiplication with a scalar
+    (*.) :: Double -> v -> v
 
-class Rotate geo where
-    rotateAround :: Vec2 -> Angle -> geo -> geo
-    rotate :: Angle -> geo -> geo
-    rotate = rotateAround (Vec2 0 0)
+    -- | Inverse element
+    negateV :: v -> v
+    negateV a = zero -. a
 
-instance Rotate Vec2 where
-    rotateAround (Vec2 rx ry) (Angle angle) (Vec2 px py) = Vec2 px' py'
-      where
-        px0 = px - rx
-        py0 = py - ry
-
-        pxR = px0 * cos angle - py0 * sin angle
-        pyR = px0 * sin angle + py0 * cos angle
-
-        px' = pxR + rx
-        py' = pyR + ry
-
-instance Rotate Line where
-    rotateAround pivot angle (Line p1 p2)
-      = Line (rotateAround pivot angle p1) (rotateAround pivot angle p2)
-
-instance Rotate Polygon where
-    rotateAround pivot angle (Polygon points)
-      = Polygon (map (rotateAround pivot angle) points)
-
-instance Rotate geo => Rotate [geo] where
-    rotateAround v a = fmap (rotateAround v a)
-
-class Mirror geo where
-    mirrorAlong :: Line -> geo -> geo
-    mirrorX, mirrorY :: geo -> geo
-    mirrorX = mirrorAlong (Line (Vec2 0 0) (Vec2 0 1))
-    mirrorY = mirrorAlong (Line (Vec2 0 0) (Vec2 1 0))
-
-instance Mirror Vec2 where
-    mirrorAlong mirror p
-      = let perpendicular = perpendicularLineThrough p mirror
-            (foot, _ty) = intersectionLL mirror perpendicular
-        in foot +. foot -. p
-
-instance Mirror Line where
-    mirrorAlong mirror (Line start end) = Line (mirrorAlong mirror start)
-                                               (mirrorAlong mirror end)
-
-instance Mirror Polygon where
-    mirrorAlong mirror (Polygon ps) = Polygon (map (mirrorAlong mirror) ps)
-
-instance Mirror geo => Mirror [geo] where
-    mirrorAlong l = fmap (mirrorAlong l)
+    -- | Neutral
+    zero :: v
 
 infixl 6 +., -.
 infixl 7 *.
 
-(+.), (-.) :: Vec2 -> Vec2 -> Vec2
-(*.) :: Double -> Vec2 -> Vec2
-
--- | Vector addition
-Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
-
--- | Vector subtraction
-v1 -. v2 = v1 +. negateVec2 v2
-
--- | Scalar multiplication
-a *. Vec2 x y = Vec2 (a*x) (a*y)
-
-negateVec2 :: Vec2 -> Vec2
-negateVec2 (Vec2 x y) = Vec2 (-x) (-y)
+instance VectorSpace Vec2 where
+    Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
+    a *. Vec2 x y = Vec2 (a*x) (a*y)
+    negateV (Vec2 x y) = Vec2 (-x) (-y)
+    zero = Vec2 0 0
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
@@ -310,13 +318,40 @@ norm = Distance . sqrt . normSquare
 normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
+-- | Newtype safety wrapper.
+newtype Angle = Angle Double deriving (Eq, Ord)
+
+instance Show Angle where
+    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+
+instance VectorSpace Angle where
+    Angle a +. Angle b = rad (a + b)
+    Angle a -. Angle b = rad (a - b)
+    a *. Angle b = rad (a * b)
+    negateV (Angle a) = rad (-a)
+    zero = Angle 0
+
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
-deg degrees = Angle (degrees / 360 * 2 * pi)
+deg degrees = rad (degrees / 360 * 2 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
+
+-- | Newtype safety wrapper.
+newtype Distance = Distance Double deriving (Eq, Ord, Show)
+
+instance VectorSpace Distance where
+    Distance a +. Distance b = Distance (a + b)
+    Distance a -. Distance b = Distance (a - b)
+    a *. Distance b = Distance (a * b)
+    negateV (Distance a) = Distance (-a)
+    zero = Distance 0
+
+-- | Newtype safety wrapper.
+newtype Area = Area Double deriving (Eq, Ord, Show)
+
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
@@ -620,7 +655,7 @@ perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
     -- Move line so it starts at the origin
-    Line start0 end0 = move (negateVec2 start) line
+    Line start0 end0 = move (negateV start) line
     -- Rotate end point 90° CCW
     end0' = let Vec2 x y  = end0
             in Vec2 (-y) x

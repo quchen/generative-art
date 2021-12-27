@@ -1,7 +1,7 @@
 module Test.Voronoi (tests) where
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
 import Geometry
@@ -37,46 +37,59 @@ testPolygonCutting = testGroup "Adding polygons"
     face2' = updateFace point1 face2
     face2'' = updateFace point3 face2'
     face3' = updateFace point2 $ updateFace point1 $ face3
-    test1 = renderAllFormats 360 240 "test/out/voronoi/1_cut_polygon" $ do
-        translate 10 10
+    test1 = renderAllFormats 420 240 "test/out/voronoi/1_cut_polygon" $ do
+        Cairo.translate 10 10
         drawVoronoi [face1]
         drawCenter face2
-        translate 0 120
+        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        Cairo.translate 0 120
         drawVoronoi [face2]
         drawCenter face1
-        translate 120 (-120)
+        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        Cairo.translate 150 (-120)
         drawVoronoi [face1']
         drawCenter face2
-        translate 0 120
+        drawArrow (Vec2 110 50) (deg 45) (Distance 30)
+        Cairo.translate 0 120
         drawVoronoi [face2']
         drawCenter face1
-        translate 120 (-60)
+        drawArrow (Vec2 110 50) (deg (-45)) (Distance 30)
+        Cairo.translate 150 (-60)
         drawVoronoi [face1', face2']
-    test2 = renderAllFormats 360 360 "test/out/voronoi/2_add_polygon" $ do
-        translate 10 70
+    test2 = renderAllFormats 420 360 "test/out/voronoi/2_add_polygon" $ do
+        Cairo.translate 10 70
         drawVoronoi [face1', face2']
         drawCenter face3
-        translate 0 180
+        drawArrow (Vec2 110 20) (deg (-45)) (Distance 30)
+        drawArrow (Vec2 110 80) (deg 45) (Distance 30)
+        Cairo.translate 0 180
         drawVoronoi [face3]
         for_ [face1, face2] drawCenter
-        translate 120 (-240)
+        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        Cairo.translate 150 (-240)
         drawVoronoi [face1'']
         drawCenter face3
-        translate 0 120
+        drawArrow (Vec2 110 90) (deg 45) (Distance 30)
+        Cairo.translate 0 120
         drawVoronoi [face2'']
         drawCenter face3
-        translate 0 120
+        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        Cairo.translate 0 120
         drawVoronoi [face3']
         for_ [face1, face2] drawCenter
-        translate 120 (-120)
+        drawArrow (Vec2 110 10) (deg (-45)) (Distance 30)
+        Cairo.translate 150 (-120)
         drawVoronoi [face1'', face2'', face3']
+    drawArrow start angle len = do
+        arrowSketch (angledLine start angle len) def
+        stroke
 
 testVoronoi :: TestTree
 testVoronoi = testCase "Full Voronoi pattern" test
   where
     voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
     test = renderAllFormats 120 120 "test/out/voronoi/3_full_voronoi" $ do
-        translate 10 10
+        Cairo.translate 10 10
         drawVoronoi (faces voronoiPattern)
 
 drawVoronoi :: [VoronoiFace MmaColor] -> Render ()

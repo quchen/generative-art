@@ -5,7 +5,7 @@ module Test.ConvexHull (tests) where
 import Data.Default.Class
 import Data.Foldable
 import Data.List
-import Graphics.Rendering.Cairo hiding (x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry
@@ -37,7 +37,7 @@ visualTest = testCase "Visual" $ do
     assertions points hull
   where
     renderVisual points hull = renderAllFormats 210 180 "test/out/convex_hull" $ do
-        translate 110 90
+        Cairo.translate 110 90
         setLineWidth 1
         for_ (polygonEdges hull) $ \edge@(Line start _) -> do
             mmaColor 1 1

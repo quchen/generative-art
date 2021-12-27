@@ -6,7 +6,7 @@ module Main (main) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (transform)
+import Graphics.Rendering.Cairo as Cairo hiding (transform)
 
 import Draw
 import Geometry
@@ -38,7 +38,7 @@ runBillardSpec BillardSpec{..} =
 
 drawing :: Render ()
 drawing = do
-    let [left, lambda, upper, lower] = transform (scale' 340 340) haskellLogo
+    let [left, lambda, upper, lower] = transform (scaleT 340 340) haskellLogo
         billardLeft   = BillardSpec{ steps = 256, table = polygonEdges left,   startPos = Vec2 10  10,  startAngle = deg 40 }
         billardLambda = BillardSpec{ steps = 400, table = polygonEdges lambda, startPos = Vec2 230 175, startAngle = deg 40 }
         billardUpper  = BillardSpec{ steps = 120, table = polygonEdges upper,  startPos = Vec2 400 120, startAngle = deg 20 }
@@ -54,7 +54,7 @@ drawing = do
                         Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
                 in setColor alpha >> lineSketch line >> stroke)
 
-    translate 10 10
+    Cairo.translate 10 10
 
     setLineWidth 1
     billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke

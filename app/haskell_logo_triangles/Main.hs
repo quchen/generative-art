@@ -4,7 +4,7 @@ module Main (main) where
 
 import Control.Monad.Trans.State
 import Data.Foldable
-import Graphics.Rendering.Cairo  hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 import System.Random
 
 import Comparison
@@ -21,7 +21,7 @@ picWidth = 500
 picHeight = 360
 
 haskellLogo' :: [Polygon]
-haskellLogo' = transform (scale' 340 340) haskellLogo
+haskellLogo' = transform (scaleT 340 340) haskellLogo
 
 main :: IO ()
 main = png >> svg
@@ -58,7 +58,7 @@ drawing = do
     let recurse polygon = minMaxAreaRatio (polygon : haskellLogo') >= 1/64
         acceptCut polygons = minMaxAreaRatio polygons >= 1/3
         shattered = runShatterProcess recurse acceptCut haskellLogo' (mkStdGen 16)
-    translate 10 10
+    Cairo.translate 10 10
     setLineCap LineCapRound
     setLineJoin LineJoinRound
     restoreStateAfter $ for_ shattered $ \polygon -> do
