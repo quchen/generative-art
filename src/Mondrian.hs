@@ -24,7 +24,7 @@ turn Left = Down
 
 type Vertex = (Int, Int)
 
-type Edge = (Direction, Vertex)
+type Edge = (Vertex, Direction)
 
 type NextVertex = Map Direction Vertex
 
@@ -65,11 +65,11 @@ constructPolygon startVertex = (startVertex :) <$> (go Down =<< nextVertex Down 
             let nextDirection = turn direction
                 goInNextDirection = do
                     vertex' <- nextVertex nextDirection vertex
-                    modify' (unsafeRemoveEdge (nextDirection, vertex))
+                    modify' (unsafeRemoveEdge (vertex, nextDirection))
                     go (turn direction) vertex'
                 goInSameDirection = do
                     vertex' <- nextVertex direction vertex
-                    modify' (unsafeRemoveEdge (direction, vertex))
+                    modify' (unsafeRemoveEdge (vertex, direction))
                     go direction vertex'
             (vertex :) <$> goInNextDirection <|> goInSameDirection
 
@@ -79,11 +79,11 @@ constructPolygon startVertex = (startVertex :) <$> (go Down =<< nextVertex Down 
         lift (mondrian !? vertex >>= (!? direction))
 
 unsafeRemoveEdge :: Edge -> Mondrian -> Mondrian
-unsafeRemoveEdge (direction, vertex) = Map.adjust (Map.delete direction) vertex
+unsafeRemoveEdge (vertex, direction) = Map.adjust (Map.delete direction) vertex
 
 removeEdge :: Edge -> Mondrian -> Mondrian
-removeEdge edge@(_, vertex) mondrian = flip execState mondrian $ when (hasEdge edge mondrian) $ do
-    edge'@(_, vertex') <- gets (edgeTwin edge)
+removeEdge edge@(vertex, _) mondrian = flip execState mondrian $ when (hasEdge edge mondrian) $ do
+    edge'@(vertex', _) <- gets (edgeTwin edge)
     modify' $ unsafeRemoveEdge edge
     modify' $ unsafeRemoveEdge edge'
     cleanup vertex
@@ -91,27 +91,27 @@ removeEdge edge@(_, vertex) mondrian = flip execState mondrian $ when (hasEdge e
   where
     cleanup :: Vertex -> State Mondrian ()
     cleanup vertex = do
-        let remainingEdges = Map.toList (assumeJust "cleanup: vertex exists" (mondrian !? vertex))
+        remainingEdges <- gets (Map.toList . assumeJust "cleanup: vertex exists" . (!? vertex))
         case remainingEdges of
             [] -> modify' (Map.delete vertex)
             -- Vertex with only a single edge cannot exist
-            [e@(_, v)] -> do
-                gets (edgeTwin e) >>= modify' . unsafeRemoveEdge
+            [(d, v')] -> do
+                modify' (unsafeRemoveEdge (v', opposite d))
                 modify' (delete vertex)
-                cleanup v
+                cleanup v'
             -- Vertex with two edges that are not opposite, i.e. corners, cannot exist as a result from removing edges
-            [e1@(d1, v1), e2@(d2, v2)] | d1 /= opposite d2 -> do
-                gets (edgeTwin e1) >>= modify' . unsafeRemoveEdge
-                gets (edgeTwin e2) >>= modify' . unsafeRemoveEdge
+            [(d1, v1'), (d2, v2')] | d1 /= opposite d2 -> do
+                modify' (unsafeRemoveEdge (v1', opposite d1))
+                modify' (unsafeRemoveEdge (v2', opposite d2))
                 modify' (delete vertex)
-                cleanup v1 >> cleanup v2
+                cleanup v1' >> cleanup v2'
             _ -> pure ()
 
 hasEdge :: Edge -> Mondrian -> Bool
-hasEdge (direction, vertex) mondrian = isJust (mondrian !? vertex >>= (!? direction))
+hasEdge (vertex, direction) mondrian = isJust (mondrian !? vertex >>= (!? direction))
 
 edgeTwin :: Edge -> Mondrian -> Edge
-edgeTwin (direction, vertex) mondrian = (opposite direction, assumeJust "edgeTwin: direction exists" (assumeJust "edgeTwin: Vertex exists" (mondrian !? vertex) !? direction))
+edgeTwin (vertex, direction) mondrian = (assumeJust "edgeTwin: direction exists" (assumeJust "edgeTwin: Vertex exists" (mondrian !? vertex) !? direction), opposite direction)
 
 opposite :: Direction -> Direction
 opposite = turn . turn

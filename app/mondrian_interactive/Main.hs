@@ -8,6 +8,7 @@ import           Graphics.UI.Threepenny.Core
 import           Geometry
 import           Mondrian
 import qualified Data.Map as Map
+import Control.Monad (when)
 
 
 
@@ -17,11 +18,12 @@ main = UI.startGUI UI.defaultConfig setup
 
 setup :: Window -> UI ()
 setup window = do
-    let w = 1200
-        h = 1200
+    let w = 1000
+        h = 1000
     elemCanvas <- UI.canvas
         # set UI.width w
         # set UI.height h
+        # set UI.style [("background", "grey")]
     getBody window #+ [element elemCanvas]
 
     let eToggleEdge = toggleEdge <$> UI.mousedown elemCanvas
@@ -29,20 +31,16 @@ setup window = do
     bMondrian <- accumB (mondrianBaseGrid 10 10) eToggleEdge
 
     onChanges bMondrian $ \mondrian -> do
+        elemCanvas # UI.clearCanvas
         for_ (zip (asPolygons 100 mondrian) [0..]) $ \(poly, color) -> drawFaceCanvas elemCanvas poly color
-        for_ (edges mondrian) $ \(Line a b) -> do
-            elemCanvas # UI.moveTo (coordinates a)
-            elemCanvas # UI.lineTo (coordinates b)
-            elemCanvas # set' UI.strokeStyle "#ff00ff"
-            elemCanvas # set' UI.lineWidth 4
-            elemCanvas # UI.stroke
+        when False $ for_ (edges mondrian) (drawEdgeForDebugging elemCanvas)
 
 
     pure ()
 
 toggleEdge :: (Double, Double) -> Mondrian -> Mondrian
 toggleEdge (x, y) mondrian = case find (pointInPolygon (Vec2 x y) . fst) edgeClickAreas of
-    Just (_, (vertex, direction)) -> removeEdge (direction, vertex) mondrian
+    Just (_, edge) -> removeEdge edge mondrian
     Nothing -> mondrian
 
 edges :: Mondrian -> [Line]
@@ -98,6 +96,18 @@ drawFaceCanvas elemCanvas poly color = case poly of
         elemCanvas # set' UI.strokeStyle "#000000"
         elemCanvas # set' UI.lineWidth 20
         elemCanvas # UI.stroke
+
+drawEdgeForDebugging :: UI.Element -> Line -> UI ()
+drawEdgeForDebugging elemCanvas l@(Line a b) = do
+    elemCanvas # set' UI.strokeStyle "#ff00ff"
+    elemCanvas # set' UI.lineWidth 4
+    elemCanvas # UI.moveTo (coordinates a)
+    elemCanvas # UI.lineTo (coordinates b)
+    elemCanvas # UI.stroke
+    let (Line c d) = angledLine (0.5 *. (a +. b)) (angleOfLine l +. deg (45)) (Distance 10)
+    elemCanvas # UI.moveTo (coordinates c)
+    elemCanvas # UI.lineTo (coordinates d)
+    elemCanvas # UI.stroke
 
 coordinates :: Vec2 -> (Double, Double)
 coordinates (Vec2 x y) = (x, y)
