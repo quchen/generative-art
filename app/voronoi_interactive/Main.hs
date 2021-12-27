@@ -2,27 +2,19 @@
 
 module Main (main) where
 
-import           Control.Applicative             (liftA2)
 import           Control.Monad                   (replicateM)
-import           Data.Char                       (ord)
-import           Data.Foldable                   (for_)
-import           Data.List                       (find)
-import           Data.Maybe                      (mapMaybe)
-import           Data.Vector                     (fromList)
+import           Data.Foldable                   (for_, Foldable (foldl'))
 import           Prelude                         hiding ((**))
-import           System.Environment              (getArgs)
-import           System.Random.MWC               (GenIO, initialize, uniformR)
+import           System.Random.MWC               (GenIO, uniformR, create)
 import           System.Random.MWC.Distributions (normal)
 
 import qualified Graphics.Rendering.Cairo        as Cairo
-import qualified Graphics.UI.Threepenny as UI
+import qualified Graphics.UI.Threepenny          as UI
 import           Graphics.UI.Threepenny.Core
 
 import           Geometry
 import           Voronoi
 import           Draw
-
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
 main :: IO ()
 main = UI.startGUI UI.defaultConfig setup
@@ -31,60 +23,53 @@ setup :: Window -> UI ()
 setup window = do
     let w = 1200
         h = 1200
-    elemCanvas <- UI.canvas
-        # set UI.width w
-        # set UI.height h
-    getBody window #+ [element elemCanvas]
+    gen <- liftIO create
 
-    let eAddPoint = (\(x, y) voronoi -> addPoint' voronoi (Vec2 x y)) <$> UI.mousedown elemCanvas
+    elemCanvas <- UI.canvas # set UI.width w # set UI.height h # set UI.style [("background", "#eeeeee")]
+    btnAddPointsGaussian <- UI.button # set UI.text "Add Gaussian distributed points"
+    btnAddPointsUniform <- UI.button # set UI.text "Add uniformly distributed points"
+    btnReset <- UI.button # set UI.text "Reset"
+    btnSave <- UI.button # set UI.text "Save"
+    inputFileName <- UI.input # set UI.type_ "text" # set UI.value "voronoi.svg"
 
-    bVoronoi <- accumB (emptyVoronoi (fromIntegral w) (fromIntegral h)) eAddPoint
+    _ <- getBody window #+
+        [ row
+            [ element elemCanvas
+            , column
+                [ element btnAddPointsGaussian
+                , element btnAddPointsUniform
+                , element btnReset
+                , row [element inputFileName, element btnSave]
+                ]
+            ]
+        ]
+
+    let initialState = emptyVoronoi (fromIntegral w) (fromIntegral h)
+
+    eAddPointsGaussian <- do
+        (eAddPoints, triggerAddPoints) <- liftIO newEvent
+        on UI.click btnAddPointsGaussian $ \() -> liftIO $ do
+            points <- gaussianDistributedPoints gen (w, 380) (h, 380) 100
+            triggerAddPoints (\voronoi -> foldl' addPoint' voronoi points)
+        pure eAddPoints
+    eAddPointsUniform <- do
+        (eAddPoints, triggerAddPoints) <- liftIO newEvent
+        on UI.click btnAddPointsUniform $ \() -> liftIO $ do
+            points <- uniformlyDistributedPoints gen w h 100
+            triggerAddPoints (\voronoi -> foldl' addPoint' voronoi points)
+        pure eAddPoints
+    let eAddPointByClicking = (\(x, y) -> flip addPoint' (Vec2 x y)) <$> UI.mousedown elemCanvas
+        eReset = const initialState <$ UI.click btnReset
+        eVoronoi = concatenate <$> unions [eAddPointsGaussian, eAddPointsUniform, eAddPointByClicking, eReset]
+
+    bVoronoi <- accumB initialState eVoronoi
 
     onChanges bVoronoi $ \voronoi -> for_ (faces voronoi) $ \face -> drawFaceCanvas elemCanvas face
 
-    pure ()
-
-drawFaceCanvas :: UI.Element -> VoronoiFace a -> UI ()
-drawFaceCanvas elemCanvas (VF{..}) = drawVFace >> drawVCenter
-  where
-    drawVCenter = do
-        elemCanvas # UI.beginPath
-        let radius = 5
-        elemCanvas # UI.arc (coordinates center) radius 0 (2*pi)
-        elemCanvas # set' UI.fillStyle (UI.htmlColor "#5d81b4")
-        -- elemCanvas # UI.stroke
-        elemCanvas # UI.fill
-    drawVFace = case face of
-        Polygon [] -> pure ()
-        Polygon (p:ps) -> do
-            elemCanvas # UI.beginPath
-            elemCanvas # UI.moveTo (coordinates p)
-            for_ ps $ \p -> elemCanvas # UI.lineTo (coordinates p)
-            elemCanvas # set' UI.fillStyle (UI.htmlColor "#eeeeee")
-            elemCanvas # UI.fill
-            elemCanvas # set' UI.strokeStyle "#5d81b4"
-            elemCanvas # UI.stroke
-
-coordinates :: Vec2 -> (Double, Double)
-coordinates (Vec2 x y) = (x, y)
-
-drawFace :: VoronoiFace () -> RGB -> Cairo.Render ()
-drawFace VF{..} = drawPoly face
-
-drawPoly :: Polygon -> RGB -> Cairo.Render ()
-drawPoly (Polygon []) _ = pure ()
-drawPoly poly color = do
-    let fillColor = color
-        lineColor = lighten 0.2 color
-    polygonSketch poly
-    setColor fillColor
-    Cairo.fillPreserve
-    setColor lineColor
-    Cairo.setLineWidth 1
-    Cairo.stroke
-
-setColor :: RGB -> Cairo.Render ()
-setColor RGB{..} = Cairo.setSourceRGB r g b
+    on UI.click btnSave $ \() -> do
+        fileName <- get UI.value inputFileName
+        voronoi <- liftIO $ currentValue bVoronoi
+        liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
 
 uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
 uniformlyDistributedPoints gen width height count = replicateM count randomPoint
@@ -102,8 +87,50 @@ gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicate
             then randomCoordinate mx sigma
             else pure coord
 
-darkGrey :: RGB
-darkGrey = RGB 0.1 0.1 0.1
+drawFaceCanvas :: UI.Element -> VoronoiFace a -> UI ()
+drawFaceCanvas elemCanvas (VF{..}) = drawVFace >> drawVCenter
+  where
+    drawVCenter = do
+        elemCanvas # UI.beginPath
+        let radius = 5
+        elemCanvas # UI.arc (coordinates center) radius 0 (2*pi)
+        elemCanvas # set' UI.fillStyle (UI.htmlColor "#5d81b4")
+        elemCanvas # UI.fill
+    drawVFace = case face of
+        Polygon [] -> pure ()
+        Polygon (p:ps) -> do
+            elemCanvas # UI.beginPath
+            elemCanvas # UI.moveTo (coordinates p)
+            for_ ps $ \p' -> elemCanvas # UI.lineTo (coordinates p')
+            elemCanvas # set' UI.fillStyle (UI.htmlColor "#eeeeee")
+            elemCanvas # UI.fill
+            elemCanvas # set' UI.strokeStyle "#5d81b4"
+            elemCanvas # UI.stroke
 
-lighten :: Double -> RGB -> RGB
-lighten d RGB{..} = RGB (r + d) (g + d) (b + d)
+coordinates :: Vec2 -> (Double, Double)
+coordinates (Vec2 x y) = (x, y)
+
+drawFaceCairo :: VoronoiFace () -> Cairo.Render ()
+drawFaceCairo VF{..} = case face of
+    Polygon [] -> pure ()
+    poly -> do
+        let fillColor = parseHex "#eeeeee"
+            lineColor = parseHex "#5d81b4"
+        polygonSketch poly
+        setColor fillColor
+        Cairo.fillPreserve
+        setColor lineColor
+        Cairo.setLineWidth 1
+        Cairo.stroke
+
+data RGB = RGB { r :: Double, g :: Double, b :: Double }
+
+setColor :: RGB -> Cairo.Render ()
+setColor RGB{..} = Cairo.setSourceRGB r g b
+
+parseHex :: String -> RGB
+parseHex ['#', r1, r2, g1, g2, b1, b2] = RGB
+    { r = read ("0x" ++ [r1, r2]) / 255
+    , g = read ("0x" ++ [g1, g2]) / 255
+    , b = read ("0x" ++ [b1, b2]) / 255 }
+parseHex _ = undefined
