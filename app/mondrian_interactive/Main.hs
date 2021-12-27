@@ -8,7 +8,7 @@ import           Data.List                       (find)
 import           Data.Map                        as Map
 import           Data.Maybe                      (mapMaybe)
 import           Data.Vector                     (fromList)
-import           Prelude                         hiding ((**))
+import           Prelude                         hiding ((**), Either(..))
 import           System.Environment              (getArgs)
 import           System.Random.MWC               (GenIO, initialize, uniformR)
 import           System.Random.MWC.Distributions (normal)
@@ -20,6 +20,8 @@ import           Graphics.UI.Threepenny.Core
 import           Geometry
 import           Mondrian
 import           Draw
+
+
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
@@ -35,20 +37,28 @@ setup window = do
         # set UI.height h
     getBody window #+ [element elemCanvas]
 
-    let eToggleEdge = id <$ UI.mousedown elemCanvas
+    let eToggleEdge = toggleEdge <$> UI.mousedown elemCanvas
 
     bMondrian <- accumB (mondrianBaseGrid 10 10) eToggleEdge
 
     onChanges bMondrian $ \mondrian -> for_ (zip (asPolygons 100 mondrian) [0..]) $
         \(poly, color) -> drawFaceCanvas elemCanvas poly color
+
     pure ()
 
---edgeClickAreas :: [Map Polygon (Vertex, Direction)]
---edgeClickAreas = Map.fromList $ do
---    x <- [0..10]
---    y <- [0..10]
---    [ (Polygon [Vec2 (x + )]
---    , ]
+toggleEdge :: (Double, Double) -> Mondrian -> Mondrian
+toggleEdge (x, y) mondrian = case find (pointInPolygon (Vec2 x y) . fst) edgeClickAreas of
+    Just (_, (vertex, direction)) -> removeEdge direction vertex mondrian
+    Nothing -> mondrian
+
+edgeClickAreas :: [(Polygon, (Vertex, Direction))]
+edgeClickAreas = do
+    x <- [0..10]
+    y <- [0..10]
+    let x' = 100 * fromIntegral x
+        y' = 100 * fromIntegral y
+    [ (Polygon [Vec2 (x' + 20) (y' - 10), Vec2 (x' + 80) (y' - 10), Vec2 (x' + 80) (y' + 10), Vec2 (x' + 20) (y' + 10)], ((x, y), Right)) ,
+      (Polygon [Vec2 (x' + 10) (y' + 20), Vec2 (x' + 10) (y' + 80), Vec2 (x' - 10) (y' + 80), Vec2 (x' - 10) (y' + 20)], ((x, y), Down)) ]
 
 mondrianColor :: Int -> UI.FillStyle
 mondrianColor color = case color of
