@@ -1,5 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
-
 module Main (main) where
 
 import           Control.Applicative             (liftA2)
@@ -11,7 +11,7 @@ import           Data.Maybe                      (mapMaybe)
 import           Data.Vector                     (fromList)
 import           Prelude                         hiding ((**))
 import           System.Environment              (getArgs)
-import           System.Random.MWC               (GenIO, initialize, uniformR)
+import           System.Random.MWC               (GenIO, initialize)
 import           System.Random.MWC.Distributions (normal)
 
 import           Draw
@@ -27,19 +27,23 @@ main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    let count = "2048"
+    let defaultFiles = ("out/haskell_logo_voronoi" ++) <$> [".png", ".svg"]
+    (count, files) <- getArgs >>= \case
+        [] -> pure (2048, defaultFiles)
+        [count] -> pure (read count, defaultFiles)
+        [count, file] -> pure (read count, [file])
+        _ -> error "Usage: haskell-logo-voronoi [COUNT [FILE]]"
     let w, h :: Num a => a
         w = 1200
         h = 1200
-        haskellLogoCentered = transform (translateT (Vec2 (w/2 - 480) (h/2 - 340)) <> scaleT 680 680) $ haskellLogo
-    gen <- initialize (fromList (map (fromIntegral . ord) count))
-    points <- gaussianDistributedPoints gen (w, 380) (h, 380) (read count)
+        haskellLogoCentered = transform (translateT (Vec2 (w/2 - 480) (h/2 - 340)) <> scaleT 680 680) haskellLogo
+    gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
+    points <- gaussianDistributedPoints gen (w, 380) (h, 380) count
     let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
         allFaces = faces (mkVoronoi w h allPoints)
-    withSurfaceAuto "out/haskell_logo_voronoi.png" w h $ \surface -> renderWith surface $ for_ allFaces drawFace
-    withSurfaceAuto "out/haskell_logo_voronoi.svg" w h $ \surface -> renderWith surface $ for_ allFaces drawFace
+    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
 
 drawFace :: VoronoiFace RGB -> Render ()
 drawFace VF{..} = drawPoly face props
@@ -58,12 +62,6 @@ drawPoly poly color = do
 
 setColor :: RGB -> Render ()
 setColor RGB{..} = setSourceRGB r g b
-
-uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
-uniformlyDistributedPoints gen width height count = replicateM count randomPoint
-  where
-    randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
-    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
 
 gaussianDistributedPoints :: GenIO -> (Int, Double) -> (Int, Double) -> Int -> IO [Vec2]
 gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicateM count randomPoint
@@ -84,6 +82,7 @@ parseHex [r1, r2, g1, g2, b1, b2] = RGB
     { r = read ("0x" ++ [r1, r2]) / 255
     , g = read ("0x" ++ [g1, g2]) / 255
     , b = read ("0x" ++ [b1, b2]) / 255 }
+parseHex _ = undefined
 
 darkGrey :: RGB
 darkGrey = RGB 0.1 0.1 0.1
