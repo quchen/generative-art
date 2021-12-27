@@ -35,9 +35,9 @@ testBaseConfigurations = testCase "Base configurations" test
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    fitToBox = scale' 100 100
+    fitToBox = scaleT 100 100
     baseRhombThick = transform fitToBox thickTileBase
-    baseRhombThin = transform (translate' (Vec2 0 120) <> fitToBox) thinTileBase
+    baseRhombThin = transform (translateT (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1

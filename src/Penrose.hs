@@ -222,4 +222,4 @@ asymmetricDecagon center r = scaleTo center r $ concat
     onAxisTiles = concat [f4, f6]
 
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
-scaleTo center size = transform (translate' center <> scale' (size/phi) (size/phi))
+scaleTo center size = transform (translateT center <> scaleT (size/phi) (size/phi))

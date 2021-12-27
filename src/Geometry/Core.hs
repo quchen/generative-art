@@ -61,18 +61,18 @@ module Geometry.Core (
     , transformationProduct
     , inverse
     , Transform(..)
-    , translate'
+    , translateT
     , translate
-    , rotate'
+    , rotateT
     , rotate
     , rotateAround
-    , scale'
+    , scaleT
     , scale
     , scaleXY
     , scaleAround
     , scaleAroundXY
-    , mirror'
-    , mirrorAlong'
+    , mirrorT
+    , mirrorAlongT
     , mirrorX
     , mirrorY
     , mirrorAlong
@@ -141,6 +141,9 @@ data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 -- > ==>
 -- > / a b \ + / c \
 -- > \ d e /   \ f /
+--
+-- Transformations can be chained using '<>', but in general it’s often more
+-- convenient to use the predefined functions such as 'rotateT with '.' as composition.
 data Transformation = Transformation Double Double Double
                                      Double Double Double
                                      deriving (Eq, Ord, Show)
@@ -171,7 +174,6 @@ instance Semigroup Transformation where
 instance Monoid Transformation where
     mempty = identityTransformation
 
-
 class Transform geo where
     transform :: Transformation -> geo -> geo
 
@@ -198,13 +200,13 @@ instance Transform Transformation where
 instance Transform a => Transform [a] where
     transform t = map (transform t)
 
-translate' :: Vec2 -> Transformation
-translate' (Vec2 dx dy) = Transformation
+translateT :: Vec2 -> Transformation
+translateT (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
 
 translate :: Transform geo => Vec2 -> geo -> geo
-translate v = transform (translate' v)
+translate v = transform (translateT v)
 
 -- deprecated
 move :: Transform geo => Vec2 -> geo -> geo
@@ -214,50 +216,50 @@ move = translate
 moveRad :: Transform geo => Angle -> Distance -> geo -> geo
 moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
 
-rotate' :: Angle -> Transformation
-rotate' (Angle a) = Transformation
+rotateT :: Angle -> Transformation
+rotateT (Angle a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
 rotate :: Transform geo => Angle -> geo -> geo
-rotate angle = transform (rotate' angle)
+rotate angle = transform (rotateT angle)
 
 rotateAround :: Transform geo => Vec2 -> Angle -> geo -> geo
-rotateAround pivot angle = transform (translate' pivot <> rotate' angle <> inverse (translate' pivot))
+rotateAround pivot angle = transform (translateT pivot <> rotateT angle <> inverse (translateT pivot))
 
-scale' :: Double -> Double -> Transformation
-scale' x y = Transformation
+scaleT :: Double -> Double -> Transformation
+scaleT x y = Transformation
     x 0 0
     0 y 0
 
 scale :: Transform geo => Double -> geo -> geo
-scale factor = transform (scale' factor factor)
+scale factor = transform (scaleT factor factor)
 
 scaleAround :: Transform geo => Vec2 -> Double -> geo -> geo
-scaleAround pivot factor = transform (translate' pivot <> scale' factor factor <> inverse (translate' pivot))
+scaleAround pivot factor = transform (translateT pivot <> scaleT factor factor <> inverse (translateT pivot))
 
 scaleXY :: Transform geo => Double -> Double -> geo -> geo
-scaleXY x y = transform (scale' x y)
+scaleXY x y = transform (scaleT x y)
 
 scaleAroundXY :: Transform geo => Vec2 -> Double -> Double -> geo -> geo
-scaleAroundXY pivot x y = transform (translate' pivot <> scale' x y <> inverse (translate' pivot))
+scaleAroundXY pivot x y = transform (translateT pivot <> scaleT x y <> inverse (translateT pivot))
 
-mirror' :: Angle -> Transformation
-mirror' angle = rotate' angle <> mirrorVertically <> inverse (rotate' angle)
+mirrorT :: Angle -> Transformation
+mirrorT angle = rotateT angle <> mirrorVertically <> inverse (rotateT angle)
   where
     mirrorVertically = Transformation
         1    0 0
         0 (-1) 0
 
-mirrorAlong' :: Line -> Transformation
-mirrorAlong' line@(Line p _) = translate' p <> mirror' (angleOfLine line) <> inverse (translate' p)
+mirrorAlongT :: Line -> Transformation
+mirrorAlongT line@(Line p _) = translateT p <> mirrorT (angleOfLine line) <> inverse (translateT p)
 
 mirrorX, mirrorY :: Transform geo => geo -> geo
-mirrorX = transform (mirror' (deg 90))
-mirrorY = transform (mirror' (deg 0))
+mirrorX = transform (mirrorT (deg 90))
+mirrorY = transform (mirrorT (deg 0))
 
 mirrorAlong :: Transform geo => Line -> geo -> geo
-mirrorAlong line = transform (mirrorAlong' line)
+mirrorAlong line = transform (mirrorAlongT line)
 
 
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
