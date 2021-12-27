@@ -27,16 +27,16 @@ setup window = do
     getBody window #+ [element elemCanvas]
 
     let eToggleEdge = toggleEdge <$> UI.mousedown elemCanvas
+        initialGrid = mondrianBaseGrid 10 10
 
-    bMondrian <- accumB (mondrianBaseGrid 10 10) eToggleEdge
+    bMondrian <- accumB initialGrid eToggleEdge
 
     onChanges bMondrian $ \mondrian -> do
         elemCanvas # UI.clearCanvas
-        for_ (zip (asPolygons 100 mondrian) [0..]) $ \(poly, color) -> drawFaceCanvas elemCanvas poly color
+        drawMondrian elemCanvas mondrian
         when False $ for_ (edges mondrian) (drawEdgeForDebugging elemCanvas)
 
-
-    pure ()
+    drawMondrian elemCanvas initialGrid
 
 toggleEdge :: (Double, Double) -> Mondrian -> Mondrian
 toggleEdge (x, y) mondrian = case find (pointInPolygon (Vec2 x y) . fst) edgeClickAreas of
@@ -83,8 +83,11 @@ mondrianColor color = case color of
     blue = UI.htmlColor "#0000FF"
     yellow = UI.htmlColor "#FFFF00"
 
-drawFaceCanvas :: UI.Element -> Polygon -> Int -> UI ()
-drawFaceCanvas elemCanvas poly color = case poly of
+drawMondrian :: UI.Element -> Mondrian -> UI ()
+drawMondrian elemCanvas mondrian = for_ (zip (asPolygons 100 mondrian) [0..]) $ \(poly, color) -> drawPolygon elemCanvas poly color
+
+drawPolygon :: UI.Element -> Polygon -> Int -> UI ()
+drawPolygon elemCanvas poly color = case poly of
     Polygon [] -> pure ()
     Polygon (p:ps) -> do
         elemCanvas # UI.beginPath
