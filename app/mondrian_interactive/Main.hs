@@ -1,29 +1,16 @@
-{-# LANGUAGE RecordWildCards #-}
-
-import           Control.Applicative             (liftA2)
-import           Control.Monad                   (replicateM)
-import           Data.Char                       (ord)
 import           Data.Foldable                   (for_)
 import           Data.List                       (find)
-import           Data.Map                        as Map
-import           Data.Maybe                      (mapMaybe)
-import           Data.Vector                     (fromList)
 import           Prelude                         hiding ((**), Either(..))
-import           System.Environment              (getArgs)
-import           System.Random.MWC               (GenIO, initialize, uniformR)
-import           System.Random.MWC.Distributions (normal)
 
-import qualified Graphics.Rendering.Cairo        as Cairo
 import qualified Graphics.UI.Threepenny as UI
 import           Graphics.UI.Threepenny.Core
 
 import           Geometry
 import           Mondrian
-import           Draw
+import qualified Data.Map as Map
 
 
 
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
 main :: IO ()
 main = UI.startGUI UI.defaultConfig setup
@@ -41,15 +28,28 @@ setup window = do
 
     bMondrian <- accumB (mondrianBaseGrid 10 10) eToggleEdge
 
-    onChanges bMondrian $ \mondrian -> for_ (zip (asPolygons 100 mondrian) [0..]) $
-        \(poly, color) -> drawFaceCanvas elemCanvas poly color
+    onChanges bMondrian $ \mondrian -> do
+        for_ (zip (asPolygons 100 mondrian) [0..]) $ \(poly, color) -> drawFaceCanvas elemCanvas poly color
+        for_ (edges mondrian) $ \(Line a b) -> do
+            elemCanvas # UI.moveTo (coordinates a)
+            elemCanvas # UI.lineTo (coordinates b)
+            elemCanvas # set' UI.strokeStyle "#ff00ff"
+            elemCanvas # set' UI.lineWidth 4
+            elemCanvas # UI.stroke
+
 
     pure ()
 
 toggleEdge :: (Double, Double) -> Mondrian -> Mondrian
 toggleEdge (x, y) mondrian = case find (pointInPolygon (Vec2 x y) . fst) edgeClickAreas of
-    Just (_, (vertex, direction)) -> removeEdge direction vertex mondrian
+    Just (_, (vertex, direction)) -> removeEdge (direction, vertex) mondrian
     Nothing -> mondrian
+
+edges :: Mondrian -> [Line]
+edges mondrian = do
+    ((x1, y1), edges) <- Map.toList mondrian
+    (_, (x2, y2)) <- Map.toList edges
+    pure $ Line (Vec2 (fromIntegral x1 * 100) (fromIntegral y1 * 100)) (Vec2 (fromIntegral x2 * 100) (fromIntegral y2 * 100))
 
 edgeClickAreas :: [(Polygon, (Vertex, Direction))]
 edgeClickAreas = do
