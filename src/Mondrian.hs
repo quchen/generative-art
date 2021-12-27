@@ -1,16 +1,13 @@
-{-# LANGUAGE TupleSections #-}
 module Mondrian where
 
 import Control.Monad (guard)
-import Control.Monad.Trans.State (evalState, State, get, modify', StateT, evalStateT, gets, mapStateT)
+import Control.Monad.Trans.State (get, modify', StateT, evalStateT, gets, mapStateT)
 import Data.Map as Map
 import Data.Maybe (maybeToList, catMaybes, isJust)
 import Prelude hiding (Either(..))
 
 import Geometry ( Polygon(..), Vec2(..) )
 import Control.Applicative ((<|>))
-import Data.Foldable (for_)
-import Data.Traversable (for)
 import Control.Monad.Trans.Class (lift)
 
 
