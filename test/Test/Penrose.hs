@@ -18,6 +18,7 @@ tests = testGroup "Penrose tiling"
     [ testBaseConfigurations
     , testSubdivision
     , testInscribedPentagons
+    , testSubdivisionWithInscribedPentagons
     ]
 
 testBaseConfigurations :: TestTree
@@ -60,10 +61,31 @@ testInscribedPentagons :: TestTree
 testInscribedPentagons = testCase "Switch to pentagons & stars" test
   where
     test = renderAllFormats 200 200 "test/out/penrose/3_inscribed_pentagons" $
-        for_ (inscribedPentagons =<< decagonRose (Vec2 100 100) 100) $ \polygon ->
-            restoreStateAfter $ do
-                polygonSketchOpen polygon
-                stroke
+        for_ (decagonRose (Vec2 100 100) 100) drawInscribedPentagons
+
+testSubdivisionWithInscribedPentagons :: TestTree
+testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentagons & stars" test
+  where
+    fitToBox = scaleT 100 100
+    baseRhombThick = transform fitToBox thickTileBase
+    baseRhombThin = transform (translateT (Vec2 0 120) <> fitToBox) thinTileBase
+    gen0 = baseRhombThick ++ baseRhombThin
+    gen1 = subdivide =<< gen0
+    gen2 = subdivide =<< gen1
+    test = renderAllFormats 600 200 "test/out/penrose/4_subdivision_with_pentagons" $ do
+        Cairo.translate 10 10
+        for_ gen0 drawInscribedPentagons
+        Cairo.translate 150 0
+        drawArrows
+        Cairo.translate 50 0
+        for_ gen1 drawInscribedPentagons
+        Cairo.translate 150 0
+        drawArrows
+        Cairo.translate 50 0
+        for_ gen2 drawInscribedPentagons
+    drawArrows = do
+        arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
+        arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
 
 drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile
@@ -102,6 +124,13 @@ drawConnectors tile@Tile{..} = restoreStateAfter $ do
             stroke
             circleSketch tileP2 r1
             stroke
+
+drawInscribedPentagons :: Tile -> Render ()
+drawInscribedPentagons tile = restoreStateAfter $ do
+    drawTile tile
+    for_ (inscribedPentagons tile) $ \polygon -> do
+        polygonSketchOpen polygon
+        stroke
 
 polygonSketchOpen :: Polygon -> Render ()
 polygonSketchOpen (Polygon []) = pure ()
