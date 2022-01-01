@@ -13,7 +13,6 @@ import Penrose
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
-import Debug.Trace (traceShowId)
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
@@ -99,7 +98,7 @@ testSvgPrototiles = testCase "Loading SVG prototiles" test
 renderProtoTile :: Tile -> Render ()
 renderProtoTile t@Tile{..} = restoreStateAfter $ do
     polygonSketch (asPolygon t) >> clip
-    let Distance unitLength = traceShowId $ norm (tileP1 -. tileP0)
+    let Distance unitLength = norm (tileP1 -. tileP0)
     case (tileType, polygonOrientation (asPolygon t)) of
         (Thin, PolygonPositive) -> do
             let Vec2 x y = tileP1 in Cairo.translate x y
