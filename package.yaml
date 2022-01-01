@@ -99,6 +99,7 @@ executables:
         dependencies:
             - generative-art
             - cairo
+            - svgcairo
             - threepenny-gui
 
 tests:

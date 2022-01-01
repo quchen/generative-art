@@ -5,6 +5,13 @@
 
 packages:
 - completed:
+    hackage: Cabal-3.0.2.0@sha256:f45ee078a8529d1ad3993767345ac83304c7f2ff5eec02c455a1dc200ad22c67,26714
+    pantry-tree:
+      size: 40207
+      sha256: 653461a4e58b10a6ef9d6ed5e07b1f8839ed46b4673133ecbe3899a48d6b983b
+  original:
+    hackage: Cabal-3.0.2.0@sha256:f45ee078a8529d1ad3993767345ac83304c7f2ff5eec02c455a1dc200ad22c67,26714
+- completed:
     hackage: cairo-0.13.8.1@sha256:1938aaeb5d3504678d995774dfe870f6b66cbd43d336b692fa8779b23b2b67a9,4075
     pantry-tree:
       size: 2830
@@ -18,6 +25,24 @@ packages:
       sha256: 1c3b449a69f4bb2d27c09a89e447552a58201a3febf5418e67af0001a0cbb0a7
   original:
     hackage: gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
+- completed:
+    hackage: glib-0.13.8.1@sha256:42670daf0c85309281e08ba8559df75daa2e3be642e79fdfa781bef5e59658b0,3156
+    pantry-tree:
+      size: 1625
+      sha256: 1167575db8823b7a9f5fbaebdbc0ea5cef54301e442754ec256ba9371bd388e7
+  original:
+    hackage: glib-0.13.8.1@sha256:42670daf0c85309281e08ba8559df75daa2e3be642e79fdfa781bef5e59658b0,3156
+- completed:
+    name: svgcairo
+    version: 0.13.2.1
+    git: https://github.com/dalpd/svgcairo
+    pantry-tree:
+      size: 758
+      sha256: 80e73cf62b0e8638fca49acab68a9c8c2e3403ccabcc3dbb98e0c1ff4576399d
+    commit: d1e0d7ae04c1edca83d5b782e464524cdda6ae85
+  original:
+    git: https://github.com/dalpd/svgcairo
+    commit: d1e0d7ae04c1edca83d5b782e464524cdda6ae85
 snapshots:
 - completed:
     size: 586103

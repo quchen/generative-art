@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eb606d68f4ccf6cd3d7dad6d67a8fb6ce6686fc8015f2b3a65aa6dc915985baf
+-- hash: 0fa8b56a61b124271feb5795b301a68147aca2482839eb17d3109f3e6b9e7bc6
 
 name:           generative-art
 version:        0.1.0.0
@@ -128,6 +128,7 @@ executable penrose-interactive
     , data-default-class
     , generative-art
     , random
+    , svgcairo
     , threepenny-gui
     , transformers
     , vector

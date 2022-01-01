@@ -2,6 +2,10 @@ flags: {}
 packages:
     - .
 extra-deps:
+    - Cabal-3.0.2.0@sha256:f45ee078a8529d1ad3993767345ac83304c7f2ff5eec02c455a1dc200ad22c67,26714
     - cairo-0.13.8.1@sha256:1938aaeb5d3504678d995774dfe870f6b66cbd43d336b692fa8779b23b2b67a9,4075
     - gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
+    - glib-0.13.8.1@sha256:42670daf0c85309281e08ba8559df75daa2e3be642e79fdfa781bef5e59658b0,3156
+    - git: https://github.com/dalpd/svgcairo
+      commit: d1e0d7ae04c1edca83d5b782e464524cdda6ae85
 resolver: lts-18.19
