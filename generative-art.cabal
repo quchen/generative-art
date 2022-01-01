@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6a168229121de1a1696e3670a4f87f535cd2fa2c59ec4587c2447a275f49463f
+-- hash: eb606d68f4ccf6cd3d7dad6d67a8fb6ce6686fc8015f2b3a65aa6dc915985baf
 
 name:           generative-art
 version:        0.1.0.0
@@ -109,6 +109,26 @@ executable haskell-logo-voronoi
     , generative-art
     , mwc-random
     , random
+    , transformers
+    , vector
+  default-language: Haskell2010
+
+executable penrose-interactive
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      app/penrose_interactive
+  ghc-options: -Wall -Wno-type-defaults -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base >=4.7 && <5
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , generative-art
+    , random
+    , threepenny-gui
     , transformers
     , vector
   default-language: Haskell2010
