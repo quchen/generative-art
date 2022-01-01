@@ -674,7 +674,7 @@
   <path d="M 529.097656 188.777344 L 490.902344 188.777344 L 521.804688 166.328125 Z M 529.097656 188.777344 "/>
 </clipPath>
 </defs>
-<g id="surface205">
+<g id="surface206">
 <g clip-path="url(#clip1)" clip-rule="nonzero">
 <g clip-path="url(#clip2)" clip-rule="nonzero">
 <path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 130.902344 95.105469 L 30.902344 95.105469 L 0 0 " transform="matrix(1,0,0,1,10,10)"/>
