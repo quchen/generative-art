@@ -150,8 +150,8 @@ inscribedPentagons f@Tile{..} = case tileType of
   where
     a = 1 - 1/phi
     theta = case polygonOrientation (asPolygon f) of
-        PolygonPositive -> 2 *. alpha
-        PolygonNegative -> (-2) *. alpha
+        PolygonPositive -> (-2) *. alpha
+        PolygonNegative -> 2 *. alpha
 
 -- | The golden ratio. It occurs quite frequently in Penrose tilings, e.g. the
 -- ratio between the long diagonal and the edge of a thick tile is 'phi'.
