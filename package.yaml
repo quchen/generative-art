@@ -22,6 +22,7 @@ dependencies:
     - containers
     - data-default-class
     - random
+    - svgcairo
     - transformers
     - vector
 
@@ -99,7 +100,6 @@ executables:
         dependencies:
             - generative-art
             - cairo
-            - svgcairo
             - threepenny-gui
 
 tests:

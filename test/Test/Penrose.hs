@@ -4,6 +4,7 @@ module Test.Penrose (tests) where
 
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo.SVG as Cairo
 
 import Draw
 import Geometry
@@ -12,6 +13,7 @@ import Penrose
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import Debug.Trace (traceShowId)
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
@@ -19,6 +21,7 @@ tests = testGroup "Penrose tiling"
     , testSubdivision
     , testInscribedPentagons
     , testSubdivisionWithInscribedPentagons
+    , testSvgPrototiles
     ]
 
 testBaseConfigurations :: TestTree
@@ -87,6 +90,47 @@ testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentago
         arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
         arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
 
+testSvgPrototiles :: TestTree
+testSvgPrototiles = testCase "Loading SVG prototiles" test
+  where
+    test = renderAllFormats 500 500 "test/out/penrose/5_prototiles" $ do
+        for_ (asymmetricDecagon (Vec2 100 100) 100 >>= subdivide) renderProtoTile
+        Cairo.translate 200 0
+        for_ (asymmetricDecagon (Vec2 100 100) 100 >>= subdivide) drawTileWithConnectors
+
+renderProtoTile :: Tile -> Render ()
+renderProtoTile t@Tile{..} = restoreStateAfter $ do
+    polygonSketch (asPolygon t) >> clip
+    let Distance unitLength = traceShowId $ norm (tileP1 -. tileP0)
+    case (tileType, polygonOrientation (asPolygon t)) of
+        (Thin, PolygonPositive) -> do
+            let Vec2 x y = tileP1 in Cairo.translate x y
+            Cairo.rotate (let Angle a = angleOfLine (Line tileP2 tileP1) in a)
+            Cairo.scale (unitLength / 100) (unitLength / 100)
+            Cairo.translate (-180.902) (-58.779) -- to bottom right corner
+            Cairo.translate 0 (-100)
+        (Thin, PolygonNegative) -> do
+            let Vec2 x y = tileP1 in Cairo.translate x y
+            Cairo.rotate (let Angle a = angleOfLine (Line tileP1 tileP0) in a)
+            Cairo.scale (unitLength / 100) (unitLength / 100)
+            Cairo.translate 0 (-100)
+        (Thick, PolygonPositive) -> do
+            let Vec2 x y = tileP2 in Cairo.translate x y
+            Cairo.rotate (let Angle a = angleOfLine (Line tileP1 tileP0) in a)
+            Cairo.scale (unitLength / 100) (unitLength / 100)
+        (Thick, PolygonNegative) -> do
+            let Vec2 x y = tileP2 in Cairo.translate x y
+            Cairo.rotate (let Angle a = angleOfLine (Line tileP2 tileP1) in a)
+            Cairo.scale (unitLength / 100) (unitLength / 100)
+    let scaleFactor = 100 / 93.75 -- Why? I have no idea.
+    Cairo.scale scaleFactor scaleFactor
+    prototiles <- liftIO svgProtoTiles
+    _ <- svgRender prototiles
+    pure ()
+
+svgProtoTiles :: IO SVG
+svgProtoTiles = svgNewFromFile "prototiles.svg"
+
 drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile
 
@@ -107,10 +151,10 @@ drawTile Tile{..} = restoreStateAfter $ do
 
 drawConnectors :: Tile -> Render ()
 drawConnectors tile@Tile{..} = restoreStateAfter $ do
-    let Distance length = norm (tileP0 -. tileP1)
-        r1 = Distance (0.3 * length)
-        r2 = Distance (0.2 * length)
-        r3 = Distance (0.8 * length)
+    let Distance unitLength = norm (tileP0 -. tileP1)
+        r1 = Distance (0.3 * unitLength)
+        r2 = Distance (0.2 * unitLength)
+        r3 = Distance (0.8 * unitLength)
     polygonSketch (asPolygon tile)
     clip
     case tileType of

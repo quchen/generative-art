@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0fa8b56a61b124271feb5795b301a68147aca2482839eb17d3109f3e6b9e7bc6
+-- hash: 703a0c065d820a6ec8b4c0e0c0161320866b50c422c5541459d51a196e35f616
 
 name:           generative-art
 version:        0.1.0.0
@@ -51,6 +51,7 @@ library
     , containers
     , data-default-class
     , random
+    , svgcairo
     , transformers
     , vector
   default-language: Haskell2010
@@ -70,6 +71,7 @@ executable haskell-logo-billard
     , data-default-class
     , generative-art
     , random
+    , svgcairo
     , transformers
     , vector
   default-language: Haskell2010
@@ -89,6 +91,7 @@ executable haskell-logo-triangles
     , data-default-class
     , generative-art
     , random
+    , svgcairo
     , transformers
     , vector
   default-language: Haskell2010
@@ -109,6 +112,7 @@ executable haskell-logo-voronoi
     , generative-art
     , mwc-random
     , random
+    , svgcairo
     , transformers
     , vector
   default-language: Haskell2010
@@ -150,6 +154,7 @@ executable voronoi-interactive
     , generative-art
     , mwc-random
     , random
+    , svgcairo
     , threepenny-gui
     , transformers
     , vector
@@ -187,6 +192,7 @@ test-suite generative-art-test
     , generative-art
     , process
     , random
+    , svgcairo
     , tasty
     , tasty-hunit
     , tasty-quickcheck
