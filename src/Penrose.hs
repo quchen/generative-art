@@ -45,6 +45,7 @@ data Tile = Tile
 -- an open polygon (i.e., don't use 'Graphics.Rendering.Cairo.closePath').
 asPolygon :: Tile -> Polygon
 asPolygon Tile{..} = Polygon [tileP0, tileP1, tileP2]
+
 instance Transform Tile where
     transform t f@Tile{..} = f
         { tileP0 = transform t tileP0
@@ -79,8 +80,7 @@ subdivide Tile{..} = case tileType of
             , tileP1 = tileP0
             , tileP2 = newPoint } ]
       where
-        newPoint = tileP2 +. (1/phi-1) *. v
-        v = tileP2 -. tileP1
+        newPoint = tileP2 +. (1/phi-1) *. (tileP2 -. tileP1)
     Thick ->
         [ Tile
             { tileType = Thick
@@ -98,10 +98,8 @@ subdivide Tile{..} = case tileType of
             , tileP1 = newPoint2
             , tileP2 = tileP1 } ]
       where
-        newPoint1 = tileP1 +. (1/phi-1) *. v1
-        v1 = tileP1 -. tileP0
-        newPoint2 = tileP2 +. (1/phi-1) *. v2
-        v2 = tileP2 -. tileP0
+        newPoint1 = tileP1 +. (1/phi-1) *. (tileP1 -. tileP0)
+        newPoint2 = tileP2 +. (1/phi-1) *. (tileP2 -. tileP0)
 
 -- | The other half of a half tile.
 twin :: Tile -> Tile
@@ -168,9 +166,9 @@ thinTileBase = rotate (rad (pi/10)) [baseTile, twin baseTile]
   where
     baseTile = Tile
         { tileType = Thin
-        , tileP0 = rotate (rad (-pi/10)) $ Vec2 1 0
+        , tileP0 = rotate ((-0.5) *. alpha) $ Vec2 1 0
         , tileP1 = Vec2 0 0
-        , tileP2 = rotate (rad (pi/10)) $ Vec2 1 0
+        , tileP2 = rotate (0.5 *. alpha) $ Vec2 1 0
         }
 
 -- | A thick tile with edge length 1 (two half tiles)
