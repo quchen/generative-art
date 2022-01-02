@@ -4,6 +4,8 @@ module Test.Penrose (tests) where
 
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import qualified Graphics.Rendering.Cairo as Cairo
+import qualified Graphics.Rendering.Cairo.Matrix as Cairo (Matrix(..))
 import Graphics.Rendering.Cairo.SVG as Cairo
 
 import Draw
@@ -93,31 +95,39 @@ testSvgPrototiles :: TestTree
 testSvgPrototiles = testCase "Loading SVG prototiles" test
   where
     test = renderAllFormats 1000 1000 "test/out/penrose/5_prototiles" $ do
-        for_ (decagonRose (Vec2 500 500) 500 >>= subdivide) renderProtoTile
+        for_ (decagonRose (Vec2 500 500) 500 >>= subdivide >>= subdivide) renderProtoTile
+
 
 renderProtoTile :: Tile -> Render ()
 renderProtoTile t@Tile{..} = restoreStateAfter $ do
-    polygonSketch (asPolygon t) >> clip
+    polygonSketch (asPolygon t)
+    restoreStateAfter $ do
+        Cairo.setSourceRGBA 1 0 0 0.5
+        Cairo.setLineWidth 0.5
+        strokePreserve
+    clip
     let Distance unitLength = norm (tileP1 -. tileP0)
     case (tileType, polygonOrientation (asPolygon t)) of
         (Thin, PolygonPositive) -> do
             let Vec2 x y = tileP1 in Cairo.translate x y
-            Cairo.rotate (let Angle a = angleOfLine (Line tileP2 tileP1) in a)
+            Cairo.rotate (getRad (angleOfLine (Line tileP2 tileP1)))
             Cairo.scale (unitLength / 100) (unitLength / 100)
-            Cairo.translate (-180.902) (-58.779) -- to bottom right corner
-            Cairo.translate 0 (-100)
+            Cairo.rotate (-2 * getRad alpha)
+            Cairo.translate (-100 * phi * cos (getRad alpha)) (-100 * phi * sin(getRad alpha))
         (Thin, PolygonNegative) -> do
             let Vec2 x y = tileP1 in Cairo.translate x y
-            Cairo.rotate (let Angle a = angleOfLine (Line tileP1 tileP0) in a)
+            Cairo.rotate (getRad (angleOfLine (Line tileP1 tileP0)))
             Cairo.scale (unitLength / 100) (unitLength / 100)
-            Cairo.translate 0 (-100)
+            Cairo.rotate (-2 * getRad alpha)
+            Cairo.translate (-100 * phi * cos (getRad alpha)) (100 * phi * sin(getRad alpha))
+            cairoMirrorV
         (Thick, PolygonPositive) -> do
             let Vec2 x y = tileP2 in Cairo.translate x y
-            Cairo.rotate (let Angle a = angleOfLine (Line tileP1 tileP0) in a)
+            Cairo.rotate (getRad (angleOfLine (Line tileP1 tileP0)))
             Cairo.scale (unitLength / 100) (unitLength / 100)
         (Thick, PolygonNegative) -> do
             let Vec2 x y = tileP2 in Cairo.translate x y
-            Cairo.rotate (let Angle a = angleOfLine (Line tileP2 tileP1) in a)
+            Cairo.rotate (getRad (angleOfLine (Line tileP2 tileP1)))
             Cairo.scale (unitLength / 100) (unitLength / 100)
     let scaleFactor = 100 / 93.75 -- Why? I have no idea.
     Cairo.scale scaleFactor scaleFactor
@@ -125,8 +135,12 @@ renderProtoTile t@Tile{..} = restoreStateAfter $ do
     _ <- svgRender prototiles
     pure ()
 
+cairoMirrorV :: Render ()
+cairoMirrorV = Cairo.transform (Cairo.Matrix 1 0 0 (-1) 0 0)
+
+
 svgProtoTiles :: IO SVG
-svgProtoTiles = svgNewFromFile "prototiles2.svg"
+svgProtoTiles = svgNewFromFile "prototiles.svg"
 
 drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile

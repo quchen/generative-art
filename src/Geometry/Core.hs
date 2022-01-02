@@ -48,7 +48,9 @@ module Geometry.Core (
     -- ** Angles
     , Angle(..)
     , deg
+    , getDeg
     , rad
+    , getRad
 
     -- ** Safety newtypes
     , Distance(..)
@@ -319,7 +321,7 @@ normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
 -- | Newtype safety wrapper.
-newtype Angle = Angle Double deriving (Eq, Ord)
+newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
 
 instance Show Angle where
     show (Angle a) = printf "deg %2.8f" (a / pi * 180)
@@ -338,6 +340,9 @@ deg degrees = rad (degrees / 360 * 2 * pi)
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 rad r = Angle (r `mod'` (2*pi))
+
+getDeg :: Angle -> Double
+getDeg (Angle a) = a / pi * 180
 
 -- | Newtype safety wrapper.
 newtype Distance = Distance Double deriving (Eq, Ord, Show)

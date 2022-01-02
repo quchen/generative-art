@@ -16,6 +16,8 @@ module Penrose
 
 -- * Penrose patterns
 
+, phi
+, alpha
 -- ** Base tiles
 , thinTileBase
 , thickTileBase
