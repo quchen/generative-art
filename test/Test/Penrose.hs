@@ -15,6 +15,7 @@ import Penrose
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import Data.Traversable (for)
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
@@ -94,13 +95,16 @@ testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentago
 testSvgPrototiles :: TestTree
 testSvgPrototiles = testCase "Loading SVG prototiles" test
   where
-    test = renderAllFormats 1000 1000 "test/out/penrose/5_prototiles" $ do
-        for_ (decagonRose (Vec2 500 500) 500 >>= subdivide >>= subdivide) renderProtoTile
+    test = do
+        prototiles <- svgProtoTiles
+        for_ prototiles $ \(i, svg) ->
+            renderAllFormats 1000 1000 ("test/out/penrose/5_prototiles_" ++ show i) $
+                for_ (decagonRose (Vec2 500 500) 500 >>= subdivide >>= subdivide) $ renderProtoTile svg
 
 
-renderProtoTile :: Tile -> Render ()
-renderProtoTile t@Tile{..} = restoreStateAfter $ do
-    polygonSketch (asPolygon t)
+renderProtoTile :: SVG -> Tile -> Render ()
+renderProtoTile prototile t@Tile{..} = restoreStateAfter $ do
+    polygonSketchOpen (asPolygon t)
     restoreStateAfter $ do
         Cairo.setSourceRGBA 1 0 0 0.5
         Cairo.setLineWidth 0.5
@@ -131,16 +135,19 @@ renderProtoTile t@Tile{..} = restoreStateAfter $ do
             Cairo.scale (unitLength / 100) (unitLength / 100)
     let scaleFactor = 100 / 93.75 -- Why? I have no idea.
     Cairo.scale scaleFactor scaleFactor
-    prototiles <- liftIO svgProtoTiles
-    _ <- svgRender prototiles
+    _ <- svgRender prototile
     pure ()
 
 cairoMirrorV :: Render ()
 cairoMirrorV = Cairo.transform (Cairo.Matrix 1 0 0 (-1) 0 0)
 
 
-svgProtoTiles :: IO SVG
-svgProtoTiles = svgNewFromFile "prototiles.svg"
+svgProtoTiles :: IO [(Int, SVG)]
+svgProtoTiles = do
+    let files = [1..3]
+    for files $ \fileIndex -> do
+        svg <- svgNewFromFile ("prototiles" ++ show fileIndex ++ ".svg")
+        pure (fileIndex, svg)
 
 drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile
