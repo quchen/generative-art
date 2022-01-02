@@ -101,6 +101,18 @@ executables:
             - generative-art
             - cairo
             - threepenny-gui
+    penrose-patterns:
+        main: Main.hs
+        source-dirs: app/penrose_patterns
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+        dependencies:
+            - generative-art
+            - cairo
 
 tests:
     generative-art-test:
