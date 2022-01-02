@@ -27,17 +27,17 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
     testReal2 )
   where
     testVirtual1 = testDraw
-        (angledLine (Vec2 50 190) (Angle ( pi/6)) (Distance 100))
-        (angledLine (Vec2 50 300) (Angle (-pi/6)) (Distance 100))
+        (angledLine (Vec2 50 190) (rad ( pi/6)) (Distance 100))
+        (angledLine (Vec2 50 300) (rad (-pi/6)) (Distance 100))
     testVirtual2 = testDraw
-        (translate (Vec2 30 380) (moveRad (Angle (-pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle (-pi/6)) (Distance 100))))
-        (translate (Vec2 30 380) (moveRad (Angle ( pi/6)) (Distance 20) (angledLine (Vec2 0 0) (Angle ( pi/6)) (Distance 100))))
+        (translate (Vec2 30 380 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
+        (translate (Vec2 30 380 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
     testVirtualInL = testDraw
-        (angledLine (Vec2 300 180) (Angle      0) (Distance 100))
-        (angledLine (Vec2 350 200) (Angle (pi/2)) (Distance  50))
+        (angledLine (Vec2 300 180) (rad      0) (Distance 100))
+        (angledLine (Vec2 350 200) (rad (pi/2)) (Distance  50))
     testVirtualR = testDraw
-        (angledLine (Vec2 370 330) (Angle      0) (Distance  50))
-        (angledLine (Vec2 350 280) (Angle (pi/2)) (Distance 100))
+        (angledLine (Vec2 370 330) (rad      0) (Distance  50))
+        (angledLine (Vec2 350 280) (rad (pi/2)) (Distance 100))
     testReal1 = testDraw
         (Line (Vec2 10  10) (Vec2 220 190))
         (Line (Vec2 270 50) (Vec2  30 160))
@@ -74,8 +74,7 @@ testDraw line1 line2 = do
     restoreStateAfter $ do
         let fontSize = 10
             Vec2 x y = point +. Vec2 15 15
-            Angle alpha = angleBetween line1 line2
-            angleDeg = printf "%2.f" (alpha / (2 * pi) * 360)
+            angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
             tyStr = case ty of
                 IntersectionVirtual        -> "Virtual"
                 IntersectionVirtualInsideL -> "Virtual (but inside left argument)"

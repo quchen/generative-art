@@ -3,7 +3,8 @@ module Test.Triangulate (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, translate, x, y)
+import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random
 
 import Draw
@@ -62,7 +63,7 @@ testHaskellLogo = testCase "Haskell logo" test
                            (y1,y2) = decodeFloat y
                        in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
                 (angle, _gen') = randomR (0, 360) (mkStdGen seed)
-            in moveRad (Angle angle) (Distance 10) v
+            in translate (polar (Angle angle) (Distance 10)) v
 
 testSpiral :: TestTree
 testSpiral = testCase "Spiral" test

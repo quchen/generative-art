@@ -10,6 +10,7 @@ module Geometry.Core (
     , dotProduct
     , norm
     , normSquare
+    , polar
 
     -- ** Lines
     , Line(..)
@@ -57,7 +58,6 @@ module Geometry.Core (
     , Area(..)
 
     -- * Transformations
-    , moveRad
     , Transformation(..)
     , identityTransformation
     , transformationProduct
@@ -210,15 +210,6 @@ translateT (Vec2 dx dy) = Transformation
 translate :: Transform geo => Vec2 -> geo -> geo
 translate v = transform (translateT v)
 
-{-# DEPRECATED move "Use translate instead" #-}
-move :: Transform geo => Vec2 -> geo -> geo
-move = translate
-
-{-# DEPRECATED moveRad "Rename or remove this" #-}
--- | Move along an angle/distance instead of x/y offsets
-moveRad :: Transform geo => Angle -> Distance -> geo -> geo
-moveRad (Angle a) (Distance d) = move (Vec2 (d * cos a) (d * sin a))
-
 rotateT :: Angle -> Transformation
 rotateT (Angle a) = Transformation
     (cos a) (-sin a) 0
@@ -320,6 +311,10 @@ norm = Distance . sqrt . normSquare
 normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
+-- | Construct a 'Vec2' from polar coordinates
+polar :: Angle -> Distance -> Vec2
+polar (Angle a) (Distance d) = Vec2 (d * cos a) (d * sin a)
+
 -- | Newtype safety wrapper.
 newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
 
@@ -357,7 +352,6 @@ instance VectorSpace Distance where
 -- | Newtype safety wrapper.
 newtype Area = Area Double deriving (Eq, Ord, Show)
 
-
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
 -- it unit length.
@@ -394,7 +388,7 @@ resizeLine f line@(Line start _end)
 
 -- | Resize a line, keeping the middle point.
 resizeLineSymmetric :: (Distance -> Distance) -> Line -> Line
-resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . move delta) line
+resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . translate delta) line
   where
     middle = 0.5 *. (start +. end)
     delta = middle -. start
@@ -403,7 +397,7 @@ resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . move 
 --
 -- Useful for painting lines going through a point symmetrically.
 centerLine :: Line -> Line
-centerLine line@(Line start end) = move delta line
+centerLine line@(Line start end) = translate delta line
   where
     middle = 0.5 *. (start +. end)
     delta = start -. middle
@@ -660,14 +654,14 @@ perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
     -- Move line so it starts at the origin
-    Line start0 end0 = move (negateV start) line
+    Line start0 end0 = translate (negateV start) line
     -- Rotate end point 90° CCW
     end0' = let Vec2 x y  = end0
             in Vec2 (-y) x
     -- Construct rotated line
     lineAt0' = Line start0 end0'
     -- Move line back so it goes through the point
-    line' = move p lineAt0'
+    line' = translate p lineAt0'
 
 -- | Optical reflection of a ray on a mirror. Note that the outgoing line has
 -- reversed direction like light rays would. The second result element is the

@@ -69,7 +69,6 @@ areaTest = testGroup "Area"
         ((,) <$> vec2 <*> vec2)
         (\(v1, v2) ->
             let actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
-                zero = Vec2 0 0
                 Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
                 Distance v1norm = norm v1
                 Distance v2norm = norm v2
@@ -81,9 +80,9 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
     ((,,,,) <$> vec2 <*> vec2 <*> dist <*> vec2 <*> dist)
     (\(start, end1, dist1, end2, dist2) ->
         let line1 = Line start end1
-            line1' = moveRad (angleOfLine line1) dist1 line1
+            line1' = translate (polar (angleOfLine line1) dist1) line1
             line2 = Line start end2
-            line2' = moveRad (angleOfLine line2) dist2 line2
+            line2' = translate (polar (angleOfLine line2) dist2) line2
             (expectedIntersection, _ty) = intersectionLL line1' line2'
         in approxEqualTolerance (Tolerance 1e-8) start expectedIntersection ))
   where
