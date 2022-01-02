@@ -42,6 +42,8 @@ over quickly.
 
 ![](./penrose/3_inscribed_pentagons.svg)
 
+![](./penrose/4_subdivision_with_pentagons.svg)
+
 ![](./reflection.svg)
 
 ![](./simple_operations.svg)
