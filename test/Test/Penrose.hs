@@ -93,7 +93,7 @@ testSvgPrototiles :: TestTree
 testSvgPrototiles = testCase "Loading SVG prototiles" test
   where
     test = renderAllFormats 1000 1000 "test/out/penrose/5_prototiles" $ do
-        for_ (decagonRose (Vec2 500 500) 500 >>= subdivide >>= subdivide) renderProtoTile
+        for_ (decagonRose (Vec2 500 500) 500 >>= subdivide) renderProtoTile
 
 renderProtoTile :: Tile -> Render ()
 renderProtoTile t@Tile{..} = restoreStateAfter $ do
