@@ -17,8 +17,8 @@ import Penrose
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 1000
-picHeight = 1000
+picWidth = 2000
+picHeight = 2000
 
 main :: IO ()
 main = do
@@ -27,7 +27,7 @@ main = do
     svg <- svgNewFromFile protoFile
     withSurfaceAuto targetFile picWidth picHeight $ \surface ->
         renderWith surface $ do
-            let initial = rotateAround (Vec2 (picWidth/2) (picHeight/2)) (deg 90) $ asymmetricDecagon (Vec2 500 500) 500
+            let initial = rotateAround (Vec2 (picWidth/2) (picHeight/2)) (deg 90) $ asymmetricDecagon (Vec2 (picWidth/2) (picHeight/2)) (min picWidth picHeight / 2)
                 tiling = foldl' (>>=) initial (replicate generations subdivide)
             for_ tiling $ renderProtoTile svg
 
