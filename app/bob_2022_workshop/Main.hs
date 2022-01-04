@@ -18,4 +18,4 @@ drawToFiles filename w h drawing = do
 
 main :: IO ()
 main = do
-    drawToFiles "bob2022/helloworld" 800 600 (Steps.A.HelloWorld.hello)
+    drawToFiles "bob2022/helloworld" 300 110 (Steps.A.HelloWorld.hello)

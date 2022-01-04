@@ -19,7 +19,7 @@ hello _ _ = do
     translate 10 100
     bobkonf2022
 
-
+-- | Using absolute coordinates.
 letterH :: Render ()
 letterH = do
     newPath
@@ -38,6 +38,7 @@ letterH = do
     closePath
     stroke
 
+-- | Using relative coordinates, also some styling
 letterE :: Render ()
 letterE = do
     newPath
@@ -59,6 +60,7 @@ letterE = do
     setSourceRGB 0 0 0
     strokePreserve
 
+-- | Using more Haskell and more styles
 letterL1 :: Render ()
 letterL1 = do
     newPath
@@ -69,12 +71,14 @@ letterL1 = do
     setLineCap LineCapRound
     stroke
 
+-- | Reuse the first L with different styles
 letterL2 :: Render ()
 letterL2 = do
     setLineWidth 3
     setSourceRGB 0 0 0
     letterL1
 
+-- | Bezier curves and getting a bit fancier
 letterO :: Render ()
 letterO = do
     newPath
@@ -104,6 +108,7 @@ letterO = do
         moveTo x3 y3 >> lineTo x4 y4 >> stroke
         moveTo x4 y4 >> circle 2 >> fill
 
+-- | Text rendering
 bobkonf2022 :: Render ()
 bobkonf2022 = do
     setFontSize 40
