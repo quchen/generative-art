@@ -155,6 +155,17 @@ executables:
             - cassava
             - bytestring
             - vector-algorithms
+    bob-2022-workshop:
+        main:        Main.hs
+        source-dirs: app/bob_2022_workshop
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+        dependencies:
+            - generative-art
 
 tests:
     testsuite:
