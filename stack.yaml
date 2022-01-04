@@ -4,6 +4,8 @@ packages:
 
     - app/voronoi_interactive
 
+    - app/munihac_2022_workshop
+
     - penplotting/ApollonianGasket
     - penplotting/circuits
     - penplotting/DelaunayVoronoi
