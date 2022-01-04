@@ -17,8 +17,8 @@ import Penrose
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 10000
-picHeight = 10000
+picWidth = 2000
+picHeight = 2000
 
 main :: IO ()
 main = do
