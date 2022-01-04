@@ -17,8 +17,8 @@ import Penrose
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 2000
-picHeight = 2000
+picWidth = 10000
+picHeight = 10000
 
 main :: IO ()
 main = do
@@ -27,6 +27,9 @@ main = do
     svg <- svgNewFromFile protoFile
     withSurfaceAuto targetFile picWidth picHeight $ \surface ->
         renderWith surface $ do
+            Cairo.rectangle 0 0 picWidth picHeight
+            Cairo.setSourceRGB 1 1 1
+            Cairo.fill
             let initial = rotateAround (Vec2 (picWidth/2) (picHeight/2)) (deg 90) $ asymmetricDecagon (Vec2 (picWidth/2) (picHeight/2)) (min picWidth picHeight / 2)
                 tiling = foldl' (>>=) initial (replicate generations subdivide)
             for_ tiling $ renderProtoTile svg
@@ -37,7 +40,7 @@ renderProtoTile prototile t@Tile{..} = restoreStateAfter $ do
     restoreStateAfter $ do
         Cairo.setSourceRGBA 1 0 0 0.5
         Cairo.setLineWidth 0.5
-        strokePreserve
+        --strokePreserve
     clip
     let Distance unitLength = norm (tileP1 -. tileP0)
     case (tileType, polygonOrientation (asPolygon t)) of
