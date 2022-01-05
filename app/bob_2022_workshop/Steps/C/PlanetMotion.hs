@@ -8,8 +8,8 @@ import Data.List
 import Data.Foldable
 
 
-planetTrajectory :: [(Double, (Vec2, Vec2), Double)]
-planetTrajectory = rkf45Solve f y0 t0 dt0 tolerance
+planetTrajectory :: [(Double, (Vec2, Vec2))]
+planetTrajectory = rungeKutta4Solve f y0 t0 dt
   where
     f :: Double -> (Vec2, Vec2) -> (Vec2, Vec2)
     f _t (x, v)
@@ -20,9 +20,7 @@ planetTrajectory = rkf45Solve f y0 t0 dt0 tolerance
         in (v, a)
     y0 = (Vec2 100 0, Vec2 4 4)
     t0 = 0
-    dt0 = 10
-
-    tolerance = 0.001
+    dt = 0.1
 
 
 boundingBox :: [Vec2] -> (Vec2, Vec2)
@@ -51,9 +49,9 @@ fillFrameTransformation w h points = do
 
 planetMotion :: Int -> Int -> Render ()
 planetMotion w h = do
-    let trajectory = takeWhile (\(t,_,_) -> t < 1000) planetTrajectory
+    let trajectory = takeWhile (\(t,_) -> t < 1000) planetTrajectory
 
-    fillFrameTransformation w h [x | (_, (x, _), _) <- trajectory]
+    fillFrameTransformation w h [x | (_, (x, _)) <- trajectory]
 
     do save
        newPath
@@ -69,12 +67,12 @@ planetMotion w h = do
     do save
        newPath
        setLineWidth 1
-       for_ trajectory $ \(_, (Vec2 x y, _), _) -> lineTo x y
+       for_ trajectory $ \(_, (Vec2 x y, _)) -> lineTo x y
        stroke
        restore
 
     -- do save
-    --    for_ trajectory $ \(_, (Vec2 x y, _), _) -> do
+    --    for_ trajectory $ \(_, (Vec2 x y, _)) -> do
     --         newPath
     --         arc x y 1 0 (2*pi)
     --         closePath
@@ -84,7 +82,7 @@ planetMotion w h = do
 
     do save
        newPath
-       let (_, (Vec2 x y, _), _) = head planetTrajectory
+       let (_, (Vec2 x y, _)) = head planetTrajectory
        arc x y 4 0 (2*pi)
        closePath
        setSourceRGB 0.922526 0.385626 0.209179

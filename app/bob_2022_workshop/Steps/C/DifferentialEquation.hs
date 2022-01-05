@@ -7,47 +7,33 @@ module Steps.C.DifferentialEquation (
     , Vec3 (..)
 ) where
 
-import Debug.Trace
-
 -- | Solve a system of first-order differential equations with RK4 AKA »the standard Runge-Kutta«.
 rungeKutta4Step
     :: Vector vec
-    => (vec -> vec -> Double -> vec) -- ^ dx/dt
-    -> (vec -> vec -> Double -> vec) -- ^ dv/dt
-    -> vec                           -- ^ Position
-    -> vec                           -- ^ Velocity
-    -> Double                        -- ^ Time
-    -> Double                        -- ^ Step size
-    -> (vec, vec, Double)            -- ^ Position, velocity, time
-rungeKutta4Step dxdt dvdt x v t dt
-  = let k11 = dt *. dxdt x v t
-        k21 = dt *. dvdt x v t
+    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    -> vec                    -- ^ current y
+    -> Double                 -- ^ Time
+    -> Double                 -- ^ Step size
+    -> (Double, vec)          -- ^ time, y
+rungeKutta4Step f y t dt
+  = let k1 = dt *. f t y
+        k2 = dt *. f (t+0.5*dt) (y +. 0.5*.k1)
+        k3 = dt *. f (t+0.5*dt) (y +. 0.5*.k2)
+        k4 = dt *. f (t+dt) (y +. k3)
 
-        k12 = dt *. dxdt (x +. 0.5*.k11) (v +. 0.5*.k21) (t+0.5*dt)
-        k22 = dt *. dvdt (x +. 0.5*.k11) (v +. 0.5*.k21) (t+0.5*dt)
+        dy = 1/6 *. (k1 +. 2*.k2 +. 2*.k3 +. k4)
 
-        k13 = dt *. dxdt (x +. 0.5*.k12) (v +. 0.5*.k22) (t+0.5*dt)
-        k23 = dt *. dvdt (x +. 0.5*.k12) (v +. 0.5*.k22) (t+0.5*dt)
-
-        k14 = dt *. dxdt (x +. k13) (v +. k23) (t+dt)
-        k24 = dt *. dvdt (x +. k13) (v +. k23) (t+dt)
-
-        dx = 1/6 *. (k11 +. 2*.k12 +. 2*.k13 +. k14)
-        dv = 1/6 *. (k21 +. 2*.k22 +. 2*.k23 +. k24)
-
-    in (x +. dx, v +. dv, t + dt)
+    in (t + dt, y +. dy)
 
 rungeKutta4Solve
-    :: Vector t
-    => (t -> t -> Double -> t) -- ^ dx/dt
-    -> (t -> t -> Double -> t) -- ^ dv/dt
-    -> t                       -- ^ Initial position
-    -> t                       -- ^ Initial velocity
-    -> Double                  -- ^ Initial time
-    -> Double                  -- ^ Step size
-    -> [(t, t, Double)]        -- ^ Position, velocity, time
-rungeKutta4Solve dxdt dvdt x0 v0 t0 dt
-  = iterate (\(x, v, t) -> rungeKutta4Step dxdt dvdt x v t dt) (x0, v0, t0)
+    :: Vector vec
+    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    -> vec                           -- ^ Initial y
+    -> Double                        -- ^ Initial time
+    -> Double                        -- ^ Step size
+    -> [(Double, vec)]               -- ^ time, y
+rungeKutta4Solve f y0 t0 dt
+  = iterate (\(t, y) -> rungeKutta4Step f y t dt) (t0, y0)
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 data Vec3 = Vec3 !Double !Double !Double deriving (Eq, Ord, Show)
@@ -116,7 +102,7 @@ rkf45step
     -> Double                 -- ^ current time
     -> Double                 -- ^ step size
     -> Double                 -- ^ Error tolerance
-    -> (Double, vec, Double)  -- ^ new y, new time, new step size
+    -> (Double, vec, Double)  -- ^ new time, new y, new step size
 rkf45step f y t dt tolerance
   = let k1 = dt *. f t y
         k2 = dt *. f (t + 1/4*dt)   (y +. (1/4)       *.k1)
@@ -139,12 +125,10 @@ rkf45step f y t dt tolerance
     in if deviation < tolerance
         then let dtFactor = min 2 $ safety * (tolerance / deviation) ** (1/4)
                  dt' = dt * dtFactor
-             in -- trace ("Good. Adapt step " ++ show dt ++ " to " ++ show dt' ++ " (factor: " ++ show dtFactor ++ ")")
-                 (t+dt, y'rk5, dt')
+             in (t+dt, y'rk5, dt')
         else let dtFactor = max 0.1 $ safety * (tolerance / deviation) ** (1/5)
                  dt' = dt * dtFactor
-             in -- trace ("BAD. Refine step " ++ show dt ++ " to " ++ show dt' ++ " (factor: " ++ show dtFactor ++ ")")
-                 rkf45step f y t dt' tolerance
+             in rkf45step f y t dt' tolerance
 
 
 rkf45Solve
