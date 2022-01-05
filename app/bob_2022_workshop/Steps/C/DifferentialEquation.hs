@@ -100,23 +100,24 @@ instance (Vector a, Vector b, Vector c) => Vector (a,b,c) where
     zero = (zero, zero, zero)
 
 rkf45step
-    :: (Double -> Double -> Double) -- ^ = dy/dt = f(y, t)
-    -> Double                       -- ^ current y
-    -> Double                       -- ^ current time
-    -> Double                       -- ^ step size
-    -> Double                       -- ^ Error tolerance
-    -> (Double, Double, Double)     -- ^ new y, new time, new step size
+    :: NormedVector vec
+    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    -> vec                    -- ^ current y
+    -> Double                 -- ^ current time
+    -> Double                 -- ^ step size
+    -> Double                 -- ^ Error tolerance
+    -> (vec, Double, Double)  -- ^ new y, new time, new step size
 rkf45step f y t dt epsilon
-  = let k1 = dt * f y t
-        k2 = dt * f (y + 1/4*k1) (t + 1/4*dt)
-        k3 = dt * f (y + 3/32*k1 + 9/32*k2) (t + 3/8*dt)
-        k4 = dt * f (y + 1932/2197*k1 - 7200/2197*k2 + 7296/2197*k3) (t + 12/13*dt)
-        k5 = dt * f (y + 439/216*k1 - 8*k2 + 3680/513*k3 - 845/4104*k4) (t + dt)
-        k6 = dt * f (y - 8/27*k1 + 2*k2 - 3544/2565*k3 + 1859/4104*k4 - 11/40*k5) (t + 1/2*dt)
+  = let k1 = dt *. f t y
+        k2 = dt *. f (t + 1/4*dt)   (y +. (1/4)       *.k1)
+        k3 = dt *. f (t + 3/8*dt)   (y +. (3/32)      *.k1 +. (9/32)     *.k2)
+        k4 = dt *. f (t + 12/13*dt) (y +. (1932/2197) *.k1 -. (7200/2197)*.k2 +. (7296/2197)*.k3)
+        k5 = dt *. f (t + dt)       (y +. (439/216)   *.k1 -. 8          *.k2 +. (3680/513) *.k3 -. (845/4104) *.k4)
+        k6 = dt *. f (t + 1/2*dt)   (y -. (8/27)      *.k1 +. 2          *.k2 -. (3544/2565)*.k3 +. (1859/4104)*.k4 -. (11/40)*.k5)
 
-        y'rk4 = y + 25/216*k1 + 0*k2 + 1408/2565*k3 + 2197/4101*k4 - 1/5*k5
-        y'rk5 = y + 16/135*k1 + 0*k2 + 6656/12826*k3 + 28561/56430*k4 - 9/50*k5 + 2/55*k6
-        dtIdeal = dt * safety * (epsilon / abs (y'rk4 - y'rk5)) ** (1/5)
+        y'rk4 = y +. (25/216)*.k1 +. 0*.k2 +. (1408/2565) *.k3 +. (2197/4101)  *.k4 -. (1/5) *.k5
+        y'rk5 = y +. (16/135)*.k1 +. 0*.k2 +. (6656/12826)*.k3 +. (28561/56430)*.k4 -. (9/50)*.k5 +. (2/55)*.k6
+        dtIdeal = dt * safety * (epsilon / norm (y'rk4 -. y'rk5)) ** (1/5)
 
         -- Safety constant. Mathematically unnecessary, but some authors seem to
         -- use it to err on the safer side when it comes to reducing step size.
