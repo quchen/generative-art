@@ -12,7 +12,7 @@ planetTrajectory = rungeKutta4Solve dxdt dvdt x0 v0 t0 dt
   where
     dxdt, dvdt :: Vec2 -> Vec2 -> Double -> Vec2
     dvdt x v _t
-      = let gravity = (- attraction / norm x ** 2.95) *. x
+      = let gravity = (- attraction / norm x ** 2.94) *. x
             friction = (-0.0001 * norm v) *. v
         in gravity +. friction
     dxdt _x v _t = v
@@ -31,6 +31,7 @@ boundingBox (p:oints) = foldl'
     (p,p)
     oints
 
+-- Apply a transformation so the points are scaled and translated to fill the frame better.
 fillFrameTransformation :: Int -> Int -> [Vec2] -> Render ()
 fillFrameTransformation w h points = do
     let (Vec2 xMin yMin, Vec2 xMax yMax) = boundingBox points
@@ -79,5 +80,6 @@ planetMotion w h = do
        fillPreserve
        setSourceRGB 0 0 0
        setLineWidth 1
+       setLineCap LineCapRound
        stroke
        restore
