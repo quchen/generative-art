@@ -7,7 +7,6 @@ import Graphics.Rendering.Cairo hiding (x,y)
 import Data.List
 import Data.Foldable
 
-
 planetTrajectory :: [(Double, (Vec2, Vec2))]
 planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
   where
@@ -23,7 +22,6 @@ planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
 
     dt0 = 10
     tolerance = 0.001
-
 
 boundingBox :: [Vec2] -> (Vec2, Vec2)
 boundingBox [] = error "Bounding box of nothing"
@@ -47,7 +45,6 @@ fillFrameTransformation w h points = do
     scale scaleFactor scaleFactor
     translate (-xMin) (-yMin)
     scale 0.95 0.95
-
 
 planetMotion :: Int -> Int -> Render ()
 planetMotion w h = do

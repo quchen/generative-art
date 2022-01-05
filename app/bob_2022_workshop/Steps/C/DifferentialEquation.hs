@@ -130,7 +130,6 @@ rkf45step f y t dt tolerance
                  dt' = dt * dtFactor
              in rkf45step f y t dt' tolerance
 
-
 rungeKuttaAdaptiveStep
     :: NormedVector vec
     => (Double -> vec -> vec)
