@@ -5,23 +5,25 @@ module Steps.C.PlanetMotion (planetMotion, planetTrajectory, boundingBox) where
 import Steps.C.DifferentialEquation
 import Graphics.Rendering.Cairo hiding (x,y)
 import Data.List
+import Data.Foldable
 
 
-planetTrajectory :: [(Vec2, Vec2, Double)]
-planetTrajectory = rungeKutta4Solve dxdt dvdt x0 v0 t0 dt
+planetTrajectory :: [(Double, (Vec2, Vec2), Double)]
+planetTrajectory = rkf45Solve f y0 t0 dt0 tolerance
   where
-    dxdt, dvdt :: Vec2 -> Vec2 -> Double -> Vec2
-    dvdt x v _t
+    f :: Double -> (Vec2, Vec2) -> (Vec2, Vec2)
+    f _t (x, v)
       = let gravity = (- attraction / norm x ** 2.94) *. x
+            attraction = 2200
             friction = (-0.0001 * norm v) *. v
-        in gravity +. friction
-    dxdt _x v _t = v
-    x0 = Vec2 100 0
-    v0 = Vec2 4 4
+            a = gravity +. friction
+        in (v, a)
+    y0 = (Vec2 100 0, Vec2 4 4)
     t0 = 0
-    dt = 0.1
+    dt0 = 10
 
-    attraction = 2200
+    tolerance = 0.001
+
 
 boundingBox :: [Vec2] -> (Vec2, Vec2)
 boundingBox [] = error "Bounding box of nothing"
@@ -49,9 +51,9 @@ fillFrameTransformation w h points = do
 
 planetMotion :: Int -> Int -> Render ()
 planetMotion w h = do
-    let trajectory = takeWhile (\(_,_,t) -> t < 1000) planetTrajectory
+    let trajectory = takeWhile (\(t,_,_) -> t < 1000) planetTrajectory
 
-    fillFrameTransformation w h [x | (x, _, _) <- trajectory]
+    fillFrameTransformation w h [x | (_, (x, _), _) <- trajectory]
 
     do save
        newPath
@@ -67,13 +69,22 @@ planetMotion w h = do
     do save
        newPath
        setLineWidth 1
-       sequence_ [lineTo x y | (Vec2 x y, _, _) <- trajectory]
+       for_ trajectory $ \(_, (Vec2 x y, _), _) -> lineTo x y
        stroke
        restore
 
+    -- do save
+    --    for_ trajectory $ \(_, (Vec2 x y, _), _) -> do
+    --         newPath
+    --         arc x y 1 0 (2*pi)
+    --         closePath
+    --         setSourceRGBA 0.368417 0.506779 0.709798 0.8
+    --         fill
+    --    restore
+
     do save
        newPath
-       let (Vec2 x y, _, _) = head planetTrajectory
+       let (_, (Vec2 x y, _), _) = head planetTrajectory
        arc x y 4 0 (2*pi)
        closePath
        setSourceRGB 0.922526 0.385626 0.209179

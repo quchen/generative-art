@@ -1,12 +1,15 @@
 module Steps.C.DifferentialEquation (
-    rungeKutta4Solve
+      rungeKutta4Solve
+    , rkf45Solve
     , Vector(..)
     , NormedVector(..)
     , Vec2 (..)
     , Vec3 (..)
 ) where
 
--- | Solve a second-order differential equation with Runge-Kutta.
+import Debug.Trace
+
+-- | Solve a system of first-order differential equations with RK4 AKA »the standard Runge-Kutta«.
 rungeKutta4Step
     :: Vector vec
     => (vec -> vec -> Double -> vec) -- ^ dx/dt
@@ -93,12 +96,19 @@ instance (Vector a, Vector b) => Vector (a,b) where
     x *. (a,b) = (x *. a, x *. b)
     zero = (zero, zero)
 
+-- Not sure this instance is a very good idea, but I need it for the error
+-- estimator in RKF45
+instance (NormedVector a, NormedVector b) => NormedVector (a,b) where
+    norm (a,b) = max (norm a) (norm b)
+
 instance (Vector a, Vector b, Vector c) => Vector (a,b,c) where
     (a1, a2, a3) +. (b1, b2, b3) = (a1+.b1, a2+.b2, a3+.b3)
     neg (a,b,c) = (neg a, neg b, neg c)
     x *. (a,b,c) = (x *. a, x *. b, x *. c)
     zero = (zero, zero, zero)
 
+-- | Solve a system of first-order differential equations with RKF45
+-- (Runge-Kutta-Feinberg, adaptive step size using 4th-and-5th-order Runge-Kutta)
 rkf45step
     :: NormedVector vec
     => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
@@ -106,8 +116,8 @@ rkf45step
     -> Double                 -- ^ current time
     -> Double                 -- ^ step size
     -> Double                 -- ^ Error tolerance
-    -> (vec, Double, Double)  -- ^ new y, new time, new step size
-rkf45step f y t dt epsilon
+    -> (Double, vec, Double)  -- ^ new y, new time, new step size
+rkf45step f y t dt tolerance
   = let k1 = dt *. f t y
         k2 = dt *. f (t + 1/4*dt)   (y +. (1/4)       *.k1)
         k3 = dt *. f (t + 3/8*dt)   (y +. (3/32)      *.k1 +. (9/32)     *.k2)
@@ -117,12 +127,33 @@ rkf45step f y t dt epsilon
 
         y'rk4 = y +. (25/216)*.k1 +. 0*.k2 +. (1408/2565) *.k3 +. (2197/4101)  *.k4 -. (1/5) *.k5
         y'rk5 = y +. (16/135)*.k1 +. 0*.k2 +. (6656/12826)*.k3 +. (28561/56430)*.k4 -. (9/50)*.k5 +. (2/55)*.k6
-        dtIdeal = dt * safety * (epsilon / norm (y'rk4 -. y'rk5)) ** (1/5)
+
+        -- How far are we from the tolerance threshold?
+        deviation = norm (y'rk4 -. y'rk5)
 
         -- Safety constant. Mathematically unnecessary, but some authors seem to
-        -- use it to err on the safer side when it comes to reducing step size.
+        -- use it to err on the safer side when it comes to reducing step size
+        -- to avoid flip-flopping.
         safety = 0.9
 
-    in if dtIdeal < dt
-        then rkf45step f y t dtIdeal epsilon -- Repeat with finer step size
-        else (y'rk5, t+dt, dtIdeal) -- Accept with increased step size
+    in if deviation < tolerance
+        then let dtFactor = min 2 $ safety * (tolerance / deviation) ** (1/4)
+                 dt' = dt * dtFactor
+             in -- trace ("Good. Adapt step " ++ show dt ++ " to " ++ show dt' ++ " (factor: " ++ show dtFactor ++ ")")
+                 (t+dt, y'rk5, dt')
+        else let dtFactor = max 0.1 $ safety * (tolerance / deviation) ** (1/5)
+                 dt' = dt * dtFactor
+             in -- trace ("BAD. Refine step " ++ show dt ++ " to " ++ show dt' ++ " (factor: " ++ show dtFactor ++ ")")
+                 rkf45step f y t dt' tolerance
+
+
+rkf45Solve
+    :: NormedVector vec
+    => (Double -> vec -> vec)
+    -> vec
+    -> Double
+    -> Double
+    -> Double
+    -> [(Double, vec, Double)]
+rkf45Solve f y0 t0 dt0 tolerance
+  = iterate (\(t, y, dt) -> rkf45step f y t dt tolerance) (t0, y0, dt0)
