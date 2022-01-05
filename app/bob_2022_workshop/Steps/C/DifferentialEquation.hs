@@ -1,6 +1,6 @@
 module Steps.C.DifferentialEquation (
-      rungeKutta4Solve
-    , rkf45Solve
+      rungeKuttaConstantStep
+    , rungeKuttaAdaptiveStep
     , Vector(..)
     , NormedVector(..)
     , Vec2 (..)
@@ -25,14 +25,14 @@ rungeKutta4Step f y t dt
 
     in (t + dt, y +. dy)
 
-rungeKutta4Solve
+rungeKuttaConstantStep
     :: Vector vec
     => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
     -> vec                           -- ^ Initial y
     -> Double                        -- ^ Initial time
     -> Double                        -- ^ Step size
     -> [(Double, vec)]               -- ^ time, y
-rungeKutta4Solve f y0 t0 dt
+rungeKuttaConstantStep f y0 t0 dt
   = iterate (\(t, y) -> rungeKutta4Step f y t dt) (t0, y0)
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
@@ -131,13 +131,13 @@ rkf45step f y t dt tolerance
              in rkf45step f y t dt' tolerance
 
 
-rkf45Solve
+rungeKuttaAdaptiveStep
     :: NormedVector vec
     => (Double -> vec -> vec)
     -> vec
     -> Double
     -> Double
     -> Double
-    -> [(Double, vec, Double)]
-rkf45Solve f y0 t0 dt0 tolerance
-  = iterate (\(t, y, dt) -> rkf45step f y t dt tolerance) (t0, y0, dt0)
+    -> [(Double, vec)]
+rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
+  = [ (t, y) | (t,y,_dt) <- iterate (\(t, y, dt) -> rkf45step f y t dt tolerance) (t0, y0, dt0) ]

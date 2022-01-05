@@ -9,7 +9,7 @@ import Data.Foldable
 
 
 planetTrajectory :: [(Double, (Vec2, Vec2))]
-planetTrajectory = rungeKutta4Solve f y0 t0 dt
+planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
   where
     f :: Double -> (Vec2, Vec2) -> (Vec2, Vec2)
     f _t (x, v)
@@ -20,7 +20,9 @@ planetTrajectory = rungeKutta4Solve f y0 t0 dt
         in (v, a)
     y0 = (Vec2 100 0, Vec2 4 4)
     t0 = 0
-    dt = 0.1
+
+    dt0 = 10
+    tolerance = 0.001
 
 
 boundingBox :: [Vec2] -> (Vec2, Vec2)
