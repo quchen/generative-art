@@ -6,11 +6,10 @@ import Control.Monad
 import Data.Foldable
 import Data.Function
 
--- Inspired by the unfortunately unreachable
+-- Inspired by
 -- https://www.kovach.me/Generating_artwork_with_Haskell.html
 squares :: Int -> Int -> Render ()
 squares w h = do
-    translate 7 7
     for_ [15, 30 .. w-15] $ \x ->
         for_ [15, 30 .. h-15] $ \y ->
             drawSquare (fromIntegral x,fromIntegral y)
