@@ -5,15 +5,7 @@
 module Geometry.BezierInterpolation.Internal where
 
 import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as VM
 import Data.Vector (Vector, (!))
-import Data.Vector.Mutable (STVector)
-import Control.Monad.ST
-import Control.Applicative
-import Data.Traversable
-import Graphics.Rendering.Cairo hiding (x,y)
-import Data.Foldable
-import Debug.Trace
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 (+.), (-.) :: Vec2 -> Vec2 -> Vec2
