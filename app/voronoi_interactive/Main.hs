@@ -15,6 +15,8 @@ import           Graphics.UI.Threepenny.Core
 import           Geometry
 import           Voronoi
 import           Draw
+import Graphics.UI.Threepenny (drawImage)
+import Control.Concurrent (threadDelay)
 
 main :: IO ()
 main = UI.startGUI UI.defaultConfig setup
@@ -25,7 +27,7 @@ setup window = do
         h = 1200
     gen <- liftIO create
 
-    elemCanvas <- UI.canvas # set UI.width w # set UI.height h # set UI.style [("background", "#eeeeee")]
+    elemCanvas <- UI.canvas # set UI.width w # set UI.height h -- # set UI.style [("background", "#eeeeee")]
     btnAddPointsGaussian <- UI.button # set UI.text "Add Gaussian distributed points"
     btnAddPointsUniform <- UI.button # set UI.text "Add uniformly distributed points"
     btnReset <- UI.button # set UI.text "Reset"
@@ -64,7 +66,14 @@ setup window = do
 
     bVoronoi <- accumB initialState eVoronoi
 
-    onChanges bVoronoi $ \voronoi -> for_ (faces voronoi) $ \face -> drawFaceCanvas elemCanvas face
+    onChanges bVoronoi $ \voronoi -> do
+        let file = "out.png"
+        liftIO $ withSurface PNG file w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
+        outFile <- loadFile "image/png" file
+        outImg <- UI.img # set UI.src outFile
+        on (UI.domEvent "load") outImg $ \_ -> do
+            elemCanvas # UI.clearCanvas
+            elemCanvas # drawImage outImg (0, 0)
 
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
@@ -87,29 +96,6 @@ gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicate
             then randomCoordinate mx sigma
             else pure coord
 
-drawFaceCanvas :: UI.Element -> VoronoiFace a -> UI ()
-drawFaceCanvas elemCanvas (VF{..}) = drawVFace >> drawVCenter
-  where
-    drawVCenter = do
-        elemCanvas # UI.beginPath
-        let radius = 5
-        elemCanvas # UI.arc (coordinates center) radius 0 (2*pi)
-        elemCanvas # set' UI.fillStyle (UI.htmlColor "#5d81b4")
-        elemCanvas # UI.fill
-    drawVFace = case face of
-        Polygon [] -> pure ()
-        Polygon (p:ps) -> do
-            elemCanvas # UI.beginPath
-            elemCanvas # UI.moveTo (coordinates p)
-            for_ ps $ \p' -> elemCanvas # UI.lineTo (coordinates p')
-            elemCanvas # set' UI.fillStyle (UI.htmlColor "#eeeeee")
-            elemCanvas # UI.fill
-            elemCanvas # set' UI.strokeStyle "#5d81b4"
-            elemCanvas # UI.stroke
-
-coordinates :: Vec2 -> (Double, Double)
-coordinates (Vec2 x y) = (x, y)
-
 drawFaceCairo :: VoronoiFace () -> Cairo.Render ()
 drawFaceCairo VF{..} = case face of
     Polygon [] -> pure ()
@@ -122,6 +108,8 @@ drawFaceCairo VF{..} = case face of
         setColor lineColor
         Cairo.setLineWidth 1
         Cairo.stroke
+        circleSketch center (Distance 5)
+        Cairo.fill
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
