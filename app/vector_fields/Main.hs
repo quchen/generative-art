@@ -28,11 +28,11 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
         Cairo.setSourceRGB 1 1 1
         Cairo.rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
         Cairo.fill
-    let perturbation = perlin seed 1 (1/noiseScale) 0.5
-    --drawVectorField (gradientField3 perturbation)
+    let field = gradientField (perlin seed 1 (1/noiseScale) 0.5)
+    don't $ drawVectorField field
     gen <- liftIO create
     ps <- uniformlyDistributedPoints gen 10000
-    drawFieldLines (gradientField3 perturbation) ps
+    drawFieldLines field ps
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
 uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
@@ -60,18 +60,6 @@ drawFieldLines f ps = restoreStateAfter $ do
 
 gradientField :: Perlin -> Vec2 -> Vec2
 gradientField perturbation p@(Vec2 x y) =
-    let perturbationStrength = x / fromIntegral picWidth
-        noise = noise2d perturbation p
-    in  Vec2 0.5 0 +. perturbationStrength *. noise
-
-gradientField2 :: Perlin -> Vec2 -> Vec2
-gradientField2 perturbation v@(Vec2 x y) =
-    let perturbationStrength = x / fromIntegral picWidth
-        a = rad (10 * noiseValue perturbation (x, y, 32156498))
-    in  Vec2 1 0 +. polar a (Distance perturbationStrength)
-
-gradientField3 :: Perlin -> Vec2 -> Vec2
-gradientField3 perturbation p@(Vec2 x y) =
     let perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6)))
         noise (Vec2 x' y') = noiseValue perturbation (x' + 49156616, 2 * y' + 46216981, 321685163213)
         grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
@@ -89,3 +77,6 @@ gradientDescent gradient = go 0
     go i s
         | i < 2000 = s : go (i+1) (s +. 0.1 *. gradient s)
         | otherwise = []
+
+don't :: Applicative m => m a -> m ()
+don't _ = pure ()
