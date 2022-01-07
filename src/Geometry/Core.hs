@@ -271,7 +271,7 @@ mirrorAlong line = transform (mirrorAlongT line)
 --     (7) Compatibility of scalar multiplication: @(a * b) *. c = a *. (b *. c)@
 --     (8) Scalar identity: @1 *. a = a@
 class VectorSpace v where
-    {-# MINIMAL (+.), (*.), ((-.) | negateV), zero #-}
+    {-# MINIMAL (+.), (*.), ((-.) | negateV) #-}
     -- | Vector addition
     (+.) :: v -> v -> v
 
@@ -282,21 +282,22 @@ class VectorSpace v where
     -- | Multiplication with a scalar
     (*.) :: Double -> v -> v
 
+    -- | Division by a scalar
+    (/.) :: v -> Double -> v
+    v /. a = (1/a) *. v
+
     -- | Inverse element
     negateV :: v -> v
-    negateV a = zero -. a
-
-    -- | Neutral
-    zero :: v
+    negateV a = (-1) *. a
 
 infixl 6 +., -.
-infixl 7 *.
+infixl 7 *., /.
+
 
 instance VectorSpace Vec2 where
     Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
     a *. Vec2 x y = Vec2 (a*x) (a*y)
     negateV (Vec2 x y) = Vec2 (-x) (-y)
-    zero = Vec2 0 0
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
@@ -326,7 +327,6 @@ instance VectorSpace Angle where
     Angle a -. Angle b = rad (a - b)
     a *. Angle b = rad (a * b)
     negateV (Angle a) = rad (-a)
-    zero = Angle 0
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
@@ -347,7 +347,6 @@ instance VectorSpace Distance where
     Distance a -. Distance b = Distance (a - b)
     a *. Distance b = Distance (a * b)
     negateV (Distance a) = Distance (-a)
-    zero = Distance 0
 
 -- | Newtype safety wrapper.
 newtype Area = Area Double deriving (Eq, Ord, Show)

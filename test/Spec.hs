@@ -6,6 +6,7 @@ import Control.Exception
 import Data.Foldable
 import System.Process
 
+import qualified Test.BezierInterpolation
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut

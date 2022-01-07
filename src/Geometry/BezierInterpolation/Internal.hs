@@ -6,19 +6,7 @@ module Geometry.BezierInterpolation.Internal where
 
 import qualified Data.Vector as V
 import Data.Vector (Vector, (!))
-
-data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
-(+.), (-.) :: Vec2 -> Vec2 -> Vec2
-Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
-u -. v = u +. (-1) *. v
-(*.) :: Double -> Vec2 -> Vec2
-a *. Vec2 x y = Vec2 (a*x) (a*y)
-(/.) :: Vec2 -> Double -> Vec2
-u /. a = (1/a) *. u
-infixl 6 +.
-infixl 6 -.
-infixl 7 *.
-infixl 7 /.
+import Geometry.Core
 
 -- | Cubic Bezier curve
 data Bezier = Bezier Vec2 Vec2 Vec2 Vec2

@@ -22,13 +22,13 @@ tests = testGroup "Bezier interpolation"
     ]
 
 somePoints :: TestTree
-somePoints = testCase "Some points" (renderAllFormats 700 600 "test/out/bezier_interpolation/1_some_points" rectangularTable)
+somePoints = testCase "Some points" (renderAllFormats 400 300 "test/out/bezier_interpolation/1_some_points" rectangularTable)
 
 rectangularTable :: Render ()
 rectangularTable = paintBezierPicture points smoothed
   where
     points =
-        [ Vec2 100 500
+        Geometry.translate (Vec2 50 25) $ Geometry.scale 0.5 [ Vec2 100 500
         , Vec2 200 200
         , Vec2 500 500
         , Vec2 600 100
@@ -41,7 +41,7 @@ rectangularTable = paintBezierPicture points smoothed
     smoothed = bezierSmoothenOpen points
 
 paintBezierPicture points smoothed = do
-    setLineWidth 1.5
+    setLineWidth 1
 
     let circle r = do
             (x,y) <- getCurrentPoint
