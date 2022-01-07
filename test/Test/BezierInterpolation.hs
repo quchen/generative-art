@@ -22,10 +22,10 @@ tests = testGroup "Bezier interpolation"
     ]
 
 somePoints :: TestTree
-somePoints = testCase "Some points" (renderAllFormats 400 300 "test/out/bezier_interpolation/1_some_points" rectangularTable)
+somePoints = testCase "Open curve" (renderAllFormats 400 300 "test/out/bezier_interpolation/1_bezier_open" rectangularTable)
 
 rectangularTable :: Render ()
-rectangularTable = paintBezierPicture points smoothed
+rectangularTable = paintBezierOpenPicture points smoothed
   where
     points =
         Geometry.translate (Vec2 50 25) $ Geometry.scale 0.5 [ Vec2 100 500
@@ -40,8 +40,8 @@ rectangularTable = paintBezierPicture points smoothed
         ]
     smoothed = bezierSmoothenOpen points
 
-paintBezierPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
-paintBezierPicture points smoothed = do
+paintBezierOpenPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
+paintBezierOpenPicture points smoothed = do
     setLineWidth 1
 
     let circle r = restoreStateAfter $ do
