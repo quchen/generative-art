@@ -4,8 +4,9 @@ module Main (main) where
 
 import           Control.Monad                   (replicateM)
 import           Data.Foldable                   (for_, Foldable (foldl'))
+import           Numeric                         (showHex)
 import           Prelude                         hiding ((**))
-import           System.Random.MWC               (GenIO, uniformR, create)
+import           System.Random.MWC               (GenIO, uniformR, Variate (uniform), createSystemRandom)
 import           System.Random.MWC.Distributions (normal)
 
 import qualified Graphics.Rendering.Cairo        as Cairo
@@ -15,8 +16,6 @@ import           Graphics.UI.Threepenny.Core
 import           Geometry
 import           Voronoi
 import           Draw
-import Graphics.UI.Threepenny (drawImage)
-import Control.Concurrent (threadDelay)
 
 main :: IO ()
 main = UI.startGUI UI.defaultConfig setup
@@ -25,9 +24,9 @@ setup :: Window -> UI ()
 setup window = do
     let w = 1200
         h = 1200
-    gen <- liftIO create
+    gen <- liftIO createSystemRandom
 
-    elemCanvas <- UI.canvas # set UI.width w # set UI.height h -- # set UI.style [("background", "#eeeeee")]
+    elemCanvas <- UI.canvas # set UI.width w # set UI.height h # set UI.style [("background", "#eeeeee")]
     btnAddPointsGaussian <- UI.button # set UI.text "Add Gaussian distributed points"
     btnAddPointsUniform <- UI.button # set UI.text "Add uniformly distributed points"
     btnReset <- UI.button # set UI.text "Reset"
@@ -67,13 +66,15 @@ setup window = do
     bVoronoi <- accumB initialState eVoronoi
 
     onChanges bVoronoi $ \voronoi -> do
-        let file = "out.png"
-        liftIO $ withSurface PNG file w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
-        outFile <- loadFile "image/png" file
+        tmpFile <- liftIO $ do
+            randomNumber <- uniform gen :: IO Int
+            pure ("tmp/" ++ showHex (abs randomNumber) ".png")
+        liftIO $ withSurface PNG tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
+        outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
         on (UI.domEvent "load") outImg $ \_ -> do
             elemCanvas # UI.clearCanvas
-            elemCanvas # drawImage outImg (0, 0)
+            elemCanvas # UI.drawImage outImg (0, 0)
 
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
