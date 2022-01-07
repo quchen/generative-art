@@ -357,10 +357,15 @@ transformBoundingBox
     -> AspectRatioBehavior -- ^ Maintain or ignore aspect ratio
     -> Transformation
 transformBoundingBox source target aspectRatioBehavior
-  = let bbSource@(BoundingBox vMinSource _) = boundingBox source
-        bbTarget@(BoundingBox vMinTarget _) = boundingBox target
+  = let bbSource = boundingBox source
+        bbTarget = boundingBox target
 
-        translation = translateT (vMinTarget -. vMinSource)
+        sourceCenter = boundingBoxCenter bbSource
+        targetCenter = boundingBoxCenter bbTarget
+
+        boundingBoxCenter :: BoundingBox -> Vec2
+        boundingBoxCenter (BoundingBox lo hi) = (hi +. lo) /. 2
+        translateToMatchCenter = translateT (targetCenter -. sourceCenter)
 
         -- | The size of the bounding box. Toy example: calculate the area of it.
         -- Note that the values can be negative if orientations differ.
@@ -371,11 +376,15 @@ transformBoundingBox source target aspectRatioBehavior
         (targetWidth, targetHeight) = boundingBoxDimension bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
-        scaling = case aspectRatioBehavior of
-            MaintainAspectRatio -> let scaleFactor = min xScaleFactor yScaleFactor in scaleT scaleFactor scaleFactor
-            ScaleXYSeparately -> scaleT xScaleFactor yScaleFactor
+        scaleAroundT pivot x y = translateT pivot <> scaleT x y <> inverse (translateT pivot)
 
-    in scaling <> translation
+        scaleToMatchSize = case aspectRatioBehavior of
+            MaintainAspectRatio ->
+                let scaleFactor = min xScaleFactor yScaleFactor
+                in scaleAroundT targetCenter scaleFactor scaleFactor
+            ScaleXYSeparately -> scaleAroundT targetCenter xScaleFactor yScaleFactor
+
+    in  scaleToMatchSize <> translateToMatchCenter
 
 
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector

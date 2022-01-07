@@ -22,6 +22,7 @@ module Draw (
     , crossSketch
     , arcSketch
     , polygonSketch
+    , boundingBoxSketch
 
     -- * Orientation helpers
     , cartesianCoordinateSystem
@@ -181,6 +182,16 @@ polygonSketch (Polygon (Vec2 x y : vecs)) = do
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')
     closePath
+
+boundingBoxSketch :: BoundingBox -> Render ()
+boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
+    let w = xhi - xlo
+        h = yhi - ylo
+    rectangle xlo ylo w h
+    moveTo xlo ylo
+    lineTo xhi yhi
+    moveTo xhi ylo
+    lineTo xlo yhi
 
 -- | Draw a caresian coordinate system in range (x,x') (y,y')
 cartesianCoordinateSystem :: Render ()

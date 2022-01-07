@@ -18,7 +18,7 @@ tests = testGroup "Differential equations"
     ]
 
 twoBodyProblem :: TestTree
-twoBodyProblem = testCase "Two-body problem" (renderAllFormats 800 800 "test/out/differential_equations/1_two_body_problem" (renderTwoBodyProblem 800 800))
+twoBodyProblem = testCase "Two-body problem" (renderAllFormats 400 400 "test/out/differential_equations/1_two_body_problem" (renderTwoBodyProblem 400 400))
 
 planetPhaseDiagram :: [(Double, (Vec2, Vec2))]
 planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
@@ -44,15 +44,15 @@ renderTwoBodyProblem w h = do
 
         transformNicely
           = let trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram']
-                                    <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
-                canvasBoundingBox = boundingBox (Vec2 0 0, Vec2 (fromIntegral w) (fromIntegral h))
+                                     <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
+                canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
                 scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox MaintainAspectRatio
-                addSomeMargin = translateT (Vec2 10 10) <> scaleT 0.98 0.98
-            in Geometry.transform (addSomeMargin <> scaleToCanvas)
+            in Geometry.transform scaleToCanvas
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
         sun = transformNicely (Vec2 0 0)
 
     let paintSun = restoreStateAfter $ do
+            newPath
             circleSketch sun (Distance 16)
             setLineWidth 2
             mmaColor 1 1
