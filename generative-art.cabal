@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6a168229121de1a1696e3670a4f87f535cd2fa2c59ec4587c2447a275f49463f
+-- hash: 663208f23e3c143ae593c5c5c8de2307eb4013d8d87834c76431b60de4fe7157
 
 name:           generative-art
 version:        0.1.0.0
@@ -29,6 +29,8 @@ library
       Comparison
       Draw
       Geometry
+      Geometry.BezierInterpolation
+      Geometry.BezierInterpolation.Internal
       Geometry.Core
       Geometry.Cut
       Geometry.Cut.Internal
@@ -138,6 +140,7 @@ test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.BezierInterpolation
       Test.Billard
       Test.Common
       Test.ConvexHull

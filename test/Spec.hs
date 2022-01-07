@@ -35,17 +35,18 @@ tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
-        [ Test.Billard.tests
+        [ Test.BezierInterpolation.tests
+        , Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Cut.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
+        , Test.Penrose.tests
         , Test.RandomCut.tests
         , Test.Reflection.tests
         , Test.SimpleOperations.tests
         , Test.Triangulate.tests
         , Test.Voronoi.tests
-        , Test.Penrose.tests
         ]
     ]
 
