@@ -80,7 +80,7 @@ paintBezierOpenPicture points smoothed = do
     for_ points prettyPoint
 
 picassoSquirrel :: TestTree
-picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 220 190 "test/out/bezier_interpolation/2_picasso_squirrel" picassoSquirrelRender)
+picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 320 270 "test/out/bezier_interpolation/2_picasso_squirrel" picassoSquirrelRender)
 
 picassoSquirrelRender :: Render ()
 picassoSquirrelRender = do
@@ -92,18 +92,24 @@ picassoSquirrelRender = do
             curveTo x1 y1 x2 y2 x3 y3
         let Line _ end = lineFoot
         lineToVec end
+        setLineWidth 3
         stroke
     restoreStateAfter $ do -- Paint visualization points
-        setLineWidth 0.5
+        setLineWidth 1.5
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
-            restoreStateAfter $ do
-                mmaColor 0 1
-                circleSketch c1 (Distance 1) >> fill
-                moveToVec start >> lineToVec c1 >> stroke
-            restoreStateAfter $ do
-                mmaColor 1 1
-                circleSketch c2 (Distance 1) >> fill
-                moveToVec c2 >> lineToVec end >> stroke
+            restoreStateAfter . grouped (paintWithAlpha 0.7) $ do
+                    mmaColor 3 1
+                    circleSketch c1 (Distance 2) >> fill
+                    moveToVec start >> lineToVec c1 >> stroke
+            restoreStateAfter . grouped (paintWithAlpha 0.7) $ do
+                    mmaColor 1 1
+                    circleSketch c2 (Distance 2) >> fill
+                    moveToVec c2 >> lineToVec end >> stroke
+    restoreStateAfter $ do
+        setSourceRGB 0 0 0
+        for_ (concat [face, ear, back, tail1, tail2, foot]) $ \p -> do
+            circleSketch p (Distance 2.5) >> fill
+
 
 
   where
@@ -114,7 +120,7 @@ picassoSquirrelRender = do
     bezierTail2 = bezierSmoothenOpen (last tail1 : tail2)
     lineFoot = Line (last tail2) (head foot) -- Foot is just a line
 
-    moveToCanvas = Geometry.translate (Vec2 (-20) 220) . mirrorY
+    moveToCanvas = Geometry.translate (Vec2 (-30) 320) . mirrorY . Geometry.scale 1.5
 
     face = moveToCanvas
         [ Vec2 50.77511154733325  152.3192840188383
