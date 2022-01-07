@@ -29,7 +29,6 @@ library
       Geometry
       Geometry.BezierInterpolation
       Geometry.BezierInterpolation.Internal
-      Geometry.BoundingBox
       Geometry.Core
       Geometry.Cut
       Geometry.Cut.Internal
