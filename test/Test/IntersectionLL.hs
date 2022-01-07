@@ -15,35 +15,47 @@ import Test.Tasty.HUnit
 
 
 tests :: TestTree
-tests = testCase "Line-line intersection" testIntersectionLL
+tests = testGroup "Line-line intersection"
+    [ testCase "Real intersection" intersectionReal
+    , testCase "Half-virtual intersection" intersectionHalfVirtual
+    , testCase "Virtual intersection" intersectionVirtual
+    ]
 
-testIntersectionLL :: IO ()
-testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
-    testVirtual1
-    testVirtual2
-    testVirtualInL
-    testVirtualR
+intersectionReal :: IO ()
+intersectionReal = renderAllFormats 580 200 "docs/geometry/intersection/real" $ do
     testReal1
-    testReal2 )
+    testReal2
   where
-    testVirtual1 = testDraw
-        (angledLine (Vec2 50 190) (rad ( pi/6)) (Distance 100))
-        (angledLine (Vec2 50 300) (rad (-pi/6)) (Distance 100))
-    testVirtual2 = testDraw
-        (translate (Vec2 30 380 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
-        (translate (Vec2 30 380 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
-    testVirtualInL = testDraw
-        (angledLine (Vec2 300 180) (rad      0) (Distance 100))
-        (angledLine (Vec2 350 200) (rad (pi/2)) (Distance  50))
-    testVirtualR = testDraw
-        (angledLine (Vec2 370 330) (rad      0) (Distance  50))
-        (angledLine (Vec2 350 280) (rad (pi/2)) (Distance 100))
     testReal1 = testDraw
         (Line (Vec2 10  10) (Vec2 220 190))
         (Line (Vec2 270 50) (Vec2  30 160))
     testReal2 = testDraw
         (translate (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
         (translate (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
+
+intersectionHalfVirtual :: IO ()
+intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/half_virtual" $ do
+    testVirtualInL
+    testVirtualR
+  where
+    testVirtualInL = testDraw
+        (angledLine (Vec2 10 10) (rad      0) (Distance 100))
+        (angledLine (Vec2 60 30) (rad (pi/2)) (Distance  50))
+    testVirtualR = testDraw
+        (angledLine (Vec2 370 60) (rad      0) (Distance  50))
+        (angledLine (Vec2 350 10) (rad (pi/2)) (Distance 100))
+
+intersectionVirtual :: IO ()
+intersectionVirtual = renderAllFormats 580 480 "docs/geometry/intersection/virtual" $ do
+    testVirtual1
+    testVirtual2
+  where
+    testVirtual1 = testDraw
+        (angledLine (Vec2 50 0) (rad ( pi/6)) (Distance 100))
+        (angledLine (Vec2 50 120) (rad (-pi/6)) (Distance 100))
+    testVirtual2 = testDraw
+        (translate (Vec2 300 60 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
+        (translate (Vec2 300 60 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
 
 testDraw :: Line -> Line -> Render ()
 testDraw line1 line2 = do

@@ -71,7 +71,7 @@ reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
         in actual === expected
 
 lineTest :: IO ()
-lineTest = renderAllFormats 220 100 "test/out/cut/1_line" (do
+lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
     Cairo.translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
         scissors = perpendicularBisector paper
@@ -133,7 +133,7 @@ cutSquareTest = do
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 170 90 "test/out/cut/2_square" $ do
+    renderAllFormats 170 90 "docs/geometry/cut/2_square" $ do
         polyCutDraw
             (Geometry.translate (Vec2 10 10) polygon)
             (Geometry.translate (Vec2 90 10) scissors)
@@ -153,7 +153,7 @@ complicatedPolygonTest = do
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 220))
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 400 190 "test/out/cut/3_complicated" $ do
+    renderAllFormats 400 190 "docs/geometry/cut/3_complicated" $ do
         polyCutDraw
             (Geometry.translate (Vec2 90 100) polygon)
             (Geometry.translate (Vec2 290 100) scissors)
@@ -172,7 +172,7 @@ cutMissesPolygonTest = do
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 130 90 "test/out/cut/4_miss"
+    renderAllFormats 130 90 "docs/geometry/cut/4_miss"
         (polyCutDraw
             (Geometry.translate (Vec2 10 10) polygon)
             (Geometry.translate (Vec2 70 10) scissors)
@@ -195,7 +195,7 @@ cutThroughCornerTest = testCase "Cut through corner" $ do
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 150 90 "test/out/cut/5_through_corner"
+    renderAllFormats 150 90 "docs/geometry/cut/5_through_corner"
         (polyCutDraw
             (Geometry.translate (Vec2 10 20) polygon)
             (Geometry.translate (Vec2 80 20) scissors)
@@ -209,7 +209,7 @@ pathologicalCornerCutsTests = do
     -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
     (name, filenameSuffix, polygon, expectedNumPolys) <- [ooo, lol, ror, ool, oor, loo, roo]
     [ testCase name $ do
-        renderAllFormats 380 100 ("test/out/cut/6_corner_cases_" ++ filenameSuffix)
+        renderAllFormats 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix)
             (specialCaseTest name polygon)
         assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon)) ]
   where
@@ -288,7 +288,7 @@ assertAreaConserved polygon cutResult = do
 drawCutEdgeGraphTest :: TestTree
 drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
     [ testCase "Simple handcrafted graph" $
-        renderAllFormats 120 220 "test/out/cut/7_1_handcrafted_edge_graph" $ do
+        renderAllFormats 120 220 "docs/geometry/cut/7_1_handcrafted_edge_graph" $ do
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
                 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
                   where
@@ -297,8 +297,8 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             Cairo.translate 10 110
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
-        renderAllFormats 120 120  "test/out/cut/7_2_calculated_edge_graph" $ do
-            let polygon = Geometry.scale 50 (Polygon [Vec2 1 1, Vec2 1 (-1), Vec2 (-1) (-1), Vec2 (-1) 1])
+        renderAllFormats 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ do
+            let polygon = Geometry.scale 50 (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
             Cairo.translate 60 60
