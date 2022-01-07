@@ -10,6 +10,7 @@ import qualified Test.BezierInterpolation
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
+import qualified Test.DifferentialEquation
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Penrose
@@ -40,6 +41,7 @@ tests = testGroup "Test suite"
         , Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Cut.tests
+        , Test.DifferentialEquation.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests

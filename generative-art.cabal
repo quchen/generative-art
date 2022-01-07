@@ -29,10 +29,10 @@ library
       Geometry
       Geometry.BezierInterpolation
       Geometry.BezierInterpolation.Internal
-      Geometry.BoundingBox
       Geometry.Core
       Geometry.Cut
       Geometry.Cut.Internal
+      Geometry.Processes.DifferentialEquation
       Geometry.Processes.RandomCut
       Geometry.Shapes
       Geometry.Triangulate
@@ -147,6 +147,7 @@ test-suite generative-art-test
       Test.Common
       Test.ConvexHull
       Test.Cut
+      Test.DifferentialEquation
       Test.Helpers
       Test.IntersectionLL
       Test.Mirror

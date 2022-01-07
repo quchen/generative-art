@@ -81,6 +81,12 @@ module Geometry.Core (
     , mirrorY
     , mirrorAlong
 
+    -- * Bounding Box
+    , HasBoundingBox(..)
+    , BoundingBox(..)
+    , transformBoundingBox
+    , AspectRatioBehavior(..)
+
     -- * Processes
     , reflection
     , billardProcess
@@ -175,6 +181,12 @@ inverse (Transformation a b c
       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
                         (x*(-d)) (x*a) (x*(d*c - a*f))
 
+-- | The order transformations are applied in function (i.e. reverse) order:
+-- @'scaleT' '<>' 'translateT'@ transforms first, and then scales.
+-- This works like f(g(x)), which first applies g to x, and then f to the
+-- result.
+--
+-- Note that Cairo does its Canvas transformations just the other way round.
 instance Semigroup Transformation where
     (<>) = transformationProduct
 
@@ -268,6 +280,104 @@ mirrorAlong :: Transform geo => Line -> geo -> geo
 mirrorAlong line = transform (mirrorAlongT line)
 
 
+
+-- | The bounding box, with the minimum and maximum vectors.
+--
+-- In geometrical terms, the bounding box is a rectangle spanned by the top-left
+-- (minimum) and bottom-right (maximum) points, so that everything is inside the
+-- rectangle.
+--
+-- Make sure the first argument is smaller than the second when using the
+-- constructor directly! Or better yet, don’t use the constructor and create
+-- bounding boxes via the provided instances.
+data BoundingBox = BoundingBox !Vec2 !Vec2
+
+instance Semigroup BoundingBox where
+    BoundingBox (Vec2 xMin1 yMin1) (Vec2 xMax1 yMax1) <> BoundingBox (Vec2 xMin2 yMin2) (Vec2 xMax2 yMax2)
+      = BoundingBox (Vec2 (min xMin1 xMin2) (min yMin1 yMin2))
+                    (Vec2 (max xMax1 xMax2) (max yMax1 yMax2))
+
+-- | A bounding box with the minimum at (plus!) infinity and maximum at (minus!)
+-- infinity acts as a neutral element. This is mostly useful so we can make
+-- potentiallly empty data structures such as @[a]@ and @'Maybe' a@ instances too.
+instance Monoid BoundingBox where
+    mempty = BoundingBox (Vec2 inf inf) (Vec2 (-inf) (-inf))
+      where inf = 1/0
+
+-- | Anything we can paint has a bounding box. Knowing it is useful to e.g. rescale
+-- the geometry to fit into the canvas or for collision detection.
+class HasBoundingBox a where
+    boundingBox :: a -> BoundingBox
+
+instance HasBoundingBox BoundingBox where
+    boundingBox = id
+
+instance HasBoundingBox Vec2 where
+    boundingBox v = BoundingBox v v
+
+instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
+    boundingBox (a,b) = boundingBox a <> boundingBox b
+
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
+    boundingBox (a,b,c) = boundingBox (a,b) <> boundingBox c
+
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
+    boundingBox (a,b,c,d) = boundingBox (a,b) <> boundingBox (c,d)
+
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
+    boundingBox (a,b,c,d,e) = boundingBox (a,b) <> boundingBox (c,d,e)
+
+instance HasBoundingBox a => HasBoundingBox (Maybe a) where
+    boundingBox = foldMap boundingBox
+
+instance HasBoundingBox a => HasBoundingBox [a] where
+    boundingBox = foldMap boundingBox
+
+instance HasBoundingBox Line where
+    boundingBox (Line start end) = boundingBox (start, end)
+
+instance HasBoundingBox Polygon where
+    boundingBox (Polygon ps) = boundingBox ps
+
+instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
+    boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
+
+data AspectRatioBehavior
+  = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
+  | ScaleXYSeparately -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+    deriving (Eq, Ord, Show)
+
+-- | Generate a transformation that transforms the bounding box of one object to
+-- match the other’s. Canonical use case: transform any part of your graphic to
+-- fill the Cairo canvas.
+transformBoundingBox
+    :: (HasBoundingBox source, HasBoundingBox target)
+    => source              -- ^ e.g. drawing coordinate system
+    -> target              -- ^ e.g. Cairo canvas
+    -> AspectRatioBehavior -- ^ Maintain or ignore aspect ratio
+    -> Transformation
+transformBoundingBox source target aspectRatioBehavior
+  = let bbSource@(BoundingBox vMinSource _) = boundingBox source
+        bbTarget@(BoundingBox vMinTarget _) = boundingBox target
+
+        translation = translateT (vMinTarget -. vMinSource)
+
+        -- | The size of the bounding box. Toy example: calculate the area of it.
+        -- Note that the values can be negative if orientations differ.
+        boundingBoxDimension :: BoundingBox -> (Double, Double)
+        boundingBoxDimension (BoundingBox lo hi) = let Vec2 xSize ySize = hi-.lo in (xSize, ySize)
+
+        (sourceWidth, sourceHeight) = boundingBoxDimension bbSource
+        (targetWidth, targetHeight) = boundingBoxDimension bbTarget
+        xScaleFactor = targetWidth / sourceWidth
+        yScaleFactor = targetHeight / sourceHeight
+        scaling = case aspectRatioBehavior of
+            MaintainAspectRatio -> let scaleFactor = min xScaleFactor yScaleFactor in scaleT scaleFactor scaleFactor
+            ScaleXYSeparately -> scaleT xScaleFactor yScaleFactor
+
+    in scaling <> translation
+
+
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
 -- space, but also concepts like 'Angle's or 'Distance's – anything that can be
 -- added, inverted, and multiplied with a scalar.
@@ -310,6 +420,11 @@ instance VectorSpace Vec2 where
     Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
     a *. Vec2 x y = Vec2 (a*x) (a*y)
     negateV (Vec2 x y) = Vec2 (-x) (-y)
+
+instance (VectorSpace v1, VectorSpace v2) => VectorSpace (v1, v2) where
+    (u1, v1) +. (u2, v2) = (u1+.u2, v1+.v2)
+    (u1, v1) -. (u2, v2) = (u1-.u2, v1-.v2)
+    a *. (u1, v1) = (a*.u1, a*.v1)
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2

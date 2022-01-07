@@ -36,6 +36,8 @@ over quickly.
 
 ![](./cut_random/2_haskell_logo.svg)
 
+![](./differential_equations/1_two_body_problem.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)
