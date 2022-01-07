@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Test.DifferentialEquation (tests) where
 
 import Geometry
@@ -14,6 +16,7 @@ tests :: TestTree
 tests = testGroup "Differential equations"
     [ testGroup "Visual"
         [ twoBodyProblem
+        , doublePendulum
         ]
     ]
 
@@ -77,3 +80,83 @@ renderTwoBodyProblem w h = do
     paintSun
     paintTrajectory
     paintPlanet
+
+doublePendulum :: TestTree
+doublePendulum = testCase "Double pendulum" (renderAllFormats 400 400 "test/out/differential_equations/2_double_pendulum" (renderDoublePendulum 400 400))
+
+data DoublePendulum = DoublePendulum {
+      _m1 :: Double
+    , _m2 :: Double
+    , _l1 :: Double
+    , _l2 :: Double
+    , _g :: Double
+    , _y0 :: ((Double, Double), (Double, Double))
+}
+
+solveDoublePendulum :: DoublePendulum -> [(Double, ((Double, Double), (Double, Double)))]
+solveDoublePendulum DoublePendulum{..} = rungeKuttaAdaptiveStep f _y0 t0 dt tol
+  where
+    f :: Double -> ((Double, Double), (Double, Double)) -> ((Double, Double), (Double, Double))
+    f _t ((theta1, theta2), (omega1, omega2))
+      = (
+            (
+                omega1
+            ,
+                omega2
+            ),(
+                (- _g * (2*_m1 + _m2) * sin theta1 - _m2 * _g * sin (theta1 - 2*theta2) - 2 * sin (theta1 - theta2) * _m2 * (omega2**2 * _l2 + omega1**2 * _l1 * cos (theta1 - theta2)))
+                / --------------------------------------------------------------------------------------------------------------------------------------------------------------
+                (_l1 * (2*_m1 + _m2 + _m2 * cos(2*theta1 - 2*theta2)))
+            ,
+                (2 * sin(theta1 - theta2) * (omega1**2 * _l1 * (_m1 + _m2) + _g * (_m1 + _m2) * cos theta1 + omega2**2 * _l2 * _m2 * cos (theta1 - theta2)))
+                / ----------------------------------------------------------------------------------------------------------------------------------
+                (_l1 * (2*_m1 + _m2 + _m2 * cos(2*theta1 - 2*theta2)))
+            )
+        )
+
+    t0 = 0
+
+
+    dt = 0.001
+    tol = 0.001
+
+system :: DoublePendulum
+system = DoublePendulum {
+      _m1 = 1
+    , _m2 = 1
+    , _l1 = 100
+    , _l2 = 100
+    , _g = 9.81
+    , _y0 = ((120 * 2*pi/360, 120 * 2*pi/360), (0, 0))
+}
+
+renderDoublePendulum :: Int -> Int -> Render ()
+renderDoublePendulum _w _h = do
+    let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
+        scaleToCanvas = Geometry.transform (translateT (Vec2 200 200))
+        transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
+        bezierSmoothTrajectory = bezierSmoothenOpen [x | (_, x) <- transformedTrajectory]
+
+    restoreStateAfter $ do
+        let (_t0, start) = head transformedTrajectory
+        moveToVec start
+        setLineWidth 1
+        for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), (Bezier start (Vec2 a b) (Vec2 c d) (Vec2 e f))) -> do
+            mmaColor 1 (exp (-t / 500))
+            moveToVec start
+            curveTo a b c d e f
+            stroke
+
+doublePendulumTrajectory :: DoublePendulum -> [(Double, Vec2)]
+doublePendulumTrajectory sys =
+    let solution = solveDoublePendulum sys
+
+        -- Position of the lower pendulum
+        v2 (t, ((theta1, theta2), _omegas))
+          = let DoublePendulum{..} = sys
+                x1 = _l1 * sin theta1
+                y1 = _l1 * cos theta1
+                x2 = x1 + _l2 * sin theta2
+                y2 = y1 + _l2 * cos theta2
+            in (t, Vec2 x2 y2)
+    in map v2 solution

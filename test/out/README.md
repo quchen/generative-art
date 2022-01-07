@@ -38,6 +38,8 @@ over quickly.
 
 ![](./differential_equations/1_two_body_problem.svg)
 
+![](./differential_equations/2_double_pendulum.svg)
+
 ![](./intersection.svg)
 
 ![](./mirror.svg)

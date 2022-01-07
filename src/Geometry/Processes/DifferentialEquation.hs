@@ -42,6 +42,9 @@ class ToleranceNormedVector vec where
 instance ToleranceNormedVector Vec2 where
     toleranceNorm vec = let (Distance d) = norm vec in d
 
+instance ToleranceNormedVector Double where
+    toleranceNorm = abs
+
 instance (ToleranceNormedVector a, ToleranceNormedVector b) => ToleranceNormedVector (a,b) where
     toleranceNorm (a,b) = max (toleranceNorm a) (toleranceNorm b)
 
