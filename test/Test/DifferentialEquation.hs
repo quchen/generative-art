@@ -38,30 +38,21 @@ planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
     dt0 = 10
     tol = 0.001
 
--- Apply a transformation so the points are scaled and translated to fill the frame better.
-fillFrameTransformation :: Int -> Int -> [Vec2] -> Render ()
-fillFrameTransformation w h points = do
-    let BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = boundingBox points
-
-    let xRange = xMax - xMin
-        yRange = yMax - yMin
-        xScaleFactor = fromIntegral w / xRange
-        yScaleFactor = fromIntegral h / yRange
-        scaleFactor = min xScaleFactor yScaleFactor
-
-    Cairo.scale scaleFactor scaleFactor
-    Cairo.translate (-xMin) (-yMin)
-    Cairo.scale 0.95 0.95
-
 renderTwoBodyProblem :: Int -> Int -> Render ()
 renderTwoBodyProblem w h = do
-    let trajectory = takeWhile (\(t,_) -> t < 1000) planetTrajectory
+    let rawTrajectory = takeWhile (\(t,_) -> t < 1000) planetTrajectory
 
-    fillFrameTransformation w h [x | (_, (x, _)) <- trajectory]
+        trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- rawTrajectory]
+                             <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
+        canvasBoundingBox = boundingBox (Vec2 0 0, Vec2 (fromIntegral w) (fromIntegral h))
+        scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox MaintainAspectRatio
+        trajectory = [(t, Geometry.transform scaleToCanvas x) | (t, (x,_v)) <- rawTrajectory]
 
+    -- Paint sun
     do save
        newPath
-       arc 0 0 7 0 (2*pi)
+       let Vec2 xSun ySun = Geometry.transform scaleToCanvas (Vec2 0 0)
+       arc xSun ySun 7 0 (2*pi)
        closePath
        setSourceRGB 0.880722 0.611041 0.142051
        fillPreserve
@@ -70,16 +61,18 @@ renderTwoBodyProblem w h = do
        stroke
        restore
 
+    -- Paint trajectory
     do save
        newPath
        setLineWidth 1
-       for_ trajectory $ \(_, (Vec2 x y, _)) -> lineTo x y
+       for_ trajectory $ \(_t, Vec2 x y) -> lineTo x y
        stroke
        restore
 
+    -- Paint planet
     do save
        newPath
-       let (_, (Vec2 x y, _)) = head planetTrajectory
+       let (_t, Vec2 x y) = head trajectory
        arc x y 4 0 (2*pi)
        closePath
        setSourceRGB 0.922526 0.385626 0.209179

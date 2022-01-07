@@ -84,6 +84,8 @@ module Geometry.Core (
     -- * Bounding Box
     , HasBoundingBox(..)
     , BoundingBox(..)
+    , transformBoundingBox
+    , AspectRatioBehavior(..)
 
     -- * Processes
     , reflection
@@ -179,6 +181,8 @@ inverse (Transformation a b c
       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
                         (x*(-d)) (x*a) (x*(d*c - a*f))
 
+-- | @'scaleT' '<>' 'translateT'@ scales first, and then rotates TODO CHECK THIS.
+-- Note that Cairo does it just the other way round. Ugh
 instance Semigroup Transformation where
     (<>) = transformationProduct
 
@@ -333,6 +337,40 @@ instance HasBoundingBox Polygon where
 
 instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
+
+-- | The size of the bounding box. Toy example: calculate the area of it.
+boundingBoxSize :: BoundingBox -> (Double, Double)
+boundingBoxSize (BoundingBox lo hi) = let Vec2 xSize ySize = hi-.lo in (xSize, ySize)
+
+data AspectRatioBehavior
+  = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
+  | ScaleXYSeparately -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+    deriving (Eq, Ord, Show)
+
+-- | Generate a transformation that transforms the bounding box of one object to
+-- match the other’s. Canonical use case: transform any part of your graphic to
+-- fill the Cairo canvas.
+transformBoundingBox
+    :: (HasBoundingBox source, HasBoundingBox target)
+    => source              -- ^ e.g. drawing coordinate system
+    -> target              -- ^ e.g. Cairo canvas
+    -> AspectRatioBehavior -- ^ Maintain or ignore aspect ratio
+    -> Transformation
+transformBoundingBox source target aspectRatioBehavior
+  = let bbSource@(BoundingBox vMinSource@(Vec2 xMinSource yMinSource) vMaxSource@(Vec2 xMaxSource yMaxSource)) = boundingBox source
+        bbTarget@(BoundingBox vMinTarget@(Vec2 xMinTarget yMinTarget) vMaxTarget@(Vec2 xMaxTarget yMaxTarget)) = boundingBox target
+
+        translation = translateT (vMinTarget -. vMinSource)
+
+        (sourceWidth, sourceHeight) = boundingBoxSize bbSource
+        (targetWidth, targetHeight) = boundingBoxSize bbTarget
+        xScaleFactor = targetWidth / sourceWidth
+        yScaleFactor = targetHeight / sourceHeight
+        scaling = case aspectRatioBehavior of
+            MaintainAspectRatio -> let scaleFactor = min xScaleFactor yScaleFactor in scaleT scaleFactor scaleFactor
+            ScaleXYSeparately -> scaleT xScaleFactor yScaleFactor
+
+    in scaling <> translation
 
 
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
