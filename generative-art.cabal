@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6a168229121de1a1696e3670a4f87f535cd2fa2c59ec4587c2447a275f49463f
+-- hash: 3e9240292d2894f6ec4e319e721dc8b4beacaab33244a8a3a5c14d1625687394
 
 name:           generative-art
 version:        0.1.0.0
@@ -50,6 +50,7 @@ library
     , colour
     , containers
     , data-default-class
+    , mwc-random
     , random
     , transformers
     , vector
@@ -69,6 +70,7 @@ executable haskell-logo-billard
     , containers
     , data-default-class
     , generative-art
+    , mwc-random
     , random
     , transformers
     , vector
@@ -88,6 +90,7 @@ executable haskell-logo-triangles
     , containers
     , data-default-class
     , generative-art
+    , mwc-random
     , random
     , transformers
     , vector
@@ -164,6 +167,7 @@ test-suite generative-art-test
     , containers
     , data-default-class
     , generative-art
+    , mwc-random
     , process
     , random
     , tasty

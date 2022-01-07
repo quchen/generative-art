@@ -2,12 +2,10 @@
 
 module Main (main) where
 
-import           Control.Monad                   (replicateM)
 import           Data.Foldable                   (for_, Foldable (foldl'))
 import           Numeric                         (showHex)
 import           Prelude                         hiding ((**))
-import           System.Random.MWC               (GenIO, uniformR, Variate (uniform), createSystemRandom)
-import           System.Random.MWC.Distributions (normal)
+import           System.Random.MWC               (uniform, createSystemRandom)
 
 import qualified Graphics.Rendering.Cairo        as Cairo
 import qualified Graphics.UI.Threepenny          as UI
@@ -80,22 +78,6 @@ setup window = do
         fileName <- get UI.value inputFileName
         voronoi <- liftIO $ currentValue bVoronoi
         liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
-
-uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
-uniformlyDistributedPoints gen width height count = replicateM count randomPoint
-  where
-    randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
-    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
-
-gaussianDistributedPoints :: GenIO -> (Int, Double) -> (Int, Double) -> Int -> IO [Vec2]
-gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicateM count randomPoint
-  where
-    randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)
-    randomCoordinate mx sigma = do
-        coord <- normal (fromIntegral mx/2) sigma gen :: IO Double
-        if coord < 0 || coord > fromIntegral mx
-            then randomCoordinate mx sigma
-            else pure coord
 
 drawFaceCairo :: VoronoiFace () -> Cairo.Render ()
 drawFaceCairo VF{..} = case face of

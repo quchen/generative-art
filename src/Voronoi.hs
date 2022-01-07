@@ -23,13 +23,21 @@ module Voronoi
 , addPoint
 , addPoint'
 
--- Internal
+-- * Randomness
+, uniformlyDistributedPoints
+, gaussianDistributedPoints
+
+-- * Internal
 , updateFace
 ) where
 
-import           Data.List (foldl')
+import Data.List (foldl')
+import System.Random.MWC (GenIO, uniformR)
+import System.Random.MWC.Distributions (normal)
 
-import           Geometry
+import Geometry
+import Control.Applicative (liftA2)
+import Control.Monad (replicateM)
 
 data VoronoiFace a = VF
     { center :: Vec2
@@ -70,6 +78,31 @@ emptyVoronoi :: Double -> Double -> Voronoi a
 emptyVoronoi w h = Voronoi initialPolygon []
   where
     initialPolygon = Polygon [ Vec2 0 0, Vec2 w 0, Vec2 w h, Vec2 0 h ]
+
+-- | @'uniformlyDistributedPoints' gen width height count@ generates @count@
+-- random points within a rectangle of @width@ x @height@.
+uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
+uniformlyDistributedPoints gen width height count = replicateM count randomPoint
+  where
+    randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
+    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
+
+-- | @'uniformlyDistributedPoints' gen (width, sigmaX) (height, sigmaY) count@
+-- generates @count@ normal distributed random points within a rectangle of
+-- @width@ x @height@, with a the given standard deviations.
+--
+-- Note: This is a rejection algorithm. If you choose the standard deviation
+-- much higher than the height or width, performance will deteriorate as more
+-- and more points are rejected.
+gaussianDistributedPoints :: GenIO -> (Int, Double) -> (Int, Double) -> Int -> IO [Vec2]
+gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicateM count randomPoint
+  where
+    randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)
+    randomCoordinate mx sigma = do
+        coord <- normal (fromIntegral mx/2) sigma gen :: IO Double
+        if coord < 0 || coord > fromIntegral mx
+            then randomCoordinate mx sigma
+            else pure coord
 
 -- | Add a new center point or nucleus to a Voronoi pattern.
 --

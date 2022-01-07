@@ -21,6 +21,7 @@ dependencies:
     - colour
     - containers
     - data-default-class
+    - mwc-random
     - random
     - transformers
     - vector

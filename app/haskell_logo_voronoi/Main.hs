@@ -2,8 +2,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import           Control.Applicative             (liftA2)
-import           Control.Monad                   (replicateM)
 import           Data.Char                       (ord)
 import           Data.Foldable                   (for_)
 import           Data.List                       (find)
@@ -11,8 +9,7 @@ import           Data.Maybe                      (mapMaybe)
 import           Data.Vector                     (fromList)
 import           Prelude                         hiding ((**))
 import           System.Environment              (getArgs)
-import           System.Random.MWC               (GenIO, initialize)
-import           System.Random.MWC.Distributions (normal)
+import           System.Random.MWC               (initialize)
 
 import           Draw
 import           Geometry
@@ -62,17 +59,6 @@ drawPoly poly color = do
 
 setColor :: RGB -> Render ()
 setColor RGB{..} = setSourceRGB r g b
-
-gaussianDistributedPoints :: GenIO -> (Int, Double) -> (Int, Double) -> Int -> IO [Vec2]
-gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicateM count randomPoint
-  where
-    randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)
-    randomCoordinate mx sigma = do
-        coord <- normal (fromIntegral mx/2) sigma gen :: IO Double
-        if coord < 0 || coord > fromIntegral mx
-            then randomCoordinate mx sigma
-            else pure coord
-
 
 haskellLogoColors :: [RGB]
 haskellLogoColors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
