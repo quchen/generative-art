@@ -31,7 +31,7 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
     let perturbation = perlin seed 1 (1/noiseScale) 0.5
     --drawVectorField (gradientField3 perturbation)
     gen <- liftIO create
-    ps <- uniformlyDistributedPoints gen 5000
+    ps <- uniformlyDistributedPoints gen 10000
     drawFieldLines (gradientField3 perturbation) ps
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
@@ -52,6 +52,7 @@ drawVectorField f = restoreStateAfter $ do
 drawFieldLines :: (Vec2 -> Vec2) -> [Vec2] -> Render ()
 drawFieldLines f ps = restoreStateAfter $ do
     Cairo.setSourceRGB 0 0 0
+    Cairo.setLineWidth 1
     for_ ps $ \p -> do
         moveToVec p
         for_ (gradientDescent f p) lineToVec
@@ -74,8 +75,8 @@ gradientField3 perturbation p@(Vec2 x y) =
     let perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6)))
         noise (Vec2 x' y') = noiseValue perturbation (x' + 49156616, 2 * y' + 46216981, 321685163213)
         grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
-        Vec2 dx dy = noiseScale * perturbationStrength *. grad noise p
-    in  Vec2 (1.5 - perturbationStrength) 0 +. Vec2 dy (-dx)
+        Vec2 dx dy = 0.6 * noiseScale * perturbationStrength *. grad noise p
+    in  Vec2 1 0 +. Vec2 dy (-dx)
 
 noise2d :: Perlin -> Vec2 -> Vec2
 noise2d perturbation (Vec2 x y) = Vec2
