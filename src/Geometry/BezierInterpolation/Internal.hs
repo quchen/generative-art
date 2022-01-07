@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-
+-- | Interpolate Bezier curves through points. Heavily inspired by
 -- https://www.michael-joost.de/bezierfit.pdf
 -- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
 module Geometry.BezierInterpolation.Internal where
@@ -13,6 +12,8 @@ data Bezier = Bezier Vec2 Vec2 Vec2 Vec2
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- This function is the open version, so it will not close the curve smoothly.
+--
+-- For an input of n+1 points, this will yield n Bezier curves.
 bezierSmoothenOpen :: [Vec2] -> [Bezier]
 bezierSmoothenOpen points = V.toList (V.izipWith f pointsV (V.tail pointsV))
   where
