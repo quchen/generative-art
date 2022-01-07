@@ -181,8 +181,12 @@ inverse (Transformation a b c
       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
                         (x*(-d)) (x*a) (x*(d*c - a*f))
 
--- | @'scaleT' '<>' 'translateT'@ scales first, and then rotates TODO CHECK THIS.
--- Note that Cairo does it just the other way round. Ugh
+-- | The order transformations are applied in function (i.e. reverse) order:
+-- @'scaleT' '<>' 'translateT'@ transforms first, and then scales.
+-- This works like f(g(x)), which first applies g to x, and then f to the
+-- result.
+--
+-- Note that Cairo does its Canvas transformations just the other way round.
 instance Semigroup Transformation where
     (<>) = transformationProduct
 
@@ -338,10 +342,6 @@ instance HasBoundingBox Polygon where
 instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
--- | The size of the bounding box. Toy example: calculate the area of it.
-boundingBoxSize :: BoundingBox -> (Double, Double)
-boundingBoxSize (BoundingBox lo hi) = let Vec2 xSize ySize = hi-.lo in (xSize, ySize)
-
 data AspectRatioBehavior
   = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
   | ScaleXYSeparately -- ^ Fit the target, possibly stretching the source unequally in x/y directions
@@ -357,13 +357,18 @@ transformBoundingBox
     -> AspectRatioBehavior -- ^ Maintain or ignore aspect ratio
     -> Transformation
 transformBoundingBox source target aspectRatioBehavior
-  = let bbSource@(BoundingBox vMinSource@(Vec2 xMinSource yMinSource) vMaxSource@(Vec2 xMaxSource yMaxSource)) = boundingBox source
-        bbTarget@(BoundingBox vMinTarget@(Vec2 xMinTarget yMinTarget) vMaxTarget@(Vec2 xMaxTarget yMaxTarget)) = boundingBox target
+  = let bbSource@(BoundingBox vMinSource _) = boundingBox source
+        bbTarget@(BoundingBox vMinTarget _) = boundingBox target
 
         translation = translateT (vMinTarget -. vMinSource)
 
-        (sourceWidth, sourceHeight) = boundingBoxSize bbSource
-        (targetWidth, targetHeight) = boundingBoxSize bbTarget
+        -- | The size of the bounding box. Toy example: calculate the area of it.
+        -- Note that the values can be negative if orientations differ.
+        boundingBoxDimension :: BoundingBox -> (Double, Double)
+        boundingBoxDimension (BoundingBox lo hi) = let Vec2 xSize ySize = hi-.lo in (xSize, ySize)
+
+        (sourceWidth, sourceHeight) = boundingBoxDimension bbSource
+        (targetWidth, targetHeight) = boundingBoxDimension bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
         scaling = case aspectRatioBehavior of

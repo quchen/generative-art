@@ -40,18 +40,20 @@ planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
 
 renderTwoBodyProblem :: Int -> Int -> Render ()
 renderTwoBodyProblem w h = do
-    let rawTrajectory = takeWhile (\(t,_) -> t < 1000) planetTrajectory
+    let phaseDiagram = takeWhile (\(t,_) -> t < 1000) planetTrajectory
 
-        trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- rawTrajectory]
+        trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram]
                              <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
         canvasBoundingBox = boundingBox (Vec2 0 0, Vec2 (fromIntegral w) (fromIntegral h))
         scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox MaintainAspectRatio
-        trajectory = [(t, Geometry.transform scaleToCanvas x) | (t, (x,_v)) <- rawTrajectory]
+        addSomeMargin = translateT (Vec2 10 10) <> scaleT 0.98 0.98
+        transformNicely = Geometry.transform (addSomeMargin <> scaleToCanvas)
+        trajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram]
 
     -- Paint sun
     do save
        newPath
-       let Vec2 xSun ySun = Geometry.transform scaleToCanvas (Vec2 0 0)
+       let Vec2 xSun ySun = transformNicely (Vec2 0 0)
        arc xSun ySun 7 0 (2*pi)
        closePath
        setSourceRGB 0.880722 0.611041 0.142051

@@ -184,7 +184,7 @@ polygonSketch (Polygon (Vec2 x y : vecs)) = do
 
 -- | Draw a caresian coordinate system in range (x,x') (y,y')
 cartesianCoordinateSystem :: Render ()
-cartesianCoordinateSystem = do
+cartesianCoordinateSystem = restoreStateAfter $ do
     let minMax :: (Int, Int)
         minMax = (-1000, 1000)
         (minX, maxX) = minMax
@@ -222,7 +222,7 @@ cartesianCoordinateSystem = do
               , y <- [minY, minY+100 .. maxY] ]
 
 radialCoordinateSystem :: Vec2 -> Int -> Render ()
-radialCoordinateSystem center maxR = do
+radialCoordinateSystem center maxR = restoreStateAfter $ do
     let distance = Distance . fromIntegral
     setLineWidth 1
     hsva 0 0 0 1
