@@ -1,7 +1,6 @@
 module Geometry.BoundingBox (HasBoundingBox(..), BoundingBox(..)) where
 
 import Geometry.Core
-import Data.List
 
 -- | The bounding box, with the minimum and maximum vectors.
 --

@@ -128,13 +128,13 @@ infix 4 ~==
 (~==) = approxEqualTolerance (Tolerance 1e-10)
 
 instance EqApprox Double where
-    approxEqualTolerance (Tolerance tolerance) reference value
-      = abs (reference - value) <= tolerance
+    approxEqualTolerance (Tolerance tol) reference value
+      = abs (reference - value) <= tol
 
 instance EqApprox Vec2 where
-    approxEqualTolerance (Tolerance tolerance) v1 v2
+    approxEqualTolerance (Tolerance tol) v1 v2
       = let Distance distance = norm (v2 -. v1)
-        in distance <= tolerance
+        in distance <= tol
 
 instance EqApprox Distance where
     approxEqualTolerance tol (Distance x) (Distance y) = approxEqualTolerance tol x y

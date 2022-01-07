@@ -54,7 +54,6 @@ module Geometry.Core (
     , deg
     , getDeg
     , rad
-    , getRad
 
     -- ** Safety newtypes
     , Distance(..)
