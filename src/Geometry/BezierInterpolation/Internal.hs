@@ -8,13 +8,13 @@ import Data.Vector (Vector, (!))
 import Geometry.Core
 
 -- | Cubic Bezier curve
-data Bezier = Bezier Vec2 Vec2 Vec2 Vec2
+data Bezier vec = Bezier vec vec vec vec
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- This function is the open version, so it will not close the curve smoothly.
 --
 -- For an input of n+1 points, this will yield n Bezier curves.
-bezierSmoothenOpen :: [Vec2] -> [Bezier]
+bezierSmoothenOpen :: VectorSpace vec => [vec] -> [Bezier vec]
 bezierSmoothenOpen points = V.toList (V.izipWith f pointsV (V.tail pointsV))
   where
     pointsV = V.fromList points
@@ -49,7 +49,7 @@ diagonal len = V.generate len $ \i -> case () of
       | i == len-1 -> 7
       | otherwise  -> 4
 
-target :: Int -> Vector Vec2 -> Vector Vec2
+target :: VectorSpace vec => Int -> Vector vec -> Vector vec
 target n vertices = V.generate n $ \i -> case () of
     _ | i == 0    ->      vertices ! 0     +. 2 *. vertices ! 1
       | i == n-1  -> 8 *. vertices ! (n-1) +.      vertices ! n
@@ -58,11 +58,12 @@ target n vertices = V.generate n $ \i -> case () of
 -- See https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
 -- Translated with blood, sweat and tears from 1-and-2(!!)-based indexing
 solveTridiagonal
-    :: Vector Double -- ^ Lower diagonal, length n-1
+    :: VectorSpace vec
+    => Vector Double -- ^ Lower diagonal, length n-1
     -> Vector Double -- ^ Diagonal, length n
     -> Vector Double -- ^ Upper diagonal, length n-1
-    -> Vector Vec2   -- ^ RHS, length n
-    -> Vector Vec2
+    -> Vector vec   -- ^ RHS, length n
+    -> Vector vec
 solveTridiagonal a b c d
   = let n = V.length d
         ifor = flip V.imap
