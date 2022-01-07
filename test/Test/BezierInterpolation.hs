@@ -38,7 +38,7 @@ rectangularTable = paintBezierPicture points smoothed
         , Vec2 250 100
         , Vec2 200 500
         ]
-    smoothed = bezierSmoothen points
+    smoothed = bezierSmoothenOpen points
 
 paintBezierPicture points smoothed = do
     setLineWidth 1.5
