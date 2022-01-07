@@ -1,11 +1,9 @@
-{-# LANGUAGE BangPatterns #-}
+module Test.DifferentialEquation (tests) where
 
-module Steps.C.PlanetMotion (planetMotion, planetTrajectory, boundingBox) where
-
-import Steps.C.DifferentialEquation
-import Graphics.Rendering.Cairo hiding (x,y)
-import Data.List
-import Data.Foldable
+import Geometry
+import Draw
+import Geometry.Processes.DifferentialEquation
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 planetTrajectory :: [(Double, (Vec2, Vec2))]
 planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
@@ -23,18 +21,10 @@ planetTrajectory = rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
     dt0 = 10
     tolerance = 0.001
 
-boundingBox :: [Vec2] -> (Vec2, Vec2)
-boundingBox [] = error "Bounding box of nothing"
-boundingBox (p:oints) = foldl'
-    (\(!(Vec2 xMinAcc yMinAcc), !(Vec2 xMaxAcc yMaxAcc)) (Vec2 x y) ->
-        (Vec2 (min xMinAcc x) (min yMinAcc y), Vec2 (max xMaxAcc x) (max yMaxAcc y)))
-    (p,p)
-    oints
-
 -- Apply a transformation so the points are scaled and translated to fill the frame better.
 fillFrameTransformation :: Int -> Int -> [Vec2] -> Render ()
 fillFrameTransformation w h points = do
-    let (Vec2 xMin yMin, Vec2 xMax yMax) = boundingBox points
+    let BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = boundingBox points
 
     let xRange = xMax - xMin
         yRange = yMax - yMin
@@ -42,9 +32,9 @@ fillFrameTransformation w h points = do
         yScaleFactor = fromIntegral h / yRange
         scaleFactor = min xScaleFactor yScaleFactor
 
-    scale scaleFactor scaleFactor
-    translate (-xMin) (-yMin)
-    scale 0.95 0.95
+    Cairo.scale scaleFactor scaleFactor
+    Cairo.translate (-xMin) (-yMin)
+    Cairo.scale 0.95 0.95
 
 planetMotion :: Int -> Int -> Render ()
 planetMotion w h = do
@@ -69,15 +59,6 @@ planetMotion w h = do
        for_ trajectory $ \(_, (Vec2 x y, _)) -> lineTo x y
        stroke
        restore
-
-    -- do save
-    --    for_ trajectory $ \(_, (Vec2 x y, _)) -> do
-    --         newPath
-    --         arc x y 1 0 (2*pi)
-    --         closePath
-    --         setSourceRGBA 0.368417 0.506779 0.709798 0.8
-    --         fill
-    --    restore
 
     do save
        newPath

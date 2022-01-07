@@ -1,4 +1,4 @@
-module Steps.C.DifferentialEquation (
+module Geometry.Processes.DifferentialEquation (
       rungeKuttaConstantStep
     , rungeKuttaAdaptiveStep
     , Vector(..)
