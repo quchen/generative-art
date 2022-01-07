@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
@@ -29,6 +29,8 @@ library
       Comparison
       Draw
       Geometry
+      Geometry.BezierInterpolation
+      Geometry.BezierInterpolation.Internal
       Geometry.Core
       Geometry.Cut
       Geometry.Cut.Internal
@@ -141,6 +143,7 @@ test-suite generative-art-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Test.BezierInterpolation
       Test.Billard
       Test.Common
       Test.ConvexHull
