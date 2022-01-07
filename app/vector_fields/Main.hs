@@ -1,8 +1,11 @@
 module Main where
 
+import Control.Applicative (liftA2)
+import Control.Monad (replicateM)
 import Data.Foldable (for_)
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import Numeric.Noise.Perlin
+import System.Random.MWC
 
 import Draw
 import Geometry
@@ -13,7 +16,7 @@ picWidth = 2560
 picHeight = 1440
 
 noiseScale :: Double
-noiseScale = 100
+noiseScale = 251
 
 seed :: Int
 seed = 123456
@@ -26,7 +29,15 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> renderWith sur
         Cairo.fill
     let perturbation = perlin seed 1 (1/noiseScale) 0.5
     --drawVectorField (gradientField3 perturbation)
-    drawFieldLines (gradientField3 perturbation) (Vec2 0 . fromIntegral <$> [0,10..picHeight])
+    gen <- liftIO create
+    ps <- uniformlyDistributedPoints gen 5000
+    drawFieldLines (gradientField3 perturbation) ps
+
+uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
+uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
+  where
+    randomPoint = liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
+    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
 
 drawVectorField :: (Vec2 -> Vec2) -> Render ()
 drawVectorField f = restoreStateAfter $ do
@@ -59,7 +70,7 @@ gradientField2 perturbation v@(Vec2 x y) =
 
 gradientField3 :: Perlin -> Vec2 -> Vec2
 gradientField3 perturbation p@(Vec2 x y) =
-    let perturbationStrength = x / fromIntegral picWidth
+    let perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6)))
         noise (Vec2 x' y') = noiseValue perturbation (x' + 49156616, y' + 46216981, 321685163213)
         grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
         Vec2 dx dy = noiseScale * perturbationStrength *. grad noise p
@@ -74,5 +85,5 @@ gradientDescent :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
 gradientDescent gradient = go 0
   where
     go i s
-        | i < 20000 = s : go (i+1) (s +. 0.1 *. gradient s)
+        | i < 2000 = s : go (i+1) (s +. 0.1 *. gradient s)
         | otherwise = []
