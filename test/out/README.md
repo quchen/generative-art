@@ -8,6 +8,8 @@ over quickly.
 
 ![](./bezier_interpolation/1_bezier_open.svg)
 
+![](./bezier_interpolation/2_picasso_squirrel.svg)
+
 ![](./billard/1_rectangular.svg)
 
 ![](./billard/2_hole.svg)

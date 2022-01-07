@@ -197,6 +197,13 @@ instance Transform Line where
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
 
+instance Transform vec => Transform (Bezier vec) where
+    transform t (Bezier a b c d) = Bezier
+        (transform t a)
+        (transform t b)
+        (transform t c)
+        (transform t d)
+
 instance Transform Transformation where
     transform = transformationProduct
     -- ^ Right argument will be applied first, so that
