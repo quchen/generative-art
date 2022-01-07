@@ -8,11 +8,12 @@ import Data.Vector (Vector, (!))
 import Geometry.Core
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
--- This function is the open version, so it will not close the curve smoothly.
+-- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
+-- solution to a differential equation.
 --
 -- For an input of n+1 points, this will yield n Bezier curves.
 bezierSmoothenOpen :: VectorSpace vec => [vec] -> [Bezier vec]
-bezierSmoothenOpen points = V.toList (V.izipWith f pointsV (V.tail pointsV))
+bezierSmoothenOpen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
   where
     pointsV = V.fromList points
     n = V.length pointsV - 1
@@ -26,11 +27,6 @@ bezierSmoothenOpen points = V.toList (V.izipWith f pointsV (V.tail pointsV))
     controlPointsEnd = V.generate (V.length controlPointsStart) $ \i -> case () of
         _ | i == n-1 -> (pointsV ! n +. controlPointsStart ! (n-1)) /. 2
           | otherwise -> 2 *. (pointsV ! (i+1)) -. controlPointsStart ! (i+1)
-    f i start end
-      = Bezier start
-               (controlPointsStart ! i)
-               (controlPointsEnd ! i)
-               end
 
 upperDiagonal :: Int -> Vector Double
 upperDiagonal len = V.replicate len 1
