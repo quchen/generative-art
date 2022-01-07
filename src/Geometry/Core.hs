@@ -104,6 +104,7 @@ module Geometry.Core (
 import Control.Monad
 import Data.Fixed
 import Data.List
+import Data.Maybe
 import Text.Printf
 
 import Util
@@ -589,14 +590,17 @@ data LLIntersection
 
     | IntersectionVirtual
         -- ^ The intersection lies in the infinite continuations of both lines.
+
     deriving (Eq, Ord, Show)
 
 -- | Calculate the intersection of two lines.
 --
 -- Returns the point of the intersection, and whether it is inside both, one, or
 -- none of the provided finite line segments.
-intersectionLL :: Line -> Line -> (Vec2, LLIntersection)
-intersectionLL lineL lineR = (intersectionPoint, intersectionType)
+intersectionLL :: Line -> Line -> Maybe (Vec2, LLIntersection)
+intersectionLL lineL lineR
+    | discriminant == 0 = Nothing -- parallel or collinear lines
+    | otherwise         = Just (intersectionPoint, intersectionType)
   where
     intersectionType = case (intersectionInsideL, intersectionInsideR) of
         (True,  True)  -> IntersectionReal
@@ -612,10 +616,11 @@ intersectionLL lineL lineR = (intersectionPoint, intersectionType)
     Line v1@(Vec2 x1 y1) v2@(Vec2 x2 y2) = lineL
     Line v3@(Vec2 x3 y3) v4@(Vec2 x4 y4) = lineR
 
-    intersectionPoint
-      = let denominator = (x1-x2) * (y3-y4) - (y1-y2) * (x3-x4)
-        in Vec2 ( (det v1 v2 * (x3-x4) - (x1-x2) * det v3 v4) / denominator )
-                ( (det v1 v2 * (y3-y4) - (y1-y2) * det v3 v4) / denominator )
+    discriminant = det (v1 -. v2) (v3 -. v4)
+
+    intersectionPoint = Vec2
+        ( (det v1 v2 * (x3-x4) - (x1-x2) * det v3 v4) / discriminant )
+        ( (det v1 v2 * (y3-y4) - (y1-y2) * det v3 v4) / discriminant )
 
     t = det (v1 -. v3) (v3 -. v4) / det (v1 -. v2) (v3 -. v4)
     intersectionInsideL = t >= 0 && t <= 1
@@ -691,7 +696,7 @@ countEdgeTraversals p edges = length intersections
 
     intersections = filter (\edge ->
         case intersectionLL testRay edge of
-            (_, IntersectionReal) -> True
+            Just (_, IntersectionReal) -> True
             _other -> False)
         edges
 
@@ -740,7 +745,7 @@ validatePolygon = \polygon -> do
                          -- , let Line _e21 e22 = edge2
                          -- -- , e12 /= e21
                          -- , e11 /= e22
-                         , (_, IntersectionReal) <- [intersectionLL edge1 edge2]
+                         , Just (_, IntersectionReal) <- [intersectionLL edge1 edge2]
                          ]
 
 -- | Average of polygon vertices
@@ -829,16 +834,17 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 reflection
     :: Line -- ^ Light ray
     -> Line -- ^ Mirror
-    -> (Line, Vec2, LLIntersection)
+    -> Maybe (Line, Vec2, LLIntersection)
             -- ^ Reflected ray; point of incidence; type of intersection of the
             -- ray with the mirror. The reflected ray is symmetric with respect
             -- to the incoming ray (in terms of length, distance from mirror,
             -- etc.), but has reversed direction (like real light).
-reflection ray mirror = (lineReverse ray', iPoint, iType)
-  where
-    (iPoint, iType) = intersectionLL ray mirror
-    mirrorAxis = perpendicularLineThrough iPoint mirror
-    ray' = mirrorAlong mirrorAxis ray
+reflection ray mirror = case intersectionLL ray mirror of
+    Nothing -> Nothing
+    Just (iPoint, iType) -> Just (lineReverse ray', iPoint, iType)
+      where
+        mirrorAxis = perpendicularLineThrough iPoint mirror
+        ray' = mirrorAlong mirrorAxis ray
 
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.
@@ -859,12 +865,11 @@ billardProcess edges = go (const True)
       = let reflectionRays :: [(Line, Line)]
             reflectionRays = do
                 edge <- edges
-                let (Line _ reflectionEnd, incidentPoint, ty) = reflection ballVec edge
-                guard (case ty of
+                (Line _ reflectionEnd, incidentPoint, ty) <- maybeToList (reflection ballVec edge)
+                guard $ case ty of
                     IntersectionReal           -> True
                     IntersectionVirtualInsideR -> True
-                    IntersectionVirtualInsideL -> False
-                    IntersectionVirtual        -> False )
+                    _otherwise                 -> False
                 guard (incidentPoint `liesAheadOf` ballVec)
                 guard (considerEdge edge)
                 pure (edge, Line incidentPoint reflectionEnd)

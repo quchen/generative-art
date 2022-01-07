@@ -27,6 +27,23 @@ One the lines intersects with the infinite continuation of the other.
 
 Only the infinite continuations of the lines intersect.
 
+### Parallel lines
+
+![](intersection/parallel.svg)
+
+Parallel or collinear lines do not have a unique intersection point.
+
+Note that there may be edge cases where two lines are meant to be parallel, but are not recognized as such because of numerical instability. E.g. these two lines:
+
+![](intersection/almost_parallel.svg)
+
+```haskell
+angledLine (Vec2 50 0) (rad (pi/6)) (Distance 80)
+angledLine (Vec2 50 20) (rad (pi/6)) (Distance 80)
+```
+
+are obviously parallel, but still they have an intersection at (-2.1e17, -1.2e17).
+
 ## Cutting polygons
 
 Cutting a square along a line is rather simple:

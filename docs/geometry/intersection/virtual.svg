@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="580pt" height="480pt" viewBox="0 0 580 480" version="1.1">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="580pt" height="120pt" viewBox="0 0 580 120" version="1.1">
 <defs>
 <g>
 <symbol overflow="visible" id="glyph0-0">
@@ -46,7 +46,7 @@
 </symbol>
 </g>
 </defs>
-<g id="surface156">
+<g id="surface153">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 50 0 L 136.601562 50 M 132.441406 43.167969 L 136.601562 50 L 128.605469 49.8125 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 50 120 L 136.601562 70 M 128.605469 70.1875 L 136.601562 70 L 132.441406 76.832031 "/>
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(92.2526%,38.5626%,20.9179%);fill-opacity:1;" d="M 156.921875 60 C 156.921875 64 150.921875 64 150.921875 60 C 150.921875 56 156.921875 56 156.921875 60 "/>
