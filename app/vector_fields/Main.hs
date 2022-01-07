@@ -60,7 +60,7 @@ drawFieldLines f ps = restoreStateAfter $ do
 
 gradientField :: Perlin -> Vec2 -> Vec2
 gradientField perturbation p@(Vec2 x y) =
-    let perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6)))
+    let perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6))) * exp (-3 * (y / fromIntegral picHeight - 0.5)^2)
         noise (Vec2 x' y') = noiseValue perturbation (x' + 49156616, 2 * y' + 46216981, 321685163213)
         grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
         Vec2 dx dy = 0.6 * noiseScale * perturbationStrength *. grad noise p
