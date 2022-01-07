@@ -311,6 +311,11 @@ instance VectorSpace Vec2 where
     a *. Vec2 x y = Vec2 (a*x) (a*y)
     negateV (Vec2 x y) = Vec2 (-x) (-y)
 
+instance (VectorSpace v1, VectorSpace v2) => VectorSpace (v1, v2) where
+    (u1, v1) +. (u2, v2) = (u1+.u2, v1+.v2)
+    (u1, v1) -. (u2, v2) = (u1-.u2, v1-.v2)
+    a *. (u1, v1) = (a*.u1, a*.v1)
+
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
