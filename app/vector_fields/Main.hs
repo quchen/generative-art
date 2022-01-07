@@ -45,7 +45,6 @@ drawFieldLines f ps = restoreStateAfter $ do
         for_ (gradientDescent f p) lineToVec
         Cairo.stroke
 
-
 gradientField :: Perlin -> Vec2 -> Vec2
 gradientField perturbation p@(Vec2 x y) =
     let perturbationStrength = x / fromIntegral picWidth
@@ -61,7 +60,7 @@ gradientField2 perturbation v@(Vec2 x y) =
 gradientField3 :: Perlin -> Vec2 -> Vec2
 gradientField3 perturbation p@(Vec2 x y) =
     let perturbationStrength = x / fromIntegral picWidth
-        noise (Vec2 x' y') = noiseValue perturbation (x', y', 321685163213)
+        noise (Vec2 x' y') = noiseValue perturbation (x' + 49156616, y' + 46216981, 321685163213)
         grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
         Vec2 dx dy = noiseScale * perturbationStrength *. grad noise p
     in  Vec2 (1.5 - perturbationStrength) 0 +. Vec2 dy (-dx)
