@@ -3,7 +3,7 @@ module Test.BezierInterpolation (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo
+import Graphics.Rendering.Cairo hiding (x,y)
 
 import Draw
 import Geometry
@@ -40,13 +40,14 @@ rectangularTable = paintBezierPicture points smoothed
         ]
     smoothed = bezierSmoothenOpen points
 
+paintBezierPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
 paintBezierPicture points smoothed = do
     setLineWidth 1
 
-    let circle r = do
+    let circle r = restoreStateAfter $ do
             (x,y) <- getCurrentPoint
             newPath
-            arc x y r 0 (2*pi)
+            circleSketch (Vec2 x y) (Distance r)
             closePath
         prettyBezier (Bezier (Vec2 x0 y0) (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) ) = do
             do -- Paint actual curve

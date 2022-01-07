@@ -46,6 +46,9 @@ module Geometry.Core (
     , PolygonOrientation(..)
     , polygonOrientation
 
+    -- ** Bezier curves
+    , Bezier(..)
+
     -- ** Angles
     , Angle(..)
     , deg
@@ -134,6 +137,9 @@ instance Show Polygon where
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 
+
+-- | Cubic Bezier curve, defined by start, first/second control points, and end.
+data Bezier vec = Bezier vec vec vec vec
 
 
 -- | Affine transformation,

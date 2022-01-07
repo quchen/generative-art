@@ -7,9 +7,6 @@ import qualified Data.Vector as V
 import Data.Vector (Vector, (!))
 import Geometry.Core
 
--- | Cubic Bezier curve
-data Bezier vec = Bezier vec vec vec vec
-
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- This function is the open version, so it will not close the curve smoothly.
 --
