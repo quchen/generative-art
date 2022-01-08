@@ -46,11 +46,10 @@ main = for_ frames $ \t -> do
         gen <- liftIO create
         ps <- uniformlyDistributedPoints gen 10000
         thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
-        for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
-            Cairo.setLineWidth thickness
-            drawFieldLine (take 20 (fieldLine (compositeField t) p))
+        for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $
+            drawFieldLine thickness (take 20 (fieldLine (compositeField t) p))
   where
-    scaleFactor = 4
+    scaleFactor = 1
     scaledWidth = round (fromIntegral picWidth * scaleFactor)
     scaledHeight = round (fromIntegral picHeight * scaleFactor)
 
@@ -58,8 +57,9 @@ main = for_ frames $ \t -> do
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
 uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
   where
-    randomPoint = liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
+    randomPoint = translate correction <$> liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
     randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
+    correction = Vec2 (-0.05 * fromIntegral picWidth) 0
 
 detectClipping :: (Vec2 -> Double) -> Render ()
 detectClipping f = restoreStateAfter $
@@ -88,11 +88,14 @@ drawVectorField f = restoreStateAfter $
         arrowSketch (Line point end) def { arrowheadSize = Distance 5 }
         Cairo.stroke
 
-drawFieldLine :: [Vec2] -> Render ()
-drawFieldLine [] = pure ()
-drawFieldLine ps = restoreStateAfter $ do
-    bezierCurveSketch (bezierSmoothenOpen ps)
-    Cairo.stroke
+drawFieldLine :: Double -> [Vec2] -> Render ()
+drawFieldLine _ [] = pure ()
+drawFieldLine thickness ps = restoreStateAfter $ do
+    let ps' = bezierSmoothenOpen ps
+    for_ (zip [1..] ps') $ \(i, p) -> do
+        Cairo.setLineWidth (thickness * (i/10))
+        bezierSegmentSketch p
+        Cairo.stroke
 
 scalarField :: Double -> Vec2 -> Double
 scalarField = \t (Vec2 x y) -> noise2d noise1 (Vec2 (x - t) (2*y))
