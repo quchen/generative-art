@@ -75,7 +75,8 @@ solveTridiagonal a b c d
             _            -> d'_i -. c'!i *. x!(i+1)
     in x
 
--- | Simplify a path by dropping unnecessary points.
+-- | Simplify a path by dropping unnecessary points. The larger the tolerance
+-- distance, the simpler the result will be.
 --
 -- This is very useful in conjunction with 'bezierSmoothen': first drop the
 -- redundancies, then smoothen using Bezier curves again, to yield a result
