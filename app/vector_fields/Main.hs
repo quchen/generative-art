@@ -32,10 +32,11 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
     let field = gradientField (perlin seed 1 (1/noiseScale) 0.5)
     don't $ drawVectorField field
     gen <- liftIO create
-    ps <- uniformlyDistributedPoints gen 10000
-    restoreStateAfter $ do
-        Cairo.setLineWidth 1
-        for_ (take 10 . fieldLine field <$> ps) drawFieldLine
+    ps <- uniformlyDistributedPoints gen 50000
+    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.1, 0.5) gen)
+    for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
+        Cairo.setLineWidth thickness
+        drawFieldLine (take 10 (fieldLine field p))
 
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
