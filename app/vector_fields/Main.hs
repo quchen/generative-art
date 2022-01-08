@@ -34,11 +34,11 @@ main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
         Cairo.fill
 
     gen <- liftIO create
-    startPoints <- uniformlyDistributedPoints gen 10000
+    startPoints <- uniformlyDistributedPoints gen 1000
     thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
 
     for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $
-        drawFieldLine thickness (take 20 (fieldLine compositeField p))
+        drawFieldLine thickness (take 100 (fieldLine compositeField p))
   where
     scaleFactor = 1
     scaledWidth = round (picWidth * scaleFactor)
@@ -56,7 +56,7 @@ drawFieldLine _ [] = pure ()
 drawFieldLine thickness ps = restoreStateAfter $ do
     let ps' = bezierSmoothen ps
     for_ (zip [1..] ps') $ \(i, p) -> do
-        Cairo.setLineWidth (thickness * (i/10))
+        Cairo.setLineWidth (thickness * (i/50))
         bezierSegmentSketch p
         Cairo.stroke
 
@@ -74,14 +74,13 @@ gradientField p = noiseScale *. grad scalarField p
 rotationField :: Vec2 -> Vec2
 rotationField = rotate (deg 90) . gradientField
 
-compositeField :: Vec2 -> Vec2
-compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
+compositeField :: Double -> Vec2 -> Vec2
+compositeField t p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
   where
-    perturbationStrength = 0.7 * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
+    perturbationStrength = (t/1000) * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
 
-fieldLine :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
-fieldLine vectorField p0 = [x | (_t, x) <- rungeKuttaConstantStep ode p0 t0 dt]
+fieldLine :: (Double -> Vec2 -> Vec2) -> Vec2 -> [Vec2]
+fieldLine vectorField p0 = [x | (_t, x) <- rungeKuttaConstantStep vectorField p0 t0 dt]
   where
-    ode _t x = vectorField x
     t0 = 0
     dt = 10
