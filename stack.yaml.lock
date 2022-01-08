@@ -19,12 +19,12 @@ packages:
   original:
     hackage: gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
 - completed:
-    hackage: hsnoise-0.0.2@sha256:ebde231014d8c1f4c44e9760742824af87645cdff1f223c2efe16d79bc418587,1306
+    hackage: Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     pantry-tree:
-      size: 535
-      sha256: a8a86b3f5ddc47573cdcf176b6a0a884435dcd7ed21c6bc763566188b45cd133
+      size: 1176
+      sha256: 27a9154935b4d30a22830477c60c5108fd713a184d456272c2fccbf361d2395f
   original:
-    hackage: hsnoise-0.0.2@sha256:ebde231014d8c1f4c44e9760742824af87645cdff1f223c2efe16d79bc418587,1306
+    hackage: Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
 snapshots:
 - completed:
     size: 586103

@@ -3,8 +3,9 @@ module Main (main) where
 import Control.Applicative (liftA2)
 import Control.Monad (replicateM)
 import Data.Foldable (for_)
+import Data.Maybe (fromMaybe)
 import qualified Graphics.Rendering.Cairo as Cairo
-import Numeric.Noise.Perlin
+import Math.Noise (Perlin(..), perlin, getValue)
 import System.Random.MWC
 
 import Draw
@@ -21,8 +22,8 @@ noiseScale :: Double
 noiseScale = 251
 
 -- Randomness seed for reproducible results
-perlinSeed :: Int
-perlinSeed = 519496
+seed :: Int
+seed = 519496
 
 main :: IO ()
 main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
@@ -60,10 +61,10 @@ drawFieldLine thickness ps = restoreStateAfter $ do
         Cairo.stroke
 
 scalarField :: Vec2 -> Double
-scalarField = \(Vec2 x y) -> noise2d noise1 (Vec2 x (2*y))
+scalarField = noise2d . scaleXY 1 2
   where
-    noise1 = perlin perlinSeed 1 (1/noiseScale) 0.001
-    noise2d nf (Vec2 x y) = noiseValue nf (x + 49121616, y + 46216381, 321685163213)
+    noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
+    noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 gradientField :: Vec2 -> Vec2
 gradientField p = noiseScale *. grad scalarField p
@@ -76,7 +77,7 @@ rotationField = rotate (deg 90) . gradientField
 compositeField :: Vec2 -> Vec2
 compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
   where
-    perturbationStrength = 0.5 * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
+    perturbationStrength = 0.7 * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
 
 fieldLine :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
 fieldLine vectorField p0 = [x | (_t, x) <- rungeKuttaConstantStep ode p0 t0 dt]
