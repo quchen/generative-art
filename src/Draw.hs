@@ -25,6 +25,7 @@ module Draw (
     , crossSketch
     , arcSketch
     , polygonSketch
+    , pathSketch
     , boundingBoxSketch
 
     -- * Orientation helpers
@@ -193,12 +194,15 @@ arcSketch :: Vec2 -> Distance -> Angle -> Angle -> Render ()
 arcSketch (Vec2 x y) (Distance r) (Angle angleStart) (Angle angleEnd)
   = arc x y r angleStart angleEnd
 
-polygonSketch :: Polygon -> Render ()
-polygonSketch (Polygon []) = pure ()
-polygonSketch (Polygon (Vec2 x y : vecs)) = do
+pathSketch :: [Vec2] -> Render ()
+pathSketch [] = pure ()
+pathSketch (Vec2 x y : vecs) = do
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')
-    closePath
+
+polygonSketch :: Polygon -> Render ()
+polygonSketch (Polygon []) = pure ()
+polygonSketch (Polygon xs) = pathSketch xs >> closePath
 
 boundingBoxSketch :: BoundingBox -> Render ()
 boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do

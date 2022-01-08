@@ -3,7 +3,7 @@ module Test.BezierInterpolation (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo hiding (x,y)
+import Graphics.Rendering.Cairo as Cairo hiding (x,y)
 
 import Draw
 import Geometry
@@ -19,6 +19,7 @@ tests = testGroup "Bezier interpolation"
     [ testGroup "Visual"
         [ somePoints
         , picassoSquirrel
+        , simplifyPathTest
         ]
     ]
 
@@ -163,3 +164,36 @@ picassoSquirrelRender = do
     foot = moveToCanvas
         [ Vec2 94.20924311191953  67.99997227256398
         ]
+
+simplifyPathTest :: TestTree
+simplifyPathTest = testCase "Simplify path" (renderAllFormats 400 300 "test/out/bezier_interpolation/3_simplify_path" simplifyPathTestRender)
+
+simplifyPathTestRender :: Render ()
+simplifyPathTestRender = do
+    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.25 .. 16]]
+        graphBB = boundingBox graph
+        fitToBox = transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio
+
+    let plot points = restoreStateAfter $ do
+            setLineWidth 1
+            newPath
+            pathSketch points
+            stroke
+            for_ points $ \p -> do
+                circleSketch p (Distance 1)
+                fillPreserve
+                restoreStateAfter $ do
+                    setSourceRGB 0 0 0
+                    setLineWidth 0.5
+                    stroke
+        epsilons = [ Distance (3**(-e)) | e <- [10,9..1]]
+
+    restoreStateAfter $ do
+        mmaColor 0 1
+        plot (Geometry.transform fitToBox graph)
+    restoreStateAfter $ do
+        mmaColor 1 1
+        for_ epsilons $ \epsilon -> do
+            let graph' = simplifyPath epsilon graph
+            Cairo.translate 0 20
+            plot (Geometry.transform fitToBox graph')

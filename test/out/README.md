@@ -10,6 +10,8 @@ over quickly.
 
 ![](./bezier_interpolation/2_picasso_squirrel.svg)
 
+![](./bezier_interpolation/3_simplify_path.svg)
+
 ![](./billard/1_rectangular.svg)
 
 ![](./billard/2_hole.svg)

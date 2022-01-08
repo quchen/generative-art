@@ -6,6 +6,7 @@ module Geometry.BezierInterpolation.Internal where
 import qualified Data.Vector as V
 import Data.Vector (Vector, (!))
 import Geometry.Core
+import Data.Ord
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
@@ -70,3 +71,22 @@ solveTridiagonal a b c d
             _ | i == n-1 -> d'_i
             _            -> d'_i -. c'!i *. x!(i+1)
     in x
+
+-- | Ramer-Douglas-Peucker algorithm, https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+simplifyPath :: Distance -> [Vec2] -> [Vec2]
+simplifyPath epsilon  = V.toList . go . V.fromList
+  where
+    go :: Vector Vec2 -> Vector Vec2
+    go points | V.length points <= 2 = points
+    go points
+      = let start = V.head points
+            end = V.last points
+            line = Line start end
+            (dMax, iMax) = V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine p line, i)) points)
+        in if dMax <= epsilon
+            -- Points are all too close: remove them
+            then V.fromList [start, end]
+            -- Points far enough away: recurse
+            else let before = V.take (iMax+1) points -- +1 so this includes the iMax point
+                     after = V.drop iMax points
+                 in go before <> V.drop 1 (go after) -- Don’t add the middle twice

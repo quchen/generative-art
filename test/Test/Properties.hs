@@ -29,6 +29,7 @@ tests = testGroup "Properties"
     , dotProductTest
     , polygonInstancesTest
     , transformationTest
+    , distanceFromLineTest
      ]
 
 angleBetweenTest :: TestTree
@@ -210,3 +211,24 @@ transformationTest = testGroup "Affine transformations"
                 ((transform (inverse transformation) . transform transformation) vec)
                 vec
         in testProperty name (forAll gen test)
+
+distanceFromLineTest :: TestTree
+distanceFromLineTest = testProperty "Distance from point to line" $
+    forAll gen $ \(d, (point, line)) -> approxEqualTolerance (Tolerance 1e-10) (distanceFromLine point line) d
+  where
+    -- Generate a simple geometry where the distance is known
+    gen = do
+        let coord = choose (-100, 100 :: Double)
+        x1 <- coord
+        x2 <- coord
+        let line = Line (Vec2 x1 0) (Vec2 x2 0)
+        distance <- coord
+        let point = Vec2 0 distance
+
+        angle1 <- arbitrary
+        angle2 <- arbitrary
+        offset1 <- arbitrary
+        offset2 <- arbitrary
+        let trafo = rotateT angle2 <> translateT offset2 <> rotateT angle1 <> translateT offset1
+
+        pure (Distance (abs distance), transform trafo (point, line))

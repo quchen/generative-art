@@ -25,6 +25,7 @@ module Geometry.Core (
     , lineReverse
     , perpendicularBisector
     , perpendicularLineThrough
+    , distanceFromLine
     , LLIntersection(..)
     , intersectionLL
 
@@ -226,6 +227,18 @@ instance Transform Transformation where
 instance Transform a => Transform [a] where
     transform t = map (transform t)
 
+instance (Transform a, Transform b) => Transform (a,b) where
+    transform t (a,b) = (transform t a, transform t b)
+
+instance (Transform a, Transform b, Transform c) => Transform (a,b,c) where
+    transform t (a,b,c) = (transform t a, transform t b,c)
+
+instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
+    transform t (a,b,c,d) = (transform t a, transform t b,c,d)
+
+instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
+    transform t (a,b,c,d,e) = (transform t a, transform t b,c,d,e)
+
 translateT :: Vec2 -> Transformation
 translateT (Vec2 dx dy) = Transformation
     1 0 dx
@@ -344,7 +357,7 @@ instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
 
 data AspectRatioBehavior
   = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
-  | ScaleXYSeparately -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+  | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
     deriving (Eq, Ord, Show)
 
 -- | Generate a transformation that transforms the bounding box of one object to
@@ -382,7 +395,7 @@ transformBoundingBox source target aspectRatioBehavior
             MaintainAspectRatio ->
                 let scaleFactor = min xScaleFactor yScaleFactor
                 in scaleAroundT targetCenter scaleFactor scaleFactor
-            ScaleXYSeparately -> scaleAroundT targetCenter xScaleFactor yScaleFactor
+            IgnoreAspectRatio -> scaleAroundT targetCenter xScaleFactor yScaleFactor
 
     in  scaleToMatchSize <> translateToMatchCenter
 
@@ -545,6 +558,12 @@ centerLine line@(Line start end) = translate delta line
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
 normalizeLine = resizeLine (const (Distance 1))
+
+-- | Distance of a point from a line.
+distanceFromLine :: Vec2 -> Line -> Distance
+distanceFromLine (Vec2 ux uy) (Line p1@(Vec2 x1 y1) p2@(Vec2 x2 y2))
+  = let Distance l = norm (p2 -. p1)
+    in Distance (abs ((x2-x1)*(y1-uy) - (x1-ux) * (y2-y1)) / l)
 
 -- | Direction vector of a line.
 direction :: Line -> Vec2
