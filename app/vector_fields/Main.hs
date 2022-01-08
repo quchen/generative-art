@@ -55,9 +55,8 @@ drawVectorField f = restoreStateAfter $ do
 
 drawFieldLine :: [Vec2] -> Render ()
 drawFieldLine [] = pure ()
-drawFieldLine (p:ps) = restoreStateAfter $ do
-    moveToVec p
-    for_ ps lineToVec
+drawFieldLine ps = restoreStateAfter $ do
+    bezierCurveSketch (bezierSmoothenOpen ps)
     Cairo.stroke
 
 gradientField :: Perlin -> Vec2 -> Vec2
