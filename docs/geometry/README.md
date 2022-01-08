@@ -73,6 +73,13 @@ square:
 
 ![](cut/7_2_calculated_edge_graph.svg)
 
+A nice and simple algorithm for a kind of shattering process is by randomly cutting a polygon in two pieces, and recursing for a number of steps.
+
+![](cut/random_cut_square.svg)
+
+![](cut/random_cut_haskell_logo.svg)
+
+
 ## Convex hull
 
 The convex hull of a point set is the smallest polygon that contains all of the

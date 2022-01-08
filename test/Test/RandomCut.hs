@@ -24,7 +24,7 @@ import Test.Tasty.HUnit
 
 
 tests :: TestTree
-tests = testGroup "Random Cut"
+tests = testGroup "Random cut"
     [ testSquare
     , testHaskellLogo
     ]
@@ -39,7 +39,7 @@ testSquare = testCase "Square" test
             accept polys = minMaxAreaRatio polys >= 1/3
             (cutResult', _gen') = randomCutProcess recurse accept initialPolygon gen
         in cutResult'
-    test = renderAllFormats 220 220 "test/out/cut_random/1_square" $ do
+    test = renderAllFormats 220 220 "docs/geometry/cut/random_cut_square" $ do
         setLineWidth 1
         Cairo.translate 10 10
         let setColors = map mmaColor [0..]
@@ -62,7 +62,7 @@ testHaskellLogo = testCase "Haskell logo" test
             recurse polygon = minMaxAreaRatio (polygon : haskellLogo') >= 1/64
             accept polys = minMaxAreaRatio polys >= 1/3
         in evalState (fmap concat (traverse (\polygon -> state (randomCutProcess recurse accept polygon)) haskellLogo')) gen
-    test = renderAllFormats 500 360 "test/out/cut_random/2_haskell_logo" $ do
+    test = renderAllFormats 500 360 "docs/geometry/cut/random_cut_haskell_logo" $ do
         setLineWidth 1
         Cairo.translate 10 10
         let setColors = zipWith4 hsva
