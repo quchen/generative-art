@@ -1,5 +1,9 @@
 # Miscellaneous geometric operations
 
+## Simple operations
+
+![](simple_operations.svg)
+
 ## Cutting lines
 
 ![](cut/1_line.svg)
