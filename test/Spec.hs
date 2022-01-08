@@ -6,11 +6,11 @@ import Control.Exception
 import Data.Foldable
 import System.Process
 
-import qualified Test.BezierInterpolation
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.DifferentialEquation
+import qualified Test.Interpolation
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Penrose
@@ -37,11 +37,11 @@ tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
-        [ Test.BezierInterpolation.tests
-        , Test.Billard.tests
+        [ Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Cut.tests
         , Test.DifferentialEquation.tests
+        , Test.Interpolation.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests

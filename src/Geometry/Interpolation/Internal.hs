@@ -1,7 +1,7 @@
 -- | Interpolate Bezier curves through points. Heavily inspired by
 -- https://www.michael-joost.de/bezierfit.pdf
 -- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
-module Geometry.BezierInterpolation.Internal where
+module Geometry.Interpolation.Internal where
 
 import qualified Data.Vector as V
 import Data.Vector (Vector, (!))

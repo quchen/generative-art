@@ -1,11 +1,11 @@
 module Geometry (
-      module Geometry.BezierInterpolation
+      module Geometry.Interpolation
     , module Geometry.Core
     , module Geometry.Cut
     , module Geometry.Triangulate
 ) where
 
-import Geometry.BezierInterpolation
+import Geometry.Interpolation
 import Geometry.Core
 import Geometry.Cut
 import Geometry.Triangulate
