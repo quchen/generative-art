@@ -17,7 +17,7 @@ over quickly.
 
 EOF
 
-for image in $(find . -name "*.svg" | sort); do
+for image in $(find ../../docs -name "*.svg" | sort); do
     echo ""
     echo "![]($image)"
 done >> "$FILE"
