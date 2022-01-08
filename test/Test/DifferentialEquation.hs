@@ -135,7 +135,7 @@ renderDoublePendulum _w _h = do
     let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
         scaleToCanvas = Geometry.transform (translateT (Vec2 200 200))
         transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
-        bezierSmoothTrajectory = bezierSmoothenOpen [x | (_, x) <- transformedTrajectory]
+        bezierSmoothTrajectory = bezierSmoothen [x | (_, x) <- transformedTrajectory]
 
     restoreStateAfter $ do
         let (_t0, start) = head transformedTrajectory

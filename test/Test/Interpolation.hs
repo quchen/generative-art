@@ -40,7 +40,7 @@ somePointsRender = paintBezierOpenPicture points smoothed
         , Vec2 250 100
         , Vec2 200 500
         ]
-    smoothed = bezierSmoothenOpen points
+    smoothed = bezierSmoothen points
 
 paintBezierOpenPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
 paintBezierOpenPicture points smoothed = do
@@ -114,11 +114,11 @@ picassoSquirrelRender = do
 
 
   where
-    bezierFace = bezierSmoothenOpen face
-    bezierEar = bezierSmoothenOpen (last face : ear)
-    bezierBack = bezierSmoothenOpen (last ear : back)
-    bezierTail1 = bezierSmoothenOpen (last back : tail1)
-    bezierTail2 = bezierSmoothenOpen (last tail1 : tail2)
+    bezierFace = bezierSmoothen face
+    bezierEar = bezierSmoothen (last face : ear)
+    bezierBack = bezierSmoothen (last ear : back)
+    bezierTail1 = bezierSmoothen (last back : tail1)
+    bezierTail2 = bezierSmoothen (last tail1 : tail2)
     lineFoot = Line (last tail2) (head foot) -- Foot is just a line
 
     moveToCanvas = Geometry.translate (Vec2 (-30) 320) . mirrorY . Geometry.scale 1.5
@@ -202,7 +202,7 @@ simplifyPathTestRender = do
         for_ epsilons $ \epsilon -> do
             Cairo.translate 0 20
             let simplified = simplifyPath epsilon graph
-                interpolatedAgain = bezierSmoothenOpen simplified
+                interpolatedAgain = bezierSmoothen simplified
             mmaColor 1 1
             plotBezier (fitToBox interpolatedAgain)
             plotPoints (fitToBox simplified)

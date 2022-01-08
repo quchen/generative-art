@@ -1,5 +1,5 @@
 module Geometry.Interpolation (
-      bezierSmoothenOpen
+      bezierSmoothen
     , simplifyPath
 ) where
 

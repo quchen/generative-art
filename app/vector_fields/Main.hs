@@ -53,7 +53,7 @@ uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
 drawFieldLine :: Double -> [Vec2] -> Render ()
 drawFieldLine _ [] = pure ()
 drawFieldLine thickness ps = restoreStateAfter $ do
-    let ps' = bezierSmoothenOpen ps
+    let ps' = bezierSmoothen ps
     for_ (zip [1..] ps') $ \(i, p) -> do
         Cairo.setLineWidth (thickness * (i/10))
         bezierSegmentSketch p

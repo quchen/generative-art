@@ -13,8 +13,8 @@ import Data.Ord
 -- solution to a differential equation.
 --
 -- For an input of n+1 points, this will yield n Bezier curves.
-bezierSmoothenOpen :: VectorSpace vec => [vec] -> [Bezier vec]
-bezierSmoothenOpen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
+bezierSmoothen :: VectorSpace vec => [vec] -> [Bezier vec]
+bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
   where
     pointsV = V.fromList points
     n = V.length pointsV - 1
@@ -72,10 +72,12 @@ solveTridiagonal a b c d
             _            -> d'_i -. c'!i *. x!(i+1)
     in x
 
--- | Simplify a path by dropping unnecessary points. This is very useful in
--- conjunction with Bezier interpolation: first drop the redundancies, then
--- smoothen using Bezier curves again, to yield a result visually similar to the
--- original data, but with a much smaller data footprint (SVGs can become huge!).
+-- | Simplify a path by dropping unnecessary points.
+--
+-- This is very useful in conjunction with 'bezierSmoothen': first drop the
+-- redundancies, then smoothen using Bezier curves again, to yield a result
+-- visually similar to the original data, but with a much smaller data footprint
+-- (SVGs can become huge!).
 --
 -- This implements the Ramer-Douglas-Peucker algorithm,
 -- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
