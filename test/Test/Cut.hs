@@ -35,7 +35,7 @@ tests = testGroup "Cutting things"
         , testCase "Convex polygon" cutSquareTest
         , testCase "Concave polygon" complicatedPolygonTest
         , testCase "Cut misses polygon" cutMissesPolygonTest
-        -- , cornerCasesTests UGH these are tricky :-(
+        , cornerCasesTests
         ]
     ]
 
@@ -181,8 +181,13 @@ cutMissesPolygonTest = do
     assertEqual "Number of resulting polygons" 1 (length cutResult)
     liftIO (assertAreaConserved polygon cutResult)
 
+-- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
+-- don’t want to delete them, but I also do not want unused function warnings.
 cornerCasesTests :: TestTree
-cornerCasesTests = testGroup "Corner cases" (cutThroughCornerTest : pathologicalCornerCutsTests)
+cornerCasesTests = testGroup "Corner cases [IGNORED]" (ignore $ cutThroughCornerTest : pathologicalCornerCutsTests)
+  where
+    ignore = const []
+
 
 cutThroughCornerTest :: TestTree
 cutThroughCornerTest = testCase "Cut through corner" $ do
