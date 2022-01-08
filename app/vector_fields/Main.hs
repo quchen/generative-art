@@ -23,25 +23,20 @@ noiseScale = 251
 seed :: Int
 seed = 519496
 
-frames :: [Double]
-frames = [0]
-
 main :: IO ()
-main = for_ frames $ \t -> do
-    let filename = "out.png" --"out/" ++ show seed ++ "_t" ++ printf "%08.4f" t ++ ".png"
-    withSurface PNG filename scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
-        Cairo.scale scaleFactor scaleFactor
-        restoreStateAfter $ do
-            Cairo.setSourceRGB 1 1 1
-            Cairo.rectangle 0 0 picWidth picHeight
-            Cairo.fill
+main = withSurface PNG "out.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
+    Cairo.scale scaleFactor scaleFactor
+    restoreStateAfter $ do
+        Cairo.setSourceRGB 1 1 1
+        Cairo.rectangle 0 0 picWidth picHeight
+        Cairo.fill
 
-        gen <- liftIO create
-        ps <- uniformlyDistributedPoints gen 10000
-        thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
+    gen <- liftIO create
+    ps <- uniformlyDistributedPoints gen 10000
+    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
 
-        for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $
-            drawFieldLine thickness (take 20 (fieldLine (compositeField t) p))
+    for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $
+        drawFieldLine thickness (take 20 (fieldLine compositeField p))
   where
     scaleFactor = 1
     scaledWidth = round (picWidth * scaleFactor)
@@ -64,22 +59,22 @@ drawFieldLine thickness ps = restoreStateAfter $ do
         bezierSegmentSketch p
         Cairo.stroke
 
-scalarField :: Double -> Vec2 -> Double
-scalarField = \t (Vec2 x y) -> noise2d noise1 (Vec2 (x - t) (2*y))
+scalarField :: Vec2 -> Double
+scalarField = \(Vec2 x y) -> noise2d noise1 (Vec2 x (2*y))
   where
     noise1 = perlin seed 1 (1/noiseScale) 0.001
     noise2d nf (Vec2 x y) = noiseValue nf (x + 49121616, y + 46216381, 321685163213)
 
-gradientField :: Double -> Vec2 -> Vec2
-gradientField t p = noiseScale *. grad (scalarField t) p
+gradientField :: Vec2 -> Vec2
+gradientField p = noiseScale *. grad scalarField p
   where
     grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
 
-rotationField :: Double -> Vec2 -> Vec2
-rotationField t = rotate (deg 90) . gradientField t
+rotationField :: Vec2 -> Vec2
+rotationField = rotate (deg 90) . gradientField
 
-compositeField :: Double -> Vec2 -> Vec2
-compositeField t p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField t p
+compositeField :: Vec2 -> Vec2
+compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
   where
     perturbationStrength = 0.5 * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
 
