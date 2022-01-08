@@ -9,6 +9,7 @@ import System.Random.MWC
 
 import Draw
 import Geometry
+import Geometry.Processes.DifferentialEquation
 import Graphics.Rendering.Cairo (Render, liftIO)
 
 
@@ -32,7 +33,10 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
     don't $ drawVectorField field
     gen <- liftIO create
     ps <- uniformlyDistributedPoints gen 10000
-    drawFieldLines field ps
+    restoreStateAfter $ do
+        Cairo.setLineWidth 1
+        for_ (take 10 . fieldLine field <$> ps) drawFieldLine
+
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
 uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
@@ -49,14 +53,12 @@ drawVectorField f = restoreStateAfter $ do
         arrowSketch (Line point end) def
         Cairo.stroke
 
-drawFieldLines :: (Vec2 -> Vec2) -> [Vec2] -> Render ()
-drawFieldLines f ps = restoreStateAfter $ do
-    Cairo.setSourceRGB 0 0 0
-    Cairo.setLineWidth 1
-    for_ ps $ \p -> do
-        moveToVec p
-        for_ (gradientDescent f p) lineToVec
-        Cairo.stroke
+drawFieldLine :: [Vec2] -> Render ()
+drawFieldLine [] = pure ()
+drawFieldLine (p:ps) = restoreStateAfter $ do
+    moveToVec p
+    for_ ps lineToVec
+    Cairo.stroke
 
 gradientField :: Perlin -> Vec2 -> Vec2
 gradientField perturbation p@(Vec2 x y) =
@@ -71,12 +73,10 @@ noise2d perturbation (Vec2 x y) = Vec2
     (noiseValue perturbation (x, y, 231356498))
     (noiseValue perturbation (x, y, 9872146164))
 
-gradientDescent :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
-gradientDescent gradient = go 0
-  where
-    go i s
-        | i < 2000 = s : go (i+1) (s +. 0.1 *. gradient s)
-        | otherwise = []
+fieldLine :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
+fieldLine f p =
+    let f' _t y = f y
+    in  snd <$> rungeKuttaConstantStep f' p 0 20
 
 don't :: Applicative m => m a -> m ()
 don't _ = pure ()
