@@ -15,7 +15,10 @@ module Draw (
     -- * Drawing presets
     , moveToVec
     , lineToVec
+    , curveToVec
     , lineSketch
+    , bezierSegmentSketch
+    , bezierCurveSketch
     , ArrowSpec(..)
     , arrowSketch
     , circleSketch
@@ -110,10 +113,24 @@ moveToVec, lineToVec :: Vec2 -> Render ()
 moveToVec (Vec2 x y) = moveTo x y
 lineToVec (Vec2 x y) = lineTo x y
 
+curveToVec :: Vec2 -> Vec2 -> Vec2 -> Render ()
+curveToVec (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) = curveTo x1 y1 x2 y2 x3 y3
+
 lineSketch :: Line -> Render ()
 lineSketch (Line start end) = do
     moveToVec start
     lineToVec end
+
+bezierSegmentSketch :: Bezier Vec2 -> Render ()
+bezierSegmentSketch (Bezier start p1 p2 end) = do
+    moveToVec start
+    curveToVec p1 p2 end
+
+bezierCurveSketch :: [Bezier Vec2] -> Render ()
+bezierCurveSketch [] = pure ()
+bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
+    moveToVec start
+    for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
 
 data ArrowSpec = ArrowSpec
     { arrowheadRelPos    :: Distance
