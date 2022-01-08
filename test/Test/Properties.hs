@@ -85,7 +85,7 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
             line1' = translate (polar (angleOfLine line1) dist1) line1
             line2 = Line start end2
             line2' = translate (polar (angleOfLine line2) dist2) line2
-            (expectedIntersection, _ty) = intersectionLL line1' line2'
+            Just (expectedIntersection, _ty) = intersectionLL line1' line2'
         in approxEqualTolerance (Tolerance 1e-8) start expectedIntersection ))
   where
     coord = choose (-100, 100 :: Double)

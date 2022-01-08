@@ -20,10 +20,9 @@ import Geometry.Core
 -- | Cut a finite piece of paper in one or two parts with an infinite line
 cutLine :: Line -> Line -> CutLine
 cutLine scissors paper = case intersectionLL scissors paper of
-    (p, IntersectionReal)           -> cut p
-    (p, IntersectionVirtualInsideR) -> cut p
-    (_, IntersectionVirtualInsideL) -> noCut
-    (_, IntersectionVirtual)        -> noCut
+    Just (p, IntersectionReal)           -> cut p
+    Just (p, IntersectionVirtualInsideR) -> cut p
+    _otherwise                           -> noCut
   where
     Line paperStart paperEnd = paper
     cut p = Cut paperStart p paperEnd

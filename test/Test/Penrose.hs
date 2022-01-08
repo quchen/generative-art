@@ -24,7 +24,7 @@ tests = testGroup "Penrose tiling"
 testBaseConfigurations :: TestTree
 testBaseConfigurations = testCase "Base configurations" test
   where
-    test = renderAllFormats 860 200 "test/out/penrose/1_base_configurations" $ do
+    test = renderAllFormats 860 200 "docs/penrose/1_base_configurations" $ do
         for_ (star1 (Vec2 100 100) 100) drawTileWithConnectors
         Cairo.translate 220 0
         for_ (star2 (Vec2 100 100) 100) drawTileWithConnectors
@@ -42,7 +42,7 @@ testSubdivision = testCase "Subdividing base rhombs" test
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
-    test = renderAllFormats 600 200 "test/out/penrose/2_subdivision" $ do
+    test = renderAllFormats 600 200 "docs/penrose/2_subdivision" $ do
         Cairo.translate 10 10
         for_ gen0 drawTileWithConnectors
         Cairo.translate 150 0
@@ -60,7 +60,7 @@ testSubdivision = testCase "Subdividing base rhombs" test
 testInscribedPentagons :: TestTree
 testInscribedPentagons = testCase "Switch to pentagons & stars" test
   where
-    test = renderAllFormats 200 200 "test/out/penrose/3_inscribed_pentagons" $
+    test = renderAllFormats 200 200 "docs/penrose/3_inscribed_pentagons" $
         for_ (decagonRose (Vec2 100 100) 100) drawInscribedPentagons
 
 testSubdivisionWithInscribedPentagons :: TestTree
@@ -72,7 +72,7 @@ testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentago
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
-    test = renderAllFormats 600 200 "test/out/penrose/4_subdivision_with_pentagons" $ do
+    test = renderAllFormats 600 200 "docs/penrose/4_subdivision_with_pentagons" $ do
         Cairo.translate 10 10
         for_ gen0 drawInscribedPentagons
         Cairo.translate 150 0

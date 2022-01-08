@@ -23,10 +23,10 @@ tests = testGroup "Billard process"
     ]
 
 rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: TestTree
-rectangularTableTest = testCase "Rectangular table"   (renderAllFormats 320 240 "test/out/billard/1_rectangular" rectangularTable)
-holeInTableTest      = testCase "Hole in table"       (renderAllFormats 320 240 "test/out/billard/2_hole"        holeInTable)
-lambdaTableTest      = testCase "Lambda-shaped table" (renderAllFormats 330 360 "test/out/billard/3_lambda"      lambdaTable)
-brokenTableTest      = testCase "Broken table"        (renderAllFormats 160 120 "test/out/billard/4_broken"      brokenTable)
+rectangularTableTest = testCase "Rectangular table"   (renderAllFormats 320 240 "docs/billard/1_rectangular" rectangularTable)
+holeInTableTest      = testCase "Hole in table"       (renderAllFormats 320 240 "docs/billard/2_hole"        holeInTable)
+lambdaTableTest      = testCase "Lambda-shaped table" (renderAllFormats 330 360 "docs/billard/3_lambda"      lambdaTable)
+brokenTableTest      = testCase "Broken table"        (renderAllFormats 160 120 "docs/billard/4_broken"      brokenTable)
 
 rectangularTable :: Render ()
 rectangularTable = do

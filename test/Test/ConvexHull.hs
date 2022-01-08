@@ -36,7 +36,7 @@ visualTest = testCase "Visual" $ do
     renderVisual points hull
     assertions points hull
   where
-    renderVisual points hull = renderAllFormats 210 180 "test/out/convex_hull" $ do
+    renderVisual points hull = renderAllFormats 210 180 "docs/geometry/convex_hull" $ do
         Cairo.translate 110 90
         setLineWidth 1
         for_ (polygonEdges hull) $ \edge@(Line start _) -> do

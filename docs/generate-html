@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)/docs"
+
+for FILE in $(find . -name '*.md'); do
+    OUTFILE="${FILE/%.md/.html}"
+    pandoc "$FILE" -t html > "$OUTFILE"
+    sed -i 's/\.md/\.html/g' "$OUTFILE"
+done

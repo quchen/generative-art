@@ -24,7 +24,7 @@ tests = testGroup "Interpolation"
     ]
 
 somePoints :: TestTree
-somePoints = testCase "Open curve" (renderAllFormats 400 300 "test/out/interpolation/1_bezier_open" somePointsRender)
+somePoints = testCase "Open curve" (renderAllFormats 400 300 "docs/interpolation/1_bezier_open" somePointsRender)
 
 somePointsRender :: Render ()
 somePointsRender = paintBezierOpenPicture points smoothed
@@ -81,7 +81,7 @@ paintBezierOpenPicture points smoothed = do
     for_ points prettyPoint
 
 picassoSquirrel :: TestTree
-picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 320 270 "test/out/interpolation/2_picasso_squirrel" picassoSquirrelRender)
+picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 320 270 "docs/interpolation/2_picasso_squirrel" picassoSquirrelRender)
 
 picassoSquirrelRender :: Render ()
 picassoSquirrelRender = do
@@ -166,7 +166,7 @@ picassoSquirrelRender = do
         ]
 
 simplifyPathTest :: TestTree
-simplifyPathTest = testCase "Simplify path" (renderAllFormats 400 300 "test/out/interpolation/3_simplify_path" simplifyPathTestRender)
+simplifyPathTest = testCase "Simplify path" (renderAllFormats 400 300 "docs/interpolation/3_simplify_path" simplifyPathTestRender)
 
 simplifyPathTestRender :: Render ()
 simplifyPathTestRender = do

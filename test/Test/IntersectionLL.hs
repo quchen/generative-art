@@ -15,29 +15,19 @@ import Test.Tasty.HUnit
 
 
 tests :: TestTree
-tests = testCase "Line-line intersection" testIntersectionLL
+tests = testGroup "Line-line intersection"
+    [ testCase "Real intersection" intersectionReal
+    , testCase "Half-virtual intersection" intersectionHalfVirtual
+    , testCase "Virtual intersection" intersectionVirtual
+    , testCase "Parallel" intersectionParallel
+    , testCase "Parallel lines that fail to be recognized as parallel" intersectionAlmostParallel
+    ]
 
-testIntersectionLL :: IO ()
-testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
-    testVirtual1
-    testVirtual2
-    testVirtualInL
-    testVirtualR
+intersectionReal :: IO ()
+intersectionReal = renderAllFormats 580 200 "docs/geometry/intersection/real" $ do
     testReal1
-    testReal2 )
+    testReal2
   where
-    testVirtual1 = testDraw
-        (angledLine (Vec2 50 190) (rad ( pi/6)) (Distance 100))
-        (angledLine (Vec2 50 300) (rad (-pi/6)) (Distance 100))
-    testVirtual2 = testDraw
-        (translate (Vec2 30 380 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
-        (translate (Vec2 30 380 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
-    testVirtualInL = testDraw
-        (angledLine (Vec2 300 180) (rad      0) (Distance 100))
-        (angledLine (Vec2 350 200) (rad (pi/2)) (Distance  50))
-    testVirtualR = testDraw
-        (angledLine (Vec2 370 330) (rad      0) (Distance  50))
-        (angledLine (Vec2 350 280) (rad (pi/2)) (Distance 100))
     testReal1 = testDraw
         (Line (Vec2 10  10) (Vec2 220 190))
         (Line (Vec2 270 50) (Vec2  30 160))
@@ -45,10 +35,49 @@ testIntersectionLL = renderAllFormats 580 480 "test/out/intersection" (do
         (translate (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
         (translate (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
 
-testDraw :: Line -> Line -> Render ()
-testDraw line1 line2 = do
-    let (point, ty) = intersectionLL line1 line2
+intersectionHalfVirtual :: IO ()
+intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/half_virtual" $ do
+    testVirtualInL
+    testVirtualR
+  where
+    testVirtualInL = testDraw
+        (angledLine (Vec2 10 10) (rad      0) (Distance 100))
+        (angledLine (Vec2 60 30) (rad (pi/2)) (Distance  50))
+    testVirtualR = testDraw
+        (angledLine (Vec2 370 60) (rad      0) (Distance  50))
+        (angledLine (Vec2 350 10) (rad (pi/2)) (Distance 100))
 
+intersectionVirtual :: IO ()
+intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtual" $ do
+    testVirtual1
+    testVirtual2
+  where
+    testVirtual1 = testDraw
+        (angledLine (Vec2 50 0) (rad ( pi/6)) (Distance 100))
+        (angledLine (Vec2 50 120) (rad (-pi/6)) (Distance 100))
+    testVirtual2 = testDraw
+        (translate (Vec2 300 60 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
+        (translate (Vec2 300 60 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
+
+intersectionParallel :: IO ()
+intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/parallel" $ do
+    testParallel1
+    testParallel2
+  where
+    testParallel1 = testDraw
+        (Line (Vec2 50 40) (Vec2 150 40))
+        (Line (Vec2 50 80) (Vec2 150 80))
+    testParallel2 = testDraw
+        (Line (Vec2 300 60) (Vec2 400 60))
+        (Line (Vec2 420 60) (Vec2 520 60))
+
+intersectionAlmostParallel :: IO ()
+intersectionAlmostParallel = renderAllFormats 580 120 "docs/geometry/intersection/almost_parallel" $ testDraw
+    (angledLine (Vec2 50 0) (rad (pi/6)) (Distance 80))
+    (angledLine (Vec2 50 20) (rad (pi/6)) (Distance 80))
+
+testDraw :: Line -> Line -> Render ()
+testDraw line1@(Line start _) line2 = do
     setLineWidth 1
 
     restoreStateAfter $ do
@@ -61,27 +90,36 @@ testDraw line1 line2 = do
         arrowSketch line2 def{arrowheadSize = Distance 8}
         stroke
 
-    restoreStateAfter $ do
-        mmaColor 3 1
-        circleSketch point (Distance 3)
-        fill
+    case intersectionLL line1 line2 of
+        Nothing -> restoreStateAfter $ do
+            let Vec2 x y = start +. Vec2 15 15
+            hsva 0 0 0 1
+            moveTo x y
+            setFontSize 10
+            showText "No intersection"
 
-    restoreStateAfter $ do
-        mmaColor 3 1
-        angleSketch point (angleOfLine line1) (angleOfLine line2)
-        stroke
+        Just (point, ty) -> do
 
-    restoreStateAfter $ do
-        let fontSize = 10
-            Vec2 x y = point +. Vec2 15 15
-            angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
-            tyStr = case ty of
-                IntersectionVirtual        -> "Virtual"
-                IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
-                IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
-                IntersectionReal           -> "Intersection"
+            restoreStateAfter $ do
+                mmaColor 3 1
+                circleSketch point (Distance 3)
+                fill
 
-        hsva 0 0 0 1
-        moveTo x y
-        setFontSize fontSize
-        showText (tyStr ++ ", " ++ angleDeg ++ "°")
+            restoreStateAfter $ do
+                mmaColor 3 1
+                angleSketch point (angleOfLine line1) (angleOfLine line2)
+                stroke
+
+            restoreStateAfter $ do
+                let Vec2 x y = point +. Vec2 15 15
+                    angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
+                    tyStr = case ty of
+                        IntersectionVirtual        -> "Virtual"
+                        IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
+                        IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
+                        IntersectionReal           -> "Intersection"
+
+                hsva 0 0 0 1
+                moveTo x y
+                setFontSize 10
+                showText (tyStr ++ ", " ++ angleDeg ++ "°")

@@ -18,7 +18,7 @@ tests :: TestTree
 tests = testCase "Reflection of rays on a mirror" testReflection
 
 testReflection :: IO ()
-testReflection = renderAllFormats 520 300 "test/out/reflection" $ do
+testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
 
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
@@ -37,7 +37,7 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" $ do
         stroke
         for_ (zip [-135,-120.. -10] [0,6..]) (\(angleDeg, colorDeg) -> do
             let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
-                (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
+                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             hsva colorDeg 1 0.7 0.7
@@ -51,7 +51,7 @@ testReflection = renderAllFormats 520 300 "test/out/reflection" $ do
         stroke
         for_ (zip [-135,-120.. -10] [180,180+6..]) (\(angleDeg, colorDeg) -> do
             let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
-                (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
+                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirror
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             hsva colorDeg 1 0.7 0.7

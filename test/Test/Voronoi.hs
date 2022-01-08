@@ -37,7 +37,7 @@ testPolygonCutting = testGroup "Adding polygons"
     face2' = updateFace point1 face2
     face2'' = updateFace point3 face2'
     face3' = updateFace point2 $ updateFace point1 $ face3
-    test1 = renderAllFormats 420 240 "test/out/voronoi/1_cut_polygon" $ do
+    test1 = renderAllFormats 420 240 "docs/voronoi/1_cut_polygon" $ do
         Cairo.translate 10 10
         drawVoronoi [face1]
         drawCenter face2
@@ -56,7 +56,7 @@ testPolygonCutting = testGroup "Adding polygons"
         drawArrow (Vec2 110 50) (deg (-45)) (Distance 30)
         Cairo.translate 150 (-60)
         drawVoronoi [face1', face2']
-    test2 = renderAllFormats 420 360 "test/out/voronoi/2_add_polygon" $ do
+    test2 = renderAllFormats 420 360 "docs/voronoi/2_add_polygon" $ do
         Cairo.translate 10 70
         drawVoronoi [face1', face2']
         drawCenter face3
@@ -88,7 +88,7 @@ testVoronoi :: TestTree
 testVoronoi = testCase "Full Voronoi pattern" test
   where
     voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
-    test = renderAllFormats 120 120 "test/out/voronoi/3_full_voronoi" $ do
+    test = renderAllFormats 120 120 "docs/voronoi/3_full_voronoi" $ do
         Cairo.translate 10 10
         drawVoronoi (faces voronoiPattern)
 

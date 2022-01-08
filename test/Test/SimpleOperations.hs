@@ -21,7 +21,7 @@ tests = testGroup "Simple operations"
     ]
 
 testVisual :: TestTree
-testVisual = testCase "Visual" $ renderAllFormats 320 400 "test/out/simple_operations" (do
+testVisual = testCase "Visual" $ renderAllFormats 320 400 "docs/geometry/simple_operations" (do
     Cairo.translate 30 50 >> rotateLineTest
     Cairo.translate  0 80 >> perpendicularBisectorTest
     Cairo.translate  0 80 >> perpendicularLineThroughTest
