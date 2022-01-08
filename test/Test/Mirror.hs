@@ -25,7 +25,7 @@ setMirrorStyle :: Render ()
 setMirrorStyle = hsva 0 0 0 0.5 >> setDash [5,5] 0 >> setLineWidth 1
 
 mirrorPointsTest :: IO ()
-mirrorPointsTest = renderAllFormats 550 550 "test/out/mirror" (do
+mirrorPointsTest = renderAllFormats 550 550 "docs/geometry/mirror" (do
     Cairo.translate 10 20
     mirror1
     Cairo.translate 0 230

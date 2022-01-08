@@ -44,6 +44,12 @@ angledLine (Vec2 50 20) (rad (pi/6)) (Distance 80)
 
 are obviously parallel, but still they have an intersection at (-2.1e17, -1.2e17).
 
+## Mirroring
+
+Mirror objects along a line.
+
+![](mirror.svg)
+
 ## Cutting polygons
 
 Cutting a square along a line is rather simple:
