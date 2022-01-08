@@ -170,30 +170,39 @@ simplifyPathTest = testCase "Simplify path" (renderAllFormats 400 300 "test/out/
 
 simplifyPathTestRender :: Render ()
 simplifyPathTestRender = do
-    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.25 .. 16]]
+    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
         graphBB = boundingBox graph
-        fitToBox = transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio
+        fitToBox :: Transform geo => geo -> geo
+        fitToBox = Geometry.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio)
 
-    let plot points = restoreStateAfter $ do
+    let plotPath points = restoreStateAfter $ do
             setLineWidth 1
             newPath
             pathSketch points
             stroke
-            for_ points $ \p -> do
-                circleSketch p (Distance 1)
-                fillPreserve
-                restoreStateAfter $ do
-                    setSourceRGB 0 0 0
-                    setLineWidth 0.5
-                    stroke
-        epsilons = [ Distance (3**(-e)) | e <- [10,9..1]]
+        plotPoints points = for_ points $ \p -> do
+            circleSketch p (Distance 1)
+            fillPreserve
+            restoreStateAfter $ do
+                setSourceRGB 0 0 0
+                setLineWidth 0.5
+                stroke
+        plotBezier segments = restoreStateAfter $ do
+            setLineWidth 1
+            bezierCurveSketch segments
+            stroke
+        epsilons = [ Distance (2**(-e)) | e <- [10,9..1]]
 
     restoreStateAfter $ do
         mmaColor 0 1
-        plot (Geometry.transform fitToBox graph)
+        plotPath (fitToBox graph)
+        plotPoints (fitToBox graph)
+
     restoreStateAfter $ do
-        mmaColor 1 1
         for_ epsilons $ \epsilon -> do
-            let graph' = simplifyPath epsilon graph
             Cairo.translate 0 20
-            plot (Geometry.transform fitToBox graph')
+            let simplified = simplifyPath epsilon graph
+                interpolatedAgain = bezierSmoothenOpen simplified
+            mmaColor 1 1
+            plotBezier (fitToBox interpolatedAgain)
+            plotPoints (fitToBox simplified)
