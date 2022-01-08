@@ -72,3 +72,10 @@ And here's a similar edge graph, as an intermediate result from cutting a
 square:
 
 ![](cut/7_2_calculated_edge_graph.svg)
+
+## Convex hull
+
+The convex hull of a point set is the smallest polygon that contains all of the
+points.
+
+![](convex_hull.svg)
