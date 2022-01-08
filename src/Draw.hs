@@ -114,6 +114,8 @@ moveToVec, lineToVec :: Vec2 -> Render ()
 moveToVec (Vec2 x y) = moveTo x y
 lineToVec (Vec2 x y) = lineTo x y
 
+-- | Paint a Cairo curve, which is a Bezier curve where the initial point is
+-- implicitly given by where the current draw position is.
 curveToVec :: Vec2 -> Vec2 -> Vec2 -> Render ()
 curveToVec (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) = curveTo x1 y1 x2 y2 x3 y3
 
@@ -122,11 +124,14 @@ lineSketch (Line start end) = do
     moveToVec start
     lineToVec end
 
+-- | Paint a full, standalone Bezier segment. For connectnig multiple, use
+-- 'bezierCurveSketch'.
 bezierSegmentSketch :: Bezier Vec2 -> Render ()
 bezierSegmentSketch (Bezier start p1 p2 end) = do
     moveToVec start
     curveToVec p1 p2 end
 
+-- | Paint a curve consisting out of multiple Bezier segments.
 bezierCurveSketch :: [Bezier Vec2] -> Render ()
 bezierCurveSketch [] = pure ()
 bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do

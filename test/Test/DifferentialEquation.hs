@@ -141,10 +141,9 @@ renderDoublePendulum _w _h = do
         let (_t0, start) = head transformedTrajectory
         moveToVec start
         setLineWidth 1
-        for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), (Bezier start (Vec2 a b) (Vec2 c d) (Vec2 e f))) -> do
+        for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
             mmaColor 1 (exp (-t / 500))
-            moveToVec start
-            curveTo a b c d e f
+            bezierSegmentSketch bezier
             stroke
 
 doublePendulumTrajectory :: DoublePendulum -> [(Double, Vec2)]
