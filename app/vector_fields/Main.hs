@@ -21,7 +21,7 @@ noiseScale :: Double
 noiseScale = 251
 
 seed :: Int
-seed = 51989
+seed = 519496
 
 main :: IO ()
 main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWith surface $ do
@@ -29,11 +29,7 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
         Cairo.setSourceRGB 1 1 1
         Cairo.rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
         Cairo.fill
-    don't $ for_ [Vec2 x y | x <- [0,2..fromIntegral picWidth], y <- [0,2..fromIntegral picHeight]] $ \p@(Vec2 x y) -> restoreStateAfter $ do
-        let v = scalarField p
-        hsva 0 0 (0.5 + 0.25 * v) 1
-        Cairo.rectangle x y 2 2
-        Cairo.fill
+    don't $ drawScalarField scalarField
     restoreStateAfter $ don't $ do
         Cairo.setSourceRGB 1 0 0
         drawVectorField ((0.2 *.) <$> gradientField)
@@ -54,6 +50,13 @@ uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
     randomPoint = liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
     randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
 
+drawScalarField :: (Vec2 -> Double) -> Render ()
+drawScalarField f = restoreStateAfter $
+    for_ [ Vec2 (fromIntegral x) (fromIntegral y) | x <- [0..picWidth], y <- [0..picHeight] ] $ \p@(Vec2 x y) -> do
+        hsva 0 0 (0.5 + 0.25 * f p) 1
+        Cairo.rectangle x y 1 1
+        Cairo.fill
+
 drawVectorField :: (Vec2 -> Vec2) -> Render ()
 drawVectorField f = restoreStateAfter $
     for_ [0,20..picWidth] $ \x -> for_ [0,20..picHeight] $ \y -> do
@@ -69,9 +72,12 @@ drawFieldLine ps = restoreStateAfter $ do
     Cairo.stroke
 
 scalarField :: Vec2 -> Double
-scalarField (Vec2 x y) = noiseValue noise (x + 49156616, 2 * y + 46216981, 321685163213)
+scalarField (Vec2 x y) = 0.8 * noise2d noise1 (Vec2 x (2*y)) + 0.2 * noise2d noise2 (Vec2 x (2*y))
   where
-    noise = perlin seed 3 (1/noiseScale) 0.2
+    -- Average over two noise functions b/c perlin from hsnoise seems to lead to some clipping
+    noise1 = perlin seed 3 (1/noiseScale) 0.2
+    noise2 = perlin (seed+1) 3 (1/noiseScale) 0.2
+    noise2d nf (Vec2 x y) = noiseValue nf (x + 49156616, y + 46216981, 321685163213)
 
 gradientField :: Vec2 -> Vec2
 gradientField p@(Vec2 x y) =
