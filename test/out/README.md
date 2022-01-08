@@ -58,6 +58,8 @@ over quickly.
 
 ![](../../docs/interpolation/3_simplify_path.svg)
 
+![](../../docs/interpolation/4_bezier_subdivide.svg)
+
 ![](../../docs/penrose/1_base_configurations.svg)
 
 ![](../../docs/penrose/2_subdivision.svg)

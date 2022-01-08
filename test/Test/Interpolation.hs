@@ -20,6 +20,7 @@ tests = testGroup "Interpolation"
         [ somePoints
         , picassoSquirrel
         , simplifyPathTest
+        , subdivideBezierCurveTest
         ]
     ]
 
@@ -206,3 +207,48 @@ simplifyPathTestRender = do
             mmaColor 1 1
             plotBezier (fitToBox interpolatedAgain)
             plotPoints (fitToBox simplified)
+
+subdivideBezierCurveTest :: TestTree
+subdivideBezierCurveTest = testCase "Subdivide" (renderAllFormats 300 300 "docs/interpolation/4_bezier_subdivide" subdivideBezierCurve)
+
+subdivideBezierCurve :: Render ()
+subdivideBezierCurve = do
+    let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
+        -- fitToBox = transformBoundingBox (boundingBox graph) (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio
+        fitToBox bbContents box = Geometry.transform (transformBoundingBox bbContents box IgnoreAspectRatio)
+        beziers = bezierSmoothen graph
+
+    setLineWidth 1
+
+    restoreStateAfter $ do
+        let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
+        mmaColor 0 1
+        bezierCurveSketch (fit beziers)
+        stroke
+        moveTo 200 70
+        showText (show (length beziers) ++ " curves")
+
+    let subpoints = beziers >>= bezierSubdivide 10
+    let simplified = simplifyPath (Distance 0.05) subpoints
+    restoreStateAfter $ do
+        let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
+
+        restoreStateAfter $ for_ (fit subpoints) $ \p -> do
+            mmaColor 1 0.1
+            circleSketch p (Distance 2)
+            fill
+
+        restoreStateAfter $ for_ (fit simplified) $ \p -> do
+            newPath
+            circleSketch p (Distance 2)
+            setSourceRGB 0 0 0
+            stroke
+
+    let interpolated = bezierSmoothen simplified
+    restoreStateAfter $ do
+        let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
+        mmaColor 3 1
+        bezierCurveSketch (fit interpolated)
+        stroke
+        moveTo 200 270
+        showText (show (length interpolated) ++ " curves")

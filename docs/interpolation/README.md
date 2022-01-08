@@ -26,3 +26,7 @@ smoothly, we can save quite a number of points without impacting visual fidelity
 at all.
 
 ![](3_simplify_path.svg)
+
+Another trick is to subdivide the source curve, forgetting newly created unnecessary points again, and interpolating fresh Bezier curves through the remainder. This can achieve a number of effects beyond smoothing or saving data, such as a more hand-sketched appearance, depending on the parameters.
+
+![](4_bezier_subdivide.svg)
