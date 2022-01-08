@@ -38,8 +38,8 @@ main = withSurface PNG "out.png" scaledWidth scaledHeight $ \surface -> Cairo.re
         Cairo.setSourceRGB 0 0 1
         drawVectorField compositeField
     gen <- liftIO create
-    ps <- uniformlyDistributedPoints gen 20000
-    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.2, 0.7) gen)
+    ps <- uniformlyDistributedPoints gen 10000
+    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
     for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
         Cairo.setLineWidth thickness
         drawFieldLine (take 20 (fieldLine compositeField p))
