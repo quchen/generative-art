@@ -24,7 +24,7 @@ seed :: Int
 seed = 519496
 
 main :: IO ()
-main = withSurface PNG "out.png" (picWidth * scaleFactor) (picHeight * scaleFactor) $ \surface -> Cairo.renderWith surface $ do
+main = withSurface PNG "out.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
     Cairo.scale scaleFactor scaleFactor
     restoreStateAfter $ do
         Cairo.setSourceRGB 1 1 1
@@ -38,14 +38,15 @@ main = withSurface PNG "out.png" (picWidth * scaleFactor) (picHeight * scaleFact
         Cairo.setSourceRGB 0 0 1
         drawVectorField compositeField
     gen <- liftIO create
-    ps <- uniformlyDistributedPoints gen 50000
+    ps <- uniformlyDistributedPoints gen 20000
     thicknesses <- liftIO $ replicateM 1000 (uniformR (0.2, 0.7) gen)
     for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
         Cairo.setLineWidth thickness
-        drawFieldLine (take 10 (fieldLine compositeField p))
+        drawFieldLine (take 20 (fieldLine compositeField p))
   where
-    scaleFactor :: Num a => a
-    scaleFactor = 2
+    scaleFactor = 0.5
+    scaledWidth = round (fromIntegral picWidth * scaleFactor)
+    scaledHeight = round (fromIntegral picHeight * scaleFactor)
 
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
@@ -76,12 +77,10 @@ drawFieldLine ps = restoreStateAfter $ do
     Cairo.stroke
 
 scalarField :: Vec2 -> Double
-scalarField (Vec2 x y) = 0.8 * noise2d noise1 (Vec2 x (2*y)) + 0.2 * noise2d noise2 (Vec2 x (2*y))
+scalarField (Vec2 x y) = noise2d noise1 (Vec2 x (2*y))
   where
-    -- Average over two noise functions b/c perlin from hsnoise seems to lead to some clipping
-    noise1 = perlin seed 3 (1/noiseScale) 0.2
-    noise2 = perlin (seed+1) 3 (1/noiseScale) 0.2
-    noise2d nf (Vec2 x y) = noiseValue nf (x + 49156616, y + 46216981, 321685163213)
+    noise1 = perlin seed 1 (1/noiseScale) 0.5
+    noise2d nf (Vec2 x y) = noiseValue nf (x + 49156616, y + 46216381, 321685163213)
 
 gradientField :: Vec2 -> Vec2
 gradientField p@(Vec2 x y) =
@@ -92,7 +91,7 @@ rotationField :: Vec2 -> Vec2
 rotationField = rotate (deg 90) . gradientField
 
 compositeField :: Vec2 -> Vec2
-compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.6 * perturbationStrength *. rotationField p
+compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
   where
     perturbationStrength = 0.5 * (1 + tanh (4 * (x / fromIntegral picWidth - 0.6))) * exp (-3 * (y / fromIntegral picHeight - 0.5)^2)
 
