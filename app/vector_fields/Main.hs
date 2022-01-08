@@ -29,11 +29,11 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
         Cairo.setSourceRGB 1 1 1
         Cairo.rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
         Cairo.fill
-    let field = gradientField (perlin seed 1 (1/noiseScale) 0.5)
+    let field = gradientField (perlin seed 3 (1/noiseScale) 0.2)
     don't $ drawVectorField field
     gen <- liftIO create
     ps <- uniformlyDistributedPoints gen 50000
-    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.1, 0.5) gen)
+    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.2, 0.7) gen)
     for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
         Cairo.setLineWidth thickness
         drawFieldLine (take 10 (fieldLine field p))
@@ -76,7 +76,7 @@ noise2d perturbation (Vec2 x y) = Vec2
 fieldLine :: (Vec2 -> Vec2) -> Vec2 -> [Vec2]
 fieldLine f p =
     let f' _t y = f y
-    in  snd <$> rungeKuttaConstantStep f' p 0 20
+    in  snd <$> rungeKuttaConstantStep f' p 0 10
 
 don't :: Applicative m => m a -> m ()
 don't _ = pure ()
