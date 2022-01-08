@@ -1,9 +1,7 @@
--- | Interpolate Bezier curves through points. Heavily inspired by
--- https://www.michael-joost.de/bezierfit.pdf
--- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
 module Geometry.Interpolation (
       bezierSmoothen
     , simplifyPath
+    , bezierSubdivide
 ) where
 
 import qualified Data.Vector as V
@@ -16,6 +14,10 @@ import Data.Ord
 -- solution to a differential equation.
 --
 -- For an input of n+1 points, this will yield n Bezier curves.
+--
+-- Heavily inspired by
+-- https://www.michael-joost.de/bezierfit.pdf
+-- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
 bezierSmoothen :: VectorSpace vec => [vec] -> [Bezier vec]
 bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
   where
@@ -102,3 +104,19 @@ simplifyPath epsilon  = V.toList . go . V.fromList
             else let before = V.take (iMax+1) points -- +1 so this includes the iMax point
                      after = V.drop iMax points
                  in go before <> V.drop 1 (go after) -- Don’t add the middle twice
+
+pointOnBezier :: VectorSpace vec => Bezier vec -> Double -> vec
+pointOnBezier (Bezier a b c d) t
+  =      (1-t)^3     *. a
+    +. 3*(1-t)^2*t   *. b
+    +. 3*(1-t)  *t^2 *. c
+    +.           t^3 *. d
+
+-- | Divide a Bezier into a number of points. One way to simplify a chain of Bezier
+-- curves is by first subdividing them, then simplifying the resulting path, and
+-- re-interpolating new Bezier curves through the data.
+bezierSubdivide :: VectorSpace vec => Int -> Bezier vec -> [vec]
+bezierSubdivide n bezier = map (pointOnBezier bezier) ts
+  where
+    ts :: [Double]
+    ts = map (\x -> fromIntegral x / fromIntegral (n-1)) [0..n-1]
