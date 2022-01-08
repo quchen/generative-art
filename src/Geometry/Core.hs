@@ -145,7 +145,7 @@ data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
-data Bezier vec = Bezier vec vec vec vec
+data Bezier vec = Bezier vec vec vec vec deriving (Eq, Ord, Show)
 
 
 -- | Affine transformation,
