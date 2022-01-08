@@ -24,7 +24,8 @@ seed :: Int
 seed = 519496
 
 main :: IO ()
-main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWith surface $ do
+main = withSurface PNG "out.png" (picWidth * scaleFactor) (picHeight * scaleFactor) $ \surface -> Cairo.renderWith surface $ do
+    Cairo.scale scaleFactor scaleFactor
     restoreStateAfter $ do
         Cairo.setSourceRGB 1 1 1
         Cairo.rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
@@ -42,6 +43,9 @@ main = withSurface PNG "out.png" picWidth picHeight $ \surface -> Cairo.renderWi
     for_ (zip ps (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $ do
         Cairo.setLineWidth thickness
         drawFieldLine (take 10 (fieldLine compositeField p))
+  where
+    scaleFactor :: Num a => a
+    scaleFactor = 2
 
 
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
