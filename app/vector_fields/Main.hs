@@ -60,24 +60,24 @@ drawFieldLine thickness ps = restoreStateAfter $ do
         bezierSegmentSketch p
         Cairo.stroke
 
-scalarField :: Vec2 -> Double
-scalarField = noise2d . scaleXY 1 2
+scalarField :: Double -> Vec2 -> Double
+scalarField = \t -> noise2d t . scaleXY 1 2
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
-    noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
+    noise2d t (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0.2 * t)
 
-gradientField :: Vec2 -> Vec2
-gradientField p = noiseScale *. grad scalarField p
+gradientField :: Double -> Vec2 -> Vec2
+gradientField t p = noiseScale *. grad (scalarField t) p
   where
     grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
 
-rotationField :: Vec2 -> Vec2
-rotationField = rotate (deg 90) . gradientField
+rotationField :: Double -> Vec2 -> Vec2
+rotationField t = rotate (deg 90) . gradientField t
 
 compositeField :: Double -> Vec2 -> Vec2
-compositeField t p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
+compositeField t p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField t p
   where
-    perturbationStrength = (t/1000) * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
+    perturbationStrength = (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
 
 fieldLine :: (Double -> Vec2 -> Vec2) -> Vec2 -> [Vec2]
 fieldLine vectorField p0 = [x | (_t, x) <- rungeKuttaConstantStep vectorField p0 t0 dt]
