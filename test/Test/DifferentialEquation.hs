@@ -21,7 +21,7 @@ tests = testGroup "Differential equations"
     ]
 
 twoBodyProblem :: TestTree
-twoBodyProblem = testCase "Two-body problem" (renderAllFormats 400 400 "test/out/differential_equations/1_two_body_problem" (renderTwoBodyProblem 400 400))
+twoBodyProblem = testCase "Two-body problem" (renderAllFormats 400 400 "docs/differential_equations/1_two_body_problem" (renderTwoBodyProblem 400 400))
 
 planetPhaseDiagram :: [(Double, (Vec2, Vec2))]
 planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
@@ -82,7 +82,7 @@ renderTwoBodyProblem w h = do
     paintPlanet
 
 doublePendulum :: TestTree
-doublePendulum = testCase "Double pendulum" (renderAllFormats 400 400 "test/out/differential_equations/2_double_pendulum" (renderDoublePendulum 400 400))
+doublePendulum = testCase "Double pendulum" (renderAllFormats 400 400 "docs/differential_equations/2_double_pendulum" (renderDoublePendulum 400 400))
 
 data DoublePendulum = DoublePendulum {
       _m1 :: Double
