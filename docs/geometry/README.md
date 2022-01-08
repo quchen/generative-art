@@ -50,6 +50,12 @@ Mirror objects along a line.
 
 ![](mirror.svg)
 
+Together with line intersections, this can be used to implement reflection; the
+[billard process](../billard/README.md) is what you get when you do this
+repeatedly.
+
+![](reflection.svg)
+
 ## Cutting polygons
 
 Cutting a square along a line is rather simple:

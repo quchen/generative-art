@@ -18,7 +18,7 @@ tests :: TestTree
 tests = testCase "Reflection of rays on a mirror" testReflection
 
 testReflection :: IO ()
-testReflection = renderAllFormats 520 300 "test/out/reflection" $ do
+testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
 
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
