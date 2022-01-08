@@ -72,7 +72,13 @@ solveTridiagonal a b c d
             _            -> d'_i -. c'!i *. x!(i+1)
     in x
 
--- | Ramer-Douglas-Peucker algorithm, https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+-- | Simplify a path by dropping unnecessary points. This is very useful in
+-- conjunction with Bezier interpolation: first drop the redundancies, then
+-- smoothen using Bezier curves again, to yield a result visually similar to the
+-- original data, but with a much smaller data footprint (SVGs can become huge!).
+--
+-- This implements the Ramer-Douglas-Peucker algorithm,
+-- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
 simplifyPath :: Distance -> [Vec2] -> [Vec2]
 simplifyPath epsilon  = V.toList . go . V.fromList
   where
