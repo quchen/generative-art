@@ -10,6 +10,11 @@ import Numerics.DifferentialEquation
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
+import qualified System.Random.MWC as MWC
+import qualified System.Random.MWC.Distributions as MWC
+import qualified Data.Vector as V
+import Control.Monad.ST
+import Data.Word
 
 
 tests :: TestTree
@@ -17,6 +22,7 @@ tests = testGroup "Differential equations"
     [ testGroup "Visual"
         [ twoBodyProblem
         , doublePendulum
+        , noisePendulum
         ]
     ]
 
@@ -164,3 +170,77 @@ doublePendulumTrajectory sys =
                 y2 = y1 + _l2 * cos theta2
             in (t, Vec2 x2 y2)
     in map v2 solution
+
+
+noisePendulum :: TestTree
+noisePendulum = localOption (Timeout 10000000 "10s") $ testCase "Phase space of dampened noise pendulum" (renderAllFormats 400 200 "scratchpad/out" (renderPhaseSpace 400 200 solveNoisePendulum))
+
+solveNoisePendulum :: [(Double, (Double, Double))]
+solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
+  where
+    ode t (phi,omega)
+      = let phi' = omega
+            omega' = gravity + friction + noise + driver
+            gravity = - sin phi
+            friction = - 0.1*omega
+            noise = 0.3*noiseF t phi omega
+            driver = sin t
+        in (phi', omega')
+    y0 = (0*2*pi/360, 0.5)
+    t0 = 0
+    dt = 0.01
+
+    noiseF :: Double -> Double -> Double -> Double
+    noiseF t phi omega = runST $ do
+        let toWord32s :: Double -> (Word32, Word32)
+            toWord32s x = let (a,b) = decodeFloat x in (fromIntegral a, fromIntegral b)
+            (x1, x2) = toWord32s t
+            (x3, x4) = toWord32s phi
+            (x5, x6) = toWord32s omega
+        gen <- MWC.initialize (V.fromList [x1, x2, x3, x4, x5, x6])
+        MWC.standard gen
+
+renderPhaseSpace :: Int -> Int -> [(Double, (Double, Double))] -> Render ()
+renderPhaseSpace w h solution = do
+    let solution' = takeWhile (\(t, _) -> t < 200) solution
+        bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution']
+        bbCanvas = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
+        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas MaintainAspectRatio)
+        trajectory = [scaleToCanvas (Vec2 x v) | (_t, (x,v)) <- solution']
+
+    setLineWidth 1
+    -- cartesianCoordinateSystem
+    restoreStateAfter $ do
+        pathSketch trajectory
+        mmaColor 0 1
+        stroke
+
+
+
+
+--
+-- solveDoublePendulum DoublePendulum{..} = rungeKuttaAdaptiveStep f _y0 t0 dt tol
+--   where
+--     f :: Double -> ((Double, Double), (Double, Double)) -> ((Double, Double), (Double, Double))
+--     f _t ((theta1, theta2), (omega1, omega2))
+--       = (
+--             (
+--                 omega1
+--             ,
+--                 omega2
+--             ),(
+--                 (- _g * (2*_m1 + _m2) * sin theta1 - _m2 * _g * sin (theta1 - 2*theta2) - 2 * sin (theta1 - theta2) * _m2 * (omega2**2 * _l2 + omega1**2 * _l1 * cos (theta1 - theta2)))
+--                 / --------------------------------------------------------------------------------------------------------------------------------------------------------------
+--                 (_l1 * (2*_m1 + _m2 + _m2 * cos(2*theta1 - 2*theta2)))
+--             ,
+--                 (2 * sin(theta1 - theta2) * (omega1**2 * _l1 * (_m1 + _m2) + _g * (_m1 + _m2) * cos theta1 + omega2**2 * _l2 * _m2 * cos (theta1 - theta2)))
+--                 / ----------------------------------------------------------------------------------------------------------------------------------
+--                 (_l1 * (2*_m1 + _m2 + _m2 * cos(2*theta1 - 2*theta2)))
+--             )
+--         )
+--
+--     t0 = 0
+--
+--
+--     dt = 0.001
+--     tol = 0.001
