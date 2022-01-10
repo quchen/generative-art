@@ -49,7 +49,7 @@ renderTwoBodyProblem w h = do
           = let trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram']
                                      <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
                 canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
-                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox MaintainAspectRatio
+                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox FitAllMaintainAspect
             in Geometry.transform scaleToCanvas
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
         sun = transformNicely (Vec2 0 0)
@@ -133,7 +133,7 @@ system = DoublePendulum {
 renderDoublePendulum :: Int -> Int -> Render ()
 renderDoublePendulum _w _h = do
     let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
-        scaleToCanvas = Geometry.transform (translateT (Vec2 200 200))
+        scaleToCanvas = Geometry.transform (Geometry.translate (Vec2 200 200))
         transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
         bezierSmoothTrajectory = bezierSmoothen [x | (_, x) <- transformedTrajectory]
 

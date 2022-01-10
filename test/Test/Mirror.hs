@@ -3,7 +3,7 @@ module Test.Mirror (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo
+import Graphics.Rendering.Cairo as Cairo hiding (transform)
 
 import Draw
 import Geometry
@@ -59,7 +59,7 @@ mirror1 = do
             stroke
 
         for_ ps (\p -> do
-            let p' = mirrorAlong mirror p
+            let p' = transform (mirrorAlong mirror) p
 
             mirroredC 1
             crossSketch p (Distance 5)
@@ -87,7 +87,7 @@ mirror2 = do
 
     setLineWidth 1
     let mirrorLineTest line = do
-            let mirrored = mirrorAlong mirror line
+            let mirrored = transform (mirrorAlong mirror) line
             originalC 1 >> arrowSketch line def >> stroke
             mirroredC 1 >> arrowSketch mirrored def >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg 20) (Distance 100))
@@ -98,7 +98,7 @@ mirror2 = do
     mirrorLineTest (angledLine (Vec2 120 110) (deg 180) (Distance 100))
 
     let mirrorPolygonTest poly = do
-            let mirrored = mirrorAlong mirror poly
+            let mirrored = transform (mirrorAlong mirror) poly
             originalC 1 >> polygonSketch poly >> strokePreserve >> originalC 0.1 >> fill
             mirroredC 1 >> polygonSketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])

@@ -57,7 +57,7 @@ testHaskellLogo :: TestTree
 testHaskellLogo = testCase "Haskell logo" test
   where
     cutResult
-      = let haskellLogo' = Geometry.scale 340 haskellLogo
+      = let haskellLogo' = Geometry.transform (Geometry.scale 340) haskellLogo
             gen = mkStdGen 6
             recurse polygon = minMaxAreaRatio (polygon : haskellLogo') >= 1/64
             accept polys = minMaxAreaRatio polys >= 1/3

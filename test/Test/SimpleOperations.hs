@@ -31,7 +31,7 @@ testVisual = testCase "Visual" $ renderAllFormats 320 400 "docs/geometry/simple_
 rotateLineTest :: Render ()
 rotateLineTest = do
     let initialLine = angledLine (Vec2 0 0) (rad 0) (Distance 75)
-        rotated = iterate (rotateAround (Vec2 25 0) (deg 20)) initialLine
+        rotated = iterate (Geometry.transform (rotateAround (Vec2 25 0) (deg 20))) initialLine
 
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do

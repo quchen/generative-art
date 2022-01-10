@@ -2,7 +2,7 @@ module Test.IntersectionLL (tests) where
 
 
 
-import Graphics.Rendering.Cairo as Cairo hiding (translate, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, translate, x, y)
 import Text.Printf
 
 import Draw
@@ -32,8 +32,8 @@ intersectionReal = renderAllFormats 580 200 "docs/geometry/intersection/real" $ 
         (Line (Vec2 10  10) (Vec2 220 190))
         (Line (Vec2 270 50) (Vec2  30 160))
     testReal2 = testDraw
-        (translate (Vec2 320 10) (Line (Vec2 0   0) (Vec2 120 120)))
-        (translate (Vec2 320 10) (Line (Vec2 120 0) (Vec2 0   120)))
+        (transform (translate (Vec2 320 10)) (Line (Vec2 0   0) (Vec2 120 120)))
+        (transform (translate (Vec2 320 10)) (Line (Vec2 120 0) (Vec2 0   120)))
 
 intersectionHalfVirtual :: IO ()
 intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/half_virtual" $ do
@@ -56,8 +56,8 @@ intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtu
         (angledLine (Vec2 50 0) (rad ( pi/6)) (Distance 100))
         (angledLine (Vec2 50 120) (rad (-pi/6)) (Distance 100))
     testVirtual2 = testDraw
-        (translate (Vec2 300 60 +. polar (rad (-pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
-        (translate (Vec2 300 60 +. polar (rad ( pi/6)) (Distance 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
+        (transform (translate (Vec2 300 60 +. polar (rad (-pi/6)) (Distance 20))) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
+        (transform (translate (Vec2 300 60 +. polar (rad ( pi/6)) (Distance 20))) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
 
 intersectionParallel :: IO ()
 intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/parallel" $ do

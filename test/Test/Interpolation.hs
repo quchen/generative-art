@@ -31,7 +31,7 @@ somePointsRender :: Render ()
 somePointsRender = paintBezierOpenPicture points smoothed
   where
     points =
-        Geometry.translate (Vec2 50 25) $ Geometry.scale 0.5 [ Vec2 100 500
+        Geometry.transform (Geometry.translate (Vec2 50 25) <> Geometry.scale 0.5) [ Vec2 100 500
         , Vec2 200 200
         , Vec2 500 500
         , Vec2 600 100
@@ -122,7 +122,7 @@ picassoSquirrelRender = do
     bezierTail2 = bezierSmoothen (last tail1 : tail2)
     lineFoot = Line (last tail2) (head foot) -- Foot is just a line
 
-    moveToCanvas = Geometry.translate (Vec2 (-30) 320) . mirrorY . Geometry.scale 1.5
+    moveToCanvas = Geometry.transform (Geometry.translate (Vec2 (-30) 320) <> mirrorYCoords <> Geometry.scale 1.5)
 
     face = moveToCanvas
         [ Vec2 50.77511154733325  152.3192840188383
@@ -174,7 +174,7 @@ simplifyPathTestRender = do
     let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
         graphBB = boundingBox graph
         fitToBox :: Transform geo => geo -> geo
-        fitToBox = Geometry.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio)
+        fitToBox = Geometry.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) FitAllIgnoreAspect)
 
     let plotPath points = cairoScope $ do
             setLineWidth 1
@@ -214,8 +214,7 @@ subdivideBezierCurveTest = testCase "Subdivide" (renderAllFormats 300 300 "docs/
 subdivideBezierCurve :: Render ()
 subdivideBezierCurve = do
     let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
-        -- fitToBox = transformBoundingBox (boundingBox graph) (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio
-        fitToBox bbContents box = Geometry.transform (transformBoundingBox bbContents box IgnoreAspectRatio)
+        fitToBox bbContents box = Geometry.transform (transformBoundingBox bbContents box FitAllIgnoreAspect)
         beziers = bezierSmoothen graph
 
     setLineWidth 1
