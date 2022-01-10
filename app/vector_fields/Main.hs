@@ -47,7 +47,7 @@ main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
 uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
 uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
   where
-    randomPoint = translate correction <$> liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
+    randomPoint = transform (translate correction) <$> liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
     randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
     correction = Vec2 (-0.05 * picWidth) 0
 
@@ -61,7 +61,7 @@ drawFieldLine thickness ps = cairoScope $ do
         Cairo.stroke
 
 scalarField :: Vec2 -> Double
-scalarField = noise2d . scaleXY 1 2
+scalarField = noise2d . transform (scale 1 2)
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
@@ -72,7 +72,7 @@ gradientField p = noiseScale *. grad scalarField p
     grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
 
 rotationField :: Vec2 -> Vec2
-rotationField = rotate (deg 90) . gradientField
+rotationField = transform (rotate (deg 90)) . gradientField
 
 compositeField :: Vec2 -> Vec2
 compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
