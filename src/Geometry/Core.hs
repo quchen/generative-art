@@ -318,11 +318,10 @@ mirrorYCoords = scale' 1 (-1)
 -- Make sure the first argument is smaller than the second when using the
 -- constructor directly! Or better yet, don’t use the constructor and create
 -- bounding boxes via the provided instances.
-data BoundingBox = BoundingBox !Vec2 !Vec2
-    deriving (Eq, Ord)
-
-instance Show BoundingBox where
-    show (BoundingBox vMin vMax) = "Min: " ++ show vMin ++ " max: " ++ show vMax
+data BoundingBox = BoundingBox
+    { _bbMin :: !Vec2 -- ^ Minimum coordinate (top left in Cairo coordinates)
+    , _bbMax :: !Vec2 -- ^ Maximum coordinate (bottom right in Cairo coordinates)
+    } deriving (Eq, Ord, Show)
 
 instance Semigroup BoundingBox where
     BoundingBox (Vec2 xMin1 yMin1) (Vec2 xMax1 yMax1) <> BoundingBox (Vec2 xMin2 yMin2) (Vec2 xMax2 yMax2)
