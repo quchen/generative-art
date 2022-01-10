@@ -105,7 +105,7 @@ executables:
 
 
 tests:
-    generative-art-test:
+    testsuite:
         main:        Spec.hs
         source-dirs: test
         ghc-options:
