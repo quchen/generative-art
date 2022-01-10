@@ -32,7 +32,7 @@ rescaleNormalizePolygons :: [Polygon] -> [Polygon]
 rescaleNormalizePolygons polygons
   = let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
         scaleFactor = 1 / (maxY - minY)
-        transformation = scaleT scaleFactor scaleFactor <> translateT (Vec2 (- minX) (- minY))
+        transformation = scale scaleFactor scaleFactor <> translate (Vec2 (- minX) (- minY))
     in transform transformation polygons
 
 haskellLogoRaw :: [Polygon]
@@ -66,5 +66,5 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
 -- and starting with the first corner on the positive x axis.
 regularPolygon :: Int -> Polygon
 regularPolygon n = Polygon
-    [ rotate (rad d) (Vec2 1 0)
+    [ transform (rotate (rad d)) (Vec2 1 0)
         | d <- take n [0, 2*pi/fromIntegral n ..] ]
