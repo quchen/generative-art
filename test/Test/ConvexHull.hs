@@ -41,7 +41,7 @@ visualTest = testCase "Visual" $ do
         setLineWidth 1
         for_ (polygonEdges hull) $ \edge@(Line start _) -> do
             mmaColor 1 1
-            arrowSketch edge def{ arrowheadRelPos = Distance 0.5
+            arrowSketch edge def{ arrowheadRelPos = 0.5
                                 , arrowheadSize   = Distance 5 }
             stroke
             mmaColor 3 1
