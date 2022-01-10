@@ -135,9 +135,9 @@ cutSquareTest = do
 
     renderAllFormats 170 90 "docs/geometry/cut/2_square" $ do
         polyCutDraw
-            (Geometry.translate (Vec2 10 10) polygon)
-            (Geometry.translate (Vec2 90 10) scissors)
-            (Geometry.translate (Vec2 90 10) cutResult)
+            (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 90 10)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 90 10)) cutResult)
 
         mmaColor 1 1
         setFontSize 12
@@ -155,9 +155,9 @@ complicatedPolygonTest = do
 
     renderAllFormats 400 190 "docs/geometry/cut/3_complicated" $ do
         polyCutDraw
-            (Geometry.translate (Vec2 90 100) polygon)
-            (Geometry.translate (Vec2 290 100) scissors)
-            (Geometry.translate (Vec2 290 100) cutResult)
+            (Geometry.transform (Geometry.translate (Vec2 90 100)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 290 100)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 290 100)) cutResult)
 
         mmaColor 1 1
         setFontSize 12
@@ -174,9 +174,9 @@ cutMissesPolygonTest = do
 
     renderAllFormats 130 90 "docs/geometry/cut/4_miss"
         (polyCutDraw
-            (Geometry.translate (Vec2 10 10) polygon)
-            (Geometry.translate (Vec2 70 10) scissors)
-            (Geometry.translate (Vec2 70 10) cutResult))
+            (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 70 10)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 70 10)) cutResult))
 
     assertEqual "Number of resulting polygons" 1 (length cutResult)
     liftIO (assertAreaConserved polygon cutResult)
@@ -197,9 +197,9 @@ cutThroughCornerTest = testCase "Cut through corner" $ do
 
     renderAllFormats 150 90 "docs/geometry/cut/5_through_corner"
         (polyCutDraw
-            (Geometry.translate (Vec2 10 20) polygon)
-            (Geometry.translate (Vec2 80 20) scissors)
-            (Geometry.translate (Vec2 80 20) cutResult))
+            (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
     assertEqual "Number of resulting polygons" 2 (length cutResult)
     liftIO (assertAreaConserved polygon cutResult)
@@ -218,8 +218,8 @@ pathologicalCornerCutsTests = do
         Cairo.translate 0 50
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Transform a => a -> a
-            placeOriginal = Geometry.translate (Vec2 70 0)
-            placeCut = Geometry.translate (Vec2 190 0)
+            placeOriginal = Geometry.transform (Geometry.translate (Vec2 70 0))
+            placeCut = Geometry.transform (Geometry.translate (Vec2 190 0))
         grouped paint $ do
             polyCutDraw
                 (placeOriginal polygon)
@@ -298,14 +298,14 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             drawCutEdgeGraph cutEdgeGraph
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ do
-            let polygon = Geometry.scale 50 (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
+            let polygon = Geometry.transform (Geometry.scale 50 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
             Cairo.translate 60 60
             drawCutEdgeGraph cutEdgeGraph
     ]
   where
-    moveRight (Distance d) line = Geometry.translate (d *. direction (perpendicularBisector line)) line
+    moveRight (Distance d) line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
     nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
     arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
 
