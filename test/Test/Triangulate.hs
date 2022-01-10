@@ -39,7 +39,7 @@ testSquare = testCase "Square" test
 testRegular9gon :: TestTree
 testRegular9gon = testCase "Regular 9-gon" test
   where
-    triangulation = triangulate (Geometry.scale 50 (regularPolygon 9))
+    triangulation = triangulate (Geometry.transform (Geometry.scale 50 50) (regularPolygon 9))
     test = renderAllFormats 120 120 "docs/triangulation/2_regular_polygon" $ do
         Cairo.translate 60 60
         paintTriangulation triangulation
@@ -53,7 +53,7 @@ testHaskellLogo = testCase "Haskell logo" test
         for_ triangulation (cairoScope . paintTriangulation)
 
     wonkyHaskellLogo :: [Polygon]
-    wonkyHaskellLogo = map wigglePoly (Geometry.scale 340 haskellLogo)
+    wonkyHaskellLogo = map wigglePoly (Geometry.transform (Geometry.scale 340 340) haskellLogo)
       where
         wigglePoly :: Polygon -> Polygon
         wigglePoly (Polygon corners) = Polygon (map wiggle corners)
@@ -63,7 +63,7 @@ testHaskellLogo = testCase "Haskell logo" test
                            (y1,y2) = decodeFloat y
                        in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
                 (angle, _gen') = randomR (0, 360) (mkStdGen seed)
-            in translate (polar (Angle angle) (Distance 10)) v
+            in Geometry.transform (translate (polar (Angle angle) (Distance 10))) v
 
 testSpiral :: TestTree
 testSpiral = testCase "Spiral" test
