@@ -23,6 +23,8 @@ drawSimpleVectorField :: Int -> Int -> Cairo.Render ()
 drawSimpleVectorField w h = do
     let scaleFactor = fromIntegral (max w h) / 1000
     Cairo.scale scaleFactor scaleFactor
+    cairoScope $ setColor white >> Cairo.paint
+
     Cairo.setLineWidth 1
     for_ [ Vec2 x y | x <- [0, 50 .. 1000], y <- [0, 50 .. 1000]] $ \point -> do
         let endPoint = point +. simpleVectorField point
@@ -43,6 +45,8 @@ drawFieldLines :: Int -> Int -> Cairo.Render ()
 drawFieldLines w h = do
     let scaleFactor = fromIntegral (max w h) / 1000
     Cairo.scale scaleFactor scaleFactor
+    cairoScope $ setColor white >> Cairo.paint
+
     Cairo.setLineWidth 2
     for_ [ Vec2 x y | x <- [0, 50 .. 1000], y <- [0, 50 .. 1000]] $ \point -> do
         let (p:ps) = [ x | (_time, x) <- fieldLine simpleVectorField point 5 ]
@@ -83,7 +87,7 @@ drawFieldLinesWithRandomness :: Int -> Int -> Cairo.Render ()
 drawFieldLinesWithRandomness w h = do
     let scaleFactor = fromIntegral (max w h) / 1000
     Cairo.scale scaleFactor scaleFactor
-    Cairo.setLineWidth 2
+    cairoScope $ setColor white >> Cairo.paint
 
     gen <- liftIO create
 
@@ -98,6 +102,7 @@ drawFieldLinesWithRandomness w h = do
         let ((_, p):ps) = fieldLine simpleVectorField point 5
         moveToVec p
         for_ ps $ \(time, p') -> do
+            Cairo.setLineCap Cairo.LineCapRound
             cairoScope $ do
                 lineToVec p'
                 Cairo.setLineWidth (time * thickness)
