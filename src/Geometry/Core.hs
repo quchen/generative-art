@@ -81,7 +81,7 @@ module Geometry.Core (
     , HasBoundingBox(..)
     , BoundingBox(..)
     , transformBoundingBox
-    , AspectRatioBehavior(..)
+    , ScalingBehavior(..)
 
     -- * Processes
     , reflection
@@ -373,9 +373,23 @@ instance HasBoundingBox Polygon where
 instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
-data AspectRatioBehavior
-    = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
-    | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+data ScalingBehavior
+    = FitAllMaintainAspect
+        -- ^ Maintain aspect ratio, possibly leaving some margin for one of the
+        -- dimensions
+
+    | FitAllIgnoreAspect
+        -- ^ Fit the target, possibly stretching the source unequally in x/y
+        -- directions
+
+    | FitWidthMaintainAspect
+        -- ^ Fit the entire width, with the height of the geometry potentially
+        -- exceeding the target box.
+
+    | FitHeightMaintainAspect
+        -- ^ Fit the entire height, with the width of the geometry potentially
+        -- exceeding the target box.
+
     deriving (Eq, Ord, Show)
 
 -- | Generate a transformation that transforms the bounding box of one object to
@@ -385,9 +399,9 @@ transformBoundingBox
     :: (HasBoundingBox source, HasBoundingBox target)
     => source              -- ^ e.g. drawing coordinate system
     -> target              -- ^ e.g. Cairo canvas
-    -> AspectRatioBehavior -- ^ Maintain or ignore aspect ratio
+    -> ScalingBehavior -- ^ Maintain or ignore aspect ratio
     -> Transformation
-transformBoundingBox source target aspectRatioBehavior
+transformBoundingBox source target scalingBehavior
   = let bbSource = boundingBox source
         bbTarget = boundingBox target
 
@@ -408,11 +422,13 @@ transformBoundingBox source target aspectRatioBehavior
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
 
-        scaleToMatchSize = case aspectRatioBehavior of
-            MaintainAspectRatio ->
+        scaleToMatchSize = case scalingBehavior of
+            FitAllMaintainAspect ->
                 let scaleFactor = min xScaleFactor yScaleFactor
                 in scaleAround targetCenter scaleFactor
-            IgnoreAspectRatio -> scaleAround' targetCenter xScaleFactor yScaleFactor
+            FitWidthMaintainAspect -> scaleAround targetCenter xScaleFactor
+            FitHeightMaintainAspect -> scaleAround targetCenter yScaleFactor
+            FitAllIgnoreAspect -> scaleAround' targetCenter xScaleFactor yScaleFactor
 
     in  scaleToMatchSize <> translateToMatchCenter
 

@@ -49,7 +49,7 @@ renderTwoBodyProblem w h = do
           = let trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram']
                                      <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
                 canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
-                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox MaintainAspectRatio
+                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox FitAllMaintainAspect
             in Geometry.transform scaleToCanvas
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
         sun = transformNicely (Vec2 0 0)
