@@ -361,8 +361,8 @@ instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
 data AspectRatioBehavior
-  = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
-  | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+    = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
+    | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
     deriving (Eq, Ord, Show)
 
 -- | Generate a transformation that transforms the bounding box of one object to
