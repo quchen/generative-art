@@ -232,13 +232,13 @@ instance (Transform a, Transform b) => Transform (a,b) where
     transform t (a,b) = (transform t a, transform t b)
 
 instance (Transform a, Transform b, Transform c) => Transform (a,b,c) where
-    transform t (a,b,c) = (transform t a, transform t b,c)
+    transform t (a,b,c) = (transform t a, transform t b, transform t c)
 
 instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
-    transform t (a,b,c,d) = (transform t a, transform t b,c,d)
+    transform t (a,b,c,d) = (transform t a, transform t b, transform t c, transform t d)
 
 instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
-    transform t (a,b,c,d,e) = (transform t a, transform t b,c,d,e)
+    transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
 translateT :: Vec2 -> Transformation
 translateT (Vec2 dx dy) = Transformation
