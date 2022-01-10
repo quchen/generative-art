@@ -84,7 +84,12 @@ withPNGSurface file w h action = do
     surfaceWriteToPNG surface file
     pure result
 
-hsva :: Double -> Double -> Double -> Double -> Render ()
+-- | Set the color to some HSVA value.
+hsva :: Double -- ^ Hue [0..360]
+    -> Double  -- ^ Saturation [0..1]
+    -> Double  -- ^ Value (~ brightness) [0..1]
+    -> Double  -- ^ Alpha [0..1]
+    -> Render ()
 hsva h s v a = setSourceRGBA channelRed channelGreen channelBlue a
     where RGB{..} = hsv h s v
 
@@ -110,8 +115,12 @@ mmaColor n alpha = setSourceRGBA r g b alpha
         14 -> (0.28026441037696703, 0.715, 0.4292089322474965)
         _other -> error "modulus in mmaColor is broken"
 
-moveToVec, lineToVec :: Vec2 -> Render ()
+-- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
+moveToVec :: Vec2 -> Render ()
 moveToVec (Vec2 x y) = moveTo x y
+
+-- | 'Vec2'-friendly version of Cairo’s 'lineTo'.
+lineToVec :: Vec2 -> Render ()
 lineToVec (Vec2 x y) = lineTo x y
 
 -- | Paint a Cairo curve, which is a Bezier curve where the initial point is
@@ -119,19 +128,20 @@ lineToVec (Vec2 x y) = lineTo x y
 curveToVec :: Vec2 -> Vec2 -> Vec2 -> Render ()
 curveToVec (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) = curveTo x1 y1 x2 y2 x3 y3
 
+-- | Convenience function to sketch a 'Line'.
 lineSketch :: Line -> Render ()
 lineSketch (Line start end) = do
     moveToVec start
     lineToVec end
 
--- | Paint a full, standalone Bezier segment. For connectnig multiple, use
+-- | Sketch a full, standalone Bezier segment. For connectnig multiple, use
 -- 'bezierCurveSketch'.
 bezierSegmentSketch :: Bezier Vec2 -> Render ()
 bezierSegmentSketch (Bezier start p1 p2 end) = do
     moveToVec start
     curveToVec p1 p2 end
 
--- | Paint a curve consisting out of multiple Bezier segments.
+-- | Sketch a curve consisting out of multiple Bezier segments.
 bezierCurveSketch :: [Bezier Vec2] -> Render ()
 bezierCurveSketch [] = pure ()
 bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
@@ -139,17 +149,17 @@ bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
     for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
 
 data ArrowSpec = ArrowSpec
-    { arrowheadRelPos    :: Distance
-    , arrowheadSize      :: Distance
-    , arrowDrawBody      :: Bool
-    , arrowheadAngle     :: Angle
-    , arrowheadDrawRight :: Bool
-    , arrowheadDrawLeft  :: Bool
+    { arrowheadRelPos    :: Double   -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center.
+    , arrowheadSize      :: Distance -- ^ Length of each of the sides of the arrow head.
+    , arrowDrawBody      :: Bool     -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')?
+    , arrowheadAngle     :: Angle    -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt.
+    , arrowheadDrawRight :: Bool     -- ^ Draw the left part of the arrow head?
+    , arrowheadDrawLeft  :: Bool     -- ^ Draw the right part of the arrow head?
     }
 
 instance Default ArrowSpec where
     def = ArrowSpec
-        { arrowheadRelPos    = Distance 1
+        { arrowheadRelPos    = 1
         , arrowheadSize      = Distance 10
         , arrowDrawBody      = True
         , arrowheadAngle     = Angle 0.5
@@ -157,6 +167,7 @@ instance Default ArrowSpec where
         , arrowheadDrawLeft  = True
         }
 
+-- | Sketch an arrow shape based on the 'ArrowSpec'.
 arrowSketch :: Line -> ArrowSpec -> Render ()
 arrowSketch line ArrowSpec{..} = do
     when arrowDrawBody (lineSketch line)
@@ -164,9 +175,8 @@ arrowSketch line ArrowSpec{..} = do
     let Line start end = line
         Angle rawLineAngle = angleOfLine line
         Angle rawArrowheadAngle = arrowheadAngle
-        Distance rawRelPos = arrowheadRelPos
 
-        arrowTip = start +. (rawRelPos *. (end -. start))
+        arrowTip = start +. (arrowheadRelPos *. (end -. start))
 
     let arrowheadHalf (+-) = angledLine arrowTip (Angle (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
         Line _ arrowLeftEnd  = arrowheadHalf (+)
@@ -184,10 +194,21 @@ arrowSketch line ArrowSpec{..} = do
             lineToVec arrowTip
         (False, False) -> pure ()
 
-circleSketch :: Vec2 -> Distance -> Render ()
+-- | Convenience function to sketch a circle.
+circleSketch
+    :: Vec2     -- ^ Center
+    -> Distance -- ^ Radius
+    -> Render ()
 circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)
 
-crossSketch :: Vec2 -> Distance -> Render ()
+-- | Sketch a cross like ×. Sometimes useful to decorate a line with for e.g.
+-- strikethrough effects, or to contrast the o in tic tac toe.
+--
+-- When drawn with the same radius, it combines to ⨂ with a 'circleSketch'.
+crossSketch
+    :: Vec2     -- ^ Center
+    -> Distance -- ^ Radius
+    -> Render ()
 crossSketch center (Distance r) = do
     let lowerRight = rotateAround center (deg 45) (center +. Vec2 r 0)
         line1 = angledLine lowerRight (deg (45+180)) (Distance (2*r))
@@ -195,20 +216,29 @@ crossSketch center (Distance r) = do
     lineSketch line1
     lineSketch line2
 
-arcSketch :: Vec2 -> Distance -> Angle -> Angle -> Render ()
+-- | Sketch part of a circle.
+arcSketch
+    :: Vec2 -- ^ Center
+    -> Distance -- ^ Radius
+    -> Angle -- ^ Starting angle (absolute)
+    -> Angle -- ^ Ending angle (absolute)
+    -> Render ()
 arcSketch (Vec2 x y) (Distance r) (Angle angleStart) (Angle angleEnd)
   = arc x y r angleStart angleEnd
 
+-- | Sketch the line defined by a sequence of points.
 pathSketch :: [Vec2] -> Render ()
 pathSketch [] = pure ()
 pathSketch (Vec2 x y : vecs) = do
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')
 
+-- | Sketch a 'Polygon'.
 polygonSketch :: Polygon -> Render ()
 polygonSketch (Polygon []) = pure ()
 polygonSketch (Polygon xs) = pathSketch xs >> closePath
 
+-- | Sketch a 'BoundingBox', which is sometimes useful for debugging.
 boundingBoxSketch :: BoundingBox -> Render ()
 boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
     let w = xhi - xlo
@@ -219,7 +249,8 @@ boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
     moveTo xhi ylo
     lineTo xlo yhi
 
--- | Draw a caresian coordinate system in range (x,x') (y,y')
+-- | Draw a caresian coordinate system in range (x,x') (y,y'). Very useful for
+-- prototyping.
 cartesianCoordinateSystem :: Render ()
 cartesianCoordinateSystem = cairoScope $ do
     let minMax :: (Int, Int)
@@ -258,6 +289,7 @@ cartesianCoordinateSystem = cairoScope $ do
               | x <- [minX, minX+100 .. maxX]
               , y <- [minY, minY+100 .. maxY] ]
 
+-- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 radialCoordinateSystem :: Vec2 -> Int -> Render ()
 radialCoordinateSystem center maxR = cairoScope $ do
     let distance = Distance . fromIntegral
@@ -276,8 +308,8 @@ radialCoordinateSystem center maxR = cairoScope $ do
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
 
--- | Temporarily draw using a different operator. Useful e.g. to delete somthing
--- from the current drawing and then going on as before.
+-- | Temporarily draw using a different composition operator, such as
+-- 'OperatorClear' to delete part of an image.
 withOperator :: Operator -> Render a -> Render a
 withOperator op render = do
     formerOp <- getOperator
@@ -299,13 +331,13 @@ withOperator op render = do
 --
 -- @
 -- do
---     setLineWidth 1
---     cairoScope $ do
---         setLineWidth 2
---         moveTo 0 0 >> lineTo 100 0  -- drawn with line width 1
---         stroke
---     moveTo 0 10 >> lineTo 100 10    -- drawn with line width 1
---     stroke
+--     'setLineWidth' 1
+--     'cairoScope' $ do
+--         'setLineWidth' 2
+--         'moveTo' 0 0 >> 'lineTo' 100 0  -- drawn with line width 1
+--         'stroke'
+--     'moveTo' 0 10 >> 'lineTo' 100 10    -- drawn with line width 1
+--     'stroke'
 -- @
 cairoScope :: Render a -> Render a
 cairoScope render = save *> render <* restore
@@ -313,15 +345,44 @@ cairoScope render = save *> render <* restore
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
 -- 'popGroupToSource'.
 --
--- The first parameter can be used to specify an action to be run after
--- grouping, such as 'paintWithAlpha'.
+-- This is commonly used to avoid a less transparent area when overlapping two
+-- transparent areas.
+--
+-- The naive way has the intersection of the two circles darker,
+--
+-- @
+-- do
+--     'setSourceRGBA' 0 0 0 0.5
+--     'circleSketch' ('Vec2' 0 0) ('Distance' 10)
+--     'fill'
+--     'circleSketch' ('Vec2' 7 0) ('Distance' 10)
+--     'fill'
+-- @
+--
+-- On the other hand this will have the combination of the entire combined shape
+-- drawn with 0.5 alpha:
+--
+-- @
+-- 'grouped' ('paintWithAlpha' 0.5)
+--     'setSourceRGBA' 0 0 0 1
+--     'circleSketch' ('Vec2' 0 0) ('Distance' 10)
+--     'fill'
+--     'circleSketch' ('Vec2' 7 0) ('Distance' 10)
+--     'fill'
+-- @
 grouped :: Render after -> Render a -> Render a
 grouped afterwards render = pushGroup *> render <* popGroupToSource <* afterwards
 
 data VAlign = VTop | VCenter | VBottom
 data HAlign = HLeft | HCenter | HRight
 
-showTextAligned :: HAlign -> VAlign -> String -> Render ()
+-- | Like Cairo’s 'showText', but with alignment parameters.
+showTextAligned
+    :: CairoString string
+    => HAlign -- ^ Horizontal alignment
+    -> VAlign -- ^ Vertical alignment
+    -> string -- ^ Text
+    -> Render ()
 showTextAligned hAlign vAlign str = do
     (w,h) <- do ex <- textExtents str
                 pure (textExtentsWidth ex, textExtentsHeight ex)

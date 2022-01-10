@@ -11,7 +11,7 @@ import Geometry.Core
 import Util
 
 
-
+-- | Split a polygon into a number of triangles.
 triangulate :: Polygon -> [Polygon]
 triangulate polygon = case clipEar polygon of
     (ear, Nothing) -> [ear]

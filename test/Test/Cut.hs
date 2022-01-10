@@ -117,7 +117,7 @@ polyCutDraw initialPolygon scissors cutResults = do
         mmaColor i 1
         for_ (polygonEdges polygon) $ \edge -> do
             arrowSketch edge def
-                { arrowheadRelPos   = Distance 0.45
+                { arrowheadRelPos   = 0.45
                 , arrowheadSize     = Distance 6
                 , arrowheadDrawLeft = False
                 }
@@ -307,7 +307,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
   where
     moveRight (Distance d) line = Geometry.translate (d *. direction (perpendicularBisector line)) line
     nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
-    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = Distance 0.5, arrowheadDrawLeft = False}
+    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
 
     drawCutEdgeGraph ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons ceg

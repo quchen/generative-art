@@ -305,6 +305,10 @@ mirrorAlong line = transform (mirrorAlongT line)
 -- constructor directly! Or better yet, don’t use the constructor and create
 -- bounding boxes via the provided instances.
 data BoundingBox = BoundingBox !Vec2 !Vec2
+    deriving (Eq, Ord)
+
+instance Show BoundingBox where
+    show (BoundingBox vMin vMax) = "Min: " ++ show vMin ++ " max: " ++ show vMax
 
 instance Semigroup BoundingBox where
     BoundingBox (Vec2 xMin1 yMin1) (Vec2 xMax1 yMax1) <> BoundingBox (Vec2 xMin2 yMin2) (Vec2 xMax2 yMax2)
@@ -357,8 +361,8 @@ instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
 data AspectRatioBehavior
-  = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
-  | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
+    = MaintainAspectRatio -- ^ Maintain aspect ratio, possibly leaving some margin for one of the dimensions
+    | IgnoreAspectRatio -- ^ Fit the target, possibly stretching the source unequally in x/y directions
     deriving (Eq, Ord, Show)
 
 -- | Generate a transformation that transforms the bounding box of one object to
