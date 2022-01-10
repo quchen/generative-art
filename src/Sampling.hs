@@ -4,8 +4,8 @@ module Sampling (
     , poissonDisc
 ) where
 
-import Data.Map.Strict as M
-import Data.Set as S
+import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import System.Random.MWC (GenIO, UniformRange (uniformRM))
 
 import Geometry
@@ -14,6 +14,7 @@ import Data.Traversable (for)
 import Data.Maybe (maybeToList)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Debug.Trace (traceShow)
 
 
 data PoissonDiscProperties = PoissonDisc
@@ -31,8 +32,8 @@ poissonDisc properties = result <$> execStateT poissonDiscInternal initialState
 
 data PoissonDiscState = State
     { properties :: PoissonDiscProperties
-    , grid :: Map (Int, Int) Vec2
-    , activeSamples :: Set Vec2
+    , grid :: M.Map (Int, Int) Vec2
+    , activeSamples :: S.Set Vec2
     , result :: [Vec2]
     }
 
@@ -53,18 +54,18 @@ nextSample = do
         randomSampleIndex <- gets (gen . properties) >>= uniformRM (0, numActiveSamples - 1)
         randomSample <- gets (S.elemAt randomSampleIndex . activeSamples)
         r <- gets (radius . properties)
-        attempts <- gets (k . properties)
 
-        let loop 0 = pure Nothing
-            loop n = do
-                candidate <- nextCandidate randomSample
+        candidates <- nextCandidates randomSample
+
+        let loop [] = pure Nothing
+            loop (candidate:cs) = do
                 neighbours <- neighbouringSamples candidate
                 let distance p q = norm (q -. p)
                 if any (\p -> distance candidate p <= Distance r) neighbours
-                    then loop (n-1)
+                    then loop cs
                     else pure (Just candidate)
 
-        newSample <- loop attempts
+        newSample <- loop candidates
 
         case newSample of
             Nothing -> retireSample randomSample
@@ -72,21 +73,29 @@ nextSample = do
 
         nextSample
 
-nextCandidate :: Vec2 -> StateT PoissonDiscState IO Vec2
-nextCandidate v = do
+-- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
+nextCandidates :: Vec2 -> StateT PoissonDiscState IO [Vec2]
+nextCandidates v = do
     PoissonDisc{..} <- gets properties
-    rCoord <- liftIO $ uniformRM (radius, 2 * radius) gen
-    phiCoord <- liftIO $ uniformRM (0, 2 * pi) gen
-    let candidate@(Vec2 x y) = v +. polar (rad phiCoord) (Distance rCoord)
-    if x >= 0 && x <= fromIntegral width && y >= 0 && y <= fromIntegral height
-        then pure candidate
-        else nextCandidate v
+    phi0 <- liftIO $ rad <$> uniformRM (0, 2*pi) gen
+    let deltaPhi = rad (2*pi / fromIntegral k)
+        candidates = filter (isWithinBounds width height)
+            [ v +. polar (phi0 +. i *. deltaPhi) r
+            | let r = Distance (radius + 0.000001)
+            , i <- [1..fromIntegral k] ]
+    pure candidates
+
+  where
+    isWithinBounds w h (Vec2 x y) = x >= 0 && x <= fromIntegral w && y >= 0 && y <= fromIntegral h
 
 
 addSample :: Vec2 -> StateT PoissonDiscState IO ()
 addSample sample = do
     cell <- gridCell sample
-    modify (\s -> s { grid = M.insert cell sample (grid s)})
+    --modify (\s -> s { grid = M.insert cell sample (grid s)})
+    modify (\s -> s { grid = M.alter (\x -> case x of
+        Just _ -> traceShow (sample, grid s) (Just sample)
+        Nothing -> Just sample) cell (grid s)})
     modify (\s -> s { activeSamples = S.insert sample (activeSamples s) })
 
 retireSample :: Vec2 -> StateT PoissonDiscState IO ()
@@ -110,4 +119,5 @@ neighbouringSamples v = do
 gridCell :: Vec2 -> StateT PoissonDiscState IO (Int, Int)
 gridCell (Vec2 x y) = do
     r <- gets (radius . properties)
-    pure (floor (x/r), floor (y/r))
+    let gridSize = r / sqrt 2
+    pure (floor (x/gridSize), floor (y/gridSize))
