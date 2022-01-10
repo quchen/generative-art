@@ -28,7 +28,7 @@ angleSketch point angle1 angle2 = do
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
 renderPng picWidth picHeight filename drawing = withPNGSurface filename picWidth picHeight $ \surface ->
     renderWith surface $ do
-        restoreStateAfter $ do
+        cairoScope $ do
             rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
             hsva 0 0 0 0
             setLineWidth 0

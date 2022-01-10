@@ -54,7 +54,7 @@ renderTwoBodyProblem w h = do
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
         sun = transformNicely (Vec2 0 0)
 
-    let paintSun = restoreStateAfter $ do
+    let paintSun = cairoScope $ do
             newPath
             circleSketch sun (Distance 16)
             setLineWidth 2
@@ -63,12 +63,12 @@ renderTwoBodyProblem w h = do
             setSourceRGB 0 0 0
             stroke
 
-        paintTrajectory = restoreStateAfter $ do
+        paintTrajectory = cairoScope $ do
             setLineWidth 1.5
             for_ planetTrajectory $ \(_t, Vec2 x y) -> lineTo x y
             stroke
 
-        paintPlanet = restoreStateAfter $ do
+        paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
             circleSketch planet (Distance 8)
             mmaColor 3 1
@@ -137,7 +137,7 @@ renderDoublePendulum _w _h = do
         transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
         bezierSmoothTrajectory = bezierSmoothen [x | (_, x) <- transformedTrajectory]
 
-    restoreStateAfter $ do
+    cairoScope $ do
         let (_t0, start) = head transformedTrajectory
         moveToVec start
         setLineWidth 1

@@ -214,7 +214,7 @@ pathologicalCornerCutsTests = do
         assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon)) ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
-    specialCaseTest name polygon = restoreStateAfter $ do
+    specialCaseTest name polygon = cairoScope $ do
         Cairo.translate 0 50
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Transform a => a -> a
@@ -331,7 +331,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
                     stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             mmaColor i 1
-            restoreStateAfter $ do
+            cairoScope $ do
                 polygonSketch polygon
                 setDash [2,2] 0
                 strokePreserve

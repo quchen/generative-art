@@ -47,7 +47,7 @@ paintBezierOpenPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
 paintBezierOpenPicture points smoothed = do
     setLineWidth 1
 
-    let circle r = restoreStateAfter $ do
+    let circle r = cairoScope $ do
             (x,y) <- getCurrentPoint
             newPath
             circleSketch (Vec2 x y) (Distance r)
@@ -87,7 +87,7 @@ picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 320 270 "docs/in
 picassoSquirrelRender :: Render ()
 picassoSquirrelRender = do
     let beziers = [bezierFace, bezierEar, bezierBack, bezierTail1, bezierTail2]
-    restoreStateAfter $ do -- Paint squirrel outline
+    cairoScope $ do -- Paint squirrel outline
         moveToVec (head face)
         setSourceRGB 0 0 0
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> do
@@ -96,18 +96,18 @@ picassoSquirrelRender = do
         lineToVec end
         setLineWidth 3
         stroke
-    restoreStateAfter $ do -- Paint visualization points
+    cairoScope $ do -- Paint visualization points
         setLineWidth 1.5
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
-            restoreStateAfter . grouped (paintWithAlpha 0.7) $ do
+            cairoScope . grouped (paintWithAlpha 0.7) $ do
                     mmaColor 3 1
                     circleSketch c1 (Distance 2) >> fill
                     moveToVec start >> lineToVec c1 >> stroke
-            restoreStateAfter . grouped (paintWithAlpha 0.7) $ do
+            cairoScope . grouped (paintWithAlpha 0.7) $ do
                     mmaColor 1 1
                     circleSketch c2 (Distance 2) >> fill
                     moveToVec c2 >> lineToVec end >> stroke
-    restoreStateAfter $ do
+    cairoScope $ do
         setSourceRGB 0 0 0
         for_ (concat [face, ear, back, tail1, tail2, foot]) $ \p -> do
             circleSketch p (Distance 2.5) >> fill
@@ -176,7 +176,7 @@ simplifyPathTestRender = do
         fitToBox :: Transform geo => geo -> geo
         fitToBox = Geometry.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) IgnoreAspectRatio)
 
-    let plotPath points = restoreStateAfter $ do
+    let plotPath points = cairoScope $ do
             setLineWidth 1
             newPath
             pathSketch points
@@ -184,22 +184,22 @@ simplifyPathTestRender = do
         plotPoints points = for_ points $ \p -> do
             circleSketch p (Distance 1)
             fillPreserve
-            restoreStateAfter $ do
+            cairoScope $ do
                 setSourceRGB 0 0 0
                 setLineWidth 0.5
                 stroke
-        plotBezier segments = restoreStateAfter $ do
+        plotBezier segments = cairoScope $ do
             setLineWidth 1
             bezierCurveSketch segments
             stroke
         epsilons = [ Distance (2**(-e)) | e <- [10,9..1]]
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 0 1
         plotPath (fitToBox graph)
         plotPoints (fitToBox graph)
 
-    restoreStateAfter $ do
+    cairoScope $ do
         for_ epsilons $ \epsilon -> do
             Cairo.translate 0 20
             let simplified = simplifyPath epsilon graph
@@ -220,7 +220,7 @@ subdivideBezierCurve = do
 
     setLineWidth 1
 
-    restoreStateAfter $ do
+    cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
         mmaColor 0 1
         bezierCurveSketch (fit beziers)
@@ -230,22 +230,22 @@ subdivideBezierCurve = do
 
     let subpoints = beziers >>= bezierSubdivide 10
     let simplified = simplifyPath (Distance 0.05) subpoints
-    restoreStateAfter $ do
+    cairoScope $ do
         let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
-        restoreStateAfter $ for_ (fit subpoints) $ \p -> do
+        cairoScope $ for_ (fit subpoints) $ \p -> do
             mmaColor 1 0.1
             circleSketch p (Distance 2)
             fill
 
-        restoreStateAfter $ for_ (fit simplified) $ \p -> do
+        cairoScope $ for_ (fit simplified) $ \p -> do
             newPath
             circleSketch p (Distance 2)
             setSourceRGB 0 0 0
             stroke
 
     let interpolated = bezierSmoothen simplified
-    restoreStateAfter $ do
+    cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
         mmaColor 3 1
         bezierCurveSketch (fit interpolated)

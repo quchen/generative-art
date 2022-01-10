@@ -53,7 +53,7 @@ mirror1 = do
     testDraw mirror ps = do
         setLineWidth 1
 
-        restoreStateAfter $ do
+        cairoScope $ do
             setMirrorStyle
             lineSketch mirror
             stroke
@@ -76,7 +76,7 @@ mirror2 :: Render ()
 mirror2 = do
     let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
-    restoreStateAfter $ do
+    cairoScope $ do
         setMirrorStyle
         lineSketch mirror
         stroke

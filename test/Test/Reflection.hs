@@ -24,13 +24,13 @@ testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
 
     setLineWidth 1
 
-    restoreStateAfter $ do
+    cairoScope $ do
         setLineWidth 2
         hsva 0 0 0 0.5
         lineSketch mirror
         stroke
 
-    restoreStateAfter $ do
+    cairoScope $ do
         let rayOrigin = Vec2 180 250
         hsva 0 1 0.7 1
         circleSketch rayOrigin (Distance 5)
@@ -44,7 +44,7 @@ testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
             lineSketch ray
             lineSketch ray'
             stroke )
-    restoreStateAfter $ do
+    cairoScope $ do
         let rayOrigin = Vec2 350 30
         hsva 180 1 0.7 1
         circleSketch rayOrigin (Distance 5)

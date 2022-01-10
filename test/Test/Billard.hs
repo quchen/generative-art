@@ -67,18 +67,18 @@ billard table startPoint startAngle numReflections = do
 
     setLineWidth 1
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 0 1
         setDash [2,4] 0
         for_ table (\edge -> lineSketch edge >> stroke)
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 0 1
         for_ billardPoints (\point -> do
             circleSketch point (Distance 3)
             stroke )
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 1 1
         let billardArrows = zipWith Line billardPoints (tail billardPoints)
         for_ billardArrows (\arr -> do

@@ -80,18 +80,18 @@ testDraw :: Line -> Line -> Render ()
 testDraw line1@(Line start _) line2 = do
     setLineWidth 1
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 0 1
         arrowSketch line1 def{arrowheadSize = Distance 8}
         stroke
 
-    restoreStateAfter $ do
+    cairoScope $ do
         mmaColor 1 1
         arrowSketch line2 def{arrowheadSize = Distance 8}
         stroke
 
     case intersectionLL line1 line2 of
-        Nothing -> restoreStateAfter $ do
+        Nothing -> cairoScope $ do
             let Vec2 x y = start +. Vec2 15 15
             hsva 0 0 0 1
             moveTo x y
@@ -100,17 +100,17 @@ testDraw line1@(Line start _) line2 = do
 
         Just (point, ty) -> do
 
-            restoreStateAfter $ do
+            cairoScope $ do
                 mmaColor 3 1
                 circleSketch point (Distance 3)
                 fill
 
-            restoreStateAfter $ do
+            cairoScope $ do
                 mmaColor 3 1
                 angleSketch point (angleOfLine line1) (angleOfLine line2)
                 stroke
 
-            restoreStateAfter $ do
+            cairoScope $ do
                 let Vec2 x y = point +. Vec2 15 15
                     angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
                     tyStr = case ty of

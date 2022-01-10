@@ -34,7 +34,7 @@ module Draw (
 
     -- * Temporary Cairo modifications
     , withOperator
-    , restoreStateAfter
+    , cairoScope
     , grouped
 
     -- * Text
@@ -221,7 +221,7 @@ boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
 
 -- | Draw a caresian coordinate system in range (x,x') (y,y')
 cartesianCoordinateSystem :: Render ()
-cartesianCoordinateSystem = restoreStateAfter $ do
+cartesianCoordinateSystem = cairoScope $ do
     let minMax :: (Int, Int)
         minMax = (-1000, 1000)
         (minX, maxX) = minMax
@@ -229,7 +229,7 @@ cartesianCoordinateSystem = restoreStateAfter $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
 
-    restoreStateAfter $ do
+    cairoScope $ do
         hsva 0 0 0 0.5
         sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
                   | x <- [minX, minX+100 .. maxX] ]
@@ -237,7 +237,7 @@ cartesianCoordinateSystem = restoreStateAfter $ do
                   | y <- [minY, minY+100 .. maxY] ]
         stroke
 
-    restoreStateAfter $ do
+    cairoScope $ do
         hsva 0 0 0 0.2
         setDash [4,6] 2
         sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
@@ -259,7 +259,7 @@ cartesianCoordinateSystem = restoreStateAfter $ do
               , y <- [minY, minY+100 .. maxY] ]
 
 radialCoordinateSystem :: Vec2 -> Int -> Render ()
-radialCoordinateSystem center maxR = restoreStateAfter $ do
+radialCoordinateSystem center maxR = cairoScope $ do
     let distance = Distance . fromIntegral
     setLineWidth 1
     hsva 0 0 0 1
@@ -293,10 +293,26 @@ withOperator op render = do
 -- This function is often used to introduce a kind of scope for Cairo drawing
 -- subsections, so the changes made there don’t leak into subseeuqnt parts of
 -- the drawing.
+
+-- Handles the bookkeeping with 'save' and 'restore' internally. Cairo’s API is
+-- unfortunately very stateful, consisting of many things such as color, line
+-- width, dashing, or transformation matrix. To remedy this, it allows saving and
+-- restoring the current state, allowing scoped settings.
 --
--- Handles the bookkeeping with 'save' and 'restore' internally.
-restoreStateAfter :: Render a -> Render a
-restoreStateAfter render = save *> render <* restore
+-- For example, the following sets the line width to 2 temporarily; after the
+-- inner block, it is reset to 1.
+--
+-- @
+-- do
+--     setLineWidth 1
+--     cairoScope $ do
+--         setLineWidth 2
+--         moveTo 0 0 >> lineTo 100 0
+--         stroke
+--     moveTo 0 10 >> lineTo 100 10
+--     stroke
+cairoScope :: Render a -> Render a
+cairoScope render = save *> render <* restore
 
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
 -- 'popGroupToSource'.

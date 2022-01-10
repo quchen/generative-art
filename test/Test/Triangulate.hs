@@ -50,7 +50,7 @@ testHaskellLogo = testCase "Haskell logo" test
     triangulation = map triangulate wonkyHaskellLogo
     test = renderAllFormats 510 360 "docs/triangulation/3_haskell_logo" $ do
         Cairo.translate 10 10
-        for_ triangulation (restoreStateAfter . paintTriangulation)
+        for_ triangulation (cairoScope . paintTriangulation)
 
     wonkyHaskellLogo :: [Polygon]
     wonkyHaskellLogo = map wigglePoly (Geometry.scale 340 haskellLogo)
@@ -82,15 +82,15 @@ paintTriangulation :: [Polygon] -> Render ()
 paintTriangulation triangulation = do
     let setColors = map (\c -> mmaColor c) [0..]
     for_ (zip3 [1::Int ..] setColors triangulation) $ \(i, setColor, polygon) -> do
-        restoreStateAfter $ do
+        cairoScope $ do
             polygonSketch polygon
             setColor 0.5
             fill
-        restoreStateAfter $ do
+        cairoScope $ do
             moveToVec (polygonAverage polygon)
             hsva 0 0 0 1
             showTextAligned HCenter VCenter (show i)
-    restoreStateAfter $ do
+    cairoScope $ do
         setLineWidth 0.5
         hsva 0 0 0 1
         let allEdges = polygonEdges =<< triangulation

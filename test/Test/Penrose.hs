@@ -91,7 +91,7 @@ drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile
 
 drawTile :: Tile -> Render ()
-drawTile Tile{..} = restoreStateAfter $ do
+drawTile Tile{..} = cairoScope $ do
     let color = case tileType of
             Thin -> 0
             Thick -> 1
@@ -106,7 +106,7 @@ drawTile Tile{..} = restoreStateAfter $ do
     fill
 
 drawConnectors :: Tile -> Render ()
-drawConnectors tile@Tile{..} = restoreStateAfter $ do
+drawConnectors tile@Tile{..} = cairoScope $ do
     let Distance unitLength = norm (tileP0 -. tileP1)
         r1 = Distance (0.3 * unitLength)
         r2 = Distance (0.2 * unitLength)
@@ -126,7 +126,7 @@ drawConnectors tile@Tile{..} = restoreStateAfter $ do
             stroke
 
 drawInscribedPentagons :: Tile -> Render ()
-drawInscribedPentagons tile = restoreStateAfter $ do
+drawInscribedPentagons tile = cairoScope $ do
     drawTile tile
     for_ (inscribedPentagons tile) $ \polygon -> do
         polygonSketchOpen polygon

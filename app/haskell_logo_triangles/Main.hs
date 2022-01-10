@@ -61,7 +61,7 @@ drawing = do
     Cairo.translate 10 10
     setLineCap LineCapRound
     setLineJoin LineJoinRound
-    restoreStateAfter $ for_ shattered $ \polygon -> do
+    cairoScope $ for_ shattered $ \polygon -> do
         let gen = let Area a = polygonArea polygon
                       (x,y) = decodeFloat a
                   in mkStdGen (fromIntegral x + y)
@@ -73,7 +73,7 @@ drawing = do
         polygonSketch polygon
         fillPreserve
         stroke
-    restoreStateAfter $ for_ haskellLogo' $ \polygon -> do
+    cairoScope $ for_ haskellLogo' $ \polygon -> do
         polygonSketch polygon
         setLineJoin LineJoinRound
         hsva 0 0 0 1

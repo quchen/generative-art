@@ -28,7 +28,7 @@ seed = 519496
 main :: IO ()
 main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
     Cairo.scale scaleFactor scaleFactor
-    restoreStateAfter $ do
+    cairoScope $ do
         Cairo.setSourceRGB 1 1 1
         Cairo.rectangle 0 0 picWidth picHeight
         Cairo.fill
@@ -37,7 +37,7 @@ main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
     startPoints <- uniformlyDistributedPoints gen 10000
     thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
 
-    for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> restoreStateAfter $
+    for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> cairoScope $
         drawFieldLine thickness (take 20 (fieldLine compositeField p))
   where
     scaleFactor = 1
@@ -53,7 +53,7 @@ uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
 
 drawFieldLine :: Double -> [Vec2] -> Render ()
 drawFieldLine _ [] = pure ()
-drawFieldLine thickness ps = restoreStateAfter $ do
+drawFieldLine thickness ps = cairoScope $ do
     let ps' = bezierSmoothen ps
     for_ (zip [1..] ps') $ \(i, p) -> do
         Cairo.setLineWidth (thickness * (i/10))

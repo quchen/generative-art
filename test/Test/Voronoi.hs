@@ -93,17 +93,17 @@ testVoronoi = testCase "Full Voronoi pattern" test
         drawVoronoi (faces voronoiPattern)
 
 drawVoronoi :: [VoronoiFace MmaColor] -> Render ()
-drawVoronoi voronoiFaces = restoreStateAfter $ do
+drawVoronoi voronoiFaces = cairoScope $ do
     setLineWidth 1
     for_ voronoiFaces $ \(VF point polygon i) -> do
-        restoreStateAfter $ do
+        cairoScope $ do
             newPath
             polygonSketch polygon
             mmaColor i 1
             strokePreserve
             mmaColor i 0.1
             fill
-        restoreStateAfter $ do
+        cairoScope $ do
             moveToVec (polygonAverage polygon)
             hsva 0 0 0 1
             showTextAligned HCenter VCenter (show i)
@@ -113,7 +113,7 @@ drawCenter :: VoronoiFace MmaColor -> Render ()
 drawCenter vf = drawPoint (center vf) (props vf)
 
 drawPoint :: Vec2 -> MmaColor -> Render ()
-drawPoint point color = restoreStateAfter $ do
+drawPoint point color = cairoScope $ do
     newPath
     mmaColor color 1
     circleSketch point (Distance 3)

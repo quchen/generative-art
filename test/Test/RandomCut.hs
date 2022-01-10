@@ -43,11 +43,11 @@ testSquare = testCase "Square" test
         setLineWidth 1
         Cairo.translate 10 10
         let setColors = map mmaColor [0..]
-        restoreStateAfter $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
+        cairoScope $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
             polygonSketch polygon
             setColor 0.5
             fill
-        restoreStateAfter $ do
+        cairoScope $ do
             for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
             hsva 0 0 0 1
             setLineWidth 0.5
@@ -70,11 +70,11 @@ testHaskellLogo = testCase "Haskell logo" test
                 (repeat 0)
                 (randomRs (0.6, 0.9) (mkStdGen 13))
                 (repeat 1)
-        restoreStateAfter $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
+        cairoScope $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
             polygonSketch polygon
             setColor
             fill
-        restoreStateAfter $ do
+        cairoScope $ do
             for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
             hsva 0 0 0 1
             setLineWidth 0.5
