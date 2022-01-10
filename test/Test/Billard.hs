@@ -36,12 +36,12 @@ rectangularTable = do
 holeInTable :: Render ()
 holeInTable = do
     let table = Polygon [Vec2 10 10, Vec2 310 10, Vec2 310 230, Vec2 10 230]
-        hole = Geometry.translate (Vec2 80 80) (rotateAround (Vec2 0 0) (deg 31) (Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]))
+        hole = Geometry.transform (Geometry.translate (Vec2 80 80) <> rotateAround (Vec2 0 0) (deg 31)) (Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50])
     billard (polygonEdges table ++ polygonEdges hole) (Vec2 200 200) (deg 50) 48
 
 lambdaTable :: Render ()
 lambdaTable = do
-    let lambda = Geometry.translate (Vec2 10 10) (Polygon
+    let lambda = Geometry.transform (Geometry.translate (Vec2 10 10)) (Polygon
             [ Vec2 0.387   340.156
             , Vec2 113.773 170.078
             , Vec2 0.387   0
