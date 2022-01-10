@@ -187,9 +187,12 @@ thickTileBase = transform (rotate (rad (pi/5))) [baseTile, twin baseTile]
 -- | There are two star configurations, 'star1' and 'star2'. Depending on the
 -- orientation of the thick tiles, the pattern grows differently.
 star1 :: Vec2 -> Double -> [Tile]
-star1 center r =
-    let inner = flipTile thickTileBase
-    in  (transform . rotateAround center . (*. (2 *. alpha)) <$> [0..4]) <*> scaleTo center r inner
+star1 center r = do
+    angle <- [2*n *. alpha | n <- [0..4]]
+    let rotation = transform (rotateAround center angle)
+        inner = flipTile thickTileBase
+    tile <- scaleTo center r inner
+    pure (rotation tile)
 
 -- | There are two star configurations, 'star1' and 'star2'. Depending on the
 -- orientation of the thick tiles, the pattern grows differently.
