@@ -17,23 +17,23 @@ description: Generative art using Haskell. See README.md.
 
 dependencies:
     - base >= 4.7 && < 5
+
     - cairo
     - colour
     - containers
     - data-default-class
+    - mwc-random
+    - random
+    - regex-tdfa
+    - text
+    - tf-random
     - transformers
     - vector
-    - text
-    - regex-tdfa
 
 default-extensions:
     - BangPatterns
     - MultiWayIf
     - LambdaCase
-
-    - mwc-random
-    - random
-    - tf-random
 
 ghc-options:
     - -Wall

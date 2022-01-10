@@ -96,7 +96,7 @@ instance ChaosSource a => ChaosSource [a] where
 instance ChaosSource Polygon where
     perturb (Polygon corners) = perturb corners
 
-instance ChaosSource vec => ChaosSource (Bezier vec) where
+instance ChaosSource Bezier where
     perturb (Bezier a b c d) = perturb (a,b,c,d)
 
 -- | Infinite list of normally distributed values.

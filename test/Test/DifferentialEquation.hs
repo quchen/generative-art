@@ -197,12 +197,12 @@ renderPhaseSpace w h solution = do
         bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution']
         bbCanvas = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
         scaleToCanvas :: Transform geo => geo -> geo
-        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas MaintainAspectRatio)
-        trajectory = simplifyPath (Distance 0.25) -- SVG compression :-)
+        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
+        trajectory = simplifyTrajectory (Distance 0.25) -- SVG compression :-)
                      [scaleToCanvas (Vec2 x v) | (_t, (x,v)) <- solution']
 
     setLineWidth 1
-    restoreStateAfter $ do
+    cairoScope $ do
         pathSketch trajectory
         mmaColor 0 1
         stroke
