@@ -26,10 +26,16 @@ import qualified System.Random as R
 class ChaosSource a where
     -- | Add a value to the mix the 'R.StdGen' will be created from. Only used
     -- for writing new instances of 'ChaosSource'.
+    --
+    -- To use instances of this class, use 'stdGen'.
     perturb :: a -> Int
 
+-- | Mix another 'Int' into the chaos source.
 stir :: ChaosSource a => a -> Int -> Int
 stir !x !y = perturb x `xor` Data.Bits.rotate 23 y
+    -- 23 is prime so it’ll misalign a lot hence should provide decent mixing.
+    -- This is very much not something I have thought about, it’s maybe best not
+    -- to base anything but wiggly pictures on it.
 
 -- | Create a 'R.StdGen' which can be used with "System.Random"’s functions,
 -- based on a variety of inputs.
@@ -44,6 +50,9 @@ instance ChaosSource Integer where
             let (rest, chunk) = quotRem i (fromIntegral (maxBound :: Word))
             in go (acc `stir` fromIntegral chunk) rest
 
+-- | Perturb using an 'Integral' value by mapping it to an 'Int'. It’s basically
+-- 'fromIntegral' and does very little the (seed!) randomness is introduced by
+-- 'stir' when combining different values.
 perturbIntegral :: Integral a => a -> Int
 perturbIntegral x = perturb (fromIntegral x :: Int)
 
