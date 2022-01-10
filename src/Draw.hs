@@ -210,9 +210,9 @@ crossSketch
     -> Distance -- ^ Radius
     -> Render ()
 crossSketch center (Distance r) = do
-    let lowerRight = rotateAround center (deg 45) (center +. Vec2 r 0)
+    let lowerRight = Geometry.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
         line1 = angledLine lowerRight (deg (45+180)) (Distance (2*r))
-        line2 = rotateAround center (deg 90) line1
+        line2 = Geometry.transform (rotateAround center (deg 90)) line1
     lineSketch line1
     lineSketch line2
 
