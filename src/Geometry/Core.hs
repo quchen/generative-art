@@ -454,6 +454,11 @@ instance VectorSpace Double where
     a *. b = a*b
     a -. b = a-b
 
+instance VectorSpace b => VectorSpace (a -> b) where
+    (f +. g) a = f a +. g a
+    (c *. f) a = c *. f a
+    (f -. g) a = f a -. g a
+
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
