@@ -9,8 +9,6 @@ module Geometry.Shapes (
 
 
 
-import Data.List
-
 import Geometry.Core
 
 
