@@ -30,7 +30,7 @@ planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
     f _t (x, v)
         -- Gravity is a bit weaker with r^1.94 instead of r^2 falloff to make the picture more interesting.
         -- Also some tiny friction for the same reason.
-      = let gravity = (- attraction / let Distance r = norm x in r ** 2.94) *. x
+      = let gravity = (- attraction / let r2 = normSquare x in r2 ** (2.94/2)) *. x
             attraction = 2200
             friction = (-0.0001 * let Distance d = norm v in d) *. v
             a = gravity +. friction

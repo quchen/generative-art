@@ -8,7 +8,7 @@ import Geometry.Core
 -- | Solve a system of first-order differential equations with RK4 AKA »the standard Runge-Kutta«.
 rungeKutta4Step
     :: VectorSpace vec
-    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ current y
     -> Double                 -- ^ Time
     -> Double                 -- ^ Step size
@@ -25,7 +25,7 @@ rungeKutta4Step f y t dt
 
 rungeKuttaConstantStep
     :: VectorSpace vec
-    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ Initial y
     -> Double                 -- ^ Initial time
     -> Double                 -- ^ Step size
@@ -48,11 +48,9 @@ instance ToleranceNormedVector Double where
 instance (ToleranceNormedVector a, ToleranceNormedVector b) => ToleranceNormedVector (a,b) where
     toleranceNorm (a,b) = max (toleranceNorm a) (toleranceNorm b)
 
--- | Solve a system of first-order differential equations with RKF45
--- (Runge-Kutta-Feinberg, adaptive step size using 4th-and-5th-order Runge-Kutta)
 rkf45step
     :: (VectorSpace vec, ToleranceNormedVector vec)
-    => (Double -> vec -> vec) -- ^ = dy/dt = f(t, y)
+    => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ current y
     -> Double                 -- ^ current time
     -> Double                 -- ^ step size
@@ -85,13 +83,15 @@ rkf45step f y t dt tolerance
                  dt' = dt * dtFactor
              in rkf45step f y t dt' tolerance
 
+-- | Solve a system of first-order differential equations with RKF45
+-- (Runge-Kutta-Feinberg, adaptive step size using 4th-and-5th-order Runge-Kutta).
 rungeKuttaAdaptiveStep
     :: (VectorSpace vec, ToleranceNormedVector vec)
-    => (Double -> vec -> vec)
-    -> vec
-    -> Double
-    -> Double
-    -> Double
+    => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
+    -> vec                    -- ^ current y
+    -> Double                 -- ^ current time
+    -> Double                 -- ^ step size
+    -> Double                 -- ^ Error tolerance
     -> [(Double, vec)]
 rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
   = [ (t, y) | (t,y,_dt) <- iterate (\(t, y, dt) -> rkf45step f y t dt tolerance) (t0, y0, dt0) ]
