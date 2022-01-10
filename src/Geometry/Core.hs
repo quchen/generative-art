@@ -70,10 +70,12 @@ module Geometry.Core (
     , rotate
     , rotateAround
     , scale
+    , scale'
     , scaleAround
-    , mirror
-    , mirrorX
-    , mirrorY
+    , scaleAround'
+    , mirrorAlong
+    , mirrorXCoords
+    , mirrorYCoords
 
     -- * Bounding Box
     , HasBoundingBox(..)
@@ -184,10 +186,10 @@ inverse (Transformation a b c
 -- transform (scale a b) . translate p
 -- @
 --
--- In other words, this translates first, and then scales.
---
--- Note that Cairo does its Canvas transformations just the other way round. You
--- can use 'inverse' to translate between the two directions.
+-- In other words, this first translates its argument, and then scales.
+-- Note that Cairo does its Canvas transformations just the other way round, since
+-- in Cairo you do not move the geometry, but the coordinate system. If you wrap a
+-- transformation in 'inverse', you get the Cairo behavior.
 instance Semigroup Transformation where
     (<>) = transformationProduct
 
@@ -220,7 +222,6 @@ instance Transform Transformation where
     transform = transformationProduct
     -- ^ Right argument will be applied first, so that
     --
-    --
     -- > rotate `transform` translate
     --
     -- will translate before rotating.
@@ -240,37 +241,70 @@ instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,
 instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
     transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
+-- | Translate the argument by an offset given by the vector.
+--
+-- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
 translate :: Vec2 -> Transformation
 translate (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
 
+-- | Rotate around zero in mathematically positive direction (counter-clockwise).
+--
+-- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
 rotate (Angle a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
+-- | Rotate around a point.
 rotateAround :: Vec2 -> Angle -> Transformation
 rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate pivot)
 
-scale :: Double -> Double -> Transformation
-scale x y = Transformation
+-- | Scale the geometry relative to zero, maintaining aspect ratio.
+scale :: Double -> Transformation
+scale x = scale' x x
+
+-- | Scale the geometry with adjustable aspect ratio.
+--
+-- While being more general and mathematically more natural, this function is used
+-- less in practice, hence it gets the prime in the name.
+scale' :: Double -> Double -> Transformation
+scale' x y = Transformation
     x 0 0
     0 y 0
 
-scaleAround :: Vec2 -> Double -> Double -> Transformation
-scaleAround pivot x y = translate pivot <> scale x y <> inverse (translate pivot)
+-- | Scale the geometry relative to a point, maintaining aspect ratio.
+scaleAround :: Vec2 -> Double -> Transformation
+scaleAround pivot x = translate pivot <> scale x <> inverse (translate pivot)
 
-mirror :: Line -> Transformation
-mirror line@(Line p _) = translate p <> rotate angle <> mirrorY <> inverse (rotate angle) <> inverse (translate p)
+-- | Scale the geometry relative to a point, with adjustable aspect ratio.
+--
+-- While being more general and mathematically more natural, this function is used
+-- less in practice, hence it gets the prime in the name.
+scaleAround' :: Vec2 -> Double -> Double -> Transformation
+scaleAround' pivot x y = translate pivot <> scale' x y <> inverse (translate pivot)
+
+-- | Mirror the geometry along a line.
+--
+-- This function is called 'mirrorAlong' and not @mirror@ since the latter makes a
+-- very good name for arguments of this function.
+mirrorAlong :: Line -> Transformation
+mirrorAlong line@(Line p _) = translate p <> rotate angle <> mirrorYCoords <> inverse (rotate angle) <> inverse (translate p)
   where
     angle = angleOfLine line
 
-mirrorX :: Transformation
-mirrorX = scale (-1) 1
+-- | Invert all X coordinates.
+--
+-- NB: if it was called @mirrorX@ it wouldn’t be clear whether it mirrors the X
+-- coordinates, or along the X axis, which would mirror the Y coordinates. The
+-- longer name makes it clearer.
+mirrorXCoords :: Transformation
+mirrorXCoords = scale' (-1) 1
 
-mirrorY :: Transformation
-mirrorY = scale 1 (-1)
+-- | Invert all Y coordinates.
+mirrorYCoords :: Transformation
+mirrorYCoords = scale' 1 (-1)
 
 
 
@@ -374,13 +408,12 @@ transformBoundingBox source target aspectRatioBehavior
         (targetWidth, targetHeight) = boundingBoxDimension bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
-        scaleAroundT pivot x y = translate pivot <> scale x y <> inverse (translate pivot)
 
         scaleToMatchSize = case aspectRatioBehavior of
             MaintainAspectRatio ->
                 let scaleFactor = min xScaleFactor yScaleFactor
-                in scaleAroundT targetCenter scaleFactor scaleFactor
-            IgnoreAspectRatio -> scaleAroundT targetCenter xScaleFactor yScaleFactor
+                in scaleAround targetCenter scaleFactor
+            IgnoreAspectRatio -> scaleAround' targetCenter xScaleFactor yScaleFactor
 
     in  scaleToMatchSize <> translateToMatchCenter
 
@@ -828,12 +861,12 @@ reflection
             -- ray with the mirror. The reflected ray is symmetric with respect
             -- to the incoming ray (in terms of length, distance from mirror,
             -- etc.), but has reversed direction (like real light).
-reflection ray mirrorSurface = case intersectionLL ray mirrorSurface of
+reflection ray mirror = case intersectionLL ray mirror of
     Nothing -> Nothing
     Just (iPoint, iType) -> Just (lineReverse ray', iPoint, iType)
       where
-        mirrorAxis = perpendicularLineThrough iPoint mirrorSurface
-        ray' = transform (mirror mirrorAxis) ray
+        mirrorAxis = perpendicularLineThrough iPoint mirror
+        ray' = transform (mirrorAlong mirrorAxis) ray
 
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.

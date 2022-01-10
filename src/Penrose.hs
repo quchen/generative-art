@@ -105,7 +105,7 @@ subdivide Tile{..} = case tileType of
 
 -- | The other half of a half tile.
 twin :: Tile -> Tile
-twin f@Tile{..} = f { tileP1 = transform (mirror (Line tileP0 tileP2)) tileP1 }
+twin f@Tile{..} = f { tileP1 = transform (mirrorAlong (Line tileP0 tileP2)) tileP1 }
 
 -- | Flips a tile: Keeps the same shape, but reverses the orientation. Note
 -- that flipping a tile in place will turn a legal configuration to an illegal
@@ -211,13 +211,13 @@ decagonRose center r =
 -- | Another Penrose fragment.
 asymmetricDecagon :: Vec2 -> Double -> [Tile]
 asymmetricDecagon center r = scaleTo center r $ concat
-    [ offAxisTiles, transform mirrorY offAxisTiles, onAxisTiles ]
+    [ offAxisTiles, transform mirrorYCoords  offAxisTiles, onAxisTiles ]
   where
     origin = Vec2 (-phi) 0
     edge = Vec2 1 0
     f1 = transform (translate origin) (flipTile thickTileBase)
     f2 = transform (translate (origin +. edge) <> rotate alpha) (flipTile thinTileBase)
-    f3 = transform (mirror (angledLine origin alpha (Distance 1))) f2
+    f3 = transform (mirrorAlong (angledLine origin alpha (Distance 1))) f2
     f4 = transform (translate (origin +. edge) <> rotate (negateV alpha)) (flipTile thickTileBase)
     f5 = transform (translate edge <> rotate (2 *. alpha)) thickTileBase
     f6 = transform (rotateAround (Vec2 1 0) (7 *. alpha)) thinTileBase
@@ -225,4 +225,4 @@ asymmetricDecagon center r = scaleTo center r $ concat
     onAxisTiles = concat [f4, f6]
 
 scaleTo :: Vec2 -> Double -> [Tile] -> [Tile]
-scaleTo center size = transform (translate center <> scale (size/phi) (size/phi))
+scaleTo center size = transform (translate center <> scale (size/phi))

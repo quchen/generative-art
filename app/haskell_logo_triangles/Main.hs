@@ -20,7 +20,7 @@ picWidth = 500
 picHeight = 360
 
 haskellLogo' :: [Polygon]
-haskellLogo' = Geometry.transform (Geometry.scale 340 340) haskellLogo
+haskellLogo' = Geometry.transform (Geometry.scale 340) haskellLogo
 
 main :: IO ()
 main = png >> svg

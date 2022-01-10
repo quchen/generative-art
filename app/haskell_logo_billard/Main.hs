@@ -38,7 +38,7 @@ runBillardSpec BillardSpec{..} =
 
 drawing :: Render ()
 drawing = do
-    let [left, lambda, upper, lower] = transform (Geometry.scale 340 340) haskellLogo
+    let [left, lambda, upper, lower] = transform (Geometry.scale 340) haskellLogo
         billardLeft   = BillardSpec{ steps = 256, table = polygonEdges left,   startPos = Vec2 10  10,  startAngle = deg 40 }
         billardLambda = BillardSpec{ steps = 400, table = polygonEdges lambda, startPos = Vec2 230 175, startAngle = deg 40 }
         billardUpper  = BillardSpec{ steps = 120, table = polygonEdges upper,  startPos = Vec2 400 120, startAngle = deg 20 }

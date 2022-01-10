@@ -50,16 +50,16 @@ mirror1 = do
         ]
   where
     testDraw :: Line -> [Vec2] -> Render ()
-    testDraw mirrorSurface ps = do
+    testDraw mirror ps = do
         setLineWidth 1
 
         cairoScope $ do
             setMirrorStyle
-            lineSketch mirrorSurface
+            lineSketch mirror
             stroke
 
         for_ ps (\p -> do
-            let p' = transform (mirror mirrorSurface) p
+            let p' = transform (mirrorAlong mirror) p
 
             mirroredC 1
             crossSketch p (Distance 5)
@@ -74,11 +74,11 @@ mirror1 = do
 
 mirror2 :: Render ()
 mirror2 = do
-    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) (Distance 510)
+    let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
 
     cairoScope $ do
         setMirrorStyle
-        lineSketch mirrorSurface
+        lineSketch mirror
         stroke
 
     setFontSize 12
@@ -87,7 +87,7 @@ mirror2 = do
 
     setLineWidth 1
     let mirrorLineTest line = do
-            let mirrored = transform (mirror mirrorSurface) line
+            let mirrored = transform (mirrorAlong mirror) line
             originalC 1 >> arrowSketch line def >> stroke
             mirroredC 1 >> arrowSketch mirrored def >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg 20) (Distance 100))
@@ -98,7 +98,7 @@ mirror2 = do
     mirrorLineTest (angledLine (Vec2 120 110) (deg 180) (Distance 100))
 
     let mirrorPolygonTest poly = do
-            let mirrored = transform (mirror mirrorSurface) poly
+            let mirrored = transform (mirrorAlong mirror) poly
             originalC 1 >> polygonSketch poly >> strokePreserve >> originalC 0.1 >> fill
             mirroredC 1 >> polygonSketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])

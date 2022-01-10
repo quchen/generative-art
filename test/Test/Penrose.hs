@@ -36,7 +36,7 @@ testBaseConfigurations = testCase "Base configurations" test
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    fitToBox = scale 100 100
+    fitToBox = scale 100
     baseRhombThick = transform fitToBox thickTileBase
     baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
@@ -66,7 +66,7 @@ testInscribedPentagons = testCase "Switch to pentagons & stars" test
 testSubdivisionWithInscribedPentagons :: TestTree
 testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentagons & stars" test
   where
-    fitToBox = scale 100 100
+    fitToBox = scale 100
     baseRhombThick = transform fitToBox thickTileBase
     baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin

@@ -186,7 +186,7 @@ transformationTest = testGroup "Affine transformations"
                 ySign <- sign
                 xScale <- factor
                 yScale <- factor
-                pure [Geometry.scale (xSign*xScale) (ySign*yScale)])
+                pure [Geometry.scale' (xSign*xScale) (ySign*yScale)])
         , invertibilityTest "Rotation"
             (do angle <- arbitrary; pure [rotate angle])
         , invertibilityTest "Combination of transformations" $ do
@@ -196,8 +196,8 @@ transformationTest = testGroup "Affine transformations"
                 [ (1, pure identityTransformation)
                 , (3, rotate <$> arbitrary)
                 , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
-                , (3, Geometry.scale <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
-                                     <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
+                , (3, Geometry.scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
+                                      <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
     ]
   where

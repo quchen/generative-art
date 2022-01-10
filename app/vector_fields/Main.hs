@@ -61,7 +61,7 @@ drawFieldLine thickness ps = cairoScope $ do
         Cairo.stroke
 
 scalarField :: Vec2 -> Double
-scalarField = noise2d . transform (scale 1 2)
+scalarField = noise2d . transform (scale' 1 2)
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)

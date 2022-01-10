@@ -32,7 +32,7 @@ rescaleNormalizePolygons :: [Polygon] -> [Polygon]
 rescaleNormalizePolygons polygons
   = let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
         scaleFactor = 1 / (maxY - minY)
-        transformation = scale scaleFactor scaleFactor <> translate (Vec2 (- minX) (- minY))
+        transformation = scale scaleFactor <> translate (Vec2 (- minX) (- minY))
     in transform transformation polygons
 
 haskellLogoRaw :: [Polygon]
