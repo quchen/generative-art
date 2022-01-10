@@ -21,8 +21,6 @@ dependencies:
     - colour
     - containers
     - data-default-class
-    - mwc-random
-    - random
     - transformers
     - vector
     - text
@@ -32,6 +30,10 @@ default-extensions:
     - BangPatterns
     - MultiWayIf
     - LambdaCase
+
+    - mwc-random
+    - random
+    - tf-random
 
 ghc-options:
     - -Wall
