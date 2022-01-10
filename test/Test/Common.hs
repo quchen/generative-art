@@ -6,7 +6,7 @@ module Test.Common
 
 
 
-import Graphics.Rendering.Cairo as Cairo hiding (rotate, translate, width, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, rotate, translate, width, x, y)
 
 import Draw
 import Geometry
@@ -17,9 +17,9 @@ angleSketch :: Vec2 -> Angle -> Angle -> Render ()
 angleSketch point angle1 angle2 = do
     let radius = Distance 10
     arcSketch point radius angle1 angle2
-    let arcEnd = translate (polar angle2 radius) point
+    let arcEnd = transform (translate (polar angle2 radius)) point
         arrowAngleTweak = rad (-0.2)
-        tangentStart = translate (polar (angle2 -. rad (pi/2) +. arrowAngleTweak) radius) arcEnd
+        tangentStart = transform (translate (polar (angle2 -. rad (pi/2) +. arrowAngleTweak) radius)) arcEnd
         tangent = Line tangentStart arcEnd
     arrowSketch tangent def
         { arrowheadSize = Distance 6
