@@ -32,13 +32,7 @@ haskellLogo = rescaleNormalizePolygons haskellLogoRaw
 -- the height extents is 1.
 rescaleNormalizePolygons :: [Polygon] -> [Polygon]
 rescaleNormalizePolygons polygons
-  = let (c:orners) = [ corner | Polygon corners <- polygons
-                              , corner <- corners ]
-        (minX, minY, maxY)
-          = foldl' (\(!minX', !minY', !maxY') (Vec2 x y)
-                        -> (min x minX', min y minY', max y maxY'))
-                   (let Vec2 x y = c in (x, y, y))
-                   orners
+  = let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
         scaleFactor = 1 / (maxY - minY)
         transformation = scaleT scaleFactor scaleFactor <> translateT (Vec2 (- minX) (- minY))
     in transform transformation polygons
