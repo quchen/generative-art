@@ -66,21 +66,14 @@ module Geometry.Core (
     , transformationProduct
     , inverse
     , Transform(..)
-    , translateT
     , translate
-    , rotateT
     , rotate
     , rotateAround
-    , scaleT
     , scale
-    , scaleXY
     , scaleAround
-    , scaleAroundXY
-    , mirrorT
-    , mirrorAlongT
+    , mirror
     , mirrorX
     , mirrorY
-    , mirrorAlong
 
     -- * Bounding Box
     , HasBoundingBox(..)
@@ -183,12 +176,18 @@ inverse (Transformation a b c
       in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
                         (x*(-d)) (x*a) (x*(d*c - a*f))
 
--- | The order transformations are applied in function (i.e. reverse) order:
--- @'scaleT' '<>' 'translateT'@ transforms first, and then scales.
--- This works like f(g(x)), which first applies g to x, and then f to the
--- result.
+-- | The order transformations are applied in function order:
 --
--- Note that Cairo does its Canvas transformations just the other way round.
+-- @
+-- transform (scale a b <> translate p)
+-- ==
+-- transform (scale a b) . translate p
+-- @
+--
+-- In other words, this translates first, and then scales.
+--
+-- Note that Cairo does its Canvas transformations just the other way round. You
+-- can use 'inverse' to translate between the two directions.
 instance Semigroup Transformation where
     (<>) = transformationProduct
 
@@ -221,6 +220,7 @@ instance Transform Transformation where
     transform = transformationProduct
     -- ^ Right argument will be applied first, so that
     --
+    --
     -- > rotate `transform` translate
     --
     -- will translate before rotating.
@@ -240,58 +240,38 @@ instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,
 instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
     transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
-translateT :: Vec2 -> Transformation
-translateT (Vec2 dx dy) = Transformation
+translate :: Vec2 -> Transformation
+translate (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
 
-translate :: Transform geo => Vec2 -> geo -> geo
-translate v = transform (translateT v)
-
-rotateT :: Angle -> Transformation
-rotateT (Angle a) = Transformation
+rotate :: Angle -> Transformation
+rotate (Angle a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
-rotate :: Transform geo => Angle -> geo -> geo
-rotate angle = transform (rotateT angle)
+rotateAround :: Vec2 -> Angle -> Transformation
+rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate pivot)
 
-rotateAround :: Transform geo => Vec2 -> Angle -> geo -> geo
-rotateAround pivot angle = transform (translateT pivot <> rotateT angle <> inverse (translateT pivot))
-
-scaleT :: Double -> Double -> Transformation
-scaleT x y = Transformation
+scale :: Double -> Double -> Transformation
+scale x y = Transformation
     x 0 0
     0 y 0
 
-scale :: Transform geo => Double -> geo -> geo
-scale factor = transform (scaleT factor factor)
+scaleAround :: Vec2 -> Double -> Double -> Transformation
+scaleAround pivot x y = translate pivot <> scale x y <> inverse (translate pivot)
 
-scaleAround :: Transform geo => Vec2 -> Double -> geo -> geo
-scaleAround pivot factor = transform (translateT pivot <> scaleT factor factor <> inverse (translateT pivot))
-
-scaleXY :: Transform geo => Double -> Double -> geo -> geo
-scaleXY x y = transform (scaleT x y)
-
-scaleAroundXY :: Transform geo => Vec2 -> Double -> Double -> geo -> geo
-scaleAroundXY pivot x y = transform (translateT pivot <> scaleT x y <> inverse (translateT pivot))
-
-mirrorT :: Angle -> Transformation
-mirrorT angle = rotateT angle <> mirrorVertically <> inverse (rotateT angle)
+mirror :: Line -> Transformation
+mirror line@(Line p _) = translate p <> rotate angle <> mirrorY <> inverse (rotate angle) <> inverse (translate p)
   where
-    mirrorVertically = Transformation
-        1    0 0
-        0 (-1) 0
+    angle = angleOfLine line
 
-mirrorAlongT :: Line -> Transformation
-mirrorAlongT line@(Line p _) = translateT p <> mirrorT (angleOfLine line) <> inverse (translateT p)
+mirrorX :: Transformation
+mirrorX = scale (-1) 1
 
-mirrorX, mirrorY :: Transform geo => geo -> geo
-mirrorX = transform (mirrorT (deg 90))
-mirrorY = transform (mirrorT (deg 0))
+mirrorY :: Transformation
+mirrorY = scale 1 (-1)
 
-mirrorAlong :: Transform geo => Line -> geo -> geo
-mirrorAlong line = transform (mirrorAlongT line)
 
 
 
@@ -383,7 +363,7 @@ transformBoundingBox source target aspectRatioBehavior
 
         boundingBoxCenter :: BoundingBox -> Vec2
         boundingBoxCenter (BoundingBox lo hi) = (hi +. lo) /. 2
-        translateToMatchCenter = translateT (targetCenter -. sourceCenter)
+        translateToMatchCenter = translate (targetCenter -. sourceCenter)
 
         -- | The size of the bounding box. Toy example: calculate the area of it.
         -- Note that the values can be negative if orientations differ.
@@ -394,7 +374,7 @@ transformBoundingBox source target aspectRatioBehavior
         (targetWidth, targetHeight) = boundingBoxDimension bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
-        scaleAroundT pivot x y = translateT pivot <> scaleT x y <> inverse (translateT pivot)
+        scaleAroundT pivot x y = translate pivot <> scale x y <> inverse (translate pivot)
 
         scaleToMatchSize = case aspectRatioBehavior of
             MaintainAspectRatio ->
@@ -534,7 +514,7 @@ angleBetween line1 line2
 angledLine :: Vec2 -> Angle -> Distance -> Line
 angledLine start angle (Distance len) = Line start end
   where
-    end = rotateAround start angle (start +. Vec2 len 0)
+    end = transform (rotateAround start angle) (start +. Vec2 len 0)
 
 lineLength :: Line -> Distance
 lineLength = norm . vectorOf
@@ -551,7 +531,7 @@ resizeLine f line@(Line start _end)
 
 -- | Resize a line, keeping the middle point.
 resizeLineSymmetric :: (Distance -> Distance) -> Line -> Line
-resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . translate delta) line
+resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . transform (translate delta)) line
   where
     middle = 0.5 *. (start +. end)
     delta = middle -. start
@@ -560,7 +540,7 @@ resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . trans
 --
 -- Useful for painting lines going through a point symmetrically.
 centerLine :: Line -> Line
-centerLine line@(Line start end) = translate delta line
+centerLine line@(Line start end) = transform (translate delta) line
   where
     middle = 0.5 *. (start +. end)
     delta = start -. middle
@@ -827,14 +807,14 @@ perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
     -- Move line so it starts at the origin
-    Line start0 end0 = translate (negateV start) line
+    Line start0 end0 = transform (translate (negateV start)) line
     -- Rotate end point 90° CCW
     end0' = let Vec2 x y  = end0
             in Vec2 (-y) x
     -- Construct rotated line
     lineAt0' = Line start0 end0'
     -- Move line back so it goes through the point
-    line' = translate p lineAt0'
+    line' = transform (translate p) lineAt0'
 
 -- | Optical reflection of a ray on a mirror. Note that the outgoing line has
 -- reversed direction like light rays would. The second result element is the
@@ -848,12 +828,12 @@ reflection
             -- ray with the mirror. The reflected ray is symmetric with respect
             -- to the incoming ray (in terms of length, distance from mirror,
             -- etc.), but has reversed direction (like real light).
-reflection ray mirror = case intersectionLL ray mirror of
+reflection ray mirrorSurface = case intersectionLL ray mirrorSurface of
     Nothing -> Nothing
     Just (iPoint, iType) -> Just (lineReverse ray', iPoint, iType)
       where
-        mirrorAxis = perpendicularLineThrough iPoint mirror
-        ray' = mirrorAlong mirrorAxis ray
+        mirrorAxis = perpendicularLineThrough iPoint mirrorSurface
+        ray' = transform (mirror mirrorAxis) ray
 
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.
