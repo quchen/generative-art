@@ -73,7 +73,7 @@ executables:
         dependencies:
             - generative-art
             - cairo
-            - hsnoise
+            - Noise
             - mwc-random
     haskell-logo-voronoi:
         main: Main.hs
