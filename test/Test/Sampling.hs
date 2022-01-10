@@ -29,16 +29,16 @@ tests = testCase "Poisson-Disc sampling" test
         for_ [0, radius / sqrt 2 .. fromIntegral width] $ \x -> do
             Cairo.moveTo x 0
             Cairo.lineTo x (fromIntegral height)
-            mmaColor 1 1
+            mmaColor 1 0.2
             Cairo.stroke
 
         for_ [0, radius / sqrt 2 .. fromIntegral height] $ \y -> do
             Cairo.moveTo 0 y
             Cairo.lineTo (fromIntegral width) y
-            mmaColor 1 1
+            mmaColor 1 0.2
             Cairo.stroke
 
         for_ points $ \point -> do
-            circleSketch point (Distance 5)
+            circleSketch point (Distance 2)
             mmaColor 0 1
             Cairo.fill
