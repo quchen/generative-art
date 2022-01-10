@@ -19,5 +19,5 @@ EOF
 
 for image in $(find ../../docs -name "*.svg" | sort); do
     echo ""
-    echo "![]($image)"
+    echo "![Missing image!]($image)"
 done >> "$FILE"

@@ -22,7 +22,7 @@ EOF
 
 for image in $(find ../../docs -name "*.svg" | sort); do
     echo ""
-    echo "<div><img src=\"$image\"/></div>"
+    echo "<div><img src=\"$image\" alt=\"Missing image!\"/></div>"
 done >> "$FILE"
 
 
