@@ -293,11 +293,6 @@ withOperator op render = do
 -- This function is often used to introduce a kind of scope for Cairo drawing
 -- subsections, so the changes made there don’t leak into subseeuqnt parts of
 -- the drawing.
-
--- Handles the bookkeeping with 'save' and 'restore' internally. Cairo’s API is
--- unfortunately very stateful, consisting of many things such as color, line
--- width, dashing, or transformation matrix. To remedy this, it allows saving and
--- restoring the current state, allowing scoped settings.
 --
 -- For example, the following sets the line width to 2 temporarily; after the
 -- inner block, it is reset to 1.
@@ -307,10 +302,11 @@ withOperator op render = do
 --     setLineWidth 1
 --     cairoScope $ do
 --         setLineWidth 2
---         moveTo 0 0 >> lineTo 100 0
+--         moveTo 0 0 >> lineTo 100 0  -- drawn with line width 1
 --         stroke
---     moveTo 0 10 >> lineTo 100 10
+--     moveTo 0 10 >> lineTo 100 10    -- drawn with line width 1
 --     stroke
+-- @
 cairoScope :: Render a -> Render a
 cairoScope render = save *> render <* restore
 
