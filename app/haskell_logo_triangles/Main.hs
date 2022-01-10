@@ -4,15 +4,14 @@ module Main (main) where
 
 import Control.Monad.Trans.State
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import System.Random
 
 import Comparison
 import Draw
-import Geometry.Core
+import Geometry
 import Geometry.Processes.RandomCut
 import Geometry.Shapes
-import Geometry.Triangulate
 
 
 
@@ -21,7 +20,7 @@ picWidth = 500
 picHeight = 360
 
 haskellLogo' :: [Polygon]
-haskellLogo' = transform (scaleT 340 340) haskellLogo
+haskellLogo' = Geometry.transform (Geometry.scale 340 340) haskellLogo
 
 main :: IO ()
 main = png >> svg
