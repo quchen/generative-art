@@ -29,6 +29,7 @@ rotateUntil p xs = zipWith
     xs
     (dropWhile (not . p) (cycle xs))
 
+-- | 'nub', but based on 'S.Set' for performance reasons.
 nub' :: Ord a => [a] -> [a]
 nub' = go S.empty
   where

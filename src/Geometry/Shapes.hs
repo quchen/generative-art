@@ -51,7 +51,7 @@ haskellLogoRaw = [left, lambda, upper, lower]
     upper  = Polygon [Vec2 330.710938 155.90625, Vec2 292.914062 99.214844, Vec2 481.890625 99.210938, Vec2 481.890625 155.90625]
     lower  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 481.890625 184.25, Vec2 481.890625 240.945312]
 
--- | Rectangular spiral.
+-- | Rectangular spiral. Useful as an example for very much non-convex polygons.
 spiralPolygon
     :: Int -- ^ Winding number
     -> Double -- ^ Width
@@ -70,7 +70,7 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
     turnLeft  (Vec2 x y) = Vec2   y  (-x)
     turnRight (Vec2 x y) = Vec2 (-y)   x
 
--- Regular n-gon with radius 1, oriented in mathematically positive direction,
+-- | Regular n-gon with radius 1, oriented in mathematically positive direction,
 -- and starting with the first corner on the positive x axis.
 regularPolygon :: Int -> Polygon
 regularPolygon n = Polygon
