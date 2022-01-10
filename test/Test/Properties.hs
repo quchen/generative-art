@@ -60,7 +60,7 @@ areaTest = testGroup "Area"
     square = testProperty "Square" (forAll
         ((,,,,) <$> vec2 <*> vec2 <*> vec2 <*> vec2 <*> arbitrary)
         (\(Vec2 x1 y1, Vec2 x2 y2, center, moveVec, angle) ->
-            let poly = (translate moveVec . rotateAround center angle . Polygon)
+            let poly = (transform (translate moveVec <> rotateAround center angle) . Polygon)
                            [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
                 actual = polygonArea poly
                 expected = Area (abs ((x2-x1) * (y2-y1)))
@@ -82,9 +82,9 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
     ((,,,,) <$> vec2 <*> vec2 <*> dist <*> vec2 <*> dist)
     (\(start, end1, dist1, end2, dist2) ->
         let line1 = Line start end1
-            line1' = translate (polar (angleOfLine line1) dist1) line1
+            line1' = transform (translate (polar (angleOfLine line1) dist1)) line1
             line2 = Line start end2
-            line2' = translate (polar (angleOfLine line2) dist2) line2
+            line2' = transform (translate (polar (angleOfLine line2) dist2)) line2
             Just (expectedIntersection, _ty) = intersectionLL line1' line2'
         in approxEqualTolerance (Tolerance 1e-8) start expectedIntersection ))
   where
@@ -171,14 +171,14 @@ transformationTest = testGroup "Affine transformations"
     [ testGroup "Algebraic properties"
         [ testProperty "Multiple rotations add angles" $ \a1@(Angle a1') a2@(Angle a2') ->
             approxEqualTolerance (Tolerance 1e-5)
-                (transformationProduct (rotateT a1) (rotateT a2))
-                (rotateT (Angle (a1' + a2')))
+                (transformationProduct (rotate a1) (rotate a2))
+                (rotate (Angle (a1' + a2')))
         ]
     , testGroup "Invertibility"
         [ invertibilityTest "Identity"
             (pure [identityTransformation])
         , invertibilityTest "Translation"
-            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translateT (Vec2 x y)])
+            (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translate (Vec2 x y)])
         , invertibilityTest "Scaling"
             (do let sign = elements [1,-1]
                     factor = choose (0.1,10)
@@ -186,18 +186,18 @@ transformationTest = testGroup "Affine transformations"
                 ySign <- sign
                 xScale <- factor
                 yScale <- factor
-                pure [scaleT (xSign*xScale) (ySign*yScale)])
+                pure [Geometry.scale (xSign*xScale) (ySign*yScale)])
         , invertibilityTest "Rotation"
-            (do angle <- arbitrary; pure [rotateT angle])
+            (do angle <- arbitrary; pure [rotate angle])
         , invertibilityTest "Combination of transformations" $ do
             size <- getSize
             n <- choose (2, min size 10)
             Test.Tasty.QuickCheck.vectorOf n (frequency
                 [ (1, pure identityTransformation)
-                , (3, rotateT <$> arbitrary)
-                , (3, translateT <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
-                , (3, scaleT <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
-                             <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
+                , (3, rotate <$> arbitrary)
+                , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
+                , (3, Geometry.scale <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
+                                     <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
     ]
   where
@@ -229,6 +229,6 @@ distanceFromLineTest = testProperty "Distance from point to line" $
         angle2 <- arbitrary
         offset1 <- arbitrary
         offset2 <- arbitrary
-        let trafo = rotateT angle2 <> translateT offset2 <> rotateT angle1 <> translateT offset1
+        let trafo = rotate angle2 <> translate offset2 <> rotate angle1 <> translate offset1
 
         pure (Distance (abs distance), transform trafo (point, line))
