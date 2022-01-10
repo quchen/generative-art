@@ -3,7 +3,7 @@
 module Test.Penrose (tests) where
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (transform, scale, x, y)
 
 import Draw
 import Geometry
@@ -36,9 +36,9 @@ testBaseConfigurations = testCase "Base configurations" test
 testSubdivision :: TestTree
 testSubdivision = testCase "Subdividing base rhombs" test
   where
-    fitToBox = scaleT 100 100
+    fitToBox = scale 100 100
     baseRhombThick = transform fitToBox thickTileBase
-    baseRhombThin = transform (translateT (Vec2 0 120) <> fitToBox) thinTileBase
+    baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
@@ -66,9 +66,9 @@ testInscribedPentagons = testCase "Switch to pentagons & stars" test
 testSubdivisionWithInscribedPentagons :: TestTree
 testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentagons & stars" test
   where
-    fitToBox = scaleT 100 100
+    fitToBox = scale 100 100
     baseRhombThick = transform fitToBox thickTileBase
-    baseRhombThin = transform (translateT (Vec2 0 120) <> fitToBox) thinTileBase
+    baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
     gen0 = baseRhombThick ++ baseRhombThin
     gen1 = subdivide =<< gen0
     gen2 = subdivide =<< gen1
