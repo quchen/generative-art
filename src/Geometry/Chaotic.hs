@@ -2,137 +2,125 @@
 
 -- | Functions that vary chaotically based on their input. Useful for introducing
 -- deterministic noise in pure code, e.g. for slightly moving points around.
-module Geometry.Chaotic where
+module Geometry.Chaotic (
+    -- * RNG functions
+      ChaosSource(..)
+    , stdGen
 
-import qualified System.Random as R
-import Geometry
-import Data.Word
-import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as VM
-import Control.Monad.ST
-import Data.STRef
+    -- * Utilities
+    , normals
+    , gaussian
+    , normalVecs
+    , gaussianVecs
+) where
+
 import Data.Bits
 import Data.Int
+import Data.List
+import Data.Word
+import Geometry
+import qualified System.Random as R
 
 
-newtype ChaosSeed = ChaosSeed Int
+-- | Types that can be turned into a random number generator easily, to yield pure chaotic output.
+class ChaosSource a where
+    -- | Add a value to the mix the 'R.StdGen' will be created from. Only used
+    -- for writing new instances of 'ChaosSource'.
+    perturb :: a -> Int
 
-instance R.RandomGen ChaosSeed where
-    next (ChaosSeed g) = let (i, g') = R.next g in (i, ChaosSeed g')
+stir :: ChaosSource a => a -> Int -> Int
+stir !x !y = perturb x `xor` Data.Bits.rotate 23 y
 
+-- | Create a 'R.StdGen' which can be used with "System.Random"’s functions,
+-- based on a variety of inputs.
+stdGen :: ChaosSource a => a -> R.StdGen
+stdGen = R.mkStdGen . perturb
 
-makeSeed :: PerturbSeed a => a -> ChaosSeed
-makeSeed x = runST $ do
-    offset <- newSTRef 0
-    vec <- VM.replicate 4 0
-    perturb (TFSeedVec offset vec) x
-    a <- VM.read vec 0
-    b <- VM.read vec 1
-    c <- VM.read vec 2
-    d <- VM.read vec 3
-    (pure . ChaosSeed . RTF.seedTFGen) (a,b,c,d)
+instance ChaosSource Integer where
+    perturb = go 0
+      where
+        go !acc 0 = acc
+        go acc i =
+            let (rest, chunk) = quotRem i (fromIntegral (maxBound :: Word))
+            in go (acc `stir` fromIntegral chunk) rest
 
--- | A seed vector to generate a 'TFGen' out of using 'RTF.seedTFGen'. In order to
--- cycle through the vector when adding multiple values, we also keep the write
--- offset.
-data TFSeedVec s = TFSeedVec !(STRef s Word8) !(VM.STVector s Word64)
+perturbIntegral :: Integral a => a -> Int
+perturbIntegral x = perturb (fromIntegral x :: Int)
 
--- | Write a 'Word64' to the seed vector, incrementing the internal write location
--- such that multiple writes go to different locations.
-write :: TFSeedVec s -> Word64 -> ST s ()
-write (TFSeedVec offsetRef vec) val = do
-    offset <- do
-        oldOffset <- readSTRef offsetRef
-        let !newOffset = (oldOffset+1) `mod` fromIntegral (VM.length vec)
-        writeSTRef offsetRef newOffset
-        pure oldOffset
+instance ChaosSource Int where perturb = id
+instance ChaosSource Int8 where perturb = perturbIntegral
+instance ChaosSource Int16 where perturb = perturbIntegral
+instance ChaosSource Int32 where perturb = perturbIntegral
+instance ChaosSource Int64 where perturb = perturbIntegral
+instance ChaosSource Word8 where perturb = perturbIntegral
+instance ChaosSource Word16 where perturb = perturbIntegral
+instance ChaosSource Word32 where perturb = perturbIntegral
+instance ChaosSource Word64 where perturb = perturbIntegral
 
-    oldVal <- VM.read vec (fromIntegral offset)
-    let !val' = oldVal `xor` val
-    VM.write vec (fromIntegral offset) val'
+instance (ChaosSource a, ChaosSource b) => ChaosSource (a, b) where
+    perturb (a,b) = perturb a `stir` perturb b
 
-class PerturbSeed a where
-    perturb :: TFSeedVec s -> a -> ST s ()
+instance (ChaosSource a, ChaosSource b, ChaosSource c) => ChaosSource (a, b, c) where
+    perturb (a, b, c) = perturb a `stir` perturb b `stir` perturb c
 
--- | Perturb with 'Word64'-sized chunks recursively.
-instance PerturbSeed Integer where
-    perturb _ 0 = pure ()
-    perturb vec i = do
-        let (rest, chunk) = divMod i (fromIntegral (maxBound :: Word64))
-        perturbIntegral vec chunk
-        perturb vec rest
+instance (ChaosSource a, ChaosSource b, ChaosSource c, ChaosSource d) => ChaosSource (a, b, c, d) where
+    perturb (a, b, c, d) = perturb a `stir` perturb b `stir` perturb c `stir` perturb d
 
--- | Perturb using any 'Integral' value. Useful to write instance boilerplate.
-perturbIntegral :: Integral a => TFSeedVec s -> a -> ST s ()
-perturbIntegral vec i = write vec (fromIntegral i)
+instance (ChaosSource a, ChaosSource b, ChaosSource c, ChaosSource d, ChaosSource e) => ChaosSource (a, b, c, d, e) where
+    perturb (a, b, c, d, e) = perturb a `stir` perturb b `stir` perturb c `stir` perturb d `stir` perturb e
 
-instance PerturbSeed Int where perturb = perturbIntegral
-instance PerturbSeed Int8 where perturb = perturbIntegral
-instance PerturbSeed Int16 where perturb = perturbIntegral
-instance PerturbSeed Int32 where perturb = perturbIntegral
-instance PerturbSeed Int64 where perturb = perturbIntegral
-instance PerturbSeed Word8 where perturb = perturbIntegral
-instance PerturbSeed Word16 where perturb = perturbIntegral
-instance PerturbSeed Word32 where perturb = perturbIntegral
-instance PerturbSeed Word64 where perturb = perturbIntegral
+instance ChaosSource Float where
+    perturb = perturb . decodeFloat
 
+instance ChaosSource Double where
+    perturb = perturb . decodeFloat
 
+instance ChaosSource Vec2 where
+    perturb (Vec2 x y) = perturb (x,y)
 
---
--- -- | Create a 'ChaosSeed' value out of some data, useful for generating random but
--- -- determinstic functions for interesting test data.
--- class MakeChaosSeed a where
---     makeChaosSeed :: a -> ChaosSeed
---
--- instance MakeChaosSeed ChaosSeed where
---     makeChaosSeed = id
---
--- instance (MakeChaosSeed a, MakeChaosSeed b) => MakeChaosSeed (a, b) where
---     makeChaosSeed (a,b) = makeChaosSeed [makeChaosSeed a, makeChaosSeed b]
---
--- instance (MakeChaosSeed a, MakeChaosSeed b, MakeChaosSeed c) => MakeChaosSeed (a, b, c) where
---     makeChaosSeed (a, b, c) = makeChaosSeed [makeChaosSeed a, makeChaosSeed b, makeChaosSeed c]
---
--- instance (MakeChaosSeed a, MakeChaosSeed b, MakeChaosSeed c, MakeChaosSeed d) => MakeChaosSeed (a, b, c, d) where
---     makeChaosSeed (a, b, c, d) = makeChaosSeed [makeChaosSeed a, makeChaosSeed b, makeChaosSeed c, makeChaosSeed d]
---
--- instance (MakeChaosSeed a, MakeChaosSeed b, MakeChaosSeed c, MakeChaosSeed d) => MakeChaosSeed (a, b, c, d, e) where
---     makeChaosSeed (a, b, c, d, e) = makeChaosSeed [makeChaosSeed a, makeChaosSeed b, makeChaosSeed c, makeChaosSeed d, makeChaosSeed e]
---
--- instance MakeChaosSeed Int where
---     makeChaosSeed = ChaosSeed . RTF.mkTFGen
---
--- instance MakeChaosSeed Integer where
---     makeChaosSeed i = makeChaosSeed (fromInteger i :: Int)
---
--- instance MakeChaosSeed Float where
---     makeChaosSeed = makeChaosSeed . decodeFloat
---
--- instance MakeChaosSeed Double where
---     makeChaosSeed = makeChaosSeed . decodeFloat
---
--- instance MakeChaosSeed Vec2 where
---     makeChaosSeed (Vec2 x y) = makeChaosSeed [x, y]
---
--- instance MakeChaosSeed Line where
---     makeChaosSeed (Line (Vec2 x1 y1) (Vec2 x2 y2))
---       = makeChaosSeed [makeChaosSeed x1, makeChaosSeed x2, makeChaosSeed y1, makeChaosSeed y2]
---
--- instance MakeChaosSeed a => MakeChaosSeed [a] where
---     makeChaosSeed xs = ChaosSeed (sum (zipWith (\(ChaosSeed s) n -> s^n) (map makeChaosSeed xs) [1..]))
---
--- instance MakeChaosSeed Polygon where
---     makeChaosSeed (Polygon corners) = makeChaosSeed corners
---
--- gaussianVecs :: ChaosSeed -> [Vec2]
--- gaussianVecs (ChaosSeed seed)
---   = let go (u1:rest)
---             | u1 <= 0 = go rest -- to avoid diverging on log(0)
---         go (u1:u2:rest)
---             = let root1 = sqrt (-2 * log u1)
---                   pi2u2 = 2 * pi * u2
---                   x = root1 * cos pi2u2
---                   y = root1 * sin pi2u2
---               in Vec2 x y : go rest
---         go _ = error "Can’t happen, input is infinite"
---     in go (randomRs (0, 1) (mkStdGen seed))
+instance ChaosSource Line where
+    perturb (Line start end) = perturb (start, end)
+
+instance ChaosSource a => ChaosSource [a] where
+    perturb = foldl' (\acc x -> perturb x `stir` acc) 0
+
+instance ChaosSource Polygon where
+    perturb (Polygon corners) = perturb corners
+
+instance ChaosSource vec => ChaosSource (Bezier vec) where
+    perturb (Bezier a b c d) = perturb (a,b,c,d)
+
+-- | Infinite list of normally distributed values.
+normals :: ChaosSource seed => seed -> [Double]
+normals seed
+  = let go (u1:rest)
+            | u1 <= 0 = go rest -- to avoid diverging on log(0)
+        go (u1:u2:rest)
+            = let root1 = sqrt (-2 * log u1)
+                  pi2u2 = 2 * pi * u2
+                  x = root1 * cos pi2u2
+                  y = root1 * sin pi2u2
+              in x : y : go rest
+        go _ = bugError "Can’t happen, input is infinite"
+    in go (R.randomRs (0, 1) (stdGen seed))
+
+-- | Infinite list of Gaussian distributed values.
+gaussian
+    :: ChaosSource seed
+    => Double -- ^ Mean
+    -> Double -- ^ Standard deviation
+    -> seed
+    -> [Double]
+gaussian mu sigma seed = [sigma*x + mu | x <- normals seed]
+
+vecPair :: ChaosSource seed => (seed -> [Double]) -> seed -> [Vec2]
+vecPair f seed = go (f seed)
+  where
+    go (x:y:rest) = Vec2 x y : go rest
+    go _ = bugError "Can’t happen, input is infinite"
+
+normalVecs :: ChaosSource seed => seed -> [Vec2]
+normalVecs = vecPair normals
+
+gaussianVecs :: ChaosSource seed => Double -> Double -> seed -> [Vec2]
+gaussianVecs mu sigma = vecPair (gaussian mu sigma)
