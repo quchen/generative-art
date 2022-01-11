@@ -14,7 +14,6 @@ import Data.Traversable (for)
 import Data.Maybe (maybeToList)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Debug.Trace (traceShow)
 
 
 data PoissonDiscProperties = PoissonDisc
@@ -92,10 +91,7 @@ nextCandidates v = do
 addSample :: Vec2 -> StateT PoissonDiscState IO ()
 addSample sample = do
     cell <- gridCell sample
-    --modify (\s -> s { grid = M.insert cell sample (grid s)})
-    modify (\s -> s { grid = M.alter (\x -> case x of
-        Just _ -> traceShow (sample, grid s) (Just sample)
-        Nothing -> Just sample) cell (grid s)})
+    modify (\s -> s { grid = M.insert cell sample (grid s)})
     modify (\s -> s { activeSamples = S.insert sample (activeSamples s) })
 
 retireSample :: Vec2 -> StateT PoissonDiscState IO ()
