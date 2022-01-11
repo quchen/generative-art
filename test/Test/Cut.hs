@@ -184,9 +184,21 @@ cutMissesPolygonTest = do
 -- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
 -- don’t want to delete them, but I also do not want unused function warnings.
 cornerCasesTests :: TestTree
-cornerCasesTests = testGroup "Corner cases [IGNORED]" (ignore $ cutThroughCornerTest : pathologicalCornerCutsTests)
+cornerCasesTests = testGroup "Corner cases [IGNORED]" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
   where
     ignore = const []
+
+zigzagTest :: TestTree
+zigzagTest = testCase "Zigzag" $ do
+    let scissors = Line (Vec2 0 25) (Vec2 50 25)
+        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 0, Vec2 25 50, Vec2 0 0]
+        cutResult = cutPolygon scissors polygon
+
+    renderAllFormats 150 90 "docs/geometry/cut/5_zigzag"
+        (polyCutDraw
+            (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
 
 cutThroughCornerTest :: TestTree
