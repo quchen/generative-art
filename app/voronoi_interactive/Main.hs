@@ -12,9 +12,10 @@ import qualified Graphics.Rendering.Cairo    as Cairo
 import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
-import Draw
-import Geometry
-import Voronoi
+import           Draw
+import           Geometry
+import           Sampling
+import           Voronoi
 
 main :: IO ()
 main = withSystemTempDirectory "voronoi-interactive" $ \tmpDir -> UI.startGUI UI.defaultConfig (setup tmpDir)
@@ -55,9 +56,15 @@ setup tmpDir window = do
     eAddPointsUniform <- do
         (eAddPoints, triggerAddPoints) <- liftIO newEvent
         on UI.click btnAddPointsUniform $ \() -> liftIO $ do
-            points <- uniformlyDistributedPoints gen w h 100
+            points <- poissonDisc PoissonDisc
+                { width = w
+                , height = w
+                , radius = 50
+                , k = 4
+                , .. }
             triggerAddPoints (\voronoi -> foldl' addPoint' voronoi points)
         pure eAddPoints
+
     let eAddPointByClicking = (\(x, y) -> flip addPoint' (Vec2 x y)) <$> UI.mousedown elemCanvas
         eReset = const initialState <$ UI.click btnReset
         eVoronoi = concatenate <$> unions [eAddPointsGaussian, eAddPointsUniform, eAddPointByClicking, eReset]
