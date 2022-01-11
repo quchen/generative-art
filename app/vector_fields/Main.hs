@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 import           Control.Applicative      (liftA2)
@@ -12,6 +13,7 @@ import Draw
 import Geometry
 import Graphics.Rendering.Cairo      (Render, liftIO)
 import Numerics.DifferentialEquation
+import Sampling
 
 
 picWidth, picHeight :: Num a => a
@@ -33,7 +35,12 @@ main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
         Cairo.paint
 
     gen <- liftIO create
-    startPoints <- uniformlyDistributedPoints gen 10000
+    startPoints <- liftIO $ transform (translate (Vec2 (-500) 0)) <$> poissonDisc PoissonDisc
+        { width = picWidth + 500
+        , height = picHeight
+        , radius = 18
+        , k = 4
+        , .. }
     thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
 
     for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> cairoScope $
