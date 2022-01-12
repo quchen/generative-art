@@ -104,7 +104,6 @@ import Text.Printf
 
 import Util
 
-import Debug.Trace
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
