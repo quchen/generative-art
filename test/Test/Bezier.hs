@@ -1,4 +1,4 @@
-module Test.ArcLengthParameterization (tests) where
+module Test.Bezier (tests) where
 
 
 
@@ -7,7 +7,6 @@ import Graphics.Rendering.Cairo as Cairo
 
 import Draw
 import Geometry as G
-import Geometry.ArcLengthParameterization
 
 import Test.Common
 import Test.Tasty
@@ -21,7 +20,7 @@ tests = testGroup "Arc length parameterization"
     ]
 
 singleCurveTest :: TestTree
-singleCurveTest = testCase "Single curve" (renderAllFormats 320 170 "docs/arc_length_parameterization/1_single_curve" (singleCurveRender 320 170))
+singleCurveTest = testCase "Single curve" (renderAllFormats 320 170 "docs/bezier/1_single_curve" (singleCurveRender 320 170))
 
 singleCurveRender :: Int -> Int -> Render ()
 singleCurveRender _w _h = do
