@@ -1,10 +1,17 @@
--- |
+-- | Bezier curves.
+--
 -- -- * References
 --
 -- * Moving Along a Curve with Specified Speed (2019)
 -- by David Eberly
 -- https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
-module Geometry.Bezier where
+module Geometry.Bezier (
+    Bezier(..)
+
+    -- * Subdividing Bezier curves
+    , bezierSubdivideT
+    , bezierSubdivideS
+) where
 
 import Data.List
 import Geometry.Core
