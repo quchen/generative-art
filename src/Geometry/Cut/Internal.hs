@@ -1,7 +1,5 @@
 -- | __INTERNAL MODULE__, contents may change arbitrarily
 
-{-# LANGUAGE MultiWayIf #-}
-
 module Geometry.Cut.Internal where
 
 
@@ -223,9 +221,9 @@ normalizeCuts scissors orientation cutLines =
         -- A cut through a vertex results in two entries, merge them into one cut.
         -- We can ignore the second cut point, it should be identical to x
         (LOO, (_, OOR) : rest) -> normalizedCutFor LOR x : go rest
-        (LOO, (_, OOL) : rest) -> normalizedCutFor LOL x : go rest
-        (ROO, (_, OOR) : rest) -> normalizedCutFor ROR x : go rest
         (ROO, (_, OOL) : rest) -> normalizedCutFor ROL x : go rest
+        (LOO, (_, OOL) : rest) -> Touching x : go rest
+        (ROO, (_, OOR) : rest) -> Touching x : go rest
         -- A cut along a line is more complicated: We ignore the cut in between
         -- that is completely along the line, and follow the line
         -- until we reach an edge that leads away from the cut.
@@ -250,8 +248,6 @@ normalizeCuts scissors orientation cutLines =
     normalizedCutFor ROL = case orientation of
         PolygonNegative -> Entering
         PolygonPositive -> Exiting
-    normalizedCutFor LOL = Touching
-    normalizedCutFor ROR = Touching
     normalizedCutFor other = bugError $ unlines
         [ "Can only normalize cuts that cross the line, found: " ++ show other
         , "Maybe mergeCutsThroughVertex should be applied?" ]
@@ -272,15 +268,14 @@ classifyCut :: Line -> CutLine -> Maybe (Vec2, CutType)
 classifyCut _ NoCut{} = Nothing
 classifyCut scissors (Cut l x r)
   = Just $ case (sideOfScissors scissors l, sideOfScissors scissors r) of
-        (LeftOfLine,     LeftOfLine)     -> (x, LOL)
         (LeftOfLine,     RightOfLine)    -> (x, LOR)
         (RightOfLine,    LeftOfLine)     -> (x, ROL)
-        (RightOfLine,    RightOfLine)    -> (x, ROR)
         (DirectlyOnLine, DirectlyOnLine) -> (x, OOO)
         (DirectlyOnLine, LeftOfLine)     -> (x, OOL)
         (DirectlyOnLine, RightOfLine)    -> (x, OOR)
         (LeftOfLine,     DirectlyOnLine) -> (x, LOO)
         (RightOfLine,    DirectlyOnLine) -> (x, ROO)
+        other -> bugError ("Unexpected cut that cannot be classified: " ++ show other)
 
 startPoint :: CutLine -> Vec2
 startPoint (NoCut p _) = p
@@ -312,5 +307,5 @@ data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
 -- | Nomenclature: Left/On/Right relative to scissors. LOR means that the cut is
 -- on the scissors, the edge leading to the cut comes from the left of it, and
 -- the outgoing edge extends to the right.
-data CutType = LOL | LOO | LOR | OOL | OOO | OOR | ROL | ROO | ROR
+data CutType = LOO | LOR | OOL | OOO | OOR | ROL | ROO
     deriving (Eq, Ord, Show)
