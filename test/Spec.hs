@@ -6,6 +6,7 @@ import Control.Exception
 import Data.Foldable
 import System.Process
 
+import qualified Test.ArcLengthParameterization
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
@@ -37,7 +38,8 @@ tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
-        [ Test.Billard.tests
+        [ Test.ArcLengthParameterization.tests
+        , Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Cut.tests
         , Test.DifferentialEquation.tests
