@@ -1,17 +1,21 @@
 -- | Bezier curves.
 --
--- -- * References
---
--- * Moving Along a Curve with Specified Speed (2019)
--- by David Eberly
--- https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
-module Geometry.Bezier (
+module Geometry.Bezier
+(
     Bezier(..)
 
-    -- * Subdividing Bezier curves
+    -- == Indexing
+    -- , bezierT
+    , bezierS
+
+    -- == Subdividing
     , bezierSubdivideT
     , bezierSubdivideS
-) where
+
+    -- * References
+    -- $references
+)
+where
 
 import Data.List
 import Geometry.Core
@@ -33,8 +37,7 @@ instance HasBoundingBox Bezier where
       where
 
         -- Alg idea: find the roots of the Bezier’s first derivative, collect
-        -- Points where x/y components are extremal.
-        -- Hastily written ugly code
+        -- points where x/y components are extremal. Hastily written ugly code
 
         extremalTs = filter (\t -> t >=0 && t <= 1) (extremalT bezier)
 
@@ -61,7 +64,7 @@ instance HasBoundingBox Bezier where
 -- which makes this curve easy to compute.
 bezierT
   :: Bezier
-  -> T Double -- ^ [0..1] = [start..end]
+  -> T Double -- ^ \[0..1] = [start..end]
   -> Vec2
 bezierT (Bezier a b c d) (T t)
   =      (1-t)^3     *. a
@@ -75,7 +78,7 @@ bezierT (Bezier a b c d) (T t)
 -- which makes this curve easy to compute.
 bezierT'
   :: Bezier
-  -> T Double -- ^ [0..1] = [start..end]
+  -> T Double -- ^ \[0..1] = [start..end]
   -> Vec2
 bezierT' (Bezier a b c d) (T t)
   =    (-3*(1-t)^2)    *. a
@@ -89,7 +92,7 @@ bezierT' (Bezier a b c d) (T t)
 -- which makes this curve easy to compute.
 bezierT''
   :: Bezier
-  -> T Double -- ^ [0..1] = [start..end]
+  -> T Double -- ^ \[0..1] = [start..end]
   -> Vec2
 bezierT'' (Bezier a b c d) (T t)
   =    (6-6*t)         *. a
@@ -168,8 +171,7 @@ bezierSubdivideS n bz = map bezier distances
 
     -- The step width should correlate with the length of the curve to get a decent
     -- RK estimator. This allows both large and tiny curves to be subdivided well.
-    -- Increasing this to from 2^10 to 2^16 has shown only tiny pixel movements
-    -- in my tests, so this seems to be a decent value.
+    -- Increasing this to beyond 2^10 shows only pixel-wide changes, if even.
     bezier = bezierS_ode bz (len / 2^10)
     Distance len = bezierLength (2^4) bz
 
@@ -190,15 +192,18 @@ bezierS_integral bz s = error "TODO"
           in tMin + s/approximateLength *(tMax-tMin)
 
 -- | Get the position on a Bezier curve as a fraction of its length, via solving a
--- differential equation. This is _much_ more expensive to compute than 'bezierT'.
+-- differential equation. This is /much/ more expensive to compute than 'bezierT'.
 --
 -- Multiple calls to this function use a cached lookup table, so that the expensive
 -- step has to be done only once here:
 --
 -- @
--- let s = bezierS_ode bezier 0.01
--- print [s (Distance d) | d <- [0, 0.1 .. 5]]
+-- let s = 'bezierS' bezier 0.01
+-- 'print' [s ('Distance' d) | d <- [0, 0.1 .. 5]]
 -- @
+bezierS :: Bezier -> Double -> Distance -> Vec2
+bezierS = bezierS_ode
+
 bezierS_ode
     :: Bezier
     -> Double   -- ^ Precision parameter (smaller is more precise but slower).
@@ -208,6 +213,7 @@ bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
     in \(Distance s) -> let t = s_to_t lut (S s)
                         in bezierT bz t
+
 
 
 
@@ -241,40 +247,59 @@ instance VectorSpace a => VectorSpace (T a) where
 -- 'T' is used for simple Bezier parametrization, 'S' for curve-length based.
 newtype S a = S a deriving (Eq, Ord, Show)
 
--- | Find t(s) from a LUT using binary search. Clips for out-of-range values.
-s_to_t :: V.Vector (S Double, T Double) -> S Double -> T Double
-s_to_t lut s
-    | V.length lut == 0    = error "s_to_t: empty lookup table"
-    | V.length lut == 1    = snd (V.head lut)
-    | s < fst (V.head lut) = snd (V.head lut)
-    | s > fst (V.last lut) = snd (V.last lut)
-s_to_t lut searchS
-  = let middleIx = V.length lut `div` 2
-        (lutSmaller, (pivotS, pivotT), lutGreater) = divideOnIndex middleIx lut
-    in case compare pivotS searchS of
-        LT -> s_to_t lutGreater searchS
-        EQ -> pivotT
-        GT -> s_to_t lutSmaller searchS
+instance Num a => Num (S a) where
+    S a + S b = S (a+b)
+    S a - S b = S (a-b)
+    S a * S b = S (a*b)
+    abs (S a) = S (abs a)
+    signum (S a) = S (signum a)
+    negate (S a) = S (negate a)
+    fromInteger i = S (fromInteger i)
 
--- | Split a 'V.Vector' at an index into the slice before, the value at the index, and the slice after.
---
--- >>> divideOnIndex 0 (V.fromList [0..10])
--- ([],0,[1,2,3,4,5,6,7,8,9,10])
---
--- divideOnIndex 3 (V.fromList [0..10])
--- ([0,1,2],3,[4,5,6,7,8,9,10])
---
--- divideOnIndex 10 (V.fromList [0..10])
--- ([0,1,2,3,4,5,6,7,8,9],10, [])
-divideOnIndex :: Int -> V.Vector a -> (V.Vector a, a, V.Vector a)
-divideOnIndex ix vec
-    | ix >= V.length vec = error ("divideOnIndex: index out of bounds. " ++ "i = " ++ show ix ++ ", length = " ++ show (V.length vec))
-divideOnIndex ix vec
-  = let (before, after') = V.splitAt ix vec
-        Just (pivot, after) = V.uncons after'
-    in (before, pivot, after)
+-- | Find t(s) from a LUT using binary search, interpolating linearly around the
+-- search result. Clips for out-of-range values.
+s_to_t :: V.Vector (S Double, T Double) -> S Double -> T Double
+s_to_t lut needle = interpolate (search 0 (V.length lut))
+  where
+    -- Binary search between lo and hi
+    search lo hi
+        | lo >= mid = mid
+        | hi <= mid = mid
+        | otherwise
+          = let (pivotS, _) = lut V.! mid
+            in case compare pivotS needle of
+                LT -> search mid hi
+                EQ -> mid
+                GT -> search lo mid
+      where
+        mid = (hi+lo) `div` 2
+
+    -- Look at left/right neighbours. If they’re there and the needle is between it
+    -- and the found pivot index, then linearly interpolate the result value
+    -- between them.
+    interpolate pivot = case (lut V.!? (pivot-1), lut V.! pivot, lut V.!? (pivot+1)) of
+        -- Interpolate between pivot and left neighbour?
+        (Just (leftS, leftT), (pivotS, pivotT), _)
+            | between (leftS, pivotS) needle -> linearInterpolate (leftS, pivotS) (leftT, pivotT) needle
+        -- Interpolate between pivot and right neighbour?
+        (_, (pivotS, pivotT), Just (rightS, rightT))
+            | between (pivotS, rightS) needle -> linearInterpolate (pivotS, rightS) (pivotT, rightT) needle
+        -- Fallback: don’t interpolate
+        (_, (_, pivotT), _) -> pivotT
+
+    -- Linearly interpolate the interval [a,b] to [x,y] and get the point t
+    linearInterpolate :: (S Double, S Double) -> (T Double, T Double) -> S Double -> T Double
+    linearInterpolate (S a, S b) (T x, T y) (S s)
+        = T (x + (y-x)/(b-a) * (s-a))
+
+    between :: Ord a => (a, a) -> a -> Bool
+    between (a,b) x = min a b < x && x < max a b
+
 
 -- | S⇆T lookup table for a Bezier curve
+--
+-- We do not explicitly add the end point, so too big of a step width will
+-- overshoot the end and be cut off. This can be remedied by a large step size ;-)
 s_to_t_lut_ode
     :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
@@ -289,3 +314,9 @@ s_to_t_lut_ode bz ds = sol_to_vec sol
 
     t0 = T 0
     s0 = 0
+
+-- $references
+--
+-- * Moving Along a Curve with Specified Speed (2019)
+-- by David Eberly
+-- https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf

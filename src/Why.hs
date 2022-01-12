@@ -4,6 +4,7 @@ module Why where
 
 
 import Data.Ratio
+import qualified Data.Vector as V
 
 
 
@@ -45,3 +46,21 @@ findRoot
     -> (Double -> Double) -- ^ f'
     -> Double             -- ^ Root approximation after @n@ steps
 findRoot n t0 f f' = iterate (\t -> newtonStep t f f') t0 !! n
+
+-- | Split a 'V.Vector' at an index into the slice before, the value at the index, and the slice after.
+--
+-- >>> divideOnIndex 0 (V.fromList [0..10])
+-- ([],0,[1,2,3,4,5,6,7,8,9,10])
+--
+-- divideOnIndex 3 (V.fromList [0..10])
+-- ([0,1,2],3,[4,5,6,7,8,9,10])
+--
+-- divideOnIndex 10 (V.fromList [0..10])
+-- ([0,1,2,3,4,5,6,7,8,9],10, [])
+divideOnIndex :: Int -> V.Vector a -> (V.Vector a, a, V.Vector a)
+divideOnIndex ix vec
+    | ix >= V.length vec = error ("divideOnIndex: index out of bounds. " ++ "i = " ++ show ix ++ ", length = " ++ show (V.length vec))
+divideOnIndex ix vec
+  = let (before, after') = V.splitAt ix vec
+        Just (pivot, after) = V.uncons after'
+    in (before, pivot, after)
