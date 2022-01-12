@@ -29,6 +29,7 @@ module Geometry.Core (
     , distanceFromLine
     , LLIntersection(..)
     , intersectionLL
+    , intersectionPoint
 
     -- ** Polygons
     , Polygon(..)
@@ -103,6 +104,7 @@ import Text.Printf
 
 import Util
 
+import Debug.Trace
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
@@ -556,55 +558,86 @@ bugError :: String -> a
 bugError msg = errorWithoutStackTrace (msg ++ "\nThis should never happen! Please report it as a bug.")
 
 data LLIntersection
-    = IntersectionReal
+    = IntersectionReal Vec2
         -- ^ Two lines intersect fully.
 
-    | IntersectionVirtualInsideL
+    | IntersectionVirtualInsideL Vec2
         -- ^ The intersection is in the left argument (of 'intersectionLL')
         -- only, and only on the infinite continuation of the right argument.
 
-    | IntersectionVirtualInsideR
+    | IntersectionVirtualInsideR Vec2
         -- ^ dito, but the other way round.
 
-    | IntersectionVirtual
+    | IntersectionVirtual Vec2
         -- ^ The intersection lies in the infinite continuations of both lines.
 
+    | Parallel
+        -- ^ Lines are parallel
+
+    | Collinear (Maybe Line)
+        -- ^ Lines are on the same line, and maybe even overlap.
+
     deriving (Eq, Ord, Show)
+
+intersectionPoint :: LLIntersection -> Maybe Vec2
+intersectionPoint (IntersectionReal v)           = Just v
+intersectionPoint (IntersectionVirtualInsideL v) = Just v
+intersectionPoint (IntersectionVirtualInsideR v) = Just v
+intersectionPoint (IntersectionVirtual v)        = Just v
+intersectionPoint _                              = Nothing
 
 -- | Calculate the intersection of two lines.
 --
 -- Returns the point of the intersection, and whether it is inside both, one, or
 -- none of the provided finite line segments.
-intersectionLL :: Line -> Line -> Maybe (Vec2, LLIntersection)
+intersectionLL :: Line -> Line -> LLIntersection
 intersectionLL lineL lineR
-    | discriminant == 0 = Nothing -- parallel or collinear lines
-    | otherwise         = Just (intersectionPoint, intersectionType)
+    = intersectionType
   where
-    intersectionType = case (intersectionInsideL, intersectionInsideR) of
-        (True,  True)  -> IntersectionReal
-        (True,  False) -> IntersectionVirtualInsideL
-        (False, True)  -> IntersectionVirtualInsideR
-        (False, False) -> IntersectionVirtual
+    intersectionType
+        | discriminant == 0 && det (v1 -. v2) (v1 -. v3) /= 0
+          = Parallel
+        | discriminant == 0
+          = Collinear $ case fmap forwardness [v2, v3, v4] of
+            [f2, f3, f4] | f3 >= f2 && f4 >= f2 -> Nothing
+                         | f3 <= 0  && f4 <= 0  -> Nothing
+                         | f3 <= 0  && f4 >= f2 -> Just lineL
+                         | f4 <= 0  && f3 >= f2 -> Just lineL
+                         | f3 <= 0              -> Just (Line v1 v4)
+                         | f4 <= 0              -> Just (Line v1 v3)
+                         | f3 >= f2             -> Just (Line v4 v2)
+                         | f4 >= f2             -> Just (Line v3 v2)
+                         | f4 >= f3             -> Just (Line v3 v4)
+                         | otherwise            -> Just (Line v4 v3)
+        | otherwise
+          = case (intersectionInsideL, intersectionInsideR) of
+            (True,  True)  -> IntersectionReal intersectionPoint
+            (True,  False) -> IntersectionVirtualInsideL intersectionPoint
+            (False, True)  -> IntersectionVirtualInsideR intersectionPoint
+            (False, False) -> IntersectionVirtual intersectionPoint
 
     -- Calculation copied straight off of Wikipedia, then converted Latex to
     -- Haskell using bulk editing.
     --
     -- https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 
-    Line v1@(Vec2 x1 y1) v2@(Vec2 x2 y2) = lineL
-    Line v3@(Vec2 x3 y3) v4@(Vec2 x4 y4) = lineR
+    Line v1 v2 = lineL
+    Line v3 v4 = lineR
 
     discriminant = det (v1 -. v2) (v3 -. v4)
 
-    intersectionPoint = Vec2
-        ( (det v1 v2 * (x3-x4) - (x1-x2) * det v3 v4) / discriminant )
-        ( (det v1 v2 * (y3-y4) - (y1-y2) * det v3 v4) / discriminant )
+    intersectionPoint = (det v1 v2 *. (v3 -. v4) -. det v3 v4 *. (v1 -. v2)) /. discriminant
 
-    t = det (v1 -. v3) (v3 -. v4) / det (v1 -. v2) (v3 -. v4)
-    intersectionInsideL = t >= 0 && t <= 1
+    intersectionInsideL = sideOfLine lineR v1 /= sideOfLine lineR v2 || sideOfLine lineR v1 == EQ || sideOfLine lineR v2 == EQ
+    intersectionInsideR = sideOfLine lineL v3 /= sideOfLine lineL v4 || sideOfLine lineL v3 == EQ || sideOfLine lineL v4 == EQ
 
-    u = - det (v1 -. v2) (v1 -. v3) / det (v1 -. v2) (v3 -. v4)
-    intersectionInsideR = u >= 0 && u <= 1
+    sideOfLine :: Line -> Vec2 -> Ordering
+    sideOfLine (Line u v) p = compare (det (v -. u) (p -. u)) 0
+
+    forwardness :: Vec2 -> Double
+    forwardness v = dotProduct
+        (direction lineL)
+        (direction (Line v1 v))
 
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
@@ -674,7 +707,7 @@ countEdgeTraversals p edges = length intersections
 
     intersections = filter (\edge ->
         case intersectionLL testRay edge of
-            Just (_, IntersectionReal) -> True
+            IntersectionReal _ -> True
             _other -> False)
         edges
 
@@ -723,7 +756,7 @@ validatePolygon = \polygon -> do
                          -- , let Line _e21 e22 = edge2
                          -- -- , e12 /= e21
                          -- , e11 /= e22
-                         , Just (_, IntersectionReal) <- [intersectionLL edge1 edge2]
+                         , IntersectionReal _ <- [intersectionLL edge1 edge2]
                          ]
 
 -- | Average of polygon vertices
@@ -817,12 +850,14 @@ reflection
             -- ray with the mirror. The reflected ray is symmetric with respect
             -- to the incoming ray (in terms of length, distance from mirror,
             -- etc.), but has reversed direction (like real light).
-reflection ray mirror = case intersectionLL ray mirror of
-    Nothing -> Nothing
-    Just (iPoint, iType) -> Just (lineReverse ray', iPoint, iType)
-      where
-        mirrorAxis = perpendicularLineThrough iPoint mirror
-        ray' = transform (mirrorAlong mirrorAxis) ray
+reflection ray mirror
+  = let iType = intersectionLL ray mirror
+    in  case intersectionPoint iType of
+        Nothing     -> Nothing
+        Just iPoint -> Just (lineReverse ray', iPoint, iType)
+          where
+            mirrorAxis = perpendicularLineThrough iPoint mirror
+            ray' = transform (mirrorAlong mirrorAxis) ray
 
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.
@@ -845,9 +880,9 @@ billardProcess edges = go (const True)
                 edge <- edges
                 (Line _ reflectionEnd, incidentPoint, ty) <- maybeToList (reflection ballVec edge)
                 guard $ case ty of
-                    IntersectionReal           -> True
-                    IntersectionVirtualInsideR -> True
-                    _otherwise                 -> False
+                    IntersectionReal _           -> True
+                    IntersectionVirtualInsideR _ -> True
+                    _otherwise                   -> False
                 guard (incidentPoint `liesAheadOf` ballVec)
                 guard (considerEdge edge)
                 pure (edge, Line incidentPoint reflectionEnd)

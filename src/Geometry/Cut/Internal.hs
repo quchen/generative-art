@@ -14,24 +14,22 @@ import           Data.Ord
 import qualified Data.Set   as S
 
 import Geometry.Core
+import Debug.Trace
 
-
+-- traceShowId = id
+-- traceShow = flip const
 
 -- | Cut a finite piece of paper in one or two parts with an infinite line
 cutLine :: Line -> Line -> CutLine
-cutLine scissors paper = case intersectionLL scissors paper of
-    Just (p, IntersectionReal)           -> cut p
-    Just (p, IntersectionVirtualInsideR) -> cut p
-    _otherwise                           -> noCut
+cutLine scissors paper = case traceShowId $ intersectionLL scissors paper of
+    IntersectionReal p           -> cut p
+    IntersectionVirtualInsideR p -> cut p
+    Collinear _                  -> cut paperStart -- any point is good enough
+    _otherwise                   -> noCut
   where
     Line paperStart paperEnd = paper
     cut p = Cut paperStart p paperEnd
     noCut = NoCut paperStart paperEnd
-
--- | Used in the implementation of a multimap where each entry can have one or
--- two values.
-data OneOrTwo a = One a | Two a a
-    deriving (Eq, Ord, Show)
 
 -- | Cut a polygon in multiple pieces with a line.
 --
@@ -49,6 +47,7 @@ cutPolygon scissors polygon =
     -- our corner graph, going from the start of the cut to the end. We can then
     -- get all the pieces of the cut by looking for all the cycles in that graph.
     reconstructPolygons
+        (polygonOrientation polygon)
         (createEdgeGraph scissors (polygonOrientation polygon)
             (cutAll scissors
                 (polygonEdges polygon)))
@@ -65,53 +64,54 @@ createEdgeGraph scissors orientation allCuts = buildGraph (addCutEdges ++ addOri
     addOriginalPolygon = polygonEdgeGraph allCuts
 
 buildGraph :: [CutEdgeGraph -> CutEdgeGraph] -> CutEdgeGraph
-buildGraph = foldl' (\graph insertEdge -> insertEdge graph) (CutEdgeGraph mempty)
+buildGraph = traceShowId . foldl' (\graph insertEdge -> insertEdge graph) (CutEdgeGraph mempty)
 
 newCutsEdgeGraph :: Line -> PolygonOrientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
-newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
+newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go (traceShowId cutPointsSorted)
   where
-    go ((p, pTy) : (q, qTy) : rest)
-      = let pIsSource = isSourceType orientation pTy
-            qIsSource = isSourceType orientation qTy
-            pIsTarget = isTargetType orientation pTy
-            qIsTarget = isTargetType orientation qTy
-        in if
-            -- Connect to source+target vertex: continue from that vertex
-            | pIsSource && qIsTarget && qIsSource -> (p --> q) . (q --> p) : go ((q, qTy) : rest)
-            -- Happy path: connect to target-only vertex: consume both vertices, continue after them
-            | pIsSource && qIsTarget && not qIsSource -> (p --> q) : (q --> p) : go rest
-            -- Skip non-target vertices
-            | pIsSource && not qIsTarget -> go ((p, pTy) : rest)
-            -- Only use the last source in a chain of them
-            | pIsSource && qIsSource -> go ((q, qTy) : rest)
-            | pIsTarget -> bugError "Target without source"
-            | otherwise -> bugError (unlines
-                [ "Bad vertex!"
-                , "       (type, isSource, isTarget)"
-                , "    p: " ++ show (pTy, pIsSource, pIsTarget)
-                , "    q: " ++ show (qTy, qIsSource, qIsTarget)
-                ])
-    go (_:_) = bugError "Unpaired cut point"
+    go :: [NormalizedCut] -> [CutEdgeGraph -> CutEdgeGraph]
     go [] = []
+    -- Default path: Scissors enter and exit again
+    go (Entering p : Exiting q : rest)
+      = (p --> q) : (q --> p) : go rest
+    -- Touching the polygon along a line, and exiting it afterwards:
+    -- Looks like we did enter along the line.
+    go (AlongEdge p q : Exiting r : rest)
+      = go (Entering q : Exiting r : rest)
+    -- Touching the polygon, but not entering it: Just ignore
+    go (Touching p : rest)
+      = go rest
+    -- Touching the polygon along two successive lines: Merge them
+    -- (This should already be merged, but doesn't harm here)
+    go (AlongEdge p q : AlongEdge r s : rest)
+      = go (AlongEdge p s : rest)
+    -- Touching a point while inside the polygon:
+    -- Treat it like entering, exiting, and re-entering
+    go (Entering p : Touching q : rest)
+      = go (Entering p : Exiting q : Entering q : rest)
+    -- Same here, but we cannot re-enter, need to first follow along the cut
+    go (Entering p : AlongEdge q r : rest)
+      = go (Entering p : Exiting q : AlongEdge q r : rest)
+    go bad
+      = bugError $ unlines
+          [ "Expecting patterns to be exhaustive, but apparently it's not."
+          , show bad ]
 
-    cutPointsSorted :: [(Vec2, CutType)]
-    cutPointsSorted = sortOn (scissorCoordinate . fst) (M.toList recordedNeighbours)
-
-    _cuts0 : cuts1 : cuts2 : _ = iterate tail (cycle cuts)
-
-    recordedNeighbours :: Map Vec2 CutType
-    recordedNeighbours
-      = M.fromList (catMaybes (zipWith3 (classifyCut scissors)
-                                        cuts
-                                        cuts1
-                                        cuts2 ))
+    cutPointsSorted :: [NormalizedCut]
+    cutPointsSorted = sortOn scissorCoordinate (normalizeCuts scissors orientation cuts)
 
     -- How far ahead/behind the start of the line is the point?
     --
     -- In mathematical terms, this yields the coordinate of a point in the
     -- 1-dimensional vector space that is the scissors line.
-    scissorCoordinate :: Vec2 -> Double
-    scissorCoordinate p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
+    scissorCoordinate :: NormalizedCut -> Double
+    scissorCoordinate nc = case nc of
+        Entering x -> positionAlongScissor x
+        Exiting x -> positionAlongScissor x
+        Touching x -> positionAlongScissor x
+        AlongEdge x y -> min (positionAlongScissor x) (positionAlongScissor y)
+      where
+        positionAlongScissor p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
 
 -- A polygon can be described by an adjacency list of corners to the next
 -- corner. A cut simply introduces two new corners (of polygons to be) that
@@ -126,12 +126,15 @@ polygonEdgeGraph cuts = case cuts of
 (-->) :: Vec2 -> Vec2 -> CutEdgeGraph -> CutEdgeGraph
 (k --> v) edgeGraph@(CutEdgeGraph edgeMap) = case M.lookup k edgeMap of
     _ | k == v    -> edgeGraph
-    Nothing       -> CutEdgeGraph (M.insert k (One v) edgeMap)
-    Just (One v') -> CutEdgeGraph (M.insert k (Two v v') edgeMap)
-    Just Two{}    -> bugError "Third edge in cutting algorithm"
+    Nothing       -> CutEdgeGraph (M.insert k [v] edgeMap)
+    Just vs -> CutEdgeGraph (M.insert k (v:vs) edgeMap)
 
-newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 (OneOrTwo Vec2))
-    deriving (Eq, Ord, Show)
+newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 [Vec2])
+    deriving (Eq, Ord)
+
+instance Show CutEdgeGraph where
+    show (CutEdgeGraph m) = unlines
+        ("CutEdgeGraph" : (("    " ++) . (\(k, v) -> show k ++ " -> " ++ show v) <$> M.toList m))
 
 -- Given a list of corners that point to other corners, we can reconstruct
 -- all the polygons described by them by finding the smallest cycles, i.e.
@@ -140,80 +143,132 @@ newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 (OneOrTwo Vec2))
 -- Starting at an arbitrary point, we can extract a single polygon by
 -- following such a minimal cycle; iterating this algorithm until the entire
 -- map has been consumed yields all the polygons.
-reconstructPolygons :: CutEdgeGraph -> [Polygon]
-reconstructPolygons edgeGraph@(CutEdgeGraph graphMap) = case M.lookupMin graphMap of
+reconstructPolygons :: PolygonOrientation -> CutEdgeGraph -> [Polygon]
+reconstructPolygons orientation edgeGraph@(CutEdgeGraph graphMap) = case M.lookupMin graphMap of
     Nothing -> []
-    Just (edgeStart, _end) ->
-        let (poly, edgeGraph') = extractSinglePolygon edgeStart edgeGraph
-        in poly : reconstructPolygons edgeGraph'
+    Just (edgeStart, _end) -> case poly of
+        Polygon (_:_) -> traceShowId poly : reconstructPolygons orientation edgeGraph'
+        _otherwise -> bugError $ unlines
+            [ "Empty Polygon constructed from edge graph."
+            , "This means that the edge graph cannot be deconstructed further:"
+            , show edgeGraph ]
+      where (poly, edgeGraph') = extractSinglePolygon orientation edgeStart edgeGraph
 
 -- | Extract a single polygon from an edge map by finding a minimal circular
 -- connection.
 extractSinglePolygon
-    :: Vec2                    -- ^ Starting point
+    :: PolygonOrientation
+    -> Vec2                    -- ^ Starting point
     -> CutEdgeGraph            -- ^ Edge map
     -> (Polygon, CutEdgeGraph) -- ^ Extracted polygon and remaining edge map
-extractSinglePolygon = go Nothing S.empty
+extractSinglePolygon orientation = go Nothing S.empty
   where
     go lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap)
       = case M.lookup pivot edgeMap of
             _ | S.member pivot visited -> (Polygon [], edgeGraph)
             Nothing -> (Polygon [], edgeGraph)
-            Just (One next) ->
+            Just [next] ->
                 let (Polygon rest, edgeGraph') = go
                         (Just pivot)
                         (S.insert pivot visited)
                         next
                         (CutEdgeGraph (M.delete pivot edgeMap))
                 in (Polygon (pivot:rest), edgeGraph')
-            Just (Two next1 next2) ->
+            Just (toVertices@(next1:_)) ->
                 let useAsNext = case lastPivot of
                         Nothing -> next1 -- arbitrary starting point WLOG
                         Just from -> let forwardness end = dotProduct
                                              (direction (Line from pivot))
                                              (direction (Line pivot end))
-                                     in minimumBy (comparing forwardness)
-                                                  (filter (/= from) [next1, next2])
-                    unusedNext | useAsNext == next1 = next2
-                               | otherwise = next1
+                                         leftness end = angleOfLine (Line pivot from) -. angleOfLine (Line pivot end)
+                                         rightness end = negateV (leftness end)
+                                         pickNextVertex = minimumBy $ comparing $ case orientation of
+                                             PolygonPositive -> leftness
+                                             PolygonNegative -> rightness
+                                     in pickNextVertex (filter (/= from) toVertices)
+                    otherVertices = toVertices \\ [useAsNext]
                     (Polygon rest, edgeGraph') = go
                         (Just pivot)
                         (S.insert pivot visited)
                         useAsNext
-                        (CutEdgeGraph (M.insert pivot (One unusedNext) edgeMap))
+                        (CutEdgeGraph (M.insert pivot otherVertices edgeMap))
                 in (Polygon (pivot:rest), edgeGraph')
 
-classifyCut :: Line -> CutLine -> CutLine -> CutLine -> Maybe (Vec2, CutType)
-classifyCut _ _ NoCut{} _ = Nothing
--- OOO
-classifyCut _ Cut{} (Cut _ x _) Cut{} = Just (x, OOO)
--- OOX
-classifyCut scissors Cut{} (Cut _ x r) NoCut{}
-  = case sideOfScissors scissors r of
-        LeftOfLine     -> Just (x, OOL)
-        RightOfLine    -> Just (x, OOR)
-        DirectlyOnLine -> Just (x, OOO)
--- XOO
-classifyCut scissors NoCut{} (Cut l x _) Cut{}
-  = case sideOfScissors scissors l of
-        LeftOfLine     -> Just (x, LOO)
-        RightOfLine    -> Just (x, ROO)
-        DirectlyOnLine -> Just (x, OOO)
--- XOY
-classifyCut scissors NoCut{} (Cut l x r) NoCut{}
-  = case (sideOfScissors scissors l, sideOfScissors scissors r) of
-        (LeftOfLine,     LeftOfLine)     -> Just (x, LOL)
-        (LeftOfLine,     RightOfLine)    -> Just (x, LOR)
-        (RightOfLine,    LeftOfLine)     -> Just (x, ROL)
-        (RightOfLine,    RightOfLine)    -> Just (x, ROR)
+normalizeCuts :: Line -> PolygonOrientation -> [CutLine] -> [NormalizedCut]
+normalizeCuts _ _ [] = []
+normalizeCuts scissors orientation cuts =
+    go (rotateToEntryPoint (mapMaybe (classifyCut scissors) cuts))
+  where
+    go :: [(Vec2, CutType)] -> [NormalizedCut]
+    go [] = []
+    go ((x, ty) : cuts)
+        -- regular cuts, just collect them
+        | ty `elem` [LOR, ROL] = normalizedCutFor ty x : go cuts
+        -- cuts through vertex need to be merged with the next cut
+        -- they come in pairs, or even more (for cuts along a line)
+        | ty `elem` [LOO, ROO] = mergeCutsThroughVertex (x, ty) cuts
+        -- Everything else is an error (OOX: this should be prevented by rotateToEntryPoint/mergeCutsThroughVertex)
+        | otherwise = bugError "TODO"
 
-        -- The »directly on line« are numerical corner case quirks, but we
-        -- include them to please the exhaustiveness checker.
-        (DirectlyOnLine, DirectlyOnLine) -> Just (x, OOO)
-        (DirectlyOnLine, LeftOfLine)     -> Just (x, OOL)
-        (DirectlyOnLine, RightOfLine)    -> Just (x, OOR)
-        (LeftOfLine,     DirectlyOnLine) -> Just (x, LOO)
-        (RightOfLine,    DirectlyOnLine) -> Just (x, ROO)
+    mergeCutsThroughVertex :: (Vec2, CutType) -> [(Vec2, CutType)] -> [NormalizedCut]
+    mergeCutsThroughVertex (x, ty) cuts = case traceShow (x, ty, cuts) (ty, cuts) of
+        -- A cut through a vertex results in two entries, merge them into one cut.
+        -- We can ignore the second cut point, it should be identical to x
+        (LOO, (_, OOR) : rest) -> normalizedCutFor LOR x : go rest
+        (LOO, (_, OOL) : rest) -> normalizedCutFor LOL x : go rest
+        (ROO, (_, OOR) : rest) -> normalizedCutFor ROR x : go rest
+        (ROO, (_, OOL) : rest) -> normalizedCutFor ROL x : go rest
+        -- A cut along a line is more complicated: We ignore the cut in between
+        -- that is completely along the line, and follow the line
+        -- until we reach an edge that leads away from the cut.
+        (_, (_, OOO) : rest) -> followCutAlongLine x rest
+
+    followCutAlongLine :: Vec2 -> [(Vec2, CutType)] -> [NormalizedCut]
+    followCutAlongLine x ((y, yTy) : rest) = case yTy of
+        -- Another cut along the line, skip again
+        OOO -> followCutAlongLine x rest
+        -- Found the edge that leads away from the cut line
+        OOL -> AlongEdge x y : go rest
+        OOR -> AlongEdge x y : go rest
+        -- Either the function was called with the wrong input, or the polygon was inconsistent
+        _ -> bugError "TODO"
+
+    normalizedCutFor :: CutType -> Vec2 -> NormalizedCut
+    normalizedCutFor LOR = case orientation of
+        PolygonPositive -> Entering
+        PolygonNegative -> Exiting
+    normalizedCutFor ROL = case orientation of
+        PolygonNegative -> Entering
+        PolygonPositive -> Exiting
+    normalizedCutFor LOL = Touching
+    normalizedCutFor ROR = Touching
+    normalizedCutFor _   = bugError "TODO"
+
+    rotateToEntryPoint [] = []
+    rotateToEntryPoint (c@(v, ty) : cs)
+        | ty `elem` [LOR, ROL, LOO, ROO] = c:cs
+        | otherwise = rotateToEntryPoint (cs ++ [c])
+
+data NormalizedCut
+    = Entering Vec2
+    | Exiting Vec2
+    | Touching Vec2
+    | AlongEdge Vec2 Vec2
+    deriving (Show)
+
+classifyCut :: Line -> CutLine -> Maybe (Vec2, CutType)
+classifyCut _ NoCut{} = Nothing
+classifyCut scissors (Cut l x r)
+  = Just $ case traceShowId (sideOfScissors scissors l, sideOfScissors scissors r) of
+        (LeftOfLine,     LeftOfLine)     -> (x, LOL)
+        (LeftOfLine,     RightOfLine)    -> (x, LOR)
+        (RightOfLine,    LeftOfLine)     -> (x, ROL)
+        (RightOfLine,    RightOfLine)    -> (x, ROR)
+        (DirectlyOnLine, DirectlyOnLine) -> (x, OOO)
+        (DirectlyOnLine, LeftOfLine)     -> (x, OOL)
+        (DirectlyOnLine, RightOfLine)    -> (x, OOR)
+        (LeftOfLine,     DirectlyOnLine) -> (x, LOO)
+        (RightOfLine,    DirectlyOnLine) -> (x, ROO)
 
 startPoint :: CutLine -> Vec2
 startPoint (NoCut p _) = p
@@ -226,7 +281,7 @@ endPoint (Cut _ _ q) = q
 sideOfScissors :: Line -> Vec2 -> SideOfLine
 sideOfScissors scissors@(Line scissorsStart _) p
   = let scissorsCrossPoint = det (vectorOf scissors) (vectorOf (Line scissorsStart p))
-    in case compare scissorsCrossPoint 0 of
+    in traceShowId $ case compare scissorsCrossPoint 0 of
         LT -> RightOfLine
         EQ -> DirectlyOnLine
         GT -> LeftOfLine
@@ -247,10 +302,3 @@ data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
 -- the outgoing edge extends to the right.
 data CutType = LOL | LOO | LOR | OOL | OOO | OOR | ROL | ROO | ROR
     deriving (Eq, Ord, Show)
-
-isSourceType, isTargetType :: PolygonOrientation -> CutType -> Bool
-isSourceType PolygonPositive x = elem x [LOL, LOO, LOR, OOR, ROR]
-isSourceType PolygonNegative x = isTargetType PolygonPositive x
-
-isTargetType PolygonPositive x = elem x [LOL, OOL, ROL, ROO, ROR]
-isTargetType PolygonNegative x = isSourceType PolygonPositive x
