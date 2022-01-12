@@ -165,8 +165,13 @@ bezierSubdivideT n bz = map (bezierT bz) points
 bezierSubdivideS :: Int -> Bezier -> [Vec2]
 bezierSubdivideS n bz = map bezier distances
   where
-    bezier = bezierS_ode bz 0.01
-    Distance len = bezierLength 16 bz
+
+    -- The step width should correlate with the length of the curve to get a decent
+    -- RK estimator. This allows both large and tiny curves to be subdivided well.
+    -- Increasing this to from 2^10 to 2^16 has shown only tiny pixel movements
+    -- in my tests, so this seems to be a decent value.
+    bezier = bezierS_ode bz (len / 2^10)
+    Distance len = bezierLength (2^4) bz
 
     distances :: [Distance]
     distances = [Distance (fromIntegral i * len/fromIntegral (n-1)) | i <- [0..n-1]]
