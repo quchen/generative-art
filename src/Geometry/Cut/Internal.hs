@@ -257,7 +257,7 @@ normalizeCuts scissors orientation cutLines =
         , "Maybe mergeCutsThroughVertex should be applied?" ]
 
     rotateToEntryPoint [] = []
-    rotateToEntryPoint (c@(v, ty) : cs)
+    rotateToEntryPoint (c@(_, ty) : cs)
         | ty `elem` [LOR, ROL, LOO, ROO] = c:cs
         | otherwise = rotateToEntryPoint (cs ++ [c])
 

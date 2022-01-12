@@ -598,22 +598,22 @@ intersectionLL lineL lineR
           = Parallel
         | discriminant == 0
           = Collinear $ case fmap forwardness [v2, v3, v4] of
-            [f2, f3, f4] | f3 >= f2 && f4 >= f2 -> Nothing
-                         | f3 <= 0  && f4 <= 0  -> Nothing
-                         | f3 <= 0  && f4 >= f2 -> Just lineL
-                         | f4 <= 0  && f3 >= f2 -> Just lineL
-                         | f3 <= 0              -> Just (Line v1 v4)
-                         | f4 <= 0              -> Just (Line v1 v3)
-                         | f3 >= f2             -> Just (Line v4 v2)
-                         | f4 >= f2             -> Just (Line v3 v2)
-                         | f4 >= f3             -> Just (Line v3 v4)
-                         | otherwise            -> Just (Line v4 v3)
+            ~[f2, f3, f4] | f3 >= f2 && f4 >= f2 -> Nothing
+                          | f3 <= 0  && f4 <= 0  -> Nothing
+                          | f3 <= 0  && f4 >= f2 -> Just lineL
+                          | f4 <= 0  && f3 >= f2 -> Just lineL
+                          | f3 <= 0              -> Just (Line v1 v4)
+                          | f4 <= 0              -> Just (Line v1 v3)
+                          | f3 >= f2             -> Just (Line v4 v2)
+                          | f4 >= f2             -> Just (Line v3 v2)
+                          | f4 >= f3             -> Just (Line v3 v4)
+                          | otherwise            -> Just (Line v4 v3)
         | otherwise
           = case (intersectionInsideL, intersectionInsideR) of
-            (True,  True)  -> IntersectionReal intersectionPoint
-            (True,  False) -> IntersectionVirtualInsideL intersectionPoint
-            (False, True)  -> IntersectionVirtualInsideR intersectionPoint
-            (False, False) -> IntersectionVirtual intersectionPoint
+            (True,  True)  -> IntersectionReal iPoint
+            (True,  False) -> IntersectionVirtualInsideL iPoint
+            (False, True)  -> IntersectionVirtualInsideR iPoint
+            (False, False) -> IntersectionVirtual iPoint
 
     -- Calculation copied straight off of Wikipedia, then converted Latex to
     -- Haskell using bulk editing.
@@ -625,7 +625,7 @@ intersectionLL lineL lineR
 
     discriminant = det (v1 -. v2) (v3 -. v4)
 
-    intersectionPoint = (det v1 v2 *. (v3 -. v4) -. det v3 v4 *. (v1 -. v2)) /. discriminant
+    iPoint = (det v1 v2 *. (v3 -. v4) -. det v3 v4 *. (v1 -. v2)) /. discriminant
 
     intersectionInsideL = sideOfLine lineR v1 /= sideOfLine lineR v2 || sideOfLine lineR v1 == EQ || sideOfLine lineR v2 == EQ
     intersectionInsideR = sideOfLine lineL v3 /= sideOfLine lineL v4 || sideOfLine lineL v3 == EQ || sideOfLine lineL v4 == EQ

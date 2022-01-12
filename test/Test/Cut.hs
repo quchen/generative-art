@@ -186,14 +186,12 @@ cutMissesPolygonTest = do
 -- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
 -- don’t want to delete them, but I also do not want unused function warnings.
 cornerCasesTests :: TestTree
-cornerCasesTests = testGroup "Corner cases [IGNORED]" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
-  where
-    ignore = const []
+cornerCasesTests = testGroup "Corner cases" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
 
 zigzagTest :: TestTree
 zigzagTest = testCase "Zigzag" $ do
     let scissors = Line (Vec2 0 25) (Vec2 50 25)
-        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 0, Vec2 25 50, Vec2 0 0]
+        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
         cutResult = cutPolygon scissors polygon
 
     renderAllFormats 150 90 "docs/geometry/cut/5_zigzag"
@@ -225,7 +223,7 @@ pathologicalCornerCutsTests = do
     [ testCase name $ do
         renderAllFormats 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix)
             (specialCaseTest name polygon)
-        --assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon))
+        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon))
         ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
@@ -257,7 +255,7 @@ pathologicalCornerCutsTests = do
                 showText name
         renderDescription
 
-        --liftIO (assertAreaConserved polygon cutResult)
+        liftIO (assertAreaConserved polygon cutResult)
 
     ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
           in ( "on → on → on"
@@ -307,8 +305,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
                 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
                   where
-                    modify (k, [v]) = (f k, [f v])
-                    modify (k, [v, v']) = (f k, [f v, f v'])
+                    modify (k, vs) = (f k, f <$> vs)
             Cairo.translate 10 110
             drawCutEdgeGraph PolygonPositive cutEdgeGraph
     , testCase "Simple calculated graph" $

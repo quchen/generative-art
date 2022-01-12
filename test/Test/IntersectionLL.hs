@@ -123,6 +123,7 @@ testDraw line1@(Line start _) line2 = do
                         IntersectionVirtualInsideL _ -> "Virtual (but inside left argument)"
                         IntersectionVirtualInsideR _ -> "Virtual (but inside right argument)"
                         IntersectionReal _           -> "Intersection"
+                        _                            -> bugError "Unknown intersection type"
 
                 hsva 0 0 0 1
                 moveTo x y
