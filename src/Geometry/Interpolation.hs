@@ -7,6 +7,7 @@ module Geometry.Interpolation (
 import qualified Data.Vector as V
 import Data.Vector (Vector, (!))
 import Geometry.Core
+import Geometry.Bezier
 import Data.Ord
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
