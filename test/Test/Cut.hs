@@ -77,7 +77,6 @@ lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
     let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
         scissors = perpendicularBisector paper
         Cut paperStart p paperEnd = cutLine scissors paper
-    liftIO $ print $ cutLine scissors scissors
 
     setLineWidth 1
     hsva 0 0 0 1
