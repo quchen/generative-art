@@ -154,10 +154,17 @@ integrateConvergently
     -> a          -- ^ Relative error threshold between iterations before committing
     -> a          -- ^ Result
 integrateConvergently integrateSteps threshold
-  = let results = [integrateSteps steps | steps <- map (2^) [1..]]
+  = let results = [integrateSteps steps | steps <- dropWhile (< 5) fibo]
+            -- We drop a couple of steps in the beginning because e.g. Simpson requires an even number,
+            -- making 1 and 2 step solutions exactly equal, leading to convergence triggering. Woops!
         closeEnoughPair (x,y) = (x-y)/x < threshold
         Just (_good, evenBetter) = find closeEnoughPair (zip results (tail results))
     in evenBetter
+
+-- | Fibonacci series, useful to have an exponentially growing integer-valued function
+-- with a base smaller than two.
+fibo :: [Int]
+fibo = 0 : 1 : zipWith (+) fibo (tail fibo)
 
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
