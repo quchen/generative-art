@@ -207,11 +207,13 @@ normalizeCuts scissors orientation cutLines =
     go [] = []
     go ((x, ty) : cuts)
         -- regular cuts, just collect them
-        | ty `elem` [LOR, ROL] = normalizedCutFor ty x : go cuts
+        | ty `elem` [LR, RL] = normalizedCutFor ty x : go cuts
+
         -- cuts through vertex need to be merged with the next cut
         -- they come in pairs, or even more (for cuts along a line)
-        | ty `elem` [LOO, ROO] = mergeCutsThroughVertex (x, ty) cuts
-        -- Everything else is an error (OOX: this should be prevented by rotateToEntryPoint/mergeCutsThroughVertex)
+        | ty `elem` [LO, RO] = mergeCutsThroughVertex (x, ty) cuts
+
+        -- Everything else is an error (OX: this should be prevented by rotateToEntryPoint/mergeCutsThroughVertex)
         | otherwise = bugError $ unlines
             [ "Found invalid cut type " ++ show ty
             , "Maybe rotateToEntryPoint did not work as expected?" ]
@@ -220,32 +222,32 @@ normalizeCuts scissors orientation cutLines =
     mergeCutsThroughVertex (x, ty) cuts = case (ty, cuts) of
         -- A cut through a vertex results in two entries, merge them into one cut.
         -- We can ignore the second cut point, it should be identical to x
-        (LOO, (_, OOR) : rest) -> normalizedCutFor LOR x : go rest
-        (ROO, (_, OOL) : rest) -> normalizedCutFor ROL x : go rest
-        (LOO, (_, OOL) : rest) -> Touching x : go rest
-        (ROO, (_, OOR) : rest) -> Touching x : go rest
+        (LO, (_, OR) : rest) -> normalizedCutFor LR x : go rest
+        (RO, (_, OL) : rest) -> normalizedCutFor RL x : go rest
+        (LO, (_, OL) : rest) -> Touching x : go rest
+        (RO, (_, OR) : rest) -> Touching x : go rest
         -- A cut along a line is more complicated: We ignore the cut in between
         -- that is completely along the line, and follow the line
         -- until we reach an edge that leads away from the cut.
-        (_, (_, OOO) : rest) -> followCutAlongLine x rest
+        (_, (_, OO) : rest) -> followCutAlongLine x rest
         other -> bugError ("Encountered unexpected cut type when merging cuts through vertex: " ++ show other)
 
     followCutAlongLine :: Vec2 -> [(Vec2, CutType)] -> [NormalizedCut]
     followCutAlongLine x ((y, yTy) : rest) = case yTy of
         -- Another cut along the line, skip again
-        OOO -> followCutAlongLine x rest
+        OO -> followCutAlongLine x rest
         -- Found the edge that leads away from the cut line
-        OOL -> AlongEdge x y : go rest
-        OOR -> AlongEdge x y : go rest
+        OL -> AlongEdge x y : go rest
+        OR -> AlongEdge x y : go rest
         -- Either the function was called with the wrong input, or the polygon was inconsistent
         _ -> bugError "Tried to follow cut along line, but there is no valid option to follow."
     followCutAlongLine _ [] = bugError "Tried to follow cut along line, but there is nothing to follow"
 
     normalizedCutFor :: CutType -> Vec2 -> NormalizedCut
-    normalizedCutFor LOR = case orientation of
+    normalizedCutFor LR = case orientation of
         PolygonPositive -> Entering
         PolygonNegative -> Exiting
-    normalizedCutFor ROL = case orientation of
+    normalizedCutFor RL = case orientation of
         PolygonNegative -> Entering
         PolygonPositive -> Exiting
     normalizedCutFor other = bugError $ unlines
@@ -254,7 +256,7 @@ normalizeCuts scissors orientation cutLines =
 
     rotateToEntryPoint [] = []
     rotateToEntryPoint (c@(_, ty) : cs)
-        | ty `elem` [LOR, ROL, LOO, ROO] = c:cs
+        | ty `elem` [LR, RL, LO, RO] = c:cs
         | otherwise = rotateToEntryPoint (cs ++ [c])
 
 data NormalizedCut
@@ -268,13 +270,13 @@ classifyCut :: Line -> CutLine -> Maybe (Vec2, CutType)
 classifyCut _ NoCut{} = Nothing
 classifyCut scissors (Cut l x r)
   = Just $ case (sideOfScissors scissors l, sideOfScissors scissors r) of
-        (LeftOfLine,     RightOfLine)    -> (x, LOR)
-        (RightOfLine,    LeftOfLine)     -> (x, ROL)
-        (DirectlyOnLine, DirectlyOnLine) -> (x, OOO)
-        (DirectlyOnLine, LeftOfLine)     -> (x, OOL)
-        (DirectlyOnLine, RightOfLine)    -> (x, OOR)
-        (LeftOfLine,     DirectlyOnLine) -> (x, LOO)
-        (RightOfLine,    DirectlyOnLine) -> (x, ROO)
+        (LeftOfLine,     RightOfLine)    -> (x, LR)
+        (RightOfLine,    LeftOfLine)     -> (x, RL)
+        (DirectlyOnLine, DirectlyOnLine) -> (x, OO)
+        (DirectlyOnLine, LeftOfLine)     -> (x, OL)
+        (DirectlyOnLine, RightOfLine)    -> (x, OR)
+        (LeftOfLine,     DirectlyOnLine) -> (x, LO)
+        (RightOfLine,    DirectlyOnLine) -> (x, RO)
         other -> bugError ("Unexpected cut that cannot be classified: " ++ show other)
 
 startPoint :: CutLine -> Vec2
@@ -304,8 +306,9 @@ data CutLine
 data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
     deriving (Eq, Ord, Show)
 
--- | Nomenclature: Left/On/Right relative to scissors. LOR means that the cut is
--- on the scissors, the edge leading to the cut comes from the left of it, and
--- the outgoing edge extends to the right.
-data CutType = LOO | LOR | OOL | OOO | OOR | ROL | ROO
+-- | Nomenclature: Left/On/Right relative to scissors. LR means that the edge
+-- leading to the cut comes from the left of the scissors, and the outgoing
+-- edge extends to the right. LO means that the edge leading to the cut comes
+-- from the left, but we cut exactly through the vertex.
+data CutType = LO | LR | OL | OO | OR | RL | RO
     deriving (Eq, Ord, Show)
