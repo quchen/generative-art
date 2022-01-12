@@ -47,9 +47,6 @@ module Geometry.Core (
     , PolygonOrientation(..)
     , polygonOrientation
 
-    -- ** Bezier curves
-    , Bezier(..)
-
     -- ** Angles
     , Angle(..)
     , deg
@@ -139,11 +136,6 @@ instance Show Polygon where
 -- | Line, defined by beginning and end.
 data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 
-
--- | Cubic Bezier curve, defined by start, first/second control points, and end.
-data Bezier vec = Bezier vec vec vec vec deriving (Eq, Ord, Show)
-
-
 -- | Affine transformation,
 --
 -- > transformation a b c
@@ -210,13 +202,6 @@ instance Transform Line where
 
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
-
-instance Transform vec => Transform (Bezier vec) where
-    transform t (Bezier a b c d) = Bezier
-        (transform t a)
-        (transform t b)
-        (transform t c)
-        (transform t d)
 
 instance Transform Transformation where
     transform = transformationProduct
@@ -369,9 +354,6 @@ instance HasBoundingBox Line where
 
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
-
-instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
-    boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
 data ScalingBehavior
     = FitAllMaintainAspect

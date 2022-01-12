@@ -43,7 +43,7 @@ somePointsRender = paintBezierOpenPicture points smoothed
         ]
     smoothed = bezierSmoothen points
 
-paintBezierOpenPicture :: [Vec2] -> [Bezier Vec2] -> Render ()
+paintBezierOpenPicture :: [Vec2] -> [Bezier] -> Render ()
 paintBezierOpenPicture points smoothed = do
     setLineWidth 1
 

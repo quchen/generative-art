@@ -5,7 +5,7 @@ module Geometry.Processes.DifferentialEquation (
 
 import Geometry.Core
 
--- | Solve a system of first-order differential equations with RK4 AKA »the standard Runge-Kutta«.
+-- | Single step of RK4 (»the standard Runge-Kutta«).
 rungeKutta4Step
     :: VectorSpace vec
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
@@ -23,6 +23,7 @@ rungeKutta4Step f y t dt
 
     in (t + dt, y +. dy)
 
+-- | Solve a system of first-order differential equations with RK4 (»the standard Runge-Kutta«).
 rungeKuttaConstantStep
     :: VectorSpace vec
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)

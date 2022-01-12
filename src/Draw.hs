@@ -32,6 +32,9 @@ module Draw (
     , cartesianCoordinateSystem
     , radialCoordinateSystem
 
+    -- * Canvas utilities
+    , getSurfaceDimensions
+
     -- * Temporary Cairo modifications
     , withOperator
     , cairoScope
@@ -136,13 +139,13 @@ lineSketch (Line start end) = do
 
 -- | Sketch a full, standalone Bezier segment. For connectnig multiple, use
 -- 'bezierCurveSketch'.
-bezierSegmentSketch :: Bezier Vec2 -> Render ()
+bezierSegmentSketch :: Bezier -> Render ()
 bezierSegmentSketch (Bezier start p1 p2 end) = do
     moveToVec start
     curveToVec p1 p2 end
 
 -- | Sketch a curve consisting out of multiple Bezier segments.
-bezierCurveSketch :: [Bezier Vec2] -> Render ()
+bezierCurveSketch :: [Bezier] -> Render ()
 bezierCurveSketch [] = pure ()
 bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
     moveToVec start
@@ -307,6 +310,13 @@ radialCoordinateSystem center maxR = cairoScope $ do
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
+
+-- | (width, height) of the current surface.
+getSurfaceDimensions :: Num int => Render (int, int)
+getSurfaceDimensions = withTargetSurface $ \s -> do
+    w <- imageSurfaceGetWidth s
+    h <- imageSurfaceGetHeight s
+    pure (fromIntegral w,fromIntegral h)
 
 -- | Temporarily draw using a different composition operator, such as
 -- 'OperatorClear' to delete part of an image.
