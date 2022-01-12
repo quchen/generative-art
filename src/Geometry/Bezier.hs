@@ -104,10 +104,9 @@ bezierT'' (Bezier a b c d) (T t)
 --
 -- The number of segments doesn’t need to be very high: 16 is already plenty for most curves.
 bezierLength
-    :: Int      -- ^ Number of segments
-    -> Bezier   -- ^ Curve
+    :: Bezier   -- ^ Curve
     -> Distance
-bezierLength n bezier = Distance (integrateSimpson13 f 0 1 n)
+bezierLength bezier = Distance (integrateConvergently (integrateSimpson13 f 0 1) 1e-6)
   where
     f t = let Distance d = norm (bezierT' bezier (T t)) in d
 
@@ -149,6 +148,17 @@ integrateSimpson13 f a b n =
     h = (b-a)/fromIntegral n
     sum' = foldl' (+) 0
 
+integrateConvergently
+    :: (Fractional a, Ord a)
+    => (Int -> a) -- ^ Integration function: f a b n
+    -> a          -- ^ Relative error threshold between iterations before committing
+    -> a          -- ^ Result
+integrateConvergently integrateSteps threshold
+  = let results = [integrateSteps steps | steps <- map (2^) [1..]]
+        closeEnoughPair (x,y) = (x-y)/x < threshold
+        Just (_good, evenBetter) = find closeEnoughPair (zip results (tail results))
+    in evenBetter
+
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
 --
@@ -173,7 +183,7 @@ bezierSubdivideS n bz = map bezier distances
     -- RK estimator. This allows both large and tiny curves to be subdivided well.
     -- Increasing this to beyond 2^10 shows only pixel-wide changes, if even.
     bezier = bezierS_ode bz (len / 2^10)
-    Distance len = bezierLength (2^4) bz
+    Distance len = bezierLength bz
 
     distances :: [Distance]
     distances = [Distance (fromIntegral i * len/fromIntegral (n-1)) | i <- [0..n-1]]
@@ -186,7 +196,7 @@ bezierSubdivideS n bz = map bezier distances
 bezierS_integral :: Bezier -> Double -> Vec2
 bezierS_integral bz s = error "TODO"
   where
-    _t0 = let Distance approximateLength = bezierLength 10 bz
+    _t0 = let Distance approximateLength = bezierLength bz
               tMin = 0
               tMax = 1
           in tMin + s/approximateLength *(tMax-tMin)
