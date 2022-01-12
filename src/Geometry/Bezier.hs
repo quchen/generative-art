@@ -19,6 +19,7 @@ where
 
 import Data.List
 import Geometry.Core
+import Geometry.LUT
 import Geometry.Processes.DifferentialEquation
 import qualified Data.Vector as V
 
@@ -228,90 +229,8 @@ bezierS_ode
     -> Vec2     -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
-    in \(Distance s) -> let t = s_to_t lut (S s)
+    in \(Distance s) -> let t = lookupInterpolated lut (S s)
                         in bezierT bz t
-
-
-
-
--- | Safety newtype wrapper because it’s super confusing that Runge-Kutta commonly
--- has t for time, but here we have s(t) where s corredponds to time in RK.
---
--- 'T' is used for simple Bezier parametrization, 'S' for curve-length based.
-newtype T a = T a deriving (Eq, Ord, Show)
-
-instance Num a => Num (T a) where
-    T a + T b = T (a+b)
-    T a - T b = T (a-b)
-    T a * T b = T (a*b)
-    abs (T a) = T (abs a)
-    signum (T a) = T (signum a)
-    negate (T a) = T (negate a)
-    fromInteger i = T (fromInteger i)
-
-instance Fractional a => Fractional (T a) where
-    T a / T b = T (a/b)
-    recip (T a) = T (recip a)
-    fromRational r = T (fromRational r)
-
-instance VectorSpace a => VectorSpace (T a) where
-    T a +. T b = T (a+.b)
-    a *. T b = T (a*.b)
-    T a -. T b = T (a-.b)
-
--- | See 'T'.
---
--- 'T' is used for simple Bezier parametrization, 'S' for curve-length based.
-newtype S a = S a deriving (Eq, Ord, Show)
-
-instance Num a => Num (S a) where
-    S a + S b = S (a+b)
-    S a - S b = S (a-b)
-    S a * S b = S (a*b)
-    abs (S a) = S (abs a)
-    signum (S a) = S (signum a)
-    negate (S a) = S (negate a)
-    fromInteger i = S (fromInteger i)
-
--- | Find t(s) from a LUT using binary search, interpolating linearly around the
--- search result. Clips for out-of-range values.
-s_to_t :: V.Vector (S Double, T Double) -> S Double -> T Double
-s_to_t lut needle = interpolate (search 0 (V.length lut))
-  where
-    -- Binary search between lo and hi
-    search lo hi
-        | lo >= mid = mid
-        | hi <= mid = mid
-        | otherwise
-          = let (pivotS, _) = lut V.! mid
-            in case compare pivotS needle of
-                LT -> search mid hi
-                EQ -> mid
-                GT -> search lo mid
-      where
-        mid = (hi+lo) `div` 2
-
-    -- Look at left/right neighbours. If they’re there and the needle is between it
-    -- and the found pivot index, then linearly interpolate the result value
-    -- between them.
-    interpolate pivot = case (lut V.!? (pivot-1), lut V.! pivot, lut V.!? (pivot+1)) of
-        -- Interpolate between pivot and left neighbour?
-        (Just (leftS, leftT), (pivotS, pivotT), _)
-            | between (leftS, pivotS) needle -> linearInterpolate (leftS, pivotS) (leftT, pivotT) needle
-        -- Interpolate between pivot and right neighbour?
-        (_, (pivotS, pivotT), Just (rightS, rightT))
-            | between (pivotS, rightS) needle -> linearInterpolate (pivotS, rightS) (pivotT, rightT) needle
-        -- Fallback: don’t interpolate
-        (_, (_, pivotT), _) -> pivotT
-
-    -- Linearly interpolate the interval [a,b] to [x,y] and get the point t
-    linearInterpolate :: (S Double, S Double) -> (T Double, T Double) -> S Double -> T Double
-    linearInterpolate (S a, S b) (T x, T y) (S s)
-        = T (x + (y-x)/(b-a) * (s-a))
-
-    between :: Ord a => (a, a) -> a -> Bool
-    between (a,b) x = min a b < x && x < max a b
-
 
 -- | S⇆T lookup table for a Bezier curve
 --
@@ -320,8 +239,8 @@ s_to_t lut needle = interpolate (search 0 (V.length lut))
 s_to_t_lut_ode
     :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
-    -> V.Vector (S Double, T Double) -- ^ Values increase with vector index, enabling binary search.
-s_to_t_lut_ode bz ds = sol_to_vec sol
+    -> VLUT (S Double) (T Double) -- ^ Lookup table
+s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
   where
     sol_to_vec = V.map (\(s, tt) -> (S s, tt)) . V.fromList . takeWhile (\(_s, T t) -> t <= 1)
 
