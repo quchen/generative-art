@@ -316,7 +316,7 @@ s_to_t lut needle = interpolate (search 0 (V.length lut))
 -- | S⇆T lookup table for a Bezier curve
 --
 -- We do not explicitly add the end point, so too big of a step width will
--- overshoot the end and be cut off. This can be remedied by a large step size ;-)
+-- overshoot the end and be cut off. This can be remedied by a small enough step size ;-)
 s_to_t_lut_ode
     :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
