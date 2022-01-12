@@ -18,7 +18,7 @@ import Data.Ord
 -- Heavily inspired by
 -- https://www.michael-joost.de/bezierfit.pdf
 -- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
-bezierSmoothen :: VectorSpace vec => [vec] -> [Bezier vec]
+bezierSmoothen :: [Vec2] -> [Bezier]
 bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
   where
     pointsV = V.fromList points
@@ -105,7 +105,7 @@ simplifyPath epsilon  = V.toList . go . V.fromList
                      after = V.drop iMax points
                  in go before <> V.drop 1 (go after) -- Don’t add the middle twice
 
-pointOnBezier :: VectorSpace vec => Bezier vec -> Double -> vec
+pointOnBezier :: Bezier -> Double -> Vec2
 pointOnBezier (Bezier a b c d) t
   =      (1-t)^3     *. a
     +. 3*(1-t)^2*t   *. b
@@ -115,7 +115,7 @@ pointOnBezier (Bezier a b c d) t
 -- | Divide a Bezier into a number of points. One way to simplify a chain of Bezier
 -- curves is by first subdividing them, then simplifying the resulting path, and
 -- re-interpolating new Bezier curves through the data.
-bezierSubdivide :: VectorSpace vec => Int -> Bezier vec -> [vec]
+bezierSubdivide :: Int -> Bezier -> [Vec2]
 bezierSubdivide n bezier = map (pointOnBezier bezier) ts
   where
     ts :: [Double]

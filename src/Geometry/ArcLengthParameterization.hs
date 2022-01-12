@@ -32,10 +32,9 @@ findRoot n t0 f f' = iterate (\t -> newtonStep t f f') t0 !! n
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
 bezierT
-  :: VectorSpace vec
-  => Bezier vec
+  :: Bezier
   -> T Double -- ^ [0..1] = [start..end]
-  -> vec
+  -> Vec2
 bezierT (Bezier a b c d) (T t)
   =      (1-t)^3     *. a
     +. 3*(1-t)^2*t   *. b
@@ -47,10 +46,9 @@ bezierT (Bezier a b c d) (T t)
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
 bezierT'
-  :: VectorSpace vec
-  => Bezier vec
+  :: Bezier
   -> T Double -- ^ [0..1] = [start..end]
-  -> vec
+  -> Vec2
 bezierT' (Bezier a b c d) (T t)
   =    (-3*(1-t)^2)    *. a
     +. (3+t*(-12+9*t)) *. b
@@ -62,10 +60,9 @@ bezierT' (Bezier a b c d) (T t)
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
 bezierT''
-  :: VectorSpace vec
-  => Bezier vec
+  :: Bezier
   -> T Double -- ^ [0..1] = [start..end]
-  -> vec
+  -> Vec2
 bezierT'' (Bezier a b c d) (T t)
   =    (6-6*t)         *. a
     +. (-12+18*t)      *. b
@@ -76,8 +73,8 @@ bezierT'' (Bezier a b c d) (T t)
 --
 -- The number of segments doesn’t need to be very high: 16 is already plenty for most curves.
 bezierLength
-    :: Int         -- ^ Number of segments
-    -> Bezier Vec2 -- ^ Curve
+    :: Int      -- ^ Number of segments
+    -> Bezier   -- ^ Curve
     -> Distance
 bezierLength n bezier = Distance (integrateSimpson13 f 0 1 n)
   where
@@ -125,9 +122,10 @@ integrateSimpson13 f a b n =
 -- parameterization. This is very fast, but leads to unevenly spaced points.
 --
 -- For subdivision by arc length, use 'bezierSubdivideS'.
-bezierSubdivideT :: VectorSpace vec
-    => Int
-    -> Bezier vec -> [vec]
+bezierSubdivideT
+    :: Int
+    -> Bezier
+    -> [Vec2]
 bezierSubdivideT n bz = map (bezierT bz) points
   where
     points :: [T Double]
@@ -136,7 +134,7 @@ bezierSubdivideT n bz = map (bezierT bz) points
 -- | Trace a 'Bezier' curve with a number of evenly spaced points by arc length.
 -- This is much more expensive than 'bezierSubdivideT', but may be desirable for
 -- aesthetic purposes.
-bezierSubdivideS :: Int -> Bezier Vec2 -> [Vec2]
+bezierSubdivideS :: Int -> Bezier -> [Vec2]
 bezierSubdivideS n bz = map bezier distances
   where
     bezier = bezierS_ode bz 0.01
@@ -150,7 +148,7 @@ bezierSubdivideS n bz = map bezier distances
 --
 -- This approach inverts an integral using Newton’s method. For a different
 -- approach, see 'bezierS_ode'.
-bezierS_integral :: Bezier Vec2 -> Double -> Vec2
+bezierS_integral :: Bezier -> Double -> Vec2
 bezierS_integral bz s = error "TODO"
   where
     _t0 = let Distance approximateLength = bezierLength 10 bz
@@ -169,7 +167,7 @@ bezierS_integral bz s = error "TODO"
 -- print [s (Distance d) | d <- [0, 0.1 .. 5]]
 -- @
 bezierS_ode
-    :: Bezier Vec2
+    :: Bezier
     -> Double   -- ^ Precision parameter (smaller is more precise but slower).
     -> Distance -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
     -> Vec2     -- ^ Point at that distance
@@ -245,7 +243,7 @@ divideOnIndex ix vec
 
 -- | S⇆T lookup table for a Bezier curve
 s_to_t_lut_ode
-    :: Bezier Vec2
+    :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
     -> V.Vector (S Double, T Double) -- ^ Values increase with vector index, enabling binary search.
 s_to_t_lut_ode bz ds = sol_to_vec sol

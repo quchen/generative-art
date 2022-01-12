@@ -139,13 +139,13 @@ lineSketch (Line start end) = do
 
 -- | Sketch a full, standalone Bezier segment. For connectnig multiple, use
 -- 'bezierCurveSketch'.
-bezierSegmentSketch :: Bezier Vec2 -> Render ()
+bezierSegmentSketch :: Bezier -> Render ()
 bezierSegmentSketch (Bezier start p1 p2 end) = do
     moveToVec start
     curveToVec p1 p2 end
 
 -- | Sketch a curve consisting out of multiple Bezier segments.
-bezierCurveSketch :: [Bezier Vec2] -> Render ()
+bezierCurveSketch :: [Bezier] -> Render ()
 bezierCurveSketch [] = pure ()
 bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
     moveToVec start

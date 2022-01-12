@@ -31,9 +31,6 @@ singleCurveRender w h = do
         evenlySpaced = bezierSubdivideS 10 curve
         unevenlySpaced = bezierSubdivideT 10 curve
 
-    liftIO $ do
-        putStrLn $ "evenly: " ++ show (length evenlySpaced)
-        putStrLn $ "unevenly: " ++ show (length unevenlySpaced)
     setLineWidth 1
     cairoScope $ do
         mmaColor 1 1
