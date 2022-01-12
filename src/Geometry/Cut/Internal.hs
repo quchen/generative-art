@@ -85,6 +85,9 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go (traceSho
     -- (This should already be merged, but doesn't harm here)
     go (AlongEdge p q : AlongEdge r s : rest)
       = go (AlongEdge p s : rest)
+    -- Going along an edge without entering or exiting: Ignore the edge
+    go (AlongEdge _ _ : rest)
+      = go rest
     -- Touching a point while inside the polygon:
     -- Treat it like entering, exiting, and re-entering
     go (Entering p : Touching q : rest)
