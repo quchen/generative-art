@@ -143,7 +143,7 @@ bezierSubdivideS n bz = map bezier distances
     Distance len = bezierLength 16 bz
 
     distances :: [Distance]
-    distances = [Distance (fromIntegral i * len/fromIntegral n) | i <- [0..n]]
+    distances = [Distance (fromIntegral i * len/fromIntegral (n-1)) | i <- [0..n-1]]
 
 -- | Get the position on a Bezier curve as a fraction of its length. This is _much_
 -- more expensive to compute than 'bezierT'.

@@ -370,6 +370,7 @@ instance HasBoundingBox Line where
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
 
+-- ^ This instance is correct, but not minimal!
 instance HasBoundingBox vec => HasBoundingBox (Bezier vec) where
     boundingBox (Bezier a b c d) = boundingBox (a,b,c,d)
 
