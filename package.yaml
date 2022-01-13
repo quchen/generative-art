@@ -25,6 +25,8 @@ dependencies:
     - random
     - transformers
     - vector
+    - text
+    - regex-tdfa
 
 default-extensions:
     - BangPatterns
