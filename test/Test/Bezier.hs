@@ -22,7 +22,6 @@ tests = testGroup "Bezier curves"
         [ testGroup "Visual"
             [ somePoints
             , picassoSquirrel
-            , simplifyPathTest
             , subdivideBezierCurveTest
             ]
         ]
@@ -170,48 +169,6 @@ picassoSquirrelRender = do
         [ Vec2 94.20924311191953  67.99997227256398
         ]
 
-simplifyPathTest :: TestTree
-simplifyPathTest = testCase "Simplify path" (renderAllFormats 400 300 "docs/interpolation/3_simplify_path" simplifyPathTestRender)
-
-simplifyPathTestRender :: Render ()
-simplifyPathTestRender = do
-    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
-        graphBB = boundingBox graph
-        fitToBox :: Transform geo => geo -> geo
-        fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) FitAllIgnoreAspect)
-
-    let plotPath points = cairoScope $ do
-            setLineWidth 1
-            newPath
-            pathSketch points
-            stroke
-        plotPoints points = for_ points $ \p -> do
-            circleSketch p (Distance 1)
-            fillPreserve
-            cairoScope $ do
-                setSourceRGB 0 0 0
-                setLineWidth 0.5
-                stroke
-        plotBezier segments = cairoScope $ do
-            setLineWidth 1
-            bezierCurveSketch segments
-            stroke
-        epsilons = [ Distance (2**(-e)) | e <- [10,9..1]]
-
-    cairoScope $ do
-        mmaColor 0 1
-        plotPath (fitToBox graph)
-        plotPoints (fitToBox graph)
-
-    cairoScope $ do
-        for_ epsilons $ \epsilon -> do
-            Cairo.translate 0 20
-            let simplified = simplifyPath epsilon graph
-                interpolatedAgain = bezierSmoothen simplified
-            mmaColor 1 1
-            plotBezier (fitToBox interpolatedAgain)
-            plotPoints (fitToBox simplified)
-
 subdivideBezierCurveTest :: TestTree
 subdivideBezierCurveTest = testCase "Subdivide" (renderAllFormats 300 300 "docs/interpolation/4_bezier_subdivide" subdivideBezierCurve)
 
@@ -232,7 +189,7 @@ subdivideBezierCurve = do
         showText (show (length beziers) ++ " curves")
 
     let subpoints = beziers >>= bezierSubdivideT 10
-    let simplified = simplifyPath (Distance 0.05) subpoints
+    let simplified = simplifyTrajectory (Distance 0.05) subpoints
     cairoScope $ do
         let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
