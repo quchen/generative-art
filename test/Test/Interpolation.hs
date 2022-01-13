@@ -227,7 +227,7 @@ subdivideBezierCurve = do
         moveTo 200 70
         showText (show (length beziers) ++ " curves")
 
-    let subpoints = beziers >>= bezierSubdivide 10
+    let subpoints = beziers >>= bezierSubdivideT 10
     let simplified = simplifyPath (Distance 0.05) subpoints
     cairoScope $ do
         let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))

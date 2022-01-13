@@ -5,24 +5,32 @@ module Geometry.Bezier
     Bezier(..)
 
     -- == Indexing
-    -- , bezierT
+    , bezierT
     , bezierS
 
     -- == Subdividing
     , bezierSubdivideT
     , bezierSubdivideS
 
+    -- == Interpolation and simplification
+    , bezierSmoothen
+    , simplifyPath
+
     -- * References
     -- $references
 )
 where
 
+import Data.Ord
+import Data.Vector (Vector, (!))
+import Geometry.Core
 import Geometry.Core
 import Geometry.LUT
-import qualified Data.Vector as V
-import Numerics.Integrate
 import Numerics.ConvergentRecursion
 import Numerics.DifferentialEquation
+import Numerics.Integrate
+import Numerics.LinearEquationSystem
+import qualified Data.Vector as V
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier Vec2 Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
@@ -35,7 +43,7 @@ instance Transform Bezier where
         (transform t d)
 
 instance HasBoundingBox Bezier where
-    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierT bezier (T t) | t <- extremalTs])
+    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierT bezier t | t <- extremalTs])
       where
 
         -- Alg idea: find the roots of the Bezier’s first derivative, collect
@@ -66,9 +74,9 @@ instance HasBoundingBox Bezier where
 -- which makes this curve easy to compute.
 bezierT
   :: Bezier
-  -> T Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT (Bezier a b c d) (T t)
+bezierT (Bezier a b c d) t
   =      (1-t)^3     *. a
     +. 3*(1-t)^2*t   *. b
     +. 3*(1-t)  *t^2 *. c
@@ -124,7 +132,6 @@ bezierSubdivideT
     -> [Vec2]
 bezierSubdivideT n bz = map (bezierT bz) points
   where
-    points :: [T Double]
     points = map (\x -> fromIntegral x / fromIntegral (n-1)) [0..n-1]
 
 -- | Trace a 'Bezier' curve with a number of evenly spaced points by arc length.
@@ -176,7 +183,7 @@ bezierS_ode
     -> Vec2     -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
-    in \(Distance s) -> let t = lookupInterpolated lut (S s)
+    in \(Distance s) -> let T t = lookupInterpolated lut (S s)
                         in bezierT bz t
 
 -- | S⇆T lookup table for a Bezier curve
@@ -203,3 +210,76 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 -- * Moving Along a Curve with Specified Speed (2019)
 -- by David Eberly
 -- https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
+
+-- | Smoothen a number of points by putting a Bezier curve between each pair.
+-- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
+-- solution to a differential equation.
+--
+-- For an input of n+1 points, this will yield n Bezier curves.
+--
+-- Heavily inspired by
+-- https://www.michael-joost.de/bezierfit.pdf
+-- https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
+bezierSmoothen :: [Vec2] -> [Bezier]
+bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
+  where
+    pointsV = V.fromList points
+    n = V.length pointsV - 1
+
+    controlPointsStart =
+        let low   = lowerDiagonal (n-1)
+            diag  = diagonal      n
+            upper = upperDiagonal (n-1)
+            rhs   = target        n pointsV
+        in solveTridiagonal low diag upper rhs
+    controlPointsEnd = V.generate (V.length controlPointsStart) $ \i -> case () of
+        _ | i == n-1 -> (pointsV ! n +. controlPointsStart ! (n-1)) /. 2
+          | otherwise -> 2 *. (pointsV ! (i+1)) -. controlPointsStart ! (i+1)
+
+upperDiagonal :: Int -> Vector Double
+upperDiagonal len = V.replicate len 1
+
+lowerDiagonal :: Int -> Vector Double
+lowerDiagonal len = V.generate len $ \i -> case () of
+    _ | i == len-1 -> 2
+      | otherwise -> 1
+
+diagonal :: Int -> Vector Double
+diagonal len = V.generate len $ \i -> case () of
+    _ | i == 0     -> 2
+      | i == len-1 -> 7
+      | otherwise  -> 4
+
+target :: VectorSpace vec => Int -> Vector vec -> Vector vec
+target n vertices = V.generate n $ \i -> case () of
+    _ | i == 0    ->      vertices ! 0     +. 2 *. vertices ! 1
+      | i == n-1  -> 8 *. vertices ! (n-1) +.      vertices ! n
+      | otherwise -> 4 *. vertices ! i     +. 2 *. vertices ! (i+1)
+
+-- | Simplify a path by dropping unnecessary points. The larger the tolerance
+-- distance, the simpler the result will be.
+--
+-- This is very useful in conjunction with 'bezierSmoothen': first drop the
+-- redundancies, then smoothen using Bezier curves again, to yield a result
+-- visually similar to the original data, but with a much smaller data footprint
+-- (SVGs can become huge!).
+--
+-- This implements the Ramer-Douglas-Peucker algorithm,
+-- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+simplifyPath :: Distance -> [Vec2] -> [Vec2]
+simplifyPath epsilon  = V.toList . go . V.fromList
+  where
+    go :: Vector Vec2 -> Vector Vec2
+    go points | V.length points <= 2 = points
+    go points
+      = let start = V.head points
+            end = V.last points
+            line = Line start end
+            (dMax, iMax) = V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine p line, i)) points)
+        in if dMax <= epsilon
+            -- Points are all too close: remove them
+            then V.fromList [start, end]
+            -- Points far enough away: recurse
+            else let before = V.take (iMax+1) points -- +1 so this includes the iMax point
+                     after = V.drop iMax points
+                 in go before <> V.drop 1 (go after) -- Don’t add the middle twice
