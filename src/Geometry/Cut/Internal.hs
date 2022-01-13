@@ -97,10 +97,18 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
     go (Entering p : AlongEdge q r : rest)
       = go (Entering p : Exiting q : AlongEdge q r : rest)
 
+    -- Encountered this bug once: p and q were so close, that they cannot be
+    -- distinguished by `sortOn scissorCoordinate`. I don't know how to fix
+    -- this numerical bug, but luckily we can do this without causing too much
+    -- harm. (Fingers crossed!)
+    go (Exiting p : Entering q : rest)
+      = go (Entering p : Exiting q : rest)
+
     go bad
       = bugError $ unlines
           [ "Expecting patterns to be exhaustive, but apparently it's not."
-          , show bad ]
+          , "Bad portion: " ++ show bad
+          , "Full list of cut lines: " ++ show cutPointsSorted ]
 
     cutPointsSorted :: [NormalizedCut]
     cutPointsSorted = sortOn scissorCoordinate (normalizeCuts scissors orientation cuts)
