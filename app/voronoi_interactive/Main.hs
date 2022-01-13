@@ -5,6 +5,7 @@ module Main (main) where
 import           Data.Foldable                   (for_, Foldable (foldl'))
 import           Numeric                         (showHex)
 import           Prelude                         hiding ((**))
+import           System.IO.Temp                  (withSystemTempDirectory)
 import           System.Random.MWC               (uniform, createSystemRandom)
 
 import qualified Graphics.Rendering.Cairo        as Cairo
@@ -16,10 +17,10 @@ import           Voronoi
 import           Draw
 
 main :: IO ()
-main = UI.startGUI UI.defaultConfig setup
+main = withSystemTempDirectory "voronoi-interactive" $ \tmpDir -> UI.startGUI UI.defaultConfig (setup tmpDir)
 
-setup :: Window -> UI ()
-setup window = do
+setup :: FilePath -> Window -> UI ()
+setup tmpDir window = do
     let w = 1200
         h = 1200
     gen <- liftIO createSystemRandom
@@ -66,7 +67,7 @@ setup window = do
     onChanges bVoronoi $ \voronoi -> do
         tmpFile <- liftIO $ do
             randomNumber <- uniform gen :: IO Int
-            pure ("tmp/" ++ showHex (abs randomNumber) ".png")
+            pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
         liftIO $ withSurface PNG tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
