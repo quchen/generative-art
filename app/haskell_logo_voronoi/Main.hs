@@ -36,7 +36,7 @@ mainHaskellLogo = do
         h = 1200
         haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
-    points <- poissonDisc PoissonDisc { width = w, height = h, radius = 50, k = 4, gen = gen }
+    points <- poissonDisc PoissonDisc { width = w, height = h, radius = 30, k = 4, gen = gen }
     let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
