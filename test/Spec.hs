@@ -11,13 +11,13 @@ import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.DifferentialEquation
-import qualified Test.Interpolation
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Penrose
 import qualified Test.Properties
 import qualified Test.RandomCut
 import qualified Test.Reflection
+import qualified Test.Trajectory
 import qualified Test.SimpleOperations
 import qualified Test.Triangulate
 import qualified Test.Voronoi
@@ -43,13 +43,13 @@ tests = testGroup "Test suite"
         , Test.ConvexHull.tests
         , Test.Cut.tests
         , Test.DifferentialEquation.tests
-        , Test.Interpolation.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests
         , Test.RandomCut.tests
         , Test.Reflection.tests
         , Test.SimpleOperations.tests
+        , Test.Trajectory.tests
         , Test.Triangulate.tests
         , Test.Voronoi.tests
         ]

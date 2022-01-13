@@ -1,4 +1,10 @@
-module Geometry.LUT where
+module Geometry.LUT (
+      VLUT(..)
+    , S(..)
+    , T(..)
+    , lookupInterpolated
+    , lookupBiasLower
+) where
 
 import qualified Data.Vector as V
 import Geometry.Core
@@ -70,6 +76,13 @@ lookupIndex (VLUT lut) needle = search 0 (V.length lut)
 -- search result. Clips for out-of-range values.
 lookupInterpolated :: VLUT (S Double) (T Double) -> S Double -> T Double
 lookupInterpolated lut needle = interpolate lut needle (lookupIndex lut needle)
+
+-- | Lookup in the LUT, with bias towards the left, i.e. when searching a value not
+-- present in the LUT, return the closest one before.
+lookupBiasLower :: Ord a => VLUT a b -> a -> (a, b)
+lookupBiasLower lut@(VLUT rawLut) needle
+  = let ix = lookupIndex lut needle
+    in rawLut V.! ix
 
 -- | Look at left/right neighbours. If they’re there and the needle is between it
 -- and the found pivot index, then linearly interpolate the result value between

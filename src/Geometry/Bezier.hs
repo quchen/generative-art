@@ -4,23 +4,29 @@ module Geometry.Bezier
 (
     Bezier(..)
 
-    -- == Indexing
-    -- , bezierT
+    -- * Indexing
+    , bezierT
     , bezierS
 
-    -- == Subdividing
+    -- * Subdividing
     , bezierSubdivideT
     , bezierSubdivideS
+
+    -- * Interpolation
+    , bezierSmoothen
 
     -- * References
     -- $references
 )
 where
 
-import Data.List
+import Data.Vector (Vector, (!))
 import Geometry.Core
 import Geometry.LUT
-import Geometry.Processes.DifferentialEquation
+import Numerics.ConvergentRecursion
+import Numerics.DifferentialEquation
+import Numerics.Integrate
+import Numerics.LinearEquationSystem
 import qualified Data.Vector as V
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
@@ -34,7 +40,7 @@ instance Transform Bezier where
         (transform t d)
 
 instance HasBoundingBox Bezier where
-    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierT bezier (T t) | t <- extremalTs])
+    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierT bezier t | t <- extremalTs])
       where
 
         -- Alg idea: find the roots of the Bezier’s first derivative, collect
@@ -65,9 +71,9 @@ instance HasBoundingBox Bezier where
 -- which makes this curve easy to compute.
 bezierT
   :: Bezier
-  -> T Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT (Bezier a b c d) (T t)
+bezierT (Bezier a b c d) t
   =      (1-t)^3     *. a
     +. 3*(1-t)^2*t   *. b
     +. 3*(1-t)  *t^2 *. c
@@ -91,11 +97,11 @@ bezierT' (Bezier a b c d) (T t)
 --
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
-bezierT''
+_bezierT''
   :: Bezier
   -> T Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT'' (Bezier a b c d) (T t)
+_bezierT'' (Bezier a b c d) (T t)
   =    (6-6*t)         *. a
     +. (-12+18*t)      *. b
     +. (6-18*t)        *. c
@@ -107,65 +113,11 @@ bezierT'' (Bezier a b c d) (T t)
 bezierLength
     :: Bezier   -- ^ Curve
     -> Distance
-bezierLength bezier = Distance (integrateConvergently (integrateSimpson13 f 0 1) 1e-6)
+bezierLength bezier = Distance (retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6)
   where
     f t = let Distance d = norm (bezierT' bezier (T t)) in d
 
--- | Numerical integration with the midpoint method.
-integrateMidpoint
-    :: Fractional a
-    => (a -> a) -- ^ f
-    -> a        -- ^ a
-    -> a        -- ^ b
-    -> Int      -- ^ Number of interval subdivisions
-    -> a        -- ^ ∫_a^b f(t) dt
-integrateMidpoint f a b n =
-    h * ( f a / 2
-        + sum' [f (a + fromIntegral k*h) | k <- [1..n-1]]
-        + f b / 2
-        )
-  where
-    h = (b-a)/fromIntegral n
-    sum' = foldl' (+) 0
 
--- | Numerical integration with Simpson’s ⅓ rule.
-integrateSimpson13
-    :: Fractional a
-    => (a -> a) -- ^ f
-    -> a        -- ^ a
-    -> a        -- ^ b
-    -> Int      -- ^ Number of interval subdivisions
-    -> a        -- ^ ∫_a^b f(t) dt
-integrateSimpson13 f a b n
-    | odd n = integrateSimpson13 f a b (succ n)
-integrateSimpson13 f a b n =
-    h/3 * ( f a
-          + 2 * sum' [f (x (2*j  )) | j <- [1..n`div`2-1]]
-          + 4 * sum' [f (x (2*j-1)) | j <- [1..n`div`2]]
-          + f b
-          )
-  where
-    x i = a + (fromIntegral (i :: Int))*h
-    h = (b-a)/fromIntegral n
-    sum' = foldl' (+) 0
-
-integrateConvergently
-    :: (Fractional a, Ord a)
-    => (Int -> a) -- ^ Integration function: f a b n
-    -> a          -- ^ Relative error threshold between iterations before committing
-    -> a          -- ^ Result
-integrateConvergently integrateSteps threshold
-  = let results = [integrateSteps steps | steps <- dropWhile (< 5) fibo]
-            -- We drop a couple of steps in the beginning because e.g. Simpson requires an even number,
-            -- making 1 and 2 step solutions exactly equal, leading to convergence triggering. Woops!
-        closeEnoughPair (x,y) = (x-y)/x < threshold
-        Just (_good, evenBetter) = find closeEnoughPair (zip results (tail results))
-    in evenBetter
-
--- | Fibonacci series, useful to have an exponentially growing integer-valued function
--- with a base smaller than two.
-fibo :: [Int]
-fibo = 0 : 1 : zipWith (+) fibo (tail fibo)
 
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
@@ -177,7 +129,6 @@ bezierSubdivideT
     -> [Vec2]
 bezierSubdivideT n bz = map (bezierT bz) points
   where
-    points :: [T Double]
     points = map (\x -> fromIntegral x / fromIntegral (n-1)) [0..n-1]
 
 -- | Trace a 'Bezier' curve with a number of evenly spaced points by arc length.
@@ -196,24 +147,11 @@ bezierSubdivideS n bz = map bezier distances
     distances :: [Distance]
     distances = [Distance (fromIntegral i * len/fromIntegral (n-1)) | i <- [0..n-1]]
 
--- | Get the position on a Bezier curve as a fraction of its length. This is _much_
--- more expensive to compute than 'bezierT'.
---
--- This approach inverts an integral using Newton’s method. For a different
--- approach, see 'bezierS_ode'.
-bezierS_integral :: Bezier -> Double -> Vec2
-bezierS_integral bz s = error "TODO"
-  where
-    _t0 = let Distance approximateLength = bezierLength bz
-              tMin = 0
-              tMax = 1
-          in tMin + s/approximateLength *(tMax-tMin)
-
 -- | Get the position on a Bezier curve as a fraction of its length, via solving a
 -- differential equation. This is /much/ more expensive to compute than 'bezierT'.
 --
--- Multiple calls to this function use a cached lookup table, so that the expensive
--- step has to be done only once here:
+-- This caches the internal LUT when partially applied, so that the following will
+-- only compute it once for repeated lookups:
 --
 -- @
 -- let s = 'bezierS' bezier 0.01
@@ -222,6 +160,8 @@ bezierS_integral bz s = error "TODO"
 bezierS :: Bezier -> Double -> Distance -> Vec2
 bezierS = bezierS_ode
 
+-- There’s also another method to do this using Newton’s method, detialed in the
+-- paper (see references on bezier subdivision).
 bezierS_ode
     :: Bezier
     -> Double   -- ^ Precision parameter (smaller is more precise but slower).
@@ -229,7 +169,7 @@ bezierS_ode
     -> Vec2     -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
-    in \(Distance s) -> let t = lookupInterpolated lut (S s)
+    in \(Distance s) -> let T t = lookupInterpolated lut (S s)
                         in bezierT bz t
 
 -- | S⇆T lookup table for a Bezier curve
@@ -253,6 +193,59 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 
 -- $references
 --
+-- == Arc length parameterization
+--
 -- * Moving Along a Curve with Specified Speed (2019)
--- by David Eberly
--- https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
+--   by David Eberly
+--   https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
+--
+-- == Smoothening
+--
+-- * Cubic Bézier Splines
+--   by Michael Joost
+--   https://www.michael-joost.de/bezierfit.pdf
+--
+-- * Building Smooth Paths Using Bézier Curves
+--   by Stuart Kent
+--   https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
+
+-- | Smoothen a number of points by putting a Bezier curve between each pair.
+-- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
+-- solution to a differential equation.
+--
+-- For an input of n+1 points, this will yield n Bezier curves.
+bezierSmoothen :: [Vec2] -> [Bezier]
+bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
+  where
+    pointsV = V.fromList points
+    n = V.length pointsV - 1
+
+    controlPointsStart =
+        let low   = lowerDiagonal (n-1)
+            diag  = diagonal      n
+            upper = upperDiagonal (n-1)
+            rhs   = target        n pointsV
+        in solveTridiagonal low diag upper rhs
+    controlPointsEnd = V.generate (V.length controlPointsStart) $ \i -> case () of
+        _ | i == n-1 -> (pointsV ! n +. controlPointsStart ! (n-1)) /. 2
+          | otherwise -> 2 *. (pointsV ! (i+1)) -. controlPointsStart ! (i+1)
+
+upperDiagonal :: Int -> Vector Double
+upperDiagonal len = V.replicate len 1
+
+lowerDiagonal :: Int -> Vector Double
+lowerDiagonal len = V.generate len $ \i -> case () of
+    _ | i == len-1 -> 2
+      | otherwise -> 1
+
+diagonal :: Int -> Vector Double
+diagonal len = V.generate len $ \i -> case () of
+    _ | i == 0     -> 2
+      | i == len-1 -> 7
+      | otherwise  -> 4
+
+target :: VectorSpace vec => Int -> Vector vec -> Vector vec
+target n vertices = V.generate n $ \i -> case () of
+    _ | i == 0    ->      vertices ! 0     +. 2 *. vertices ! 1
+      | i == n-1  -> 8 *. vertices ! (n-1) +.      vertices ! n
+      | otherwise -> 4 *. vertices ! i     +. 2 *. vertices ! (i+1)

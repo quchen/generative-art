@@ -10,7 +10,7 @@ import System.Random.MWC
 
 import Draw
 import Geometry
-import Geometry.Processes.DifferentialEquation
+import Numerics.DifferentialEquation
 import Graphics.Rendering.Cairo (Render, liftIO)
 
 

@@ -1,9 +1,9 @@
-module Geometry.Processes.DifferentialEquation (
+module Numerics.DifferentialEquation (
       rungeKuttaConstantStep
     , rungeKuttaAdaptiveStep
 ) where
 
-import Geometry.Core
+import Algebra.VectorSpace
 
 -- | Single step of RK4 (»the standard Runge-Kutta«).
 rungeKutta4Step
@@ -34,30 +34,16 @@ rungeKuttaConstantStep
 rungeKuttaConstantStep f y0 t0 dt
   = iterate (\(t, y) -> rungeKutta4Step f y t dt) (t0, y0)
 
--- | For the adaptive part of RKF, we need *some* norm to check how good or bad the
--- approximation is. This tolerance class implements the maximum norm for tuples,
--- and Euclidean norm for R^n.
-class ToleranceNormedVector vec where
-    toleranceNorm :: vec -> Double
-
-instance ToleranceNormedVector Vec2 where
-    toleranceNorm vec = let (Distance d) = norm vec in d
-
-instance ToleranceNormedVector Double where
-    toleranceNorm = abs
-
-instance (ToleranceNormedVector a, ToleranceNormedVector b) => ToleranceNormedVector (a,b) where
-    toleranceNorm (a,b) = max (toleranceNorm a) (toleranceNorm b)
-
 rkf45step
-    :: (VectorSpace vec, ToleranceNormedVector vec)
+    :: (VectorSpace vec)
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ current y
     -> Double                 -- ^ current time
     -> Double                 -- ^ step size
+    -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
     -> (Double, vec, Double)  -- ^ new time, new y, new step size
-rkf45step f y t dt tolerance
+rkf45step f y t dt toleranceNorm tolerance
   = let k1 = dt *. f t y
         k2 = dt *. f (t + 1/4*dt)   (y +. (1/4)       *.k1)
         k3 = dt *. f (t + 3/8*dt)   (y +. (3/32)      *.k1 +. (9/32)     *.k2)
@@ -82,17 +68,22 @@ rkf45step f y t dt tolerance
              in (t+dt, y'rk5, dt')
         else let dtFactor = max 0.1 $ safety * (tolerance / deviation) ** (1/5)
                  dt' = dt * dtFactor
-             in rkf45step f y t dt' tolerance
+             in rkf45step f y t dt' toleranceNorm tolerance
 
 -- | Solve a system of first-order differential equations with RKF45
 -- (Runge-Kutta-Feinberg, adaptive step size using 4th-and-5th-order Runge-Kutta).
+--
+-- For the adaptive part of RKF, we need some norm to check how good or bad the
+-- approximation is. This tolerance class implements the maximum norm for tuples,
+-- and Euclidean norm for R^n.
 rungeKuttaAdaptiveStep
-    :: (VectorSpace vec, ToleranceNormedVector vec)
+    :: (VectorSpace vec)
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ current y
     -> Double                 -- ^ current time
     -> Double                 -- ^ step size
+    -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
     -> [(Double, vec)]
-rungeKuttaAdaptiveStep f y0 t0 dt0 tolerance
-  = [ (t, y) | (t,y,_dt) <- iterate (\(t, y, dt) -> rkf45step f y t dt tolerance) (t0, y0, dt0) ]
+rungeKuttaAdaptiveStep f y0 t0 dt0 toleranceNorm tolerance
+  = [ (t, y) | (t,y,_dt) <- iterate (\(t, y, dt) -> rkf45step f y t dt toleranceNorm tolerance) (t0, y0, dt0) ]

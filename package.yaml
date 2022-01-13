@@ -26,6 +26,9 @@ dependencies:
     - transformers
     - vector
 
+default-extensions:
+    - BangPatterns
+
 ghc-options:
     - -Wall
     - -Wno-type-defaults

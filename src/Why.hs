@@ -30,23 +30,6 @@ fareyApproximate maxD exact = go 0 (ceilRatio exact)
                | dy > dx -> y
                | otherwise -> x
 
-
-newtonStep
-    :: Double             -- ^ t_n
-    -> (Double -> Double) -- ^ f(t_n)
-    -> (Double -> Double) -- ^ f'(t_n)
-    -> Double             -- ^ t_{n+1}
-newtonStep t f f' = t - f t/f' t
-
--- -- | Iterate the Newton method a number of times
-findRoot
-    :: Int                -- ^ Number of iterations @n@
-    -> Double             -- ^ Initial guess
-    -> (Double -> Double) -- ^ f
-    -> (Double -> Double) -- ^ f'
-    -> Double             -- ^ Root approximation after @n@ steps
-findRoot n t0 f f' = iterate (\t -> newtonStep t f f') t0 !! n
-
 -- | Split a 'V.Vector' at an index into the slice before, the value at the index, and the slice after.
 --
 -- >>> divideOnIndex 0 (V.fromList [0..10])
