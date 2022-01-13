@@ -2,11 +2,11 @@
 
 module Test.DifferentialEquation (tests) where
 
-import Geometry
-import Draw
-import Numerics.DifferentialEquation
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import Data.Foldable
+import Draw
+import Geometry
+import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
+import Numerics.DifferentialEquation
 import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit

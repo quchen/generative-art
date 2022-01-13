@@ -2,19 +2,19 @@
 
 module Main (main) where
 
-import           Data.Foldable                   (for_, Foldable (foldl'))
-import           Numeric                         (showHex)
-import           Prelude                         hiding ((**))
-import           System.IO.Temp                  (withSystemTempDirectory)
-import           System.Random.MWC               (uniform, createSystemRandom)
+import Data.Foldable     (Foldable (foldl'), for_)
+import Numeric           (showHex)
+import Prelude           hiding ((**))
+import System.IO.Temp    (withSystemTempDirectory)
+import System.Random.MWC (createSystemRandom, uniform)
 
-import qualified Graphics.Rendering.Cairo        as Cairo
-import qualified Graphics.UI.Threepenny          as UI
+import qualified Graphics.Rendering.Cairo    as Cairo
+import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
-import           Geometry
-import           Voronoi
-import           Draw
+import Draw
+import Geometry
+import Voronoi
 
 main :: IO ()
 main = withSystemTempDirectory "voronoi-interactive" $ \tmpDir -> UI.startGUI UI.defaultConfig (setup tmpDir)

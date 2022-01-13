@@ -2,9 +2,9 @@ module Numerics.LinearEquationSystem (
     solveTridiagonal
 ) where
 
-import qualified Data.Vector as V
-import Data.Vector (Vector, (!))
-import Algebra.VectorSpace
+import           Algebra.VectorSpace
+import           Data.Vector         (Vector, (!))
+import qualified Data.Vector         as V
 
 -- | Solve a tridiagonal system of equations.
 --

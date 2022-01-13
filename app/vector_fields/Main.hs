@@ -1,17 +1,17 @@
 module Main (main) where
 
-import Control.Applicative (liftA2)
-import Control.Monad (replicateM)
-import Data.Foldable (for_)
-import Data.Maybe (fromMaybe)
+import           Control.Applicative      (liftA2)
+import           Control.Monad            (replicateM)
+import           Data.Foldable            (for_)
+import           Data.Maybe               (fromMaybe)
 import qualified Graphics.Rendering.Cairo as Cairo
-import Math.Noise (Perlin(..), perlin, getValue)
-import System.Random.MWC
+import           Math.Noise               (Perlin (..), getValue, perlin)
+import           System.Random.MWC
 
 import Draw
 import Geometry
+import Graphics.Rendering.Cairo      (Render, liftIO)
 import Numerics.DifferentialEquation
-import Graphics.Rendering.Cairo (Render, liftIO)
 
 
 picWidth, picHeight :: Num a => a

@@ -17,8 +17,8 @@ import qualified Test.Penrose
 import qualified Test.Properties
 import qualified Test.RandomCut
 import qualified Test.Reflection
-import qualified Test.Trajectory
 import qualified Test.SimpleOperations
+import qualified Test.Trajectory
 import qualified Test.Triangulate
 import qualified Test.Voronoi
 

@@ -3,7 +3,7 @@
 module Test.Penrose (tests) where
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (transform, scale, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding (scale, transform, x, y)
 
 import Draw
 import Geometry

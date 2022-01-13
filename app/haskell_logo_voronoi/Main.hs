@@ -1,21 +1,21 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import           Data.Char                       (ord)
-import           Data.Foldable                   (for_)
-import           Data.List                       (find)
-import           Data.Maybe                      (mapMaybe)
-import           Data.Vector                     (fromList)
-import           Prelude                         hiding ((**))
-import           System.Environment              (getArgs)
-import           System.Random.MWC               (initialize)
+import Data.Char          (ord)
+import Data.Foldable      (for_)
+import Data.List          (find)
+import Data.Maybe         (mapMaybe)
+import Data.Vector        (fromList)
+import Prelude            hiding ((**))
+import System.Environment (getArgs)
+import System.Random.MWC  (initialize)
 
-import           Draw
-import           Geometry
-import           Geometry.Shapes                 (haskellLogo)
-import           Graphics.Rendering.Cairo        hiding (transform)
-import           Voronoi
+import Draw
+import Geometry
+import Geometry.Shapes          (haskellLogo)
+import Graphics.Rendering.Cairo hiding (transform)
+import Voronoi
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 

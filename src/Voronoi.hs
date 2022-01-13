@@ -31,13 +31,13 @@ module Voronoi
 , updateFace
 ) where
 
-import Data.List (foldl')
-import System.Random.MWC (GenIO, uniformR)
+import Data.List                       (foldl')
+import System.Random.MWC               (GenIO, uniformR)
 import System.Random.MWC.Distributions (normal)
 
-import Geometry
 import Control.Applicative (liftA2)
-import Control.Monad (replicateM)
+import Control.Monad       (replicateM)
+import Geometry
 
 data VoronoiFace a = VF
     { center :: Vec2

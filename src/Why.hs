@@ -3,7 +3,7 @@ module Why where
 
 
 
-import Data.Ratio
+import           Data.Ratio
 import qualified Data.Vector as V
 
 

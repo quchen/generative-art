@@ -20,14 +20,14 @@ module Geometry.Bezier
 )
 where
 
-import Data.Vector (Vector, (!))
-import Geometry.Core
-import Geometry.LUT
-import Numerics.ConvergentRecursion
-import Numerics.DifferentialEquation
-import Numerics.Integrate
-import Numerics.LinearEquationSystem
-import qualified Data.Vector as V
+import           Data.Vector                   (Vector, (!))
+import qualified Data.Vector                   as V
+import           Geometry.Core
+import           Geometry.LUT
+import           Numerics.ConvergentRecursion
+import           Numerics.DifferentialEquation
+import           Numerics.Integrate
+import           Numerics.LinearEquationSystem
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier Vec2 Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)

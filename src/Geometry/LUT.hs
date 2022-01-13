@@ -6,8 +6,8 @@ module Geometry.LUT (
     , lookupBiasLower
 ) where
 
-import qualified Data.Vector as V
-import Geometry.Core
+import qualified Data.Vector   as V
+import           Geometry.Core
 
 -- | Vector-based lookup table from 'fst' to 'snd'. Values must increase with vector index, enabling binary search.
 newtype VLUT a b = VLUT (V.Vector (a, b))

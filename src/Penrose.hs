@@ -29,8 +29,8 @@ module Penrose
 , asymmetricDecagon
 ) where
 
-import Prelude hiding (length)
 import Geometry
+import Prelude  hiding (length)
 
 -- | A rhombic Penrose tile. Strictly speaking, this is /half/ a tile,
 -- because subdividing a full tile will result in half tiles protruding from
