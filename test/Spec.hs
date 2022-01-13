@@ -17,6 +17,7 @@ import qualified Test.Penrose
 import qualified Test.Properties
 import qualified Test.RandomCut
 import qualified Test.Reflection
+import qualified Test.Sampling
 import qualified Test.SimpleOperations
 import qualified Test.Trajectory
 import qualified Test.Triangulate
@@ -48,6 +49,7 @@ tests = testGroup "Test suite"
         , Test.Penrose.tests
         , Test.RandomCut.tests
         , Test.Reflection.tests
+        , Test.Sampling.tests
         , Test.SimpleOperations.tests
         , Test.Trajectory.tests
         , Test.Triangulate.tests
