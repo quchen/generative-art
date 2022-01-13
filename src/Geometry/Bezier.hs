@@ -17,11 +17,12 @@ module Geometry.Bezier
 )
 where
 
-import Data.List
 import Geometry.Core
 import Geometry.LUT
 import Geometry.Processes.DifferentialEquation
 import qualified Data.Vector as V
+import Numerics.Integrate
+import Numerics.ConvergentRecursion
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier Vec2 Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
@@ -107,65 +108,11 @@ bezierT'' (Bezier a b c d) (T t)
 bezierLength
     :: Bezier   -- ^ Curve
     -> Distance
-bezierLength bezier = Distance (integrateConvergently (integrateSimpson13 f 0 1) 1e-6)
+bezierLength bezier = Distance (retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6)
   where
     f t = let Distance d = norm (bezierT' bezier (T t)) in d
 
--- | Numerical integration with the midpoint method.
-integrateMidpoint
-    :: Fractional a
-    => (a -> a) -- ^ f
-    -> a        -- ^ a
-    -> a        -- ^ b
-    -> Int      -- ^ Number of interval subdivisions
-    -> a        -- ^ ∫_a^b f(t) dt
-integrateMidpoint f a b n =
-    h * ( f a / 2
-        + sum' [f (a + fromIntegral k*h) | k <- [1..n-1]]
-        + f b / 2
-        )
-  where
-    h = (b-a)/fromIntegral n
-    sum' = foldl' (+) 0
 
--- | Numerical integration with Simpson’s ⅓ rule.
-integrateSimpson13
-    :: Fractional a
-    => (a -> a) -- ^ f
-    -> a        -- ^ a
-    -> a        -- ^ b
-    -> Int      -- ^ Number of interval subdivisions
-    -> a        -- ^ ∫_a^b f(t) dt
-integrateSimpson13 f a b n
-    | odd n = integrateSimpson13 f a b (succ n)
-integrateSimpson13 f a b n =
-    h/3 * ( f a
-          + 2 * sum' [f (x (2*j  )) | j <- [1..n`div`2-1]]
-          + 4 * sum' [f (x (2*j-1)) | j <- [1..n`div`2]]
-          + f b
-          )
-  where
-    x i = a + (fromIntegral (i :: Int))*h
-    h = (b-a)/fromIntegral n
-    sum' = foldl' (+) 0
-
-integrateConvergently
-    :: (Fractional a, Ord a)
-    => (Int -> a) -- ^ Integration function: f a b n
-    -> a          -- ^ Relative error threshold between iterations before committing
-    -> a          -- ^ Result
-integrateConvergently integrateSteps threshold
-  = let results = [integrateSteps steps | steps <- dropWhile (< 5) fibo]
-            -- We drop a couple of steps in the beginning because e.g. Simpson requires an even number,
-            -- making 1 and 2 step solutions exactly equal, leading to convergence triggering. Woops!
-        closeEnoughPair (x,y) = (x-y)/x < threshold
-        Just (_good, evenBetter) = find closeEnoughPair (zip results (tail results))
-    in evenBetter
-
--- | Fibonacci series, useful to have an exponentially growing integer-valued function
--- with a base smaller than two.
-fibo :: [Int]
-fibo = 0 : 1 : zipWith (+) fibo (tail fibo)
 
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
