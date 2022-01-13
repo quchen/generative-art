@@ -76,7 +76,7 @@
 </symbol>
 </g>
 </defs>
-<g id="surface-0">
+<g id="id1">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 110 10 M 102.980469 6.164062 L 110 10 L 102.980469 13.835938 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 60 30 L 60 80 M 63.835938 72.980469 L 60 80 L 56.164062 72.980469 "/>
 <path style=" stroke:none;fill-rule:nonzero;fill:rgb(92.2526%,38.5626%,20.9179%);fill-opacity:1;" d="M 63 10 C 63 14 57 14 57 10 C 57 6 63 6 63 10 "/>
