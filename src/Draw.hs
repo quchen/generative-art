@@ -56,7 +56,7 @@ import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSV
 import Data.Default.Class
 import Data.Foldable
-import Data.List (isSuffixOf)
+import Data.List                (isSuffixOf)
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Geometry

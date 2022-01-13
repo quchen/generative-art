@@ -6,7 +6,8 @@ module Test.Common
 
 
 
-import Graphics.Rendering.Cairo as Cairo hiding (transform, rotate, translate, width, x, y)
+import Graphics.Rendering.Cairo as Cairo hiding
+    (rotate, transform, translate, width, x, y)
 
 import Draw
 import Geometry

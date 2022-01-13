@@ -3,7 +3,7 @@ module Test.Bezier (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (x,y)
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry as G

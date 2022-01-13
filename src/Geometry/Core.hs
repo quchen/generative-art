@@ -94,11 +94,11 @@ module Geometry.Core (
 
 
 
+import Algebra.VectorSpace
 import Control.Monad
 import Data.Fixed
 import Data.List
 import Data.Maybe
-import Algebra.VectorSpace
 import Text.Printf
 
 import Util

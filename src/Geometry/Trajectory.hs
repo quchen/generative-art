@@ -4,11 +4,11 @@ module Geometry.Trajectory (
     , simplifyTrajectory
 ) where
 
-import Geometry.LUT
-import Geometry.Core
-import qualified Data.Vector as V
-import Data.Vector (Vector)
-import Data.Ord
+import           Data.Ord
+import           Data.Vector   (Vector)
+import qualified Data.Vector   as V
+import           Geometry.Core
+import           Geometry.LUT
 
 -- | Build a lookup table from arc length to the line that we’re on at that arc
 -- length.

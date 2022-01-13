@@ -2,10 +2,11 @@ module Test.Triangulate (tests) where
 
 
 
-import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (transform, translate, x, y)
+import           Data.Foldable
+import           Graphics.Rendering.Cairo as Cairo hiding
+    (transform, translate, x, y)
 import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random
+import           System.Random
 
 import Draw
 import Geometry

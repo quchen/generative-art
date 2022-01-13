@@ -4,7 +4,7 @@ module Main (main) where
 
 import Control.Monad.Trans.State
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import Graphics.Rendering.Cairo  as Cairo hiding (x, y)
 import System.Random
 
 import Comparison
