@@ -1,6 +1,6 @@
 # Voronoi diagrams
 
-A [Voronoi diagram](https://en.wikipedia.org/wiki/Voronoi_diagram) are generated
+A [Voronoi diagram](https://en.wikipedia.org/wiki/Voronoi_diagram) is generated
 by distributing a set of points (seeds) on the plane, and then coloring the
 region (cell) around each seed that is closer to this seed than to any other
 seeds.

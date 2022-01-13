@@ -39,11 +39,11 @@ mainHaskellLogo = do
     let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
         backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
         allPoints = picturePoints ++ backgroundPoints
-        allFaces = faces (mkVoronoi w h allPoints)
-    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allFaces drawFace
+        allCells = cells (mkVoronoi w h allPoints)
+    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allCells drawCell
 
-drawFace :: VoronoiFace RGB -> Render ()
-drawFace VF{..} = drawPoly face props
+drawCell :: VoronoiCell RGB -> Render ()
+drawCell Cell{..} = drawPoly region props
 
 drawPoly :: Polygon -> RGB -> Render ()
 drawPoly (Polygon []) _ = pure ()

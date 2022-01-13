@@ -29,57 +29,57 @@ testPolygonCutting = testGroup "Adding polygons"
     point1 = Vec2 20 40
     point2 = Vec2 80 90
     point3 = Vec2 60 30
-    face1 = VF point1 box 1
-    face2 = VF point2 box 2
-    face3 = VF point3 box 3
-    face1' = updateFace point2 face1
-    face1'' = updateFace point3 face1'
-    face2' = updateFace point1 face2
-    face2'' = updateFace point3 face2'
-    face3' = updateFace point2 $ updateFace point1 $ face3
+    cell1 = Cell point1 box 1
+    cell2 = Cell point2 box 2
+    cell3 = Cell point3 box 3
+    cell1' = updateCell point2 cell1
+    cell1'' = updateCell point3 cell1'
+    cell2' = updateCell point1 cell2
+    cell2'' = updateCell point3 cell2'
+    cell3' = updateCell point2 $ updateCell point1 $ cell3
     test1 = renderAllFormats 420 240 "docs/voronoi/1_cut_polygon" $ do
         Cairo.translate 10 10
-        drawVoronoi [face1]
-        drawCenter face2
+        drawVoronoi [cell1]
+        drawSeed cell2
         drawArrow (Vec2 110 50) (deg 0) (Distance 30)
         Cairo.translate 0 120
-        drawVoronoi [face2]
-        drawCenter face1
+        drawVoronoi [cell2]
+        drawSeed cell1
         drawArrow (Vec2 110 50) (deg 0) (Distance 30)
         Cairo.translate 150 (-120)
-        drawVoronoi [face1']
-        drawCenter face2
+        drawVoronoi [cell1']
+        drawSeed cell2
         drawArrow (Vec2 110 50) (deg 45) (Distance 30)
         Cairo.translate 0 120
-        drawVoronoi [face2']
-        drawCenter face1
+        drawVoronoi [cell2']
+        drawSeed cell1
         drawArrow (Vec2 110 50) (deg (-45)) (Distance 30)
         Cairo.translate 150 (-60)
-        drawVoronoi [face1', face2']
+        drawVoronoi [cell1', cell2']
     test2 = renderAllFormats 420 360 "docs/voronoi/2_add_polygon" $ do
         Cairo.translate 10 70
-        drawVoronoi [face1', face2']
-        drawCenter face3
+        drawVoronoi [cell1', cell2']
+        drawSeed cell3
         drawArrow (Vec2 110 20) (deg (-45)) (Distance 30)
         drawArrow (Vec2 110 80) (deg 45) (Distance 30)
         Cairo.translate 0 180
-        drawVoronoi [face3]
-        for_ [face1, face2] drawCenter
+        drawVoronoi [cell3]
+        for_ [cell1, cell2] drawSeed
         drawArrow (Vec2 110 50) (deg 0) (Distance 30)
         Cairo.translate 150 (-240)
-        drawVoronoi [face1'']
-        drawCenter face3
+        drawVoronoi [cell1'']
+        drawSeed cell3
         drawArrow (Vec2 110 90) (deg 45) (Distance 30)
         Cairo.translate 0 120
-        drawVoronoi [face2'']
-        drawCenter face3
+        drawVoronoi [cell2'']
+        drawSeed cell3
         drawArrow (Vec2 110 50) (deg 0) (Distance 30)
         Cairo.translate 0 120
-        drawVoronoi [face3']
-        for_ [face1, face2] drawCenter
+        drawVoronoi [cell3']
+        for_ [cell1, cell2] drawSeed
         drawArrow (Vec2 110 10) (deg (-45)) (Distance 30)
         Cairo.translate 150 (-120)
-        drawVoronoi [face1'', face2'', face3']
+        drawVoronoi [cell1'', cell2'', cell3']
     drawArrow start angle len = do
         arrowSketch (angledLine start angle len) def
         stroke
@@ -90,12 +90,12 @@ testVoronoi = testCase "Full Voronoi pattern" test
     voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
     test = renderAllFormats 120 120 "docs/voronoi/3_full_voronoi" $ do
         Cairo.translate 10 10
-        drawVoronoi (faces voronoiPattern)
+        drawVoronoi (cells voronoiPattern)
 
-drawVoronoi :: [VoronoiFace MmaColor] -> Render ()
-drawVoronoi voronoiFaces = cairoScope $ do
+drawVoronoi :: [VoronoiCell MmaColor] -> Render ()
+drawVoronoi voronoiCells = cairoScope $ do
     setLineWidth 1
-    for_ voronoiFaces $ \(VF point polygon i) -> do
+    for_ voronoiCells $ \(Cell point polygon i) -> do
         cairoScope $ do
             newPath
             polygonSketch polygon
@@ -109,8 +109,8 @@ drawVoronoi voronoiFaces = cairoScope $ do
             showTextAligned HCenter VCenter (show i)
         drawPoint point i
 
-drawCenter :: VoronoiFace MmaColor -> Render ()
-drawCenter vf = drawPoint (center vf) (props vf)
+drawSeed :: VoronoiCell MmaColor -> Render ()
+drawSeed cell = drawPoint (seed cell) (props cell)
 
 drawPoint :: Vec2 -> MmaColor -> Render ()
 drawPoint point color = cairoScope $ do

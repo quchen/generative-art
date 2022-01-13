@@ -68,7 +68,7 @@ setup tmpDir window = do
         tmpFile <- liftIO $ do
             randomNumber <- uniform gen :: IO Int
             pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
-        liftIO $ withSurface PNG tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
+        liftIO $ withSurface PNG tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
         on (UI.domEvent "load") outImg $ \_ -> do
@@ -78,10 +78,10 @@ setup tmpDir window = do
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
         voronoi <- liftIO $ currentValue bVoronoi
-        liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (faces voronoi) drawFaceCairo
+        liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
 
-drawFaceCairo :: VoronoiFace () -> Cairo.Render ()
-drawFaceCairo VF{..} = case face of
+drawCellCairo :: VoronoiCell () -> Cairo.Render ()
+drawCellCairo Cell{..} = case region of
     Polygon [] -> pure ()
     poly -> do
         let fillColor = parseHex "#eeeeee"
@@ -92,7 +92,7 @@ drawFaceCairo VF{..} = case face of
         setColor lineColor
         Cairo.setLineWidth 1
         Cairo.stroke
-        circleSketch center (Distance 5)
+        circleSketch seed (Distance 5)
         Cairo.fill
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
