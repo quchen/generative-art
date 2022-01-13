@@ -9,6 +9,7 @@ import Data.Vector (Vector, (!))
 import Geometry.Core
 import Geometry.Bezier
 import Data.Ord
+import Numerics.LinearEquationSystem
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
@@ -54,29 +55,6 @@ target n vertices = V.generate n $ \i -> case () of
     _ | i == 0    ->      vertices ! 0     +. 2 *. vertices ! 1
       | i == n-1  -> 8 *. vertices ! (n-1) +.      vertices ! n
       | otherwise -> 4 *. vertices ! i     +. 2 *. vertices ! (i+1)
-
--- See https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
--- Translated with blood, sweat and tears from 1-and-2(!!)-based indexing
-solveTridiagonal
-    :: VectorSpace vec
-    => Vector Double -- ^ Lower diagonal, length n-1
-    -> Vector Double -- ^ Diagonal, length n
-    -> Vector Double -- ^ Upper diagonal, length n-1
-    -> Vector vec   -- ^ RHS, length n
-    -> Vector vec
-solveTridiagonal a b c d
-  = let n = V.length d
-        ifor = flip V.imap
-        c' = ifor c $ \i c_i -> case i of
-            0 -> c_i / b!i
-            _ -> c_i / (b!i - a!(i-1) * c'!(i-1))
-        d' = ifor d $ \i d_i -> case i of
-            0 -> d_i /. b!i
-            _ -> (d_i -. a!(i-1) *. d'!(i-1))  /.  (b!i - a!(i-1) * c'!(i-1))
-        x = ifor d' $ \i d'_i -> case i of
-            _ | i == n-1 -> d'_i
-            _            -> d'_i -. c'!i *. x!(i+1)
-    in x
 
 -- | Simplify a path by dropping unnecessary points. The larger the tolerance
 -- distance, the simpler the result will be.
