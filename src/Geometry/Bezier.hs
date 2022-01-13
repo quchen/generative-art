@@ -212,8 +212,8 @@ bezierS_integral bz s = error "TODO"
 -- | Get the position on a Bezier curve as a fraction of its length, via solving a
 -- differential equation. This is /much/ more expensive to compute than 'bezierT'.
 --
--- Multiple calls to this function use a cached lookup table, so that the expensive
--- step has to be done only once here:
+-- This caches the internal LUT when partially applied, so that the following will
+-- only compute it once for repeated lookups:
 --
 -- @
 -- let s = 'bezierS' bezier 0.01

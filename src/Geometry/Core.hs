@@ -18,6 +18,7 @@ module Geometry.Core (
     , angleBetween
     , angledLine
     , lineLength
+    , moveAlongLine
     , resizeLine
     , resizeLineSymmetric
     , centerLine
@@ -530,6 +531,17 @@ newtype Area = Area Double deriving (Eq, Ord, Show)
 -- it unit length.
 vectorOf :: Line -> Vec2
 vectorOf (Line start end) = end -. start
+
+-- | Where do you end up when walking 'Distance' on a 'Line'?
+--
+-- @
+-- moveAlong (Line start end) (Distance 0) == start
+-- moveAlong (Line start end) (lineLength …) == end
+-- @
+moveAlongLine :: Line -> Distance -> Vec2
+moveAlongLine line@(Line start _end) (Distance d)
+  = let Distance len = lineLength line
+    in start +. (d/len) *. vectorOf line
 
 -- | Angle of a single line, relative to the x axis.
 angleOfLine :: Line -> Angle
