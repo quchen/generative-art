@@ -19,10 +19,10 @@ where
 
 import Geometry.Core
 import Geometry.LUT
-import Geometry.Processes.DifferentialEquation
 import qualified Data.Vector as V
 import Numerics.Integrate
 import Numerics.ConvergentRecursion
+import Numerics.DifferentialEquation
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier Vec2 Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)

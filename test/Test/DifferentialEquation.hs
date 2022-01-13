@@ -4,7 +4,7 @@ module Test.DifferentialEquation (tests) where
 
 import Geometry
 import Draw
-import Geometry.Processes.DifferentialEquation
+import Numerics.DifferentialEquation
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import Data.Foldable
 import Test.Common
@@ -24,7 +24,7 @@ twoBodyProblem :: TestTree
 twoBodyProblem = testCase "Two-body problem" (renderAllFormats 400 400 "docs/differential_equations/1_two_body_problem" (renderTwoBodyProblem 400 400))
 
 planetPhaseDiagram :: [(Double, (Vec2, Vec2))]
-planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
+planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tolNorm tol
   where
     f :: Double -> (Vec2, Vec2) -> (Vec2, Vec2)
     f _t (x, v)
@@ -40,6 +40,9 @@ planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tol
 
     dt0 = 10
     tol = 0.001
+
+    unDistance (Distance d) = d
+    tolNorm (x,v) = max (unDistance (norm x)) (unDistance (norm v))
 
 renderTwoBodyProblem :: Int -> Int -> Render ()
 renderTwoBodyProblem w h = do
@@ -94,7 +97,7 @@ data DoublePendulum = DoublePendulum {
 }
 
 solveDoublePendulum :: DoublePendulum -> [(Double, ((Double, Double), (Double, Double)))]
-solveDoublePendulum DoublePendulum{..} = rungeKuttaAdaptiveStep f _y0 t0 dt tol
+solveDoublePendulum DoublePendulum{..} = rungeKuttaAdaptiveStep f _y0 t0 dt tolNorm tol
   where
     f :: Double -> ((Double, Double), (Double, Double)) -> ((Double, Double), (Double, Double))
     f _t ((theta1, theta2), (omega1, omega2))
@@ -119,6 +122,8 @@ solveDoublePendulum DoublePendulum{..} = rungeKuttaAdaptiveStep f _y0 t0 dt tol
 
     dt = 0.001
     tol = 0.001
+
+    tolNorm ((theta1, theta2), (omega1, omega2)) = maximum (map abs [theta1, theta2, omega1, omega2])
 
 system :: DoublePendulum
 system = DoublePendulum {
