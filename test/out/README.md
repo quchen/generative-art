@@ -30,6 +30,24 @@ over quickly.
 
 ![Missing image!](../../docs/geometry/cut/4_miss.svg)
 
+![Missing image!](../../docs/geometry/cut/5_through_corner.svg)
+
+![Missing image!](../../docs/geometry/cut/5_zigzag.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_lol.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_loo.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_ool.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_ooo.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_oor.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_roo.svg)
+
+![Missing image!](../../docs/geometry/cut/6_corner_cases_ror.svg)
+
 ![Missing image!](../../docs/geometry/cut/7_1_handcrafted_edge_graph.svg)
 
 ![Missing image!](../../docs/geometry/cut/7_2_calculated_edge_graph.svg)
