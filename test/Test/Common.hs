@@ -45,5 +45,9 @@ renderSvg picWidth picHeight filename drawing
 
 renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
-    if False then renderPng w h (filename ++ ".png") drawing else pure ()
+    renderPng w h (filename ++ ".png") $ do
+        cairoScope $ do
+            hsva 0 0 1 1
+            Cairo.paint
+        drawing
     renderSvg w h (filename ++ ".svg") drawing

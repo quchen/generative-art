@@ -90,15 +90,20 @@ testDraw line1@(Line start _) line2 = do
         arrowSketch line2 def{arrowheadSize = Distance 8}
         stroke
 
-    case intersectionLL line1 line2 of
+    let ty = intersectionLL line1 line2
+
+    case intersectionPoint ty of
         Nothing -> cairoScope $ do
             let Vec2 x y = start +. Vec2 15 15
             hsva 0 0 0 1
             moveTo x y
             setFontSize 10
-            showText "No intersection"
+            showText $ case ty of
+                Parallel    -> "Parallel"
+                Collinear _ -> "Collinear"
+                _           -> bugError "Unknown intersection type"
 
-        Just (point, ty) -> do
+        Just point -> do
 
             cairoScope $ do
                 mmaColor 3 1
@@ -114,10 +119,11 @@ testDraw line1@(Line start _) line2 = do
                 let Vec2 x y = point +. Vec2 15 15
                     angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
                     tyStr = case ty of
-                        IntersectionVirtual        -> "Virtual"
-                        IntersectionVirtualInsideL -> "Virtual (but inside left argument)"
-                        IntersectionVirtualInsideR -> "Virtual (but inside right argument)"
-                        IntersectionReal           -> "Intersection"
+                        IntersectionVirtual _        -> "Virtual"
+                        IntersectionVirtualInsideL _ -> "Virtual (but inside left argument)"
+                        IntersectionVirtualInsideR _ -> "Virtual (but inside right argument)"
+                        IntersectionReal _           -> "Intersection"
+                        _                            -> bugError "Unknown intersection type"
 
                 hsva 0 0 0 1
                 moveTo x y

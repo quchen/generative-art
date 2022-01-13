@@ -54,7 +54,7 @@ simpleCutEdgeGraph = foldl' (\db f -> f db) (CutEdgeGraph mempty)
 
 rebuildSimpleEdgeGraphTest :: TestTree
 rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
-    let actual = sort (reconstructPolygons simpleCutEdgeGraph)
+    let actual = sort (reconstructPolygons PolygonPositive simpleCutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
                         , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
     in assertEqual "" expected actual
@@ -63,10 +63,11 @@ reconstructConvexPolygonTest :: TestTree
 reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
     \(LotsOfGaussianPoints points) ->
         let convexPolygon = convexHull points
+            orientation = polygonOrientation convexPolygon
             maxY = maximum (map (\(Vec2 _ y) -> y) points)
             scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (Angle 0) (Distance 1)
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
-            actual = reconstructPolygons (buildGraph (polygonEdgeGraph cuts))
+            actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))
             expected = [convexPolygon]
         in actual === expected
 
@@ -184,9 +185,19 @@ cutMissesPolygonTest = do
 -- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
 -- don’t want to delete them, but I also do not want unused function warnings.
 cornerCasesTests :: TestTree
-cornerCasesTests = testGroup "Corner cases [IGNORED]" (ignore $ cutThroughCornerTest : pathologicalCornerCutsTests)
-  where
-    ignore = const []
+cornerCasesTests = testGroup "Corner cases" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
+
+zigzagTest :: TestTree
+zigzagTest = testCase "Zigzag" $ do
+    let scissors = Line (Vec2 0 25) (Vec2 50 25)
+        polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
+        cutResult = cutPolygon scissors polygon
+
+    renderAllFormats 150 90 "docs/geometry/cut/5_zigzag"
+        (polyCutDraw
+            (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
+            (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
 
 cutThroughCornerTest :: TestTree
@@ -211,7 +222,8 @@ pathologicalCornerCutsTests = do
     [ testCase name $ do
         renderAllFormats 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix)
             (specialCaseTest name polygon)
-        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon)) ]
+        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon))
+        ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
     specialCaseTest name polygon = cairoScope $ do
@@ -245,7 +257,7 @@ pathologicalCornerCutsTests = do
         liftIO (assertAreaConserved polygon cutResult)
 
     ooo = let colinearPoints = [Vec2 (-40) 0, Vec2 0 0, Vec2 40 0]
-          in ( "on -> on -> on"
+          in ( "on → on → on"
              , "ooo"
              , Polygon (Vec2 0 40 : colinearPoints)
              , 1 )
@@ -292,25 +304,24 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
                 transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
                   where
-                    modify (k, One v) = (f k, One (f v))
-                    modify (k, Two v v') = (f k, Two (f v) (f v'))
+                    modify (k, vs) = (f k, f <$> vs)
             Cairo.translate 10 110
-            drawCutEdgeGraph cutEdgeGraph
+            drawCutEdgeGraph PolygonPositive cutEdgeGraph
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ do
             let polygon = Geometry.transform (Geometry.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
                 scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
             Cairo.translate 60 60
-            drawCutEdgeGraph cutEdgeGraph
+            drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
     ]
   where
     moveRight (Distance d) line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
     nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
     arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
 
-    drawCutEdgeGraph ceg@(CutEdgeGraph graph) = do
-        let reconstructedPolygons = reconstructPolygons ceg
+    drawCutEdgeGraph orientation ceg@(CutEdgeGraph graph) = do
+        let reconstructedPolygons = reconstructPolygons orientation ceg
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             mmaColor 0 1
@@ -320,15 +331,9 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
             fill
 
             mmaColor i 1
-            case ends of
-                One end -> do
-                    arrowSketch (nudge (Line start end)) arrowSpec
-                    stroke
-                Two end1 end2 -> do
-                    arrowSketch (nudge (Line start end1)) arrowSpec
-                    stroke
-                    arrowSketch (nudge (Line start end2)) arrowSpec
-                    stroke
+            for_ ends $ \end -> do
+                arrowSketch (nudge (Line start end)) arrowSpec
+                stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             mmaColor i 1
             cairoScope $ do
