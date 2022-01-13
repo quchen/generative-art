@@ -60,6 +60,5 @@ runPostTestScripts = do
     handles <- traverse runCommand
         [ "./test/out/generate_readme.sh"
         , "./test/out/generate_html.sh"
-        -- , "./test/out/sanitize_svg_ids.py"
         ]
     traverse_ waitForProcess handles

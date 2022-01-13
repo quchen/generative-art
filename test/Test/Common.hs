@@ -27,7 +27,7 @@ angleSketch point angle1 angle2 = do
         , arrowDrawBody = False }
 
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
-renderPng picWidth picHeight filename drawing = withPNGSurface filename picWidth picHeight $ \surface ->
+renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidth picHeight $ \surface ->
     renderWith surface $ do
         cairoScope $ do
             rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
@@ -38,7 +38,7 @@ renderPng picWidth picHeight filename drawing = withPNGSurface filename picWidth
 
 renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
 renderSvg picWidth picHeight filename drawing
-  = withSVGSurface filename w h (\surface -> renderWith surface drawing)
+  = withSurface SVG filename w h (\surface -> renderWith surface drawing)
   where
     w = fromIntegral picWidth
     h = fromIntegral picHeight
