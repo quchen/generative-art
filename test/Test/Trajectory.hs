@@ -1,6 +1,7 @@
 module Test.Trajectory (tests) where
 
 
+
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
@@ -11,6 +12,8 @@ import Test.Common
 import Test.Tasty
 import Test.Tasty.HUnit
 
+
+tests :: TestTree
 tests = testGroup "Trajactories"
     [ simplifyPathTest
     ]

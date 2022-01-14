@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
+
 module Test.Sampling (tests) where
+
 
 import Control.Monad (replicateM)
 import Control.Monad.IO.Class (liftIO)
@@ -13,6 +15,8 @@ import Draw
 import Geometry
 import Sampling
 import Test.Common
+
+
 
 tests :: TestTree
 tests = testCase "Poisson disc sampling" test
