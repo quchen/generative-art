@@ -15,10 +15,9 @@ import Sampling
 import Test.Common
 
 tests :: TestTree
-tests = testCase "Poisson-Disc sampling" test
+tests = testCase "Poisson disc sampling" test
   where
     test = renderAllFormats 400 132 "docs/sampling/poisson-disc" $ do
-        Cairo.setSourceRGB 1 1 1 >> Cairo.paint
         gen <- liftIO create
         let width, height :: Num a => a
             width = 80
@@ -32,7 +31,7 @@ tests = testCase "Poisson-Disc sampling" test
             let radius = 16
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
             drawPoints points
-            Cairo.translate 0 82 >> drawExplanation "Poisson-Disc"
+            Cairo.translate 0 82 >> drawExplanation "Poisson disc"
             Cairo.translate 0 10 >> drawExplanation ("r = " ++ show radius)
             Cairo.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
 
@@ -44,7 +43,7 @@ tests = testCase "Poisson-Disc sampling" test
             let radius = 8
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
             drawPoints points
-            Cairo.translate 0 82 >> drawExplanation "Poisson-Disc"
+            Cairo.translate 0 82 >> drawExplanation "Poisson disc"
             Cairo.translate 0 10 >> drawExplanation ("r = " ++ show radius)
             Cairo.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
 
@@ -56,7 +55,7 @@ tests = testCase "Poisson-Disc sampling" test
             let radius = 4
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
             drawPoints points
-            Cairo.translate 0 82 >> drawExplanation "Poisson-Disc"
+            Cairo.translate 0 82 >> drawExplanation "Poisson disc"
             Cairo.translate 0 10 >> drawExplanation ("r = " ++ show radius)
             Cairo.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
 
