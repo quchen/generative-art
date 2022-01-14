@@ -191,8 +191,32 @@ instance Semigroup Transformation where
 instance Monoid Transformation where
     mempty = identityTransformation
 
+-- | Transform geometry using an affine transformation.
+--
+-- This allows for a multitude of common transformations, such as translation
+-- ('translate'), rotation ('rotate') or scaling ('scale').
+--
+-- Simple transformations can be combined to yield more complex operations, such as
+-- rotating around a point, which can be achieved by moving the center of rotation
+-- to the origin, rotating, and then rotating back:
+--
+-- @
+-- 'rotateAround' pivot angle = 'translate' pivot <> 'rotate' angle <> 'inverse' ('translate' pivot)
+-- @
 class Transform geo where
     transform :: Transformation -> geo -> geo
+
+-- | Transform the result of a function.
+--
+-- @
+-- moveRight :: 'Vec2' -> 'Vec2'
+-- moveRight ('Vec2' x y) = 'Vec2' (x+1) y
+--
+-- moveRightThenRotate :: 'Vec2' -> 'Vec2'
+-- moveRightThenRotate = 'transform' ('rotate' ('deg' 90)) moveRight
+-- @
+instance Transform b => Transform (a -> b) where
+    transform t f = transform t . f
 
 instance Transform Vec2 where
     transform (Transformation a b c
@@ -206,13 +230,9 @@ instance Transform Line where
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
 
+-- | Identical to the 'Monoid' instance of 'Transformation'; see there for documentation.
 instance Transform Transformation where
     transform = transformationProduct
-    -- ^ Right argument will be applied first, so that
-    --
-    -- > rotate `transform` translate
-    --
-    -- will translate before rotating.
 
 instance Transform a => Transform [a] where
     transform t = map (transform t)
