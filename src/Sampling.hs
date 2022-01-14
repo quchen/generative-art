@@ -1,19 +1,25 @@
 {-# LANGUAGE RecordWildCards #-}
 module Sampling (
-      PoissonDiscProperties(..)
-    , poissonDisc
+-- * Poisson-Disc sampling
+PoissonDiscProperties(..)
+, poissonDisc
+
+-- * Other distributions
+, uniformlyDistributedPoints
+, gaussianDistributedPoints
 ) where
 
+import Control.Applicative (liftA2)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.State (StateT, gets, modify, execStateT)
+import Control.Monad (when, replicateM)
+import Data.Maybe (maybeToList)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
-import System.Random.MWC (GenIO, UniformRange (uniformRM))
+import Data.Traversable (for)
+import System.Random.MWC (GenIO, UniformRange (uniformRM), uniformR)
 
 import Geometry
-import Control.Monad.Trans.State (StateT, gets, modify, execStateT)
-import Data.Traversable (for)
-import Data.Maybe (maybeToList)
-import Control.Monad (when)
-import Control.Monad.IO.Class (liftIO)
 
 
 data PoissonDiscProperties = PoissonDisc
@@ -117,3 +123,30 @@ gridCell (Vec2 x y) = do
     r <- gets (radius . properties)
     let gridSize = r / sqrt 2
     pure (floor (x/gridSize), floor (y/gridSize))
+
+
+
+-- | @'uniformlyDistributedPoints' gen width height count@ generates @count@
+-- random points within a rectangle of @width@ x @height@.
+uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
+uniformlyDistributedPoints gen width height count = replicateM count randomPoint
+  where
+    randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
+    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
+
+-- | @'uniformlyDistributedPoints' gen (width, sigmaX) (height, sigmaY) count@
+-- generates @count@ normal distributed random points within a rectangle of
+-- @width@ x @height@, with a the given standard deviations.
+--
+-- Note: This is a rejection algorithm. If you choose the standard deviation
+-- much higher than the height or width, performance will deteriorate as more
+-- and more points are rejected.
+gaussianDistributedPoints :: GenIO -> (Int, Double) -> (Int, Double) -> Int -> IO [Vec2]
+gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = replicateM count randomPoint
+  where
+    randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)
+    randomCoordinate mx sigma = do
+        coord <- normal (fromIntegral mx/2) sigma gen :: IO Double
+        if coord < 0 || coord > fromIntegral mx
+            then randomCoordinate mx sigma
+            else pure coord
