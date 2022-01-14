@@ -15,10 +15,21 @@ The modifications were simply for artistic purposes and have no basis in real ph
 
 ![](1_two_body_problem.svg)
 
-# Double pendulum
+## Double pendulum
 
 The double pendulum is one of the simplest chaotic systems in physics. Here is the trajectory of one:
 
 ![](2_double_pendulum.svg)
 
 [de]: https://en.wikipedia.org/wiki/Differential_equation
+
+## Noise pendulum
+
+This is the phase space of a pendulum subject to
+
+- Linear friction
+- Gaussian noise
+- External sinusoidal force
+- Gravity :-)
+
+![](3_noise_pendulum.svg)

@@ -1,10 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Test.DifferentialEquation (tests) where
+module Test.DifferentialEquation  where
 
 import Data.Foldable
 import Draw
 import Geometry
+import Geometry.Chaotic
 import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import Numerics.DifferentialEquation
 import Test.Common
@@ -17,6 +18,7 @@ tests = testGroup "Differential equations"
     [ testGroup "Visual"
         [ twoBodyProblem
         , doublePendulum
+        , noisePendulum
         ]
     ]
 
@@ -164,3 +166,43 @@ doublePendulumTrajectory sys =
                 y2 = y1 + _l2 * cos theta2
             in (t, Vec2 x2 y2)
     in map v2 solution
+
+
+noisePendulum :: TestTree
+noisePendulum = localOption (Timeout 1000000 "1s") $ testCase "Phase space of dampened noise pendulum" (renderAllFormats 260 200 "docs/differential_equations/3_noise_pendulum" (renderPhaseSpace 260 200 solveNoisePendulum))
+
+solveNoisePendulum :: [(Double, (Double, Double))]
+solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
+  where
+    ode t (phi,omega)
+      = let phi' = omega
+            omega' = gravity + friction + noise + driver
+            gravity = - sin phi
+            friction = - 0.1*omega
+            noise = 0.5*noiseF t phi omega
+            driver = 0.5 * sin t
+        in (phi', omega')
+    y0 = (1, 1)
+    t0 = 0
+    dt = 0.01
+
+    noiseF :: Double -> Double -> Double -> Double
+    noiseF t phi omega
+      = let noise:_ = normals (t, phi, omega)
+        in noise
+
+renderPhaseSpace :: Int -> Int -> [(Double, (Double, Double))] -> Render ()
+renderPhaseSpace w h solution = do
+    let solution' = takeWhile (\(t, _) -> t < 120) solution
+        bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution']
+        bbCanvas = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
+        scaleToCanvas :: Transform geo => geo -> geo
+        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
+        trajectory = simplifyTrajectory (Distance 0.25) -- SVG compression :-)
+                     [scaleToCanvas (Vec2 x v) | (_t, (x,v)) <- solution']
+
+    setLineWidth 1
+    cairoScope $ do
+        pathSketch trajectory
+        mmaColor 0 1
+        stroke

@@ -12,6 +12,7 @@ over quickly.
 ![Missing image!](../../docs/billard/4_broken.svg)
 ![Missing image!](../../docs/differential_equations/1_two_body_problem.svg)
 ![Missing image!](../../docs/differential_equations/2_double_pendulum.svg)
+![Missing image!](../../docs/differential_equations/3_noise_pendulum.svg)
 ![Missing image!](../../docs/geometry/convex_hull.svg)
 ![Missing image!](../../docs/geometry/cut/1_line.svg)
 ![Missing image!](../../docs/geometry/cut/2_square.svg)
