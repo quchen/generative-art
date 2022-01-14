@@ -21,10 +21,11 @@ tests = testGroup "Delaunay triangulation"
 testRandomTriangulation :: TestTree
 testRandomTriangulation = testCase "Random points" test
   where
-    test = renderAllFormats 120 120 "docs/voronoi/delaunay_random" $ do
+    test = renderAllFormats 220 220 "docs/voronoi/delaunay_random" $ do
         gen <- liftIO create
-        randomPoints <- liftIO $ uniformlyDistributedPoints gen 100 100 10
+        randomPoints <- liftIO $ poissonDisc PoissonDisc { width = 200, height = 200, radius = 30, k = 4, gen = gen }
         let triangulation = bowyerWatson randomPoints
+        Cairo.translate 10 10
         for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
             polygonSketch poly
             mmaColor 0 1

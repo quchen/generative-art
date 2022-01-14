@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 module Delaunay (
   DelaunayTriangulation()
@@ -6,7 +7,7 @@ module Delaunay (
 , bowyerWatsonStep
 ) where
 
-import Data.List (foldl')
+import Data.List (foldl', intersect)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 
@@ -14,10 +15,11 @@ import Geometry
 import Data.Maybe (maybeToList)
 
 
+
 newtype DelaunayTriangulation = Delaunay (S.Set (Triangle, Circle))
 
-data Triangle = Triangle Vec2 Vec2 Vec2 deriving (Eq, Ord)
-data Circle = Circle { center :: Vec2, radius :: Distance } deriving (Eq, Ord)
+data Triangle = Triangle Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+data Circle = Circle { center :: Vec2, radius :: Distance } deriving (Eq, Ord, Show)
 
 -- | Smart constructor for triangles.
 --
@@ -37,12 +39,14 @@ getPolygons :: DelaunayTriangulation -> [Polygon]
 getPolygons (Delaunay triangles) = toPolygon . fst <$> S.toList triangles
 
 bowyerWatson :: [Vec2] -> DelaunayTriangulation
-bowyerWatson ps = foldl' bowyerWatsonStep initialTriangulation ps
+bowyerWatson ps = deleteInitialTriangle $ foldl' bowyerWatsonStep initialTriangulation ps
   where
-    initialTriangle = triangle (Vec2 x1 y1) (Vec2 x1 (y1 + 2* (y2 - y1))) (Vec2 (x1 + 2*(x2-x1)) y1)
+    initialTriangle = triangle (Vec2 (x1-10) (y1-10)) (Vec2 (x1-10) (y1 + 2 * (y2 - y1) + 20)) (Vec2 (x1 + 2 * (x2 - x1) + 20) (y1 - 10))
     Just initialCircumcircle = circumcircle initialTriangle
     initialTriangulation = Delaunay (S.singleton (initialTriangle, initialCircumcircle))
     BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox ps
+    deleteInitialTriangle (Delaunay triangulation) = Delaunay $ S.filter (not . hasCommonCorner initialTriangle . fst) triangulation
+    hasCommonCorner (Triangle a b c) (Triangle d e f) = not . null $ [a, b, c] `intersect` [d, e, f]
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
 bowyerWatsonStep (Delaunay triangulation) newPoint = Delaunay (goodTriangles <> newTriangles)
@@ -53,13 +57,19 @@ bowyerWatsonStep (Delaunay triangulation) newPoint = Delaunay (goodTriangles <> 
         go [] result = result
         go (Line p q : es) result
             -- Shared edges always have opposite direction, so they eliminate each other
-            | q `M.member` result = go es (M.delete q result)
-            | otherwise = go es (M.insert p q result)
+            | maybe False (p `S.member`) (result M.!? q) = go es (M.adjust (S.delete p) q result)
+            | otherwise = go es $ M.alter (\case
+                Just qs -> Just (S.insert q qs)
+                Nothing -> Just (S.singleton q))
+                p result
     collectPolygon edgeGraph = let (p, _) = M.findMin edgeGraph in Polygon (go p edgeGraph)
       where
         go p remainingGraph
             | M.null remainingGraph = []
-            | otherwise = let q = remainingGraph M.! p in p : go q (M.delete p remainingGraph)
+            | otherwise =
+                let qs = remainingGraph M.! p
+                    [q] = S.toList qs
+                in p : go q (M.delete p remainingGraph)
     newTriangles = S.fromList
         [ (t, c)
         | Line p q <- polygonEdges outerPolygon
@@ -69,13 +79,10 @@ bowyerWatsonStep (Delaunay triangulation) newPoint = Delaunay (goodTriangles <> 
 circumcircle :: Triangle -> Maybe Circle
 circumcircle (Triangle p1 p2 p3) = case maybeCenter of
     Just center -> Just Circle { radius = norm (center -. p1), .. }
-    Nothing -> Nothing
+    Nothing -> bugError ("Circumcircle of triangle: Bad intersection " ++ show intersectionOfBisectors)
   where
-    maybeCenter = case intersectionLL (Line p2 (midpoint p1 p3)) (Line p3 (midpoint p1 p2)) of
-      IntersectionReal p -> Just p
-      Collinear _ -> Nothing
-      _ -> bugError "Circumcircle of triangle: Bad intersection"
-    midpoint p q = (p +. q) /. 2
+    intersectionOfBisectors = intersectionLL (perpendicularBisector (Line p1 p2)) (perpendicularBisector (Line p1 p3))
+    maybeCenter = intersectionPoint intersectionOfBisectors
 
 inside :: Vec2 -> Circle -> Bool
 point `inside` Circle {..} = norm (center -. point) <= radius
