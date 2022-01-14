@@ -9,10 +9,6 @@ copyright:  "2018 David Luposchainsky"
 extra-source-files:
     - README.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
 description: Generative art using Haskell. See README.md.
 
 dependencies:
@@ -35,9 +31,7 @@ default-extensions:
     - MultiWayIf
     - LambdaCase
 
-ghc-options:
-    - -Wall
-    - -Wno-type-defaults
+ghc-options: [-Wall, -Wno-type-defaults]
 
 library:
     source-dirs: src
@@ -46,24 +40,14 @@ executables:
     haskell-logo-billard:
         main:        Main.hs
         source-dirs: app/haskell_logo_billard
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
     haskell-logo-triangles:
         main:        Main.hs
         source-dirs: app/haskell_logo_triangles
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
@@ -73,12 +57,7 @@ executables:
     vector-fields:
         main: Main.hs
         source-dirs: app/vector_fields
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
@@ -87,12 +66,7 @@ executables:
     haskell-logo-voronoi:
         main: Main.hs
         source-dirs: app/haskell_logo_voronoi
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
@@ -100,12 +74,7 @@ executables:
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
@@ -113,17 +82,11 @@ executables:
             - mwc-random
             - temporary
 
-
 tests:
     testsuite:
         main:        Spec.hs
         source-dirs: test
-        ghc-options:
-            - -threaded
-            - -rtsopts
-            - -with-rtsopts=-N
-            - -Wall
-            - -Wno-type-defaults
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
 
