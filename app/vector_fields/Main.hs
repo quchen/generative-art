@@ -28,7 +28,7 @@ seed :: Int
 seed = 519496
 
 main :: IO ()
-main = withSurface PNG "out/vector_fields.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
+main = withSurfaceAuto "out/vector_fields.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
     Cairo.scale scaleFactor scaleFactor
     cairoScope $ do
         Cairo.setSourceRGB 1 1 1

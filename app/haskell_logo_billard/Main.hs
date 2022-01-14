@@ -21,8 +21,8 @@ picHeight = 360
 main :: IO ()
 main = png >> svg
   where
-    png = withPNGSurface "out/haskell_logo_billard.png" picWidth picHeight renderDrawing
-    svg = withSVGSurface "out/haskell_logo_billard.svg" picWidth picHeight renderDrawing
+    png = withSurfaceAuto "out/haskell_logo_billard.png" picWidth picHeight renderDrawing
+    svg = withSurfaceAuto "out/haskell_logo_billard.svg" picWidth picHeight renderDrawing
     renderDrawing surface = renderWith surface drawing
 
 data BillardSpec = BillardSpec

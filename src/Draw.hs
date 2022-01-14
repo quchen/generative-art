@@ -4,7 +4,6 @@ module Draw (
     -- * SVG and PNG file handling
       withSurfaceAuto
     , withSurface
-    , withPNGSurface
     , OutputFormat(..)
     , fromExtension
 
@@ -72,12 +71,22 @@ import Geometry
 withSurfaceAuto :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
 withSurfaceAuto filePath = withSurface (fromExtension filePath) filePath
 
--- | Renders the drawng as PNG or SVG
-withSurface :: OutputFormat -> FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
-withSurface PNG = withPNGSurface
-withSurface SVG = \filename w h draw -> do
-    result <- withSVGSurface filename (fromIntegral w) (fromIntegral h) draw
-    normalizeSvgFile filename
+-- | Renders the drawing as PNG or SVG
+withSurface
+    :: OutputFormat      -- ^ Output format
+    -> FilePath          -- ^ Output file name
+    -> Int               -- ^ Canvas width
+    -> Int               -- ^ Canvas height
+    -> (Surface -> IO a) -- ^ Drawing action, see 'Cairo.renderWith'
+    -> IO a
+withSurface PNG file w h action = do
+    surface <- createImageSurface FormatARGB32 w h
+    result <- action surface
+    surfaceWriteToPNG surface file
+    pure result
+withSurface SVG file w h draw = do
+    result <- withSVGSurface file (fromIntegral w) (fromIntegral h) draw
+    normalizeSvgFile file
     pure result
 
 data OutputFormat = PNG | SVG
@@ -88,14 +97,6 @@ fromExtension filePath
     | ".png" `isSuffixOf` filePath = PNG
     | ".svg" `isSuffixOf` filePath = SVG
     | otherwise = error ("Unknown file extension: " <> filePath <> ", expecting .png or .svg")
-
--- | The equivalent to 'withSVGSurface' that is somehow missing from Cairo.
-withPNGSurface :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
-withPNGSurface file w h action = do
-    surface <- createImageSurface FormatARGB32 w h
-    result <- action surface
-    surfaceWriteToPNG surface file
-    pure result
 
 -- | Set the color to some HSVA value.
 hsva :: Double -- ^ Hue [0..360]

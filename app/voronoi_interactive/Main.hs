@@ -68,7 +68,7 @@ setup tmpDir window = do
         tmpFile <- liftIO $ do
             randomNumber <- uniform gen :: IO Int
             pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
-        liftIO $ withSurface PNG tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
+        liftIO $ withSurfaceAuto tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
         on (UI.domEvent "load") outImg $ \_ -> do

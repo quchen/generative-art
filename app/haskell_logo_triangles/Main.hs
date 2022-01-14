@@ -25,8 +25,8 @@ haskellLogo' = Geometry.transform (Geometry.scale 340) haskellLogo
 main :: IO ()
 main = png >> svg
   where
-    png = withPNGSurface "out/haskell_logo_triangles.png" picWidth picHeight renderDrawing
-    svg = withSVGSurface "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
+    png = withSurfaceAuto "out/haskell_logo_triangles.png" picWidth picHeight renderDrawing
+    svg = withSurfaceAuto "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
     renderDrawing surface = renderWith surface drawing
 
 shatterProcessS
