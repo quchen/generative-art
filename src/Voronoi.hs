@@ -43,7 +43,7 @@ data VoronoiCell a = Cell
 
 -- | Voronoi patterns should be constructed using 'mkVoronoi' or 'addPoint'.
 data Voronoi a = Voronoi
-    { bounds :: Polygon
+    { bounds :: BoundingBox
     -- ^ The bounding box. Also used as a basis for all newly inserted polygons.
     , cells :: [VoronoiCell a]
     -- ^ A list of Voronoi cells. Don't add any cells yourself, use 'mkVoronoi'
@@ -67,9 +67,7 @@ mkVoronoi' w h = foldl' addPoint' (emptyVoronoi w h)
 
 -- | The starting point for a Voronoi pattern.
 emptyVoronoi :: Double -> Double -> Voronoi a
-emptyVoronoi w h = Voronoi initialPolygon []
-  where
-    initialPolygon = Polygon [ Vec2 0 0, Vec2 w 0, Vec2 w h, Vec2 0 h ]
+emptyVoronoi w h = Voronoi (BoundingBox (Vec2 0 0) (Vec2 w h)) []
 
 -- | Add a new seed point to a Voronoi pattern.
 --
@@ -90,7 +88,7 @@ emptyVoronoi w h = Voronoi initialPolygon []
 addPoint :: Voronoi a -> (Vec2, a) -> Voronoi a
 addPoint Voronoi{..} (p, a) = Voronoi bounds (newCell : cells')
   where
-    newCell = foldl' (\nf f -> updateCell (seed f) nf) (Cell p bounds a) cells
+    newCell = foldl' (\nf f -> updateCell (seed f) nf) (Cell p (boundingBoxPolygon bounds) a) cells
     cells' = fmap (updateCell (seed newCell)) cells
 
 -- | Same as 'addPoint', but without 'props'.

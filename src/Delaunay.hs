@@ -7,8 +7,9 @@ module Delaunay (
 , bowyerWatsonStep
 ) where
 
-import Data.List (foldl', intersect)
+import Data.List (foldl', intersect, sortOn)
 import qualified Data.Map.Strict as M
+import Data.Maybe (maybeToList, catMaybes, fromJust)
 import qualified Data.Set as S
 
 import Geometry
@@ -16,7 +17,10 @@ import Data.Maybe (maybeToList)
 
 
 
-newtype DelaunayTriangulation = Delaunay (S.Set (Triangle, Circle))
+data DelaunayTriangulation = Delaunay
+    { triangulation :: S.Set (Triangle, Circle)
+    , bounds :: BoundingBox
+    }
 
 data Triangle = Triangle Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
 data Circle = Circle { center :: Vec2, radius :: Distance } deriving (Eq, Ord, Show)
@@ -36,22 +40,27 @@ edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
 getPolygons :: DelaunayTriangulation -> [Polygon]
-getPolygons (Delaunay triangles) = toPolygon . fst <$> S.toList triangles
-
-bowyerWatson :: [Vec2] -> DelaunayTriangulation
-bowyerWatson ps = deleteInitialTriangle $ foldl' bowyerWatsonStep initialTriangulation ps
+getPolygons Delaunay{..} = deleteBoundingBox $ toPolygon . fst <$> S.toList triangulation
   where
-    initialTriangle = triangle (Vec2 (x1-10) (y1-10)) (Vec2 (x1-10) (y1 + 2 * (y2 - y1) + 20)) (Vec2 (x1 + 2 * (x2 - x1) + 20) (y1 - 10))
-    Just initialCircumcircle = circumcircle initialTriangle
-    initialTriangulation = Delaunay (S.singleton (initialTriangle, initialCircumcircle))
-    BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox ps
-    deleteInitialTriangle (Delaunay triangulation) = Delaunay $ S.filter (not . hasCommonCorner initialTriangle . fst) triangulation
-    hasCommonCorner (Triangle a b c) (Triangle d e f) = not . null $ [a, b, c] `intersect` [d, e, f]
+    deleteBoundingBox = filter (not . hasCommonCorner (boundingBoxPolygon bounds))
+    hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
+
+bowyerWatson :: BoundingBox -> [Vec2] -> DelaunayTriangulation
+bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
+  where
+    initialTriangles = [triangle (Vec2 x1 y1) (Vec2 x1 y2) (Vec2 x2 y1), triangle (Vec2 x2 y2) (Vec2 x1 y2) (Vec2 x2 y1)]
+    BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bounds
+    initialDelaunay = Delaunay
+        { triangulation = S.fromList (zip initialTriangles (fromJust . circumcircle <$> initialTriangles))
+        , ..  }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep (Delaunay triangulation) newPoint = Delaunay (goodTriangles <> newTriangles)
+bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goodTriangles <> newTriangles }
   where
-    (badTriangles, goodTriangles) = S.partition ((newPoint `inside`) . snd) triangulation
+    validNewPoint = if newPoint `insideBoundingBox` bounds
+        then newPoint
+        else error "User error: Tried to add a point outside the bounding box"
+    (badTriangles, goodTriangles) = S.partition ((validNewPoint `inside`) . snd) triangulation
     outerPolygon = collectPolygon $ go (edges . fst =<< S.toList badTriangles) M.empty
       where
         go [] result = result

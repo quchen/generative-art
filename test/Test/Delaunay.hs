@@ -24,7 +24,7 @@ testRandomTriangulation = testCase "Random points" test
     test = renderAllFormats 220 220 "docs/voronoi/delaunay_random" $ do
         gen <- liftIO create
         randomPoints <- liftIO $ poissonDisc PoissonDisc { width = 200, height = 200, radius = 40, k = 4, gen = gen }
-        let triangulation = bowyerWatson randomPoints
+        let triangulation = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) randomPoints
         Cairo.translate 10 10
         for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
             polygonSketch poly
