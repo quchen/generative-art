@@ -1,5 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
-module Delaunay where
+module Delaunay (
+  DelaunayTriangulation()
+, getPolygons
+, bowyerWatson
+, bowyerWatsonStep
+) where
 
 import Data.List (foldl')
 import qualified Data.Map.Strict as M
@@ -27,6 +32,9 @@ toPolygon (Triangle p1 p2 p3) = Polygon [p1, p2, p3]
 
 edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
+
+getPolygons :: DelaunayTriangulation -> [Polygon]
+getPolygons (Delaunay triangles) = toPolygon . fst <$> S.toList triangles
 
 bowyerWatson :: [Vec2] -> DelaunayTriangulation
 bowyerWatson ps = foldl' bowyerWatsonStep initialTriangulation ps
