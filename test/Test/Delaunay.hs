@@ -23,14 +23,15 @@ testRandomTriangulation = testCase "Random points" test
   where
     test = renderAllFormats 220 220 "docs/voronoi/delaunay_random" $ do
         gen <- liftIO create
-        randomPoints <- liftIO $ poissonDisc PoissonDisc { width = 200, height = 200, radius = 30, k = 4, gen = gen }
+        randomPoints <- liftIO $ poissonDisc PoissonDisc { width = 200, height = 200, radius = 40, k = 4, gen = gen }
         let triangulation = bowyerWatson randomPoints
         Cairo.translate 10 10
         for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
             polygonSketch poly
             mmaColor 0 1
+            Cairo.setLineJoin Cairo.LineJoinBevel
             Cairo.stroke
+            mmaColor 1 1
             for_ ps $ \p -> do
-                circleSketch p (Distance 2)
-                mmaColor 1 1
+                circleSketch p (Distance 4)
                 Cairo.fill
