@@ -169,7 +169,7 @@ doublePendulumTrajectory sys =
 
 
 noisePendulum :: TestTree
-noisePendulum = localOption (Timeout 1000000 "1s") $ testCase "Phase space of dampened noise pendulum" (renderAllFormats 260 200 "scratchpad/out" (renderPhaseSpace 260 200 solveNoisePendulum))
+noisePendulum = localOption (Timeout 1000000 "1s") $ testCase "Phase space of dampened noise pendulum" (renderAllFormats 260 200 "docs/differential_equations/3_noise_pendulum" (renderPhaseSpace 260 200 solveNoisePendulum))
 
 solveNoisePendulum :: [(Double, (Double, Double))]
 solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
