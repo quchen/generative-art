@@ -5,6 +5,8 @@ module Delaunay (
 , getPolygons
 , bowyerWatson
 , bowyerWatsonStep
+
+, toVoronoi
 ) where
 
 import Data.List (foldl', intersect, sortOn)
@@ -13,7 +15,7 @@ import Data.Maybe (maybeToList, catMaybes, fromJust)
 import qualified Data.Set as S
 
 import Geometry
-import Data.Maybe (maybeToList)
+import Voronoi
 
 
 
@@ -95,3 +97,31 @@ circumcircle (Triangle p1 p2 p3) = case maybeCenter of
 
 inside :: Vec2 -> Circle -> Bool
 point `inside` Circle {..} = norm (center -. point) <= radius
+
+toVoronoi :: DelaunayTriangulation -> Voronoi'
+toVoronoi delaunay@Delaunay{..} = Voronoi {..}
+  where
+    cells =
+        [ voronoiCell p rays
+        | (p, rays) <- M.toList (vertexGraph delaunay)]
+
+vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
+vertexGraph Delaunay{..} = go (fst <$> S.toList triangulation) M.empty
+  where
+    go [] = id
+    go (Triangle a b c : rest) = go rest
+        . M.alter (insertOrUpdate b) a
+        . M.alter (insertOrUpdate c) a
+        . M.alter (insertOrUpdate a) b
+        . M.alter (insertOrUpdate c) b
+        . M.alter (insertOrUpdate a) c
+        . M.alter (insertOrUpdate b) c
+    insertOrUpdate p Nothing = Just (S.singleton p)
+    insertOrUpdate p (Just ps) = Just (S.insert p ps)
+
+voronoiCell :: Vec2 -> S.Set Vec2 -> VoronoiCell ()
+voronoiCell p qs = Cell { region = Polygon voronoiPolygon, seed = p, props = () }
+  where
+    sortedRays = sortOn angleOfLine (Line p <$> S.toList qs)
+    voronoiVertex l1 l2 = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
+    voronoiPolygon = catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))

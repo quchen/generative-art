@@ -25,3 +25,16 @@ limiting that cell to the other seeds, and updating the existing cells with the
 new seed.
 
 ![](2_add_polygon.svg)
+
+## Delaunay Triangulation
+
+The geometric dual to Voronoi diagrams is Delaunay triangulation: The Voronoi
+seeds are the vertices of a Delaunay triangulation, and each Voronoi edge
+bisects a Delaunay edge in a right angle.
+
+![](delaunay_random.svg)
+
+This means that every Delaunay triangulation can be converted to a Voronoi
+tesselation:
+
+![](delaunay_voronoi.svg)

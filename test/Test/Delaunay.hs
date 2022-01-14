@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Test.Delaunay (tests) where
 
 import Control.Monad.IO.Class (MonadIO(liftIO))
@@ -12,19 +13,19 @@ import Delaunay
 import Draw
 import Geometry
 import Sampling
+import Voronoi
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"
     [ testRandomTriangulation
+    , testConversionToVoronoi
     ]
 
 testRandomTriangulation :: TestTree
 testRandomTriangulation = testCase "Random points" test
   where
     test = renderAllFormats 220 220 "docs/voronoi/delaunay_random" $ do
-        gen <- liftIO create
-        randomPoints <- liftIO $ poissonDisc PoissonDisc { width = 200, height = 200, radius = 40, k = 4, gen = gen }
-        let triangulation = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) randomPoints
+        triangulation <- liftIO $ randomDelaunay 200 200
         Cairo.translate 10 10
         for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
             polygonSketch poly
@@ -35,3 +36,20 @@ testRandomTriangulation = testCase "Random points" test
             for_ ps $ \p -> do
                 circleSketch p (Distance 4)
                 Cairo.fill
+
+testConversionToVoronoi :: TestTree
+testConversionToVoronoi = testCase "Conversion to Voronoi" test
+  where
+    test = renderAllFormats 220 220 "docs/voronoi/delaunay_voronoi" $ do
+        triangulation <- liftIO $ randomDelaunay 200 200
+        let voronoi = toVoronoi triangulation
+        Cairo.translate 10 10
+        for_ (cells voronoi) $ \Cell{..} -> do
+            polygonSketch region
+            Cairo.stroke
+
+randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
+randomDelaunay width height = do
+    gen <- liftIO create
+    randomPoints <- liftIO $ poissonDisc PoissonDisc { radius = fromIntegral (width * height) / 1000, k = 4, .. }
+    pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
