@@ -1,15 +1,10 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
-module Voronoi where
+module Delaunay where
 
-import Data.List (foldl', partition, (\\))
+import Data.List (foldl')
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
-import System.Random.MWC (GenIO, uniformR)
-import System.Random.MWC.Distributions (normal)
 
-import Control.Applicative (liftA2)
-import Control.Monad (replicateM)
 import Geometry
 import Data.Maybe (maybeToList)
 

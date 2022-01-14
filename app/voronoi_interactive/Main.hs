@@ -14,6 +14,7 @@ import           Graphics.UI.Threepenny.Core
 
 import Draw
 import Geometry
+import Sampling
 import Voronoi
 
 main :: IO ()

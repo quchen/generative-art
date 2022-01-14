@@ -15,6 +15,7 @@ import Draw
 import Geometry
 import Geometry.Shapes          (haskellLogo)
 import Graphics.Rendering.Cairo hiding (transform)
+import Sampling
 import Voronoi
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }

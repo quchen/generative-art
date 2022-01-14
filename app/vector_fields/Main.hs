@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import           Control.Applicative      (liftA2)
 import           Control.Monad            (replicateM)
 import           Data.Foldable            (for_)
 import           Data.Maybe               (fromMaybe)
@@ -49,13 +48,6 @@ main = withSurfaceAuto "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
     scaleFactor = 0.25
     scaledWidth = round (picWidth * scaleFactor)
     scaledHeight = round (picHeight * scaleFactor)
-
-uniformlyDistributedPoints :: GenIO -> Int -> Render [Vec2]
-uniformlyDistributedPoints gen count = liftIO $ replicateM count randomPoint
-  where
-    randomPoint = transform (translate correction) <$> liftA2 Vec2 (randomCoordinate picWidth) (randomCoordinate picHeight)
-    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
-    correction = Vec2 (-0.05 * picWidth) 0
 
 drawFieldLine :: Double -> [(Double, Vec2)] -> Render ()
 drawFieldLine _ [] = pure ()

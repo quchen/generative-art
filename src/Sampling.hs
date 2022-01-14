@@ -17,7 +17,8 @@ import Data.Maybe (maybeToList)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Data.Traversable (for)
-import System.Random.MWC (GenIO, UniformRange (uniformRM), uniformR)
+import System.Random.MWC (GenIO, uniformRM, uniformR)
+import System.Random.MWC.Distributions (normal)
 
 import Geometry
 
