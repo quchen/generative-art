@@ -44,7 +44,17 @@ testConversionToVoronoi = testCase "Conversion to Voronoi" test
         triangulation <- liftIO $ randomDelaunay 200 200
         let voronoi = toVoronoi triangulation
         Cairo.translate 10 10
+        for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
+            polygonSketch poly
+            mmaColor 0 0.25
+            Cairo.setLineJoin Cairo.LineJoinBevel
+            Cairo.stroke
+            mmaColor 1 1
+            for_ ps $ \p -> do
+                circleSketch p (Distance 4)
+                Cairo.fill
         for_ (cells voronoi) $ \Cell{..} -> do
+            mmaColor 3 1
             polygonSketch region
             Cairo.stroke
 

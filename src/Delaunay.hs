@@ -102,8 +102,10 @@ toVoronoi :: DelaunayTriangulation -> Voronoi'
 toVoronoi delaunay@Delaunay{..} = Voronoi {..}
   where
     cells =
-        [ voronoiCell p rays
-        | (p, rays) <- M.toList (vertexGraph delaunay)]
+        [ cell
+        | (p, rays) <- M.toList (vertexGraph delaunay)
+        , cell <- maybeToList (voronoiCell bounds p rays)
+        ]
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
 vertexGraph Delaunay{..} = go (fst <$> S.toList triangulation) M.empty
@@ -119,9 +121,20 @@ vertexGraph Delaunay{..} = go (fst <$> S.toList triangulation) M.empty
     insertOrUpdate p Nothing = Just (S.singleton p)
     insertOrUpdate p (Just ps) = Just (S.insert p ps)
 
-voronoiCell :: Vec2 -> S.Set Vec2 -> VoronoiCell ()
-voronoiCell p qs = Cell { region = Polygon voronoiPolygon, seed = p, props = () }
+voronoiCell :: BoundingBox -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
+voronoiCell bb p qs
+    | p `elem` bbCorners = Nothing
+    | otherwise          = Just Cell { region = polygonRestrictedToBounds, seed = p, props = () }
   where
     sortedRays = sortOn angleOfLine (Line p <$> S.toList qs)
-    voronoiVertex l1 l2 = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
-    voronoiPolygon = catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))
+    voronoiVertex l1 l2
+        | Line _ q <- l1, q `elem` bbCorners = intersectionPoint (intersectionLL (transform (rotateAround q (deg 90)) l1) (perpendicularBisector l2))
+        | Line _ q <- l2, q `elem` bbCorners = intersectionPoint (intersectionLL (perpendicularBisector l1) (transform (rotateAround q (deg 90)) l2))
+        | otherwise = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
+    rawPolygon = Polygon $ catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))
+    polygonRestrictedToBounds = go (polygonEdges bbPoly) rawPolygon
+      where
+        go [] poly = poly
+        go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
+
+    bbPoly@(Polygon bbCorners) = boundingBoxPolygon bb
