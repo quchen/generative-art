@@ -443,7 +443,7 @@ nub' = go S.empty
 -- string, ugh.
 sanitizeSvgContent :: Text -> Text
 sanitizeSvgContent input
-  = let nondeterministicStrings = findAllMatches input (T.pack "(surface|mask|clip)[0-9]+")
+  = let nondeterministicStrings = findAllMatches input (T.pack "(surface|mask|clip|glyph[0-9]+-)[0-9]+")
         uniques = nub' nondeterministicStrings
         uniquesNumbered = zip uniques [1..]
         translationTable = [(unique, T.pack ("id" ++ show i)) | (unique, i) <- uniquesNumbered]
