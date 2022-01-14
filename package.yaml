@@ -30,6 +30,8 @@ dependencies:
 
 default-extensions:
     - BangPatterns
+    - MultiWayIf
+    - LambdaCase
 
 ghc-options:
     - -Wall
@@ -131,3 +133,6 @@ tests:
             - tasty-hunit
             - tasty-quickcheck
             - transformers
+            - directory
+            - text
+            - filepath
