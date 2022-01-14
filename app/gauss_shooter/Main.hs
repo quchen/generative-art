@@ -1,14 +1,14 @@
 module Main (main) where
 
-import           Control.Applicative
+import           Data.Foldable
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.List
 import qualified Data.Vector                     as V
 import           Graphics.Rendering.Cairo        as C
 import qualified System.Random.MWC               as Random
 import qualified System.Random.MWC.Distributions as Random
 import Data.Default.Class
+import Data.Word
 
 import Draw
 import Geometry as G
@@ -19,48 +19,72 @@ main :: IO ()
 main = withSurfaceAuto "scratchpad/out.png" 1000 1000 $ \surface -> C.renderWith surface render
 
 data SystemConfig = SystemConfig
-    { _dummy :: ()
+    { _seed :: V.Vector Word32
     , _numHills :: Int
-    , _sigmaHillCenter :: Double
-    , _sigmaHill :: Double
+    , _sigmaHillDistribution :: Double
     , _numParticles  :: Int
+
+    , _sigmaHillWidth :: Double
+    , _sigmaHillHeight :: Double
+    , _muHillHeight :: Double
     }
 
 instance Default SystemConfig where
     def = SystemConfig
-        { _dummy = ()
-        , _numHills = 100
-        , _sigmaHillCenter = 1000
-        , _sigmaHill = 100
-        , _numParticles  = 10
+        { _seed = V.fromList [1,3,5]
+
+        , _numHills = 200
+        , _sigmaHillDistribution = 1000
+        , _numParticles  = 1000
+
+        , _sigmaHillWidth = 100
+        , _sigmaHillHeight = 3
+        , _muHillHeight = 10
         }
 
-systemSetup config = runST $ do
-    let seedVec = V.fromList [1,2,3]
-    gen <- Random.initialize seedVec
+systemSetup config@SystemConfig{..} = runST $ do
+    gen <- Random.initialize _seed
     potential <- gaussianHillPotential config gen
 
     particleIcs <- do
         let mkParticleIc = do
                 let x0 = Vec2 0 0
-                v0 <- gaussianVec2 (Vec2 0 0) 1 gen
+                v0 <- gaussianVec2 (Vec2 0 0) 3 gen
                 pure (x0, v0)
-        replicateM (_numParticles config) mkParticleIc
+        replicateM _numParticles mkParticleIc
 
-    let trajectories =
-            [ rungeKuttaConstantStep ode ic t0 stepSize
+    let odeSolutions =
+            -- [ rungeKuttaConstantStep ode ic t0 stepSize
+            [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
             | ic <- particleIcs
-            , let ode _t (x,v) = (v, negateV (grad potential x))
+            , let ode _t (x,v) = (v, 1000 *. negateV (grad potential x))
             , let t0 = 0
-            , let stepSize = 1e-1
+            , let dt0 = 1
+            , let tolerance = 1e-2
+            , let toleranceNorm (x,v) = sqrt (max (normSquare x) (normSquare v))
             ]
 
-    pure trajectories
+    pure odeSolutions
 
 render :: Render ()
 render = do
-    let _ = systemSetup
-    cartesianCoordinateSystem
+    let setup = systemSetup def
+    C.translate 500 500
+    -- cartesianCoordinateSystem
+
+    for_ setup $ \odeSolution -> do
+        let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
+            timeCutoff cutoff = takeWhile (\(t, _) -> t < cutoff)
+            spaceCutoff = takeWhile (\(_t, (Vec2 x y, _v)) -> -500 < x && x < 500 && -500 < y && y < 500)
+            trajectory = getTrajectory (timeCutoff 10000 (spaceCutoff odeSolution))
+        liftIO (putStrLn ("Trajectory length: " ++ show (length trajectory) ++ " segments"))
+        let trajectory' = simplifyTrajectory (Distance 1) trajectory
+        liftIO (putStrLn ("Simplified length: " ++ show (length trajectory') ++ " segments"))
+        cairoScope $ do
+            setSourceRGBA 0 0 0 0.2
+            pathSketch trajectory'
+            stroke
+        pure ()
 
 gauss
     :: Vec2   -- ^ Mean
@@ -81,8 +105,11 @@ gaussianHillPotential
     -> Random.Gen s
     -> ST s (Vec2 -> Double)
 gaussianHillPotential SystemConfig{..} gen = do
-    hillCenters <- replicateM _numHills (gaussianVec2 (Vec2 0 0) _sigmaHillCenter gen)
-    pure (\p -> sum' [gauss center _sigmaHill p | center <- hillCenters])
+    hill <- replicateM _numHills $ do
+        center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
+        height <- Random.normal _muHillHeight _sigmaHillHeight gen
+        pure (center, height)
+    pure (\p -> sum' [height * gauss center _sigmaHillWidth p | (center, height) <- hill])
 
 sum' :: [Double] -> Double
 sum' = foldl' (+) 0

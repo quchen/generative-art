@@ -81,7 +81,7 @@ rungeKuttaAdaptiveStep
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
     -> vec                    -- ^ current y
     -> Double                 -- ^ current time
-    -> Double                 -- ^ step size
+    -> Double                 -- ^ initial step size
     -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
     -> [(Double, vec)]
