@@ -15,7 +15,7 @@ module Algebra.VectorSpace where
 --     (7) Compatibility of scalar multiplication: @(a * b) *. c = a *. (b *. c)@
 --     (8) Scalar identity: @1 *. a = a@
 class VectorSpace v where
-    {-# MINIMAL (+.), (*.), ((-.) | negateV) #-}
+    {-# MINIMAL (+.), (*.), ((-.) | negateV), zero #-}
     -- | Vector addition
     (+.) :: v -> v -> v
 
@@ -30,6 +30,9 @@ class VectorSpace v where
     (/.) :: v -> Double -> v
     v /. a = (1/a) *. v
 
+    -- | Neutral element
+    zero :: v
+
     -- | Inverse element
     negateV :: v -> v
     negateV a = (-1) *. a
@@ -41,13 +44,16 @@ instance (VectorSpace v1, VectorSpace v2) => VectorSpace (v1, v2) where
     (u1, v1) +. (u2, v2) = (u1+.u2, v1+.v2)
     (u1, v1) -. (u2, v2) = (u1-.u2, v1-.v2)
     a *. (u1, v1) = (a*.u1, a*.v1)
+    zero = (zero, zero)
 
 instance VectorSpace Double where
     a +. b = a+b
     a *. b = a*b
     a -. b = a-b
+    zero = 0
 
 instance VectorSpace b => VectorSpace (a -> b) where
     (f +. g) a = f a +. g a
     (c *. f) a = c *. f a
     (f -. g) a = f a -. g a
+    zero = const zero
