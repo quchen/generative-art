@@ -34,17 +34,17 @@ data SystemConfig = SystemConfig
 
 instance Default SystemConfig where
     def = SystemConfig
-        { _seed = V.fromList [135,9,1,39,45]
+        { _seed = V.fromList [13,5,9,1,39,45]
 
         , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
-        , _numHills = 3000
+        , _numHills = 5000
         , _sigmaHillDistribution = 1500
         , _numParticles  = 10000
         , _particleMass = 1000
 
         , _sigmaHillWidth = 10
-        , _sigmaCharge = 5
+        , _sigmaCharge = 2e3
         , _muCharge = 1e3
         }
 
