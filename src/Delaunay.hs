@@ -22,6 +22,7 @@ import Voronoi
 
 data DelaunayTriangulation = Delaunay
     { triangulation :: S.Set (Triangle, Circle)
+    , initialPolygon :: Polygon
     , bounds :: BoundingBox
     }
 
@@ -43,19 +44,20 @@ edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
 getPolygons :: DelaunayTriangulation -> [Polygon]
-getPolygons Delaunay{..} = deleteBoundingBox $ toPolygon . fst <$> S.toList triangulation
+getPolygons Delaunay{..} = deleteInitialPolygon $ toPolygon . fst <$> S.toList triangulation
   where
-    deleteBoundingBox = filter (not . hasCommonCorner (boundingBoxPolygon bounds))
+    deleteInitialPolygon = filter (not . hasCommonCorner initialPolygon)
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
 
 bowyerWatson :: BoundingBox -> [Vec2] -> DelaunayTriangulation
 bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
   where
-    initialTriangles = [triangle (Vec2 x1 y1) (Vec2 x1 y2) (Vec2 x2 y1), triangle (Vec2 x2 y2) (Vec2 x1 y2) (Vec2 x2 y1)]
-    BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bounds
+    initialTriangles = [triangle v1 v2 v4, triangle v2 v3 v4]
+    initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (center bounds) 2) (boundingBoxPolygon bounds)
+      where center (BoundingBox p q) = (p +. q) /. 2
     initialDelaunay = Delaunay
         { triangulation = S.fromList (zip initialTriangles (fromJust . circumcircle <$> initialTriangles))
-        , ..  }
+        , .. }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
 bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goodTriangles <> newTriangles }
@@ -105,7 +107,7 @@ toVoronoi delaunay@Delaunay{..} = Voronoi {..}
     cells =
         [ cell
         | (p, rays) <- M.toList (vertexGraph delaunay)
-        , cell <- maybeToList (voronoiCell bounds p rays)
+        , cell <- maybeToList (voronoiCell delaunay p rays)
         ]
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
@@ -122,28 +124,27 @@ vertexGraph Delaunay{..} = go (fst <$> S.toList triangulation) M.empty
     insertOrUpdate p Nothing = Just (S.singleton p)
     insertOrUpdate p (Just ps) = Just (S.insert p ps)
 
-voronoiCell :: BoundingBox -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
-voronoiCell bb p qs
-    | p `elem` bbCorners = Nothing
+voronoiCell :: DelaunayTriangulation -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
+voronoiCell Delaunay{..} p qs
+    | p `elem` corners = Nothing
     | otherwise          = Just Cell { region = polygonRestrictedToBounds, seed = p, props = () }
   where
     sortedRays = sortOn angleOfLine (Line p <$> S.toList qs)
     voronoiVertex l1 l2
-        | Line _ q1 <- l1, Line _ q2 <- l2, q1 `elem` bbCorners, q2 `elem` bbCorners
+        | Line _ q1 <- l1, Line _ q2 <- l2, q1 `elem` corners, q2 `elem` corners
           = intersectionPoint (intersectionLL (transform (rotateAround q1 (deg 90)) l1) (transform (rotateAround q2 (deg 90)) l2))
-        | Line _ q <- l1, q `elem` bbCorners
+        | Line _ q <- l1, q `elem` corners
           = intersectionPoint (intersectionLL (transform (rotateAround q (deg 90)) l1) (perpendicularBisector l2))
-        | Line _ q <- l2, q `elem` bbCorners
+        | Line _ q <- l2, q `elem` corners
           = intersectionPoint (intersectionLL (perpendicularBisector l1) (transform (rotateAround q (deg 90)) l2))
         | otherwise
           = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
     rawPolygon = Polygon $ catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))
-    polygonRestrictedToBounds = go (polygonEdges bbPoly) rawPolygon
+    polygonRestrictedToBounds = go (polygonEdges (boundingBoxPolygon bounds)) rawPolygon
       where
         go [] poly = poly
         go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
-
-    bbPoly@(Polygon bbCorners) = boundingBoxPolygon bb
+    Polygon corners = initialPolygon
 
 lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
 lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices

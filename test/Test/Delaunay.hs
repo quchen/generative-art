@@ -73,9 +73,9 @@ testLloydRelaxation = testCase "Lloyd relaxation" test
     test = renderAllFormats 850 220 "docs/voronoi/lloyd_relaxation" $ do
         points <- liftIO $ do
             gen <- create
-            uniformlyDistributedPoints gen 200 200 30
+            uniformlyDistributedPoints gen 200 200 15
         let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) points
-            triangulations = scanl' (flip ($)) triangulation0 (replicate 4 lloydRelaxation)
+            triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
         Cairo.translate 10 10
         cairoScope $ for_ triangulations $ \triangulation -> do
             for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
