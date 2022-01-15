@@ -133,7 +133,7 @@ uniformlyDistributedPoints :: GenIO -> Int -> Int -> Int -> IO [Vec2]
 uniformlyDistributedPoints gen width height count = replicateM count randomPoint
   where
     randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
-    randomCoordinate mx = fmap fromIntegral (uniformR (0, mx) gen :: IO Int)
+    randomCoordinate mx = uniformR (0, fromIntegral mx) gen :: IO Double
 
 -- | @'uniformlyDistributedPoints' gen (width, sigmaX) (height, sigmaY) count@
 -- generates @count@ normal distributed random points within a rectangle of
