@@ -21,16 +21,15 @@ main = withSurfaceAuto "scratchpad/out.png" 1000 1000 $ \surface -> C.renderWith
 
 data SystemConfig s = SystemConfig
     { _seed :: V.Vector Word32
-    , _numHills :: Int
-    , _sigmaHillDistribution :: Double
-    , _numParticles  :: Int
+
     , _boundingBox :: BoundingBox
+
+    , _numHills :: Int
+    , _hillLocation :: Random.Gen s -> ST s Vec2
+    , _hillCharge :: Random.GenST s -> ST s Double
+
+    , _numParticles  :: Int
     , _particleMass :: Double
-
-    , _sigmaHillWidth :: Double
-    , _sigmaCharge :: Double
-    , _muPotentialCharge :: Double
-
     , _particleCharge :: Random.GenST s -> ST s Double
     }
 
@@ -41,15 +40,12 @@ instance Default (SystemConfig s) where
         , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
         , _numHills = 5000
-        , _sigmaHillDistribution = 1500
-        , _numParticles  = 10000
+        , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
+        , _hillCharge = \_gen -> pure 1e3
+
+        , _numParticles  = 1000
         , _particleMass = 1000
-
-        , _sigmaHillWidth = 10
-        , _sigmaCharge = 2e3
-        , _muPotentialCharge = 1e3
-
-        , _particleCharge = \gen -> Random.normal 0 5 gen
+        , _particleCharge = \_gen -> pure 1
         }
 
 initializeGen
@@ -61,25 +57,24 @@ initializeGen SystemConfig{..} = do
               (replicateM 10000 (Random.uniform gen))
     pure gen
 
-systemSetup config@SystemConfig{..} = runST $ do
+systemSetup config@SystemConfig{..} = do
     gen <- initializeGen config
 
     (potential, coulombWells) <- potentials config gen
 
-    particleIcs <- do
-        let mkParticleIc = do
+    particles <- do
+        let mkParticle = do
                 let x0 = Vec2 0 0
                 a <- Random.uniformRM (0, 360) gen
                 let Line _ v0 = angledLine (Vec2 0 0) (deg a) (Distance 1)
-                q <- Random.normal _muParticleCharge _sigmaParticleCharge gen
-                -- v0 <- gaussianVec2 (Vec2 0 0) 1 gen
+                q <- _particleCharge gen
                 pure ((x0, v0), q)
-        replicateM _numParticles mkParticleIc
+        replicateM _numParticles mkParticle
 
     let odeSolutions =
             [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
-            | (ic, charge) <- particleIcs
-            , let ode _t (x,v) = (v, charge *. (grad potential x) /. _particleMass)
+            | (ic, charge) <- particles
+            , let ode _t (x,v) = (v, charge *. negateV (grad potential x) /. _particleMass)
             , let t0 = 0
             , let dt0 = 1
             , let tolerance = 1e-2
@@ -98,7 +93,7 @@ systemSetup config@SystemConfig{..} = runST $ do
 
 render :: Render ()
 render = do
-    let (trajectories, hills) = systemSetup def
+    let (trajectories, hills) = runST $ systemSetup def
     C.translate 500 500
     -- cartesianCoordinateSystem
     cairoScope $ do
@@ -113,7 +108,7 @@ render = do
     for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
         liftIO (putStrLn ("Paint trajectory " ++ show i))
         cairoScope $ do
-            mmaColor 3 0.01
+            mmaColor 3 0.1
             pathSketch trajectory
             stroke
         pure ()
@@ -132,15 +127,22 @@ potentials
 potentials SystemConfig{..} gen = do
     hills <- do
         hills' <- replicateM _numHills $ do
-            center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
-            charge <- Random.normal _muPotentialCharge _sigmaCharge gen
+            center <- _hillLocation gen
+            charge <- _hillCharge gen
             pure (center, charge)
         let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.1) _boundingBox))
                            . filter (\(center, _) -> let Distance d = norm center in d > 70)
         pure (removeOutliers hills')
-    pure (\p -> sum' [charge / (let Distance d = norm (p -. center) in d) | (center, charge) <- hills]
+    pure (\p -> sum' [coulombPotential center charge p | (center, charge) <- hills]
          , hills
          )
+
+coulombPotential
+    :: Vec2   -- ^ Center
+    -> Double -- ^ Charge
+    -> Vec2   -- ^ Location
+    -> Double -- ^ Magnitude of the potential
+coulombPotential center charge p = charge / (let Distance d = norm (p -. center) in d)
 
 sum' :: [Double] -> Double
 sum' = foldl' (+) 0
