@@ -53,6 +53,12 @@ data Voronoi a = Voronoi
 
 type Voronoi' = Voronoi ()
 
+instance Functor VoronoiCell where
+    fmap f cell@Cell{..} = cell { props = f props }
+
+instance Functor Voronoi where
+    fmap f voronoi@Voronoi{..} = voronoi { cells = fmap (fmap f) cells }
+
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
 -- 'mkVoronoi' constructs a Voronoi pattern by iteratively adding points.

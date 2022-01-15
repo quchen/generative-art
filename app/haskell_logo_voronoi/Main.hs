@@ -17,6 +17,7 @@ import Geometry.Shapes          (haskellLogo)
 import Graphics.Rendering.Cairo hiding (transform)
 import Sampling
 import Voronoi
+import Delaunay
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
@@ -37,10 +38,11 @@ mainHaskellLogo = do
         haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
     points <- gaussianDistributedPoints gen (w, 380) (h, 380) count
-    let picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
-        backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
-        allPoints = picturePoints ++ backgroundPoints
-        allCells = cells (mkVoronoi w h allPoints)
+    let --picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
+        --backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
+        --allPoints = picturePoints ++ backgroundPoints
+        allPoints = points
+        allCells = cells (const darkGrey <$> toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points))
     for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allCells drawCell
 
 drawCell :: VoronoiCell RGB -> Render ()
