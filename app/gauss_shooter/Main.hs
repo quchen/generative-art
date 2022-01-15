@@ -19,7 +19,7 @@ import Numerics.VectorAnalysis
 main :: IO ()
 main = withSurfaceAuto "scratchpad/out.png" 1000 1000 $ \surface -> C.renderWith surface render
 
-data SystemConfig = SystemConfig
+data SystemConfig s = SystemConfig
     { _seed :: V.Vector Word32
     , _numHills :: Int
     , _sigmaHillDistribution :: Double
@@ -29,10 +29,12 @@ data SystemConfig = SystemConfig
 
     , _sigmaHillWidth :: Double
     , _sigmaCharge :: Double
-    , _muCharge :: Double
+    , _muPotentialCharge :: Double
+
+    , _particleCharge :: Random.GenST s -> ST s Double
     }
 
-instance Default SystemConfig where
+instance Default (SystemConfig s) where
     def = SystemConfig
         { _seed = V.fromList [13,5,9,1,39,45]
 
@@ -45,11 +47,13 @@ instance Default SystemConfig where
 
         , _sigmaHillWidth = 10
         , _sigmaCharge = 2e3
-        , _muCharge = 1e3
+        , _muPotentialCharge = 1e3
+
+        , _particleCharge = \gen -> Random.normal 0 5 gen
         }
 
 initializeGen
-    :: SystemConfig
+    :: SystemConfig s
     -> ST s (Random.Gen s)
 initializeGen SystemConfig{..} = do
     gen <- Random.initialize _seed
@@ -67,14 +71,15 @@ systemSetup config@SystemConfig{..} = runST $ do
                 let x0 = Vec2 0 0
                 a <- Random.uniformRM (0, 360) gen
                 let Line _ v0 = angledLine (Vec2 0 0) (deg a) (Distance 1)
+                q <- Random.normal _muParticleCharge _sigmaParticleCharge gen
                 -- v0 <- gaussianVec2 (Vec2 0 0) 1 gen
-                pure (x0, v0)
+                pure ((x0, v0), q)
         replicateM _numParticles mkParticleIc
 
     let odeSolutions =
             [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
-            | ic <- particleIcs
-            , let ode _t (x,v) = (v, negateV (grad potential x) /. _particleMass)
+            | (ic, charge) <- particleIcs
+            , let ode _t (x,v) = (v, charge *. (grad potential x) /. _particleMass)
             , let t0 = 0
             , let dt0 = 1
             , let tolerance = 1e-2
@@ -121,14 +126,14 @@ gaussianVec2
 gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> Random.normal muX sigma gen <*> Random.normal muY sigma gen
 
 potentials
-    :: SystemConfig
+    :: SystemConfig s
     -> Random.Gen s
     -> ST s (Vec2 -> Double, [(Vec2, Double)])
 potentials SystemConfig{..} gen = do
     hills <- do
         hills' <- replicateM _numHills $ do
             center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
-            charge <- Random.normal _muCharge _sigmaCharge gen
+            charge <- Random.normal _muPotentialCharge _sigmaCharge gen
             pure (center, charge)
         let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.1) _boundingBox))
                            . filter (\(center, _) -> let Distance d = norm center in d > 70)
