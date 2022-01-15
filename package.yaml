@@ -25,6 +25,7 @@ dependencies:
     - tf-random
     - transformers
     - vector
+    - deepseq
 
 default-extensions:
     - BangPatterns

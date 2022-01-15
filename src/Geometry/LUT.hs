@@ -8,11 +8,16 @@ module Geometry.LUT (
 ) where
 
 import qualified Data.Vector   as V
-import           Geometry.Core
+import Control.DeepSeq
+
+import Geometry.Core
 
 -- | Vector-based lookup table from 'fst' to 'snd'. Values must increase with vector index, enabling binary search.
 newtype VLUT a b = VLUT (V.Vector (a, b))
     deriving (Eq, Ord, Show)
+
+instance (NFData a, NFData b) => NFData (VLUT a b) where
+    rnf (VLUT vec) = rnf vec
 
 -- | Safety newtype wrapper because it’s super confusing that Runge-Kutta commonly
 -- has t for time, but here we have s(t) where s corredponds to time in RK.

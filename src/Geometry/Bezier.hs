@@ -20,8 +20,10 @@ module Geometry.Bezier
 )
 where
 
+import           Control.DeepSeq
 import           Data.Vector                   (Vector, (!))
 import qualified Data.Vector                   as V
+
 import           Geometry.Core
 import           Geometry.LUT
 import           Numerics.ConvergentRecursion
@@ -30,7 +32,9 @@ import           Numerics.Integrate
 import           Numerics.LinearEquationSystem
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
-data Bezier = Bezier Vec2 Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+data Bezier = Bezier !Vec2 !Vec2 !Vec2 !Vec2 deriving (Eq, Ord, Show)
+
+instance NFData Bezier where rnf _ = ()
 
 instance Transform Bezier where
     transform t (Bezier a b c d) = Bezier

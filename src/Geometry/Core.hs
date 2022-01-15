@@ -104,6 +104,7 @@ import Data.Fixed
 import Data.List
 import Data.Maybe
 import Text.Printf
+import Control.DeepSeq
 
 import Util
 
@@ -111,11 +112,15 @@ import Util
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
+instance NFData Vec2 where rnf _ = ()
+
 -- | Polygon, defined by its corners.
 --
 -- Many algorithms assume certain invariants about polygons, see
 -- 'validatePolygon' for details.
 newtype Polygon = Polygon [Vec2]
+
+instance NFData Polygon where rnf (Polygon xs) = rnf xs
 
 -- | List-rotate the polygon’s corners until the minimum is the first entry in
 -- the corner list.
@@ -140,7 +145,9 @@ instance Show Polygon where
                 in "Polygon " ++ show corners
 
 -- | Line, defined by beginning and end.
-data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
+data Line = Line !Vec2 !Vec2 deriving (Eq, Ord, Show)
+
+instance NFData Line where rnf _ = ()
 
 -- | Affine transformation,
 --
@@ -152,9 +159,11 @@ data Line = Line Vec2 Vec2 deriving (Eq, Ord, Show)
 --
 -- Transformations can be chained using '<>', but in general it’s often more
 -- convenient to use the predefined functions such as 'rotateT with '.' as composition.
-data Transformation = Transformation Double Double Double
-                                     Double Double Double
+data Transformation = Transformation !Double !Double !Double
+                                     !Double !Double !Double
                                      deriving (Eq, Ord, Show)
+
+instance NFData Transformation where rnf _ = ()
 
 identityTransformation :: Transformation
 identityTransformation = Transformation
@@ -334,6 +343,8 @@ data BoundingBox = BoundingBox
     , _bbMax :: !Vec2 -- ^ Maximum coordinate (bottom right in Cairo coordinates)
     } deriving (Eq, Ord, Show)
 
+instance NFData BoundingBox where rnf _ = ()
+
 instance Semigroup BoundingBox where
     BoundingBox (Vec2 xMin1 yMin1) (Vec2 xMax1 yMax1) <> BoundingBox (Vec2 xMin2 yMin2) (Vec2 xMax2 yMax2)
       = BoundingBox (Vec2 (min xMin1 xMin2) (min yMin1 yMin2))
@@ -487,6 +498,8 @@ polar (Angle a) (Distance d) = Vec2 (d * cos a) (d * sin a)
 -- | Newtype safety wrapper.
 newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
 
+instance NFData Angle where rnf _ = ()
+
 instance Show Angle where
     show (Angle a) = printf "deg %2.8f" (a / pi * 180)
 
@@ -511,6 +524,8 @@ getDeg (Angle a) = a / pi * 180
 -- | Newtype safety wrapper.
 newtype Distance = Distance Double deriving (Eq, Ord, Show)
 
+instance NFData Distance where rnf _ = ()
+
 instance VectorSpace Distance where
     Distance a +. Distance b = Distance (a + b)
     Distance a -. Distance b = Distance (a - b)
@@ -520,6 +535,8 @@ instance VectorSpace Distance where
 
 -- | Newtype safety wrapper.
 newtype Area = Area Double deriving (Eq, Ord, Show)
+
+instance NFData Area where rnf _ = ()
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
