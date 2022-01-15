@@ -9,7 +9,6 @@ import qualified System.Random.MWC               as Random
 import qualified System.Random.MWC.Distributions as Random
 import Data.Default.Class
 import Data.Word
-import Control.Parallel
 import Control.Parallel.Strategies
 
 import Draw
@@ -82,15 +81,14 @@ systemSetup config@SystemConfig{..} = runST $ do
             , let toleranceNorm (x,v) = sqrt (max (normSquare x) (normSquare v))
             ]
 
-    let parFor = flip (parMap rseq)
-        trajectories = parFor odeSolutions $ \odeSolution ->
+    let trajectoryThunks = flip map odeSolutions $ \odeSolution ->
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
-                timeCutoff cutoff = takeWhile (\(t, _) -> t < cutoff)
+                timeCutoff = takeWhile (\(t, _) -> t < 1000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-                trajectory = getTrajectory (timeCutoff 1000 (spaceCutoff odeSolution))
-            in trajectory
+            in (getTrajectory . timeCutoff . spaceCutoff) odeSolution
+        !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
-    pure (trajectories, coulombWells)
+    pure (trajectoriesNF, coulombWells)
 
 render :: Render ()
 render = do
