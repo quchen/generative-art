@@ -18,10 +18,11 @@ import Numerics.VectorAnalysis
 main :: IO ()
 main = do
     let systemResult = runST (systemSetup systemConfig)
+    let (Distance w, Distance h, _) = boundingBoxSize (_boundingBox systemConfig)
     withSurfaceAuto
         "scratchpad/out.png"
-        1000
-        1000
+        (round w)
+        (round h)
         (\surface -> C.renderWith surface (render systemResult))
 
 data SystemConfig s = SystemConfig
@@ -42,7 +43,12 @@ systemConfig :: SystemConfig s
 systemConfig = SystemConfig
     { _seed = V.fromList [13,5,9,1,39,45]
 
-    , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
+    , _boundingBox =
+        let lo = Vec2 0 0
+            hi = Vec2 1920 1080
+            bb = boundingBox (lo, hi)
+            center = G.transform (G.inverse (G.translate (boundingBoxCenter bb)))
+        in center bb
 
     , _numHills = 5000
     , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
@@ -107,7 +113,8 @@ systemSetup config@SystemConfig{..} = do
 
 render :: SystemResult -> Render ()
 render SystemResult{..} = do
-    C.translate 500 500
+    do let BoundingBox (Vec2 x y) _ = _boundingBox systemConfig
+       C.translate (-x) (-y)
     cairoScope $ do
         setSourceRGB 1 1 1
         paint
