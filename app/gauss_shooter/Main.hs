@@ -60,7 +60,7 @@ systemConfig = SystemConfig
     }
 
 data SystemResult = SystemResult
-    { _trajectories :: [[Vec2]]
+    { _trajectories :: [([Vec2], (Vec2, Vec2))]
     , _coulombWells :: [(Vec2, Double)]
     }
 
@@ -89,7 +89,7 @@ systemSetup config@SystemConfig{..} = do
         replicateM _numParticles mkParticle
 
     let odeSolutions =
-            [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
+            [ (rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance, ic)
             | (ic, charge) <- particles
             , let ode _t (x,v) = (v, charge *. negateV (grad potential x) /. _particleMass)
             , let t0 = 0
@@ -98,12 +98,12 @@ systemSetup config@SystemConfig{..} = do
             , let toleranceNorm (x,v) = sqrt (max (normSquare x) (normSquare v))
             ]
 
-    let trajectoryThunks = flip map odeSolutions $ \odeSolution ->
+    let trajectoryThunks = flip map odeSolutions $ \(odeSolution, ic) ->
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
                 simplify = simplifyTrajectory (Distance 1)
-            in (simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution
+            in ((simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
         !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
     pure SystemResult
@@ -127,7 +127,7 @@ render SystemResult{..} = do
                 circleSketch center (Distance (8*(r*abs charge)**(1/2.5)))
                 stroke
 
-    for_ (zip [1..] _trajectories) $ \(i, trajectory) -> do
+    for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         cairoScope $ do
             mmaColor 3 0.03
