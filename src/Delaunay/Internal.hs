@@ -69,7 +69,7 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
         , .. }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goodTriangles <> newTriangles }
+bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = foldr RT.insert goodTriangles newTriangles }
   where
     validNewPoint = if newPoint `insideBoundingBox` bounds
         then newPoint
@@ -94,7 +94,7 @@ bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goo
                 let qs = remainingGraph M.! p
                     [q] = S.toList qs
                 in p : go q (M.delete p remainingGraph)
-    newTriangles = RT.fromList
+    newTriangles =
         [ DT t c
         | Line p q <- polygonEdges outerPolygon
         , let t = triangle newPoint p q
