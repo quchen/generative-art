@@ -1,17 +1,17 @@
 module Main (main) where
 
-import           Data.Foldable
 import           Control.Monad
 import           Control.Monad.ST
+import           Control.Parallel.Strategies
+import           Data.Foldable
 import qualified Data.Vector                     as V
+import           Data.Word
 import           Graphics.Rendering.Cairo        as C
 import qualified System.Random.MWC               as Random
 import qualified System.Random.MWC.Distributions as Random
-import Data.Word
-import Control.Parallel.Strategies
 
 import Draw
-import Geometry as G
+import Geometry                      as G
 import Numerics.DifferentialEquation
 import Numerics.VectorAnalysis
 
