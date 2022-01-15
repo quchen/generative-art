@@ -45,7 +45,7 @@ systemConfig = SystemConfig
 
     , _boundingBox =
         let lo = Vec2 0 0
-            hi = Vec2 1920 1080
+            hi = Vec2 2560 1440
             bb = boundingBox (lo, hi)
             center = G.transform (G.inverse (G.translate (boundingBoxCenter bb)))
         in center bb
@@ -100,7 +100,7 @@ systemSetup config@SystemConfig{..} = do
 
     let trajectoryThunks = flip map odeSolutions $ \odeSolution ->
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
-                timeCutoff = takeWhile (\(t, _) -> t < 1000)
+                timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
                 simplify = simplifyTrajectory (Distance 1)
             in (simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution
