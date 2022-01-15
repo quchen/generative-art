@@ -40,14 +40,14 @@ library:
 executables:
     haskell-logo-billard:
         main:        Main.hs
-        source-dirs: app/haskell_logo_billard
+        source-dirs: showcases/haskell_logo_billard
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
             - cairo
     haskell-logo-triangles:
         main:        Main.hs
-        source-dirs: app/haskell_logo_triangles
+        source-dirs: showcases/haskell_logo_triangles
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
@@ -57,7 +57,7 @@ executables:
             - containers
     vector-fields:
         main: Main.hs
-        source-dirs: app/vector_fields
+        source-dirs: showcases/vector_fields
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
@@ -66,7 +66,7 @@ executables:
             - mwc-random
     haskell-logo-voronoi:
         main: Main.hs
-        source-dirs: app/haskell_logo_voronoi
+        source-dirs: showcases/haskell_logo_voronoi
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
