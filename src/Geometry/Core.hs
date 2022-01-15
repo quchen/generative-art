@@ -84,6 +84,7 @@ module Geometry.Core (
     , ScalingBehavior(..)
     , boundingBoxPolygon
     , insideBoundingBox
+    , boundingBoxCenter
     , boundingBoxSize
 
     -- * Processes
@@ -367,6 +368,9 @@ boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
 
 insideBoundingBox :: HasBoundingBox a => a -> BoundingBox -> Bool
 insideBoundingBox thing bb = bb == (bb <> boundingBox thing)
+
+boundingBoxCenter :: HasBoundingBox a => a -> Vec2
+boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
 boundingBoxSize :: HasBoundingBox a => a -> (Distance, Distance, Area)
 boundingBoxSize x = (Distance (abs deltaX), Distance (abs deltaY), Area (abs (deltaX*deltaY)))
