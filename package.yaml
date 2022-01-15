@@ -18,6 +18,7 @@ dependencies:
     - colour
     - containers
     - data-default-class
+    - data-r-tree
     - mwc-random
     - random
     - regex-tdfa
