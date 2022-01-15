@@ -79,8 +79,7 @@ withSurface
     -> Int               -- ^ Canvas height
     -> (Surface -> IO a) -- ^ Drawing action, see 'Cairo.renderWith'
     -> IO a
-withSurface PNG file w h action = do
-    surface <- createImageSurface FormatARGB32 w h
+withSurface PNG file w h action = withImageSurface FormatARGB32 w h $ \surface -> do
     result <- action surface
     surfaceWriteToPNG surface file
     pure result
