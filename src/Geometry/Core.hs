@@ -79,6 +79,7 @@ module Geometry.Core (
     -- * Bounding Box
     , HasBoundingBox(..)
     , BoundingBox(..)
+    , overlappingBoundingBoxes
     , transformBoundingBox
     , ScalingBehavior(..)
     , boundingBoxPolygon
@@ -389,6 +390,17 @@ instance HasBoundingBox Line where
 
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
+
+-- | Do the bounding boxes of two objects overlap?
+overlappingBoundingBoxes :: (HasBoundingBox a, HasBoundingBox b) => a -> b -> Bool
+overlappingBoundingBoxes a b = go (boundingBox a) (boundingBox b)
+  where
+    go (BoundingBox (Vec2 loAx loAy) (Vec2 hiAx hiAy)) (BoundingBox (Vec2 loBx loBy) (Vec2 hiBx hiBy))
+        | loAx > hiBx = False -- A right of B
+        | hiAx < loBx = False -- A left of B
+        | loAy > hiBy = False -- A below B
+        | hiAy < loBy = False -- A above B
+        | otherwise = True
 
 data ScalingBehavior
     = FitAllMaintainAspect
