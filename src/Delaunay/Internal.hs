@@ -61,7 +61,7 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
         , .. }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = RT.fromList (S.toList goodTriangles) `RT.union` newTriangles }
+bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = RT.fromList (S.toList goodTriangles) <> newTriangles }
   where
     validNewPoint = if newPoint `insideBoundingBox` bounds
         then newPoint
