@@ -1,13 +1,15 @@
 # Generative art using Haskell
 
-This is me playing around with two-dimensional geometry and generative art using
-Haskell and Cairo.
+[quchen](https://github.com/quchen) and [fmthoma](https://github.com/fmthoma)
+playing around with 2-dimensional geometry and generative art using Haskell and
+Cairo.
 
-![](out/haskell_logo_billard.svg)
+![](showcases/haskell_logo_billard.png)
 
-![](out/haskell_logo_triangles.svg)
+![](showcases/haskell_logo_triangles.png)
 
-![](out/haskell_logo_voronoi.svg)
+![](showcases/haskell_logo_voronoi.png)
 
-More examples are shown as results of the [visual test
-suite](test/out/README.md).
+![](showcases/vector_fields.png)
+
+More examples are shown in the [docs/](docs/README.md) folder.
