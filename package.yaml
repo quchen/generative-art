@@ -93,6 +93,7 @@ executables:
             - cairo
             - mwc-random
             - vector
+            - parallel
 
 tests:
     testsuite:

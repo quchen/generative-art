@@ -9,6 +9,8 @@ import qualified System.Random.MWC               as Random
 import qualified System.Random.MWC.Distributions as Random
 import Data.Default.Class
 import Data.Word
+import Control.Parallel
+import Control.Parallel.Strategies
 
 import Draw
 import Geometry as G
@@ -23,6 +25,7 @@ data SystemConfig = SystemConfig
     , _numHills :: Int
     , _sigmaHillDistribution :: Double
     , _numParticles  :: Int
+    , _boundingBox :: BoundingBox
 
     , _sigmaHillWidth :: Double
     , _sigmaHillHeight :: Double
@@ -33,13 +36,15 @@ instance Default SystemConfig where
     def = SystemConfig
         { _seed = V.fromList [1,3,5]
 
+        , _boundingBox = BoundingBox (Vec2 (-500) (-500)) (Vec2 500 500)
+
         , _numHills = 200
         , _sigmaHillDistribution = 1000
-        , _numParticles  = 1000
+        , _numParticles  = 100
 
         , _sigmaHillWidth = 100
         , _sigmaHillHeight = 3
-        , _muHillHeight = 10
+        , _muHillHeight = 20
         }
 
 systemSetup config@SystemConfig{..} = runST $ do
@@ -64,7 +69,15 @@ systemSetup config@SystemConfig{..} = runST $ do
             , let toleranceNorm (x,v) = sqrt (max (normSquare x) (normSquare v))
             ]
 
-    pure odeSolutions
+    let parFor = flip (parMap rseq)
+        trajectories = parFor odeSolutions $ \odeSolution ->
+            let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
+                timeCutoff cutoff = takeWhile (\(t, _) -> t < cutoff)
+                spaceCutoff = takeWhile (\(_t, (Vec2 x y, _v)) -> -500 < x && x < 500 && -500 < y && y < 500)
+                trajectory = getTrajectory (timeCutoff 10000 (spaceCutoff odeSolution))
+            in trajectory
+
+    pure trajectories
 
 render :: Render ()
 render = do
@@ -72,11 +85,7 @@ render = do
     C.translate 500 500
     -- cartesianCoordinateSystem
 
-    for_ setup $ \odeSolution -> do
-        let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
-            timeCutoff cutoff = takeWhile (\(t, _) -> t < cutoff)
-            spaceCutoff = takeWhile (\(_t, (Vec2 x y, _v)) -> -500 < x && x < 500 && -500 < y && y < 500)
-            trajectory = getTrajectory (timeCutoff 10000 (spaceCutoff odeSolution))
+    for_ setup $ \trajectory -> do
         liftIO (putStrLn ("Trajectory length: " ++ show (length trajectory) ++ " segments"))
         let trajectory' = simplifyTrajectory (Distance 1) trajectory
         liftIO (putStrLn ("Simplified length: " ++ show (length trajectory') ++ " segments"))
