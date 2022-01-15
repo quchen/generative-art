@@ -16,18 +16,18 @@ import Geometry.Shapes
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 500
-picHeight = 360
+picWidth = 1000
+picHeight = 720
 
 haskellLogo' :: [Polygon]
 haskellLogo' = Geometry.transform (Geometry.scale 340) haskellLogo
 
 main :: IO ()
-main = png >> svg
+main = withSurfaceAuto "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
   where
-    png = withSurfaceAuto "out/haskell_logo_triangles.png" picWidth picHeight renderDrawing
-    svg = withSurfaceAuto "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
-    renderDrawing surface = renderWith surface drawing
+    renderDrawing surface = renderWith surface $ do
+        Cairo.scale 2 2
+        drawing
 
 shatterProcessS
     :: (Polygon -> Bool)   -- ^ Recursively subdivide the current polygon?
