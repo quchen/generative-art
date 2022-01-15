@@ -128,9 +128,14 @@ voronoiCell bb p qs
   where
     sortedRays = sortOn angleOfLine (Line p <$> S.toList qs)
     voronoiVertex l1 l2
-        | Line _ q <- l1, q `elem` bbCorners = intersectionPoint (intersectionLL (transform (rotateAround q (deg 90)) l1) (perpendicularBisector l2))
-        | Line _ q <- l2, q `elem` bbCorners = intersectionPoint (intersectionLL (perpendicularBisector l1) (transform (rotateAround q (deg 90)) l2))
-        | otherwise = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
+        | Line _ q1 <- l1, Line _ q2 <- l2, q1 `elem` bbCorners, q2 `elem` bbCorners
+          = intersectionPoint (intersectionLL (transform (rotateAround q1 (deg 90)) l1) (transform (rotateAround q2 (deg 90)) l2))
+        | Line _ q <- l1, q `elem` bbCorners
+          = intersectionPoint (intersectionLL (transform (rotateAround q (deg 90)) l1) (perpendicularBisector l2))
+        | Line _ q <- l2, q `elem` bbCorners
+          = intersectionPoint (intersectionLL (perpendicularBisector l1) (transform (rotateAround q (deg 90)) l2))
+        | otherwise
+          = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
     rawPolygon = Polygon $ catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))
     polygonRestrictedToBounds = go (polygonEdges bbPoly) rawPolygon
       where
