@@ -16,8 +16,7 @@ module Util.RTree (
 
 , fromList
 , toList
-)
-where
+) where
 
 import qualified Data.RTree as RT
 import Data.RTree (RTree)
