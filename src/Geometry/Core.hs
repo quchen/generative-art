@@ -84,6 +84,7 @@ module Geometry.Core (
     , ScalingBehavior(..)
     , boundingBoxPolygon
     , insideBoundingBox
+    , boundingBoxSize
 
     -- * Processes
     , reflection
@@ -366,6 +367,12 @@ boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
 
 insideBoundingBox :: HasBoundingBox a => a -> BoundingBox -> Bool
 insideBoundingBox thing bb = bb == (bb <> boundingBox thing)
+
+boundingBoxSize :: HasBoundingBox a => a -> (Distance, Distance, Area)
+boundingBoxSize x = (Distance (abs deltaX), Distance (abs deltaY), Area (abs (deltaX*deltaY)))
+  where
+    BoundingBox lo hi = boundingBox x
+    Vec2 deltaX deltaY = hi -. lo
 
 -- | Anything we can paint has a bounding box. Knowing it is useful to e.g. rescale
 -- the geometry to fit into the canvas or for collision detection.
