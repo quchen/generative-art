@@ -17,7 +17,13 @@ import Numerics.DifferentialEquation
 import Numerics.VectorAnalysis
 
 main :: IO ()
-main = withSurfaceAuto "scratchpad/out.png" 1000 1000 $ \surface -> C.renderWith surface render
+main = do
+    let systemResult = runST (systemSetup def)
+    withSurfaceAuto
+        "scratchpad/out.png"
+        1000
+        1000
+        (\surface -> C.renderWith surface (render systemResult))
 
 data SystemConfig s = SystemConfig
     { _seed :: V.Vector Word32
@@ -48,15 +54,21 @@ instance Default (SystemConfig s) where
         , _particleCharge = \_gen -> pure 1
         }
 
+data SystemResult = SystemResult
+    { _trajectories :: [[Vec2]]
+    , _coulombWells :: [(Vec2, Double)]
+    }
+
 initializeGen
     :: SystemConfig s
     -> ST s (Random.Gen s)
 initializeGen SystemConfig{..} = do
     gen <- Random.initialize _seed
-    _ <- fmap (\warmupGenerator -> warmupGenerator :: [Int])
+    _ <- fmap (\x -> const "Warm up the generator" (x::[Int]))
               (replicateM 10000 (Random.uniform gen))
     pure gen
 
+systemSetup :: SystemConfig s -> ST s SystemResult
 systemSetup config@SystemConfig{..} = do
     gen <- initializeGen config
 
@@ -89,23 +101,24 @@ systemSetup config@SystemConfig{..} = do
             in (simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution
         !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
-    pure (trajectoriesNF, coulombWells)
+    pure SystemResult
+        { _trajectories = trajectoriesNF
+        , _coulombWells = coulombWells
+        }
 
-render :: Render ()
-render = do
-    let (trajectories, hills) = runST $ systemSetup def
+render :: SystemResult -> Render ()
+render SystemResult{..} = do
     C.translate 500 500
-    -- cartesianCoordinateSystem
     cairoScope $ do
         setSourceRGB 1 1 1
         paint
 
     setLineWidth 1
-    for_ hills $ \(center, charge) -> cairoScope $ do
+    for_ _coulombWells $ \(center, charge) -> cairoScope $ do
             mmaColor 1 1
             circleSketch center (Distance (log charge))
             stroke
-    for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
+    for_ (zip [1..] _trajectories) $ \(i, trajectory) -> do
         liftIO (putStrLn ("Paint trajectory " ++ show i))
         cairoScope $ do
             mmaColor 3 0.1
