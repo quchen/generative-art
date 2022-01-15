@@ -85,7 +85,8 @@ systemSetup config@SystemConfig{..} = runST $ do
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 1000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-            in (getTrajectory . timeCutoff . spaceCutoff) odeSolution
+                simplify = simplifyTrajectory (Distance 1)
+            in (simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution
         !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
     pure (trajectoriesNF, coulombWells)
@@ -104,21 +105,13 @@ render = do
             mmaColor 1 1
             circleSketch center (Distance (log charge))
             stroke
-    for_ (trajectories) $ \trajectory -> do
-        let trajectory' = simplifyTrajectory (Distance 1) trajectory
-        liftIO (putStrLn ("Trajectory length: " ++ show (length trajectory) ++ " segments, simplified: " ++ show (length trajectory')))
+    for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
+        liftIO (putStrLn ("Paint trajectory " ++ show i))
         cairoScope $ do
             mmaColor 3 0.01
-            pathSketch trajectory'
+            pathSketch trajectory
             stroke
         pure ()
-
-makeHill
-    :: Vec2   -- ^ Mean
-    -> Double -- ^ width
-    -> Vec2   -- ^ x
-    -> Double
-makeHill mu sigma p = exp (- normSquare (p -. mu) / (2*sigma^2))
 
 gaussianVec2
     :: Vec2 -- ^ Mean
