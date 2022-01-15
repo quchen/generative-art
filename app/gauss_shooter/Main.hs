@@ -36,7 +36,7 @@ instance Default SystemConfig where
     def = SystemConfig
         { _seed = V.fromList [1,3,5]
 
-        , _boundingBox = BoundingBox (Vec2 (-500) (-500)) (Vec2 500 500)
+        , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
         , _numHills = 200
         , _sigmaHillDistribution = 1000
@@ -59,7 +59,6 @@ systemSetup config@SystemConfig{..} = runST $ do
         replicateM _numParticles mkParticleIc
 
     let odeSolutions =
-            -- [ rungeKuttaConstantStep ode ic t0 stepSize
             [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
             | ic <- particleIcs
             , let ode _t (x,v) = (v, 1000 *. negateV (grad potential x))
@@ -73,8 +72,8 @@ systemSetup config@SystemConfig{..} = runST $ do
         trajectories = parFor odeSolutions $ \odeSolution ->
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
                 timeCutoff cutoff = takeWhile (\(t, _) -> t < cutoff)
-                spaceCutoff = takeWhile (\(_t, (Vec2 x y, _v)) -> -500 < x && x < 500 && -500 < y && y < 500)
-                trajectory = getTrajectory (timeCutoff 10000 (spaceCutoff odeSolution))
+                spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
+                trajectory = getTrajectory (timeCutoff 1000 (spaceCutoff odeSolution))
             in trajectory
 
     pure trajectories
@@ -114,11 +113,14 @@ gaussianHillPotential
     -> Random.Gen s
     -> ST s (Vec2 -> Double)
 gaussianHillPotential SystemConfig{..} gen = do
-    hill <- replicateM _numHills $ do
-        center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
-        height <- Random.normal _muHillHeight _sigmaHillHeight gen
-        pure (center, height)
-    pure (\p -> sum' [height * gauss center _sigmaHillWidth p | (center, height) <- hill])
+    hills <- do
+        hills' <- replicateM _numHills $ do
+            center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
+            height <- Random.normal _muHillHeight _sigmaHillHeight gen
+            pure (center, height)
+        let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.5) _boundingBox))
+        pure (removeOutliers hills')
+    pure (\p -> sum' [height * gauss center _sigmaHillWidth p | (center, height) <- hills])
 
 sum' :: [Double] -> Double
 sum' = foldl' (+) 0
