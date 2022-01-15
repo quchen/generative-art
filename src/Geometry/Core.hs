@@ -459,17 +459,10 @@ transformBoundingBox source target scalingBehavior
         sourceCenter = boundingBoxCenter bbSource
         targetCenter = boundingBoxCenter bbTarget
 
-        boundingBoxCenter :: BoundingBox -> Vec2
-        boundingBoxCenter (BoundingBox lo hi) = (hi +. lo) /. 2
         translateToMatchCenter = translate (targetCenter -. sourceCenter)
 
-        -- | The size of the bounding box. Toy example: calculate the area of it.
-        -- Note that the values can be negative if orientations differ.
-        boundingBoxDimension :: BoundingBox -> (Double, Double)
-        boundingBoxDimension (BoundingBox lo hi) = let Vec2 xSize ySize = hi-.lo in (xSize, ySize)
-
-        (sourceWidth, sourceHeight) = boundingBoxDimension bbSource
-        (targetWidth, targetHeight) = boundingBoxDimension bbTarget
+        (Distance sourceWidth, Distance sourceHeight, _) = boundingBoxSize bbSource
+        (Distance targetWidth, Distance targetHeight, _) = boundingBoxSize bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
 
