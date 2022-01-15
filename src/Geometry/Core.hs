@@ -338,6 +338,9 @@ instance Semigroup BoundingBox where
       = BoundingBox (Vec2 (min xMin1 xMin2) (min yMin1 yMin2))
                     (Vec2 (max xMax1 xMax2) (max yMax1 yMax2))
 
+instance Transform BoundingBox where
+    transform t (BoundingBox lo hi) = BoundingBox (transform t lo) (transform t hi)
+
 -- | A bounding box with the minimum at (plus!) infinity and maximum at (minus!)
 -- infinity acts as a neutral element. This is mostly useful so we can make
 -- potentiallly empty data structures such as @[a]@ and @'Maybe' a@ instances too.
