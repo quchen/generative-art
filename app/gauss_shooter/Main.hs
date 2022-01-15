@@ -48,7 +48,7 @@ systemConfig = SystemConfig
     , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
     , _hillCharge = \_gen -> pure 1e3
 
-    , _numParticles  = 1000
+    , _numParticles  = 10000
     , _particleMass = 1000
     , _particleCharge = \_gen -> pure 1
     }
@@ -118,9 +118,9 @@ render SystemResult{..} = do
             circleSketch center (Distance (log charge))
             stroke
     for_ (zip [1..] _trajectories) $ \(i, trajectory) -> do
-        liftIO (putStrLn ("Paint trajectory " ++ show i))
+        when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         cairoScope $ do
-            mmaColor 3 0.1
+            mmaColor 3 0.03
             pathSketch trajectory
             stroke
         pure ()
