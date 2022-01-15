@@ -25,18 +25,19 @@ main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    let defaultFiles = ("out/haskell_logo_voronoi" ++) <$> [".png", ".svg"]
-    (count, files) <- getArgs >>= \case
-        [] -> pure (2048, defaultFiles)
-        [count] -> pure (read count, defaultFiles)
-        [count, file] -> pure (read count, [file])
+    let defaultFile = "out/haskell_logo_voronoi.svg"
+    (count, file) <- getArgs >>= \case
+        [] -> pure (1000, defaultFile)
+        [count] -> pure (read count, defaultFile)
+        [count, file] -> pure (read count, file)
         _ -> error "Usage: haskell-logo-voronoi [COUNT [FILE]]"
     let w, h :: Num a => a
-        w = 1200
-        h = 1200
+        w = 1000
+        h = 720
         haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
-    points <- poissonDisc PoissonDisc { width = w, height = h, radius = sqrt (w * h / (4 * count)), k = 4, ..}
+    points <- poissonDisc PoissonDisc { width = w, height = h, radius = sqrt (pi * w * h / (4 * count)), k = 4, ..}
+    print (length points)
     let haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
         voronoi = mapWithSeed colorize $ toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points)
         colorize p ()
@@ -44,7 +45,7 @@ mainHaskellLogo = do
               = color
             | otherwise
               = darkGrey
-    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ (cells voronoi) drawCell
+    withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ (cells voronoi) drawCell
 
 drawCell :: VoronoiCell RGB -> Render ()
 drawCell Cell{..} = drawPoly region props
