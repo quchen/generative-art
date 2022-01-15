@@ -7,7 +7,6 @@ import qualified Data.Vector                     as V
 import           Graphics.Rendering.Cairo        as C
 import qualified System.Random.MWC               as Random
 import qualified System.Random.MWC.Distributions as Random
-import Data.Default.Class
 import Data.Word
 import Control.Parallel.Strategies
 
@@ -18,7 +17,7 @@ import Numerics.VectorAnalysis
 
 main :: IO ()
 main = do
-    let systemResult = runST (systemSetup def)
+    let systemResult = runST (systemSetup systemConfig)
     withSurfaceAuto
         "scratchpad/out.png"
         1000
@@ -39,20 +38,20 @@ data SystemConfig s = SystemConfig
     , _particleCharge :: Random.GenST s -> ST s Double
     }
 
-instance Default (SystemConfig s) where
-    def = SystemConfig
-        { _seed = V.fromList [13,5,9,1,39,45]
+systemConfig :: SystemConfig s
+systemConfig = SystemConfig
+    { _seed = V.fromList [13,5,9,1,39,45]
 
-        , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
+    , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
-        , _numHills = 5000
-        , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
-        , _hillCharge = \_gen -> pure 1e3
+    , _numHills = 5000
+    , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
+    , _hillCharge = \_gen -> pure 1e3
 
-        , _numParticles  = 1000
-        , _particleMass = 1000
-        , _particleCharge = \_gen -> pure 1
-        }
+    , _numParticles  = 1000
+    , _particleMass = 1000
+    , _particleCharge = \_gen -> pure 1
+    }
 
 data SystemResult = SystemResult
     { _trajectories :: [[Vec2]]
