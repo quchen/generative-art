@@ -61,13 +61,14 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
         , .. }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = RT.fromList (S.toList goodTriangles) <> newTriangles }
+bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goodTriangles <> newTriangles }
   where
     validNewPoint = if newPoint `insideBoundingBox` bounds
         then newPoint
         else error "User error: Tried to add a point outside the bounding box"
-    (badTriangles, goodTriangles) = S.partition ((validNewPoint `inside`) . snd) (S.fromList (RT.toList triangulation))
-    outerPolygon = collectPolygon $ go (edges . fst =<< S.toList badTriangles) M.empty
+    badTriangles = filter ((validNewPoint `inside`) . snd) (RT.lookupContainsRange (boundingBox validNewPoint) triangulation)
+    goodTriangles = foldr RT.delete triangulation badTriangles
+    outerPolygon = collectPolygon $ go (edges . fst =<< badTriangles) M.empty
       where
         go [] result = result
         go (Line p q : es) result
