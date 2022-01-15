@@ -29,24 +29,24 @@ data SystemConfig = SystemConfig
     , _particleMass :: Double
 
     , _sigmaHillWidth :: Double
-    , _sigmaHillHeight :: Double
-    , _muHillHeight :: Double
+    , _sigmaCharge :: Double
+    , _muCharge :: Double
     }
 
 instance Default SystemConfig where
     def = SystemConfig
-        { _seed = V.fromList [135,9,1,2,31,3,654,4,8,39,45]
+        { _seed = V.fromList [135,9,1,39,45]
 
         , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
-        , _numHills = 500
-        , _sigmaHillDistribution = 700
+        , _numHills = 3000
+        , _sigmaHillDistribution = 1500
         , _numParticles  = 10000
-        , _particleMass = 1
+        , _particleMass = 1000
 
         , _sigmaHillWidth = 10
-        , _sigmaHillHeight = 5
-        , _muHillHeight = 70
+        , _sigmaCharge = 5
+        , _muCharge = 1e3
         }
 
 initializeGen
@@ -61,13 +61,13 @@ initializeGen SystemConfig{..} = do
 systemSetup config@SystemConfig{..} = runST $ do
     gen <- initializeGen config
 
-    (potential, hills) <- gaussianHillPotential config gen
+    (potential, coulombWells) <- potentials config gen
 
     particleIcs <- do
         let mkParticleIc = do
                 let x0 = Vec2 0 0
                 a <- Random.uniformRM (0, 360) gen
-                let Line _ v0 = angledLine (Vec2 0 0) (deg a) (Distance 10)
+                let Line _ v0 = angledLine (Vec2 0 0) (deg a) (Distance 1)
                 -- v0 <- gaussianVec2 (Vec2 0 0) 1 gen
                 pure (x0, v0)
         replicateM _numParticles mkParticleIc
@@ -90,7 +90,7 @@ systemSetup config@SystemConfig{..} = runST $ do
                 trajectory = getTrajectory (timeCutoff 1000 (spaceCutoff odeSolution))
             in trajectory
 
-    pure (trajectories, hills)
+    pure (trajectories, coulombWells)
 
 render :: Render ()
 render = do
@@ -102,15 +102,15 @@ render = do
         paint
 
     setLineWidth 1
-    for_ hills $ \(center, radius) -> cairoScope $ do
+    for_ hills $ \(center, charge) -> cairoScope $ do
             mmaColor 1 1
-            circleSketch center (Distance radius)
+            circleSketch center (Distance (log charge))
             stroke
     for_ (trajectories) $ \trajectory -> do
         let trajectory' = simplifyTrajectory (Distance 1) trajectory
         liftIO (putStrLn ("Trajectory length: " ++ show (length trajectory) ++ " segments, simplified: " ++ show (length trajectory')))
         cairoScope $ do
-            mmaColor 0 0.01
+            mmaColor 3 0.01
             pathSketch trajectory'
             stroke
         pure ()
@@ -129,20 +129,21 @@ gaussianVec2
     -> ST s Vec2
 gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> Random.normal muX sigma gen <*> Random.normal muY sigma gen
 
-gaussianHillPotential
+potentials
     :: SystemConfig
     -> Random.Gen s
     -> ST s (Vec2 -> Double, [(Vec2, Double)])
-gaussianHillPotential SystemConfig{..} gen = do
+potentials SystemConfig{..} gen = do
     hills <- do
         hills' <- replicateM _numHills $ do
             center <- gaussianVec2 (Vec2 0 0) _sigmaHillDistribution gen
-            height <- Random.normal _muHillHeight _sigmaHillHeight gen
-            pure (center, height)
-        let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.5) _boundingBox))
+            charge <- Random.normal _muCharge _sigmaCharge gen
+            pure (center, charge)
+        let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.1) _boundingBox))
+                           . filter (\(center, _) -> let Distance d = norm center in d > 70)
         pure (removeOutliers hills')
-    pure (\p -> sum' [height * makeHill center _sigmaHillWidth p | (center, height) <- hills]
-         , [(center, _sigmaHillWidth) | (center, _) <- hills]
+    pure (\p -> sum' [charge / (let Distance d = norm (p -. center) in d) | (center, charge) <- hills]
+         , hills
          )
 
 sum' :: [Double] -> Double
