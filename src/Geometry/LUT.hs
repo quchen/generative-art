@@ -1,3 +1,4 @@
+-- | Lookup tables
 module Geometry.LUT (
       VLUT(..)
     , S(..)

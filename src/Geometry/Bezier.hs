@@ -69,6 +69,10 @@ instance HasBoundingBox Bezier where
 --
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
+--
+-- \[
+-- \text{bezierT}_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = (1-t)^3\,\mathbf a + 3 (1-t)^2 t\,\mathbf b + 3 (1-t) t^2\,\mathbf c + t^3\,\mathbf d
+-- \]
 bezierT
   :: Bezier
   -> Double -- ^ \[0..1] = [start..end]
@@ -83,6 +87,10 @@ bezierT (Bezier a b c d) t
 --
 -- The suffix @T@ indicates the »simple formula« parameterization,
 -- which makes this curve easy to compute.
+--
+-- \[
+-- \text{bezierT}'_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = -3(1-t)^2\,\mathbf a + (3+t(-12+9t))\,\mathbf b + (6-9t)t\,\mathbf c + 3t^2\,\mathbf d
+-- \]
 bezierT'
   :: Bezier
   -> T Double -- ^ \[0..1] = [start..end]
