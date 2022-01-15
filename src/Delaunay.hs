@@ -7,6 +7,7 @@ module Delaunay (
 , bowyerWatsonStep
 
 , toVoronoi
+, lloydRelaxation
 ) where
 
 import Data.List (foldl', intersect, sortOn)
@@ -143,3 +144,15 @@ voronoiCell bb p qs
         go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
 
     bbPoly@(Polygon bbCorners) = boundingBoxPolygon bb
+
+lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
+lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices
+  where
+    relaxedVertices = centroid . region <$> cells (toVoronoi delaunay)
+
+centroid :: Polygon -> Vec2
+centroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q)) ps (tail (cycle ps)))
+  where
+    Area totalArea = polygonArea poly
+    weight = 1 / (6 * totalArea)
+    vsum = foldl' (+.) zero

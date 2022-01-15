@@ -57,3 +57,4 @@ over quickly.
 ![Missing image!](../../docs/voronoi/3_full_voronoi.svg)
 ![Missing image!](../../docs/voronoi/delaunay_random.svg)
 ![Missing image!](../../docs/voronoi/delaunay_voronoi.svg)
+![Missing image!](../../docs/voronoi/lloyd_relaxation.svg)

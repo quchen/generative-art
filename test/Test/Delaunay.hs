@@ -14,11 +14,14 @@ import Draw
 import Geometry
 import Sampling
 import Voronoi
+import Data.List (scanl')
+import Delaunay (lloydRelaxation)
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"
     [ testRandomTriangulation
     , testConversionToVoronoi
+    , testLloydRelaxation
     ]
 
 testRandomTriangulation :: TestTree
@@ -63,3 +66,28 @@ randomDelaunay width height = do
     gen <- liftIO create
     randomPoints <- liftIO $ poissonDisc PoissonDisc { radius = fromIntegral (width * height) / 1000, k = 4, .. }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
+
+testLloydRelaxation :: TestTree
+testLloydRelaxation = testCase "Lloyd relaxation" test
+  where
+    test = renderAllFormats 850 220 "docs/voronoi/lloyd_relaxation" $ do
+        points <- liftIO $ do
+            gen <- create
+            uniformlyDistributedPoints gen 200 200 30
+        let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) points
+            triangulations = scanl' (flip ($)) triangulation0 (replicate 4 lloydRelaxation)
+        Cairo.translate 10 10
+        cairoScope $ for_ triangulations $ \triangulation -> do
+            for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
+                polygonSketch poly
+                mmaColor 0 0.25
+                Cairo.setLineJoin Cairo.LineJoinBevel
+                Cairo.stroke
+            for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
+                mmaColor 0 1
+                polygonSketch region
+                Cairo.stroke
+                mmaColor 1 1
+                circleSketch seed (Distance 4)
+                Cairo.fill
+            Cairo.translate 210 0
