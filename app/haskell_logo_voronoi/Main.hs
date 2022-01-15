@@ -5,19 +5,18 @@ module Main (main) where
 import Data.Char          (ord)
 import Data.Foldable      (for_)
 import Data.List          (find)
-import Data.Maybe         (mapMaybe)
 import Data.Vector        (fromList)
 import Prelude            hiding ((**))
 import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
 
+import Delaunay
 import Draw
 import Geometry
 import Geometry.Shapes          (haskellLogo)
 import Graphics.Rendering.Cairo hiding (transform)
 import Sampling
 import Voronoi
-import Delaunay
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
@@ -38,12 +37,14 @@ mainHaskellLogo = do
         haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
     points <- gaussianDistributedPoints gen (w, 380) (h, 380) count
-    let --picturePoints = mapMaybe (\point -> fmap (\(color, _) -> (point, color)) $ find (pointInPolygon point . snd) (zip haskellLogoColors haskellLogoCentered)) points
-        --backgroundPoints = fmap (\point -> (point, darkGrey)) $ filter (\point -> not $ any (pointInPolygon point) haskellLogoCentered) points
-        --allPoints = picturePoints ++ backgroundPoints
-        allPoints = points
-        allCells = cells (const darkGrey <$> toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points))
-    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ allCells drawCell
+    let haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
+        voronoi = mapWithSeed colorize $ toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points)
+        colorize p ()
+            | Just (_, color) <- find (pointInPolygon p . fst) haskellLogoWithColors
+              = color
+            | otherwise
+              = darkGrey
+    for_ files $ \file -> withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ (cells voronoi) drawCell
 
 drawCell :: VoronoiCell RGB -> Render ()
 drawCell Cell{..} = drawPoly region props

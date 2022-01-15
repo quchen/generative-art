@@ -12,6 +12,7 @@ import qualified Graphics.Rendering.Cairo    as Cairo
 import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
+import Delaunay
 import Draw
 import Geometry
 import Sampling
@@ -45,30 +46,31 @@ setup tmpDir window = do
             ]
         ]
 
-    let initialState = emptyVoronoi (fromIntegral w) (fromIntegral h)
+    let initialState = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral w) (fromIntegral h))) []
 
     eAddPointsGaussian <- do
         (eAddPoints, triggerAddPoints) <- liftIO newEvent
         on UI.click btnAddPointsGaussian $ \() -> liftIO $ do
             points <- gaussianDistributedPoints gen (w, 380) (h, 380) 100
-            triggerAddPoints (\voronoi -> foldl' addPoint' voronoi points)
+            triggerAddPoints (\delaunay -> foldl' bowyerWatsonStep delaunay points)
         pure eAddPoints
     eAddPointsUniform <- do
         (eAddPoints, triggerAddPoints) <- liftIO newEvent
         on UI.click btnAddPointsUniform $ \() -> liftIO $ do
             points <- uniformlyDistributedPoints gen w h 100
-            triggerAddPoints (\voronoi -> foldl' addPoint' voronoi points)
+            triggerAddPoints (\delaunay -> foldl' bowyerWatsonStep delaunay points)
         pure eAddPoints
-    let eAddPointByClicking = (\(x, y) -> flip addPoint' (Vec2 x y)) <$> UI.mousedown elemCanvas
+    let eAddPointByClicking = (\(x, y) -> flip bowyerWatsonStep (Vec2 x y)) <$> UI.mousedown elemCanvas
         eReset = const initialState <$ UI.click btnReset
-        eVoronoi = concatenate <$> unions [eAddPointsGaussian, eAddPointsUniform, eAddPointByClicking, eReset]
+        eDelaunay = concatenate <$> unions [eAddPointsGaussian, eAddPointsUniform, eAddPointByClicking, eReset]
 
-    bVoronoi <- accumB initialState eVoronoi
+    bDelaunay <- accumB initialState eDelaunay
 
-    onChanges bVoronoi $ \voronoi -> do
+    onChanges bDelaunay $ \delaunay -> do
         tmpFile <- liftIO $ do
             randomNumber <- uniform gen :: IO Int
             pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
+        let voronoi = toVoronoi delaunay
         liftIO $ withSurfaceAuto tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
@@ -78,7 +80,7 @@ setup tmpDir window = do
 
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
-        voronoi <- liftIO $ currentValue bVoronoi
+        voronoi <- liftIO $ toVoronoi <$> currentValue bDelaunay
         liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
 
 drawCellCairo :: VoronoiCell () -> Cairo.Render ()
