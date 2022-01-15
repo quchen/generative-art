@@ -26,6 +26,7 @@ data SystemConfig = SystemConfig
     , _sigmaHillDistribution :: Double
     , _numParticles  :: Int
     , _boundingBox :: BoundingBox
+    , _particleMass :: Double
 
     , _sigmaHillWidth :: Double
     , _sigmaHillHeight :: Double
@@ -34,34 +35,45 @@ data SystemConfig = SystemConfig
 
 instance Default SystemConfig where
     def = SystemConfig
-        { _seed = V.fromList [1,3,5]
+        { _seed = V.fromList [11,2313,6545]
 
         , _boundingBox = boundingBox (Vec2 (-500) (-500), Vec2 500 500)
 
-        , _numHills = 200
-        , _sigmaHillDistribution = 1000
-        , _numParticles  = 100
+        , _numHills = 500
+        , _sigmaHillDistribution = 500
+        , _numParticles  = 1000
+        , _particleMass = 1
 
         , _sigmaHillWidth = 100
-        , _sigmaHillHeight = 3
-        , _muHillHeight = 20
+        , _sigmaHillHeight = 100
+        , _muHillHeight = 0
         }
 
-systemSetup config@SystemConfig{..} = runST $ do
+initializeGen
+    :: SystemConfig
+    -> ST s (Random.Gen s)
+initializeGen SystemConfig{..} = do
     gen <- Random.initialize _seed
+    _ <- fmap (\warmupGenerator -> warmupGenerator :: [Int])
+              (replicateM 10000 (Random.uniform gen))
+    pure gen
+
+systemSetup config@SystemConfig{..} = runST $ do
+    gen <- initializeGen config
+
     potential <- gaussianHillPotential config gen
 
     particleIcs <- do
         let mkParticleIc = do
                 let x0 = Vec2 0 0
-                v0 <- gaussianVec2 (Vec2 0 0) 3 gen
+                v0 <- gaussianVec2 (Vec2 0 0) 1 gen
                 pure (x0, v0)
         replicateM _numParticles mkParticleIc
 
     let odeSolutions =
             [ rungeKuttaAdaptiveStep ode ic t0 dt0 toleranceNorm tolerance
             | ic <- particleIcs
-            , let ode _t (x,v) = (v, 1000 *. negateV (grad potential x))
+            , let ode _t (x,v) = (v, negateV (grad potential x) /. _particleMass)
             , let t0 = 0
             , let dt0 = 1
             , let tolerance = 1e-2
