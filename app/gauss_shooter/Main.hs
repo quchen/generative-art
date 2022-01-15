@@ -41,7 +41,7 @@ data SystemConfig s = SystemConfig
 
 systemConfig :: SystemConfig s
 systemConfig = SystemConfig
-    { _seed = V.fromList [13,5,9,1,39,45]
+    { _seed = V.fromList [113,5,9,1,39,45]
 
     , _boundingBox =
         let lo = Vec2 0 0
@@ -52,10 +52,10 @@ systemConfig = SystemConfig
 
     , _numHills = 5000
     , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
-    , _hillCharge = \_gen -> pure 1e3
+    , _hillCharge = \_gen -> pure 1
 
     , _numParticles  = 10000
-    , _particleMass = 1000
+    , _particleMass = 1
     , _particleCharge = \_gen -> pure 1
     }
 
@@ -121,9 +121,12 @@ render SystemResult{..} = do
 
     setLineWidth 1
     for_ _coulombWells $ \(center, charge) -> cairoScope $ do
-            mmaColor 1 1
-            circleSketch center (Distance (log charge))
-            stroke
+            mmaColor 0 1
+            for_ [1,3..10] $ \r -> do
+                mmaColor 0 (1/r**0.9)
+                circleSketch center (Distance (8*(r*abs charge)**(1/2.5)))
+                stroke
+
     for_ (zip [1..] _trajectories) $ \(i, trajectory) -> do
         when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         cairoScope $ do
