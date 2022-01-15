@@ -27,7 +27,7 @@ seed :: Int
 seed = 519496
 
 main :: IO ()
-main = withSurfaceAuto "out/vector_fields.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
+main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
     Cairo.scale scaleFactor scaleFactor
     cairoScope $ do
         Cairo.setSourceRGB 1 1 1
@@ -45,7 +45,7 @@ main = withSurfaceAuto "out/vector_fields.png" scaledWidth scaledHeight $ \surfa
     for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> cairoScope $
         drawFieldLine thickness $ takeWhile ((<= 200) . fst) (fieldLine compositeField p)
   where
-    scaleFactor = 0.25
+    scaleFactor = 0.39
     scaledWidth = round (picWidth * scaleFactor)
     scaledHeight = round (picHeight * scaleFactor)
 
@@ -55,6 +55,7 @@ drawFieldLine thickness ps = cairoScope $ do
     let ps' = bezierSmoothen (snd <$> ps)
         time = fst <$> ps
     for_ (zip time ps') $ \(t, p) -> do
+        Cairo.setLineCap Cairo.LineCapRound
         Cairo.setLineWidth (thickness * (t/100))
         bezierSegmentSketch p
         Cairo.stroke
