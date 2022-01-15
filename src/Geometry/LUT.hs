@@ -37,6 +37,7 @@ instance VectorSpace a => VectorSpace (T a) where
     T a +. T b = T (a+.b)
     a *. T b = T (a*.b)
     T a -. T b = T (a-.b)
+    zero = T zero
 
 -- | See 'T'.
 --

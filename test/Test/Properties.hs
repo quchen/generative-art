@@ -69,8 +69,7 @@ areaTest = testGroup "Area"
     parallelogram = testProperty "Parallelogram" (forAll
         ((,) <$> vec2 <*> vec2)
         (\(v1, v2) ->
-            let zero = Vec2 0 0
-                actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
+            let actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
                 Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
                 Distance v1norm = norm v1
                 Distance v2norm = norm v2

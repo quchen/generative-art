@@ -465,6 +465,7 @@ instance VectorSpace Vec2 where
     Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
     a *. Vec2 x y = Vec2 (a*x) (a*y)
     negateV (Vec2 x y) = Vec2 (-x) (-y)
+    zero = Vec2 0 0
 
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
@@ -494,6 +495,7 @@ instance VectorSpace Angle where
     Angle a -. Angle b = rad (a - b)
     a *. Angle b = rad (a * b)
     negateV (Angle a) = rad (-a)
+    zero = rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
@@ -514,6 +516,7 @@ instance VectorSpace Distance where
     Distance a -. Distance b = Distance (a - b)
     a *. Distance b = Distance (a * b)
     negateV (Distance a) = Distance (-a)
+    zero = Distance 0
 
 -- | Newtype safety wrapper.
 newtype Area = Area Double deriving (Eq, Ord, Show)

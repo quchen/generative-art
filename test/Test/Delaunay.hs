@@ -10,15 +10,20 @@ import Test.Tasty.HUnit (testCase)
 import Test.Common (renderAllFormats)
 
 import Delaunay
+import Delaunay.Internal
 import Draw
 import Geometry
 import Sampling
 import Voronoi
+import Data.List (scanl')
+import Draw (arrowSketch, ArrowSpec (arrowheadSize))
+import Geometry (Distance(Distance))
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"
     [ testRandomTriangulation
     , testConversionToVoronoi
+    , testLloydRelaxation
     ]
 
 testRandomTriangulation :: TestTree
@@ -63,3 +68,26 @@ randomDelaunay width height = do
     gen <- liftIO create
     randomPoints <- liftIO $ poissonDisc PoissonDisc { radius = fromIntegral (width * height) / 1000, k = 4, .. }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
+
+testLloydRelaxation :: TestTree
+testLloydRelaxation = testCase "Lloyd relaxation" test
+  where
+    test = renderAllFormats 850 220 "docs/voronoi/lloyd_relaxation" $ do
+        points <- liftIO $ do
+            gen <- create
+            uniformlyDistributedPoints gen 200 200 15
+        let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) points
+            triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
+        Cairo.translate 10 10
+        for_ triangulations $ \triangulation -> do
+            for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
+                mmaColor 0 1
+                polygonSketch region
+                Cairo.stroke
+                mmaColor 3 1
+                arrowSketch (Line seed (centroid region)) def { arrowheadSize = Distance 4 }
+                Cairo.stroke
+                mmaColor 1 1
+                circleSketch seed (Distance 4)
+                Cairo.fill
+            Cairo.translate 210 0
