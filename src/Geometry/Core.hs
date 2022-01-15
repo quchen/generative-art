@@ -81,6 +81,8 @@ module Geometry.Core (
     , BoundingBox(..)
     , transformBoundingBox
     , ScalingBehavior(..)
+    , boundingBoxPolygon
+    , insideBoundingBox
 
     -- * Processes
     , reflection
@@ -342,6 +344,13 @@ instance Semigroup BoundingBox where
 instance Monoid BoundingBox where
     mempty = BoundingBox (Vec2 inf inf) (Vec2 (-inf) (-inf))
       where inf = 1/0
+
+boundingBoxPolygon :: BoundingBox -> Polygon
+boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
+  where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bb
+
+insideBoundingBox :: HasBoundingBox a => a -> BoundingBox -> Bool
+insideBoundingBox thing bb = bb == (bb <> boundingBox thing)
 
 -- | Anything we can paint has a bounding box. Knowing it is useful to e.g. rescale
 -- the geometry to fit into the canvas or for collision detection.

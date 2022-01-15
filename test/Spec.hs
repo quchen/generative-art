@@ -17,6 +17,7 @@ import qualified Test.Bezier
 import qualified Test.Billard
 import qualified Test.ConvexHull
 import qualified Test.Cut
+import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
@@ -60,6 +61,7 @@ tests = testGroup "Test suite"
         , Test.SimpleOperations.tests
         , Test.Trajectory.tests
         , Test.Triangulate.tests
+        , Test.Delaunay.tests
         , Test.Voronoi.tests
         ]
     ]

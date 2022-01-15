@@ -97,10 +97,19 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
     go (Entering p : AlongEdge q r : rest)
       = go (Entering p : Exiting q : AlongEdge q r : rest)
 
+    -- I encountered this bug a few times now: Two cuts in the wrong order.
+    -- I haven't debugged this to find out where it goes wrong, but it looks
+    -- like this is a pretty safe workaround.
+    go [Exiting p, Entering q]
+      = go [Entering p, Exiting q]
+
+
     go bad
       = bugError $ unlines
           [ "Expecting patterns to be exhaustive, but apparently it's not."
-          , show bad ]
+          , "Bad portion: " ++ show bad
+          , "Full list of cut lines: " ++ show cutPointsSorted ]
+
 
     cutPointsSorted :: [NormalizedCut]
     cutPointsSorted = sortOn scissorCoordinate (normalizeCuts scissors orientation cuts)

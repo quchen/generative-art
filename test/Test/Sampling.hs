@@ -3,11 +3,10 @@
 module Test.Sampling (tests) where
 
 
-import Control.Monad (replicateM)
 import Control.Monad.IO.Class (liftIO)
 import Data.Foldable (for_)
 import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC (create, uniformRM)
+import System.Random.MWC (create)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase)
 
@@ -68,10 +67,7 @@ tests = testCase "Poisson disc sampling" test
             Cairo.rectangle 0 0 width height
             mmaColor 1 1
             Cairo.stroke
-            points <- liftIO $ replicateM 300 $ do
-                x <- uniformRM (0, width) gen
-                y <- uniformRM (0, height) gen
-                pure (Vec2 x y)
+            points <- liftIO $ uniformlyDistributedPoints gen width height 300
             drawPoints points
             Cairo.translate 0 82 >> drawExplanation "Random points"
             Cairo.translate 0 10 >> drawExplanation "Uniform distribution"
@@ -91,16 +87,3 @@ drawExplanation s = cairoScope $ do
     Cairo.moveTo 40 4
     Cairo.setFontSize 8
     showTextAligned HCenter VTop s
-
-drawGrid :: Double -> Int -> Int -> Cairo.Render ()
-drawGrid poissonDiscRadius width height = cairoScope $ do
-    mmaColor 1 0.2
-    for_ [0, poissonDiscRadius / sqrt 2 .. fromIntegral width] $ \x -> do
-        Cairo.moveTo x 0
-        Cairo.lineTo x (fromIntegral height)
-        Cairo.stroke
-
-    for_ [0, poissonDiscRadius / sqrt 2 .. fromIntegral height] $ \y -> do
-        Cairo.moveTo 0 y
-        Cairo.lineTo (fromIntegral width) y
-        Cairo.stroke
