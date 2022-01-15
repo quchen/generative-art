@@ -38,3 +38,17 @@ This means that every Delaunay triangulation can be converted to a Voronoi
 tesselation:
 
 ![](delaunay_voronoi.svg)
+
+## Centroidal Voronoi diagrams / Lloyd Relaxation
+
+A centroidal Voronoi diagram is a Voronoi diagram where all seeds are in the
+centroid (or center of mass) of their corresponding region. Centroidal Voronoi
+tesselations are quite common in nature, like the Giant's Causeway, or the cells
+in the Cornea.
+
+One way to approximate a centroidal Voronoi diagram is Lloyd relaxation or
+Lloyd's algorithm. It works by simply moving each seed into the centroid of its
+region. Here's four iterations of Lloyd relaxation; the red arrows show the
+distance between the seed and the centroid.
+
+![](lloyd_relaxation.svg)

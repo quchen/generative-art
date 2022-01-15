@@ -10,12 +10,14 @@ import Test.Tasty.HUnit (testCase)
 import Test.Common (renderAllFormats)
 
 import Delaunay
+import Delaunay.Internal
 import Draw
 import Geometry
 import Sampling
 import Voronoi
 import Data.List (scanl')
-import Delaunay (lloydRelaxation)
+import Draw (arrowSketch, ArrowSpec (arrowheadSize))
+import Geometry (Distance(Distance))
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"
@@ -77,15 +79,13 @@ testLloydRelaxation = testCase "Lloyd relaxation" test
         let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) points
             triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
         Cairo.translate 10 10
-        cairoScope $ for_ triangulations $ \triangulation -> do
-            for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
-                polygonSketch poly
-                mmaColor 0 0.25
-                Cairo.setLineJoin Cairo.LineJoinBevel
-                Cairo.stroke
+        for_ triangulations $ \triangulation -> do
             for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
                 mmaColor 0 1
                 polygonSketch region
+                Cairo.stroke
+                mmaColor 3 1
+                arrowSketch (Line seed (centroid region)) def { arrowheadSize = Distance 4 }
                 Cairo.stroke
                 mmaColor 1 1
                 circleSketch seed (Distance 4)
