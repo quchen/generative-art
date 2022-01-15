@@ -36,7 +36,7 @@ mainHaskellLogo = do
         h = 1200
         haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
-    points <- gaussianDistributedPoints gen (w, 380) (h, 380) count
+    points <- poissonDisc PoissonDisc { width = w, height = h, radius = sqrt (w * h / (4 * count)), k = 4, ..}
     let haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
         voronoi = mapWithSeed colorize $ toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points)
         colorize p ()
