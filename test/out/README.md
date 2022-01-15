@@ -55,3 +55,5 @@ over quickly.
 ![Missing image!](../../docs/voronoi/1_cut_polygon.svg)
 ![Missing image!](../../docs/voronoi/2_add_polygon.svg)
 ![Missing image!](../../docs/voronoi/3_full_voronoi.svg)
+![Missing image!](../../docs/voronoi/delaunay_random.svg)
+![Missing image!](../../docs/voronoi/delaunay_voronoi.svg)
