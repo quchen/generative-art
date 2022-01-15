@@ -68,7 +68,7 @@ executables:
     haskell-logo-voronoi:
         main: Main.hs
         source-dirs: showcases/haskell_logo_voronoi
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
         dependencies:
             - generative-art
             - cairo
