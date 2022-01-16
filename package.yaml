@@ -94,6 +94,12 @@ executables:
             - mwc-random
             - vector
             - parallel
+    hexagonal:
+        main: Main.hs
+        source-dirs: app/hexagonal
+        dependencies:
+            - generative-art
+            - cairo
 
 tests:
     testsuite:

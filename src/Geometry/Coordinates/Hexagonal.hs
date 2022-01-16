@@ -3,7 +3,11 @@
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
 module Geometry.Coordinates.Hexagonal where
 
-import Geometry.Core
+import Geometry.Core as G
+import Graphics.Rendering.Cairo as C hiding (x,y)
+import Data.Foldable
+import Control.Monad
+import Draw
 
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
@@ -95,3 +99,58 @@ instance HexagonalCoordinate Axial where
         in Vec2 x y
 
     fromVec2 size vec = cubicalToAxial (fromVec2 size vec)
+
+hexagonsInRange :: Int -> [Cube]
+hexagonsInRange range = do
+    q <- [-range,-range+1..range]
+    r <- [-range,-range+1..range]
+    let hexCoord@(Cube _ _ s) = axialToCubical (Axial q r)
+    guard (-range <= s && s <= range)
+    pure hexCoord
+
+hexagonalCoordinateSystem :: Double -> Int -> Render ()
+hexagonalCoordinateSystem sideLength range = do
+    let hexagons = hexagonsInRange range
+
+    grouped (paintWithAlpha 0.2) $ cairoScope $ do
+        -- Variable names use Cairo coordinates, i.e. inverted y axis compared to math.
+
+        -- First, we draw the happy path: the left-hand side of all hexagons.
+        -- This will leave the ones at the top, bottom and right partially open,
+        -- which we fix later.
+        setLineWidth 1
+        setSourceRGB 0 0 0
+        for_ hexagons $ \hexCoord@(Cube q r s) -> do
+            let center = toVec2 sideLength hexCoord
+                bottomCorner = center +. Vec2 0 sideLength
+                rotateCW degrees = rotateAround center (deg degrees)
+                corner i = G.transform (rotateCW (i*60)) bottomCorner
+            if
+                -- Rightmost corner: the only full hexagon, woo!
+                | q == range && s == -range -> pathSketch [corner i | i <- [0, 1, 2, 3, 4, 5]] >> closePath
+                -- Upper right boundary
+                | q == range                -> pathSketch [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                -- Lower right boundary
+                | s == -range               -> pathSketch [corner i | i <- [(-2), (-1), 0, 1, 2, 3]]
+                -- Upper boundary
+                | r == -range               -> pathSketch [corner i | i <- [0, 1, 2, 3, 4]]
+                -- Lower boundary
+                | r == range                -> pathSketch [corner i | i <- [(-1), 0, 1, 2, 3]]
+                | otherwise                 -> pathSketch [corner i | i <- [0, 1, 2, 3]]
+            stroke
+
+    cairoScope $ grouped (paintWithAlpha 0.2) $ do
+        setLineWidth 1
+        setSourceRGB 0 0 0
+        circleSketch (Vec2 0 0) (Distance 20) >> stroke
+        circleSketch (Vec2 0 0) (Distance 22) >> stroke
+    grouped (paintWithAlpha 0.5) $ do
+        for_ hexagons $ \hexCoord@(Cube q r s) -> do
+            for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
+                let center = toVec2 sideLength hexCoord
+                    coord = G.transform (scaleAround center 0.2 <> rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
+                moveToVec coord
+                setColor (hsva angle 1 0.7 1)
+                if Cube 0 0 0 == Cube q r s
+                    then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
+                    else showTextAligned HCenter VCenter (show val)
