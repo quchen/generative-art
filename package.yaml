@@ -92,6 +92,7 @@ tests:
         dependencies:
             - generative-art
 
+            - async
             - cairo
             - process
             - QuickCheck

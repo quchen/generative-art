@@ -4,8 +4,10 @@ module Main (main) where
 
 
 
-import           Control.Exception
-import           System.FilePath
+import Control.Concurrent.Async
+import Control.Exception
+import Data.Foldable
+import System.FilePath
 
 import qualified Test.Bezier
 import qualified Test.Billard
@@ -25,10 +27,10 @@ import qualified Test.Trajectory
 import qualified Test.Triangulate
 import qualified Test.Voronoi
 
-import Test.Tasty
-import qualified VisualOutput.NormalizeSvg as Normalize
+import           Test.Tasty
+import qualified VisualOutput.FileSystem         as FileSystem
+import qualified VisualOutput.NormalizeSvg       as Normalize
 import qualified VisualOutput.TestsuiteGenerator as Visual
-import qualified VisualOutput.FileSystem as FileSystem
 
 
 
@@ -68,8 +70,17 @@ runPostTestScripts = do
     svgs <- do
         paths <- FileSystem.listAllFiles "docs"
         pure (filter (\path -> takeExtension path == ".svg") paths)
-    let actions
-            = Visual.generateMarkdown "test/out/README.md" svgs
-            : Visual.generateHtml "test/out/README.html" svgs
-            : map Normalize.normalizeSvgFile svgs
-    sequence_ actions
+
+    normalizeAsyncs <- do
+        putStrLn "Normalize SVG files for reproducible test output"
+        traverse (async . Normalize.normalizeSvgFile) svgs
+
+    mdAsync <- do
+        putStrLn "Generate visual testsuite file (Markdown)"
+        async (Visual.generateMarkdown "test/out/README.md" svgs)
+
+    htmlAsync <- do
+        putStrLn "Generate visual testsuite file (HTML)"
+        async (Visual.generateHtml "test/out/README.html" svgs)
+
+    traverse_ wait (mdAsync : htmlAsync : normalizeAsyncs)
