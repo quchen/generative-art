@@ -31,10 +31,16 @@ drawing = do
     C.scale 1.5 1.5
     hexagonalCoordinateSystem sideLength 3
 
-    for_ (Hex.line (Cube (-1) 0 1) (Cube 3 (-2) (-1))) $ \hexLineSegment -> do
-        cairoScope $ do
-            hexagonSketch sideLength (toVec2 sideLength hexLineSegment)
-            mmaColor 0 0.3
-            fillPreserve
-            mmaColor 0 0.5
-            stroke
+    for_ (Hex.line (Cube (-1) 0 1) (Cube 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
+        hexagonSketch sideLength (toVec2 sideLength hexLineSegment)
+        setColor (mmaColor 0 0.3)
+        fillPreserve
+        setColor (mmaColor 0 0.5)
+        stroke
+
+    for_ (ring 2 (Axial (-1) 1)) $ \hex -> cairoScope $ do
+        hexagonSketch sideLength (toVec2 sideLength hex)
+        setColor (mmaColor 1 0.3)
+        fillPreserve
+        setColor (mmaColor 1 0.5)
+        stroke

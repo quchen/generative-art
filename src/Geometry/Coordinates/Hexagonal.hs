@@ -189,3 +189,10 @@ line :: Cube -> Cube -> [Cube]
 line start end =
     let d = distance start end
     in [ cubeLerp start end (1/fromIntegral d*fromIntegral i) | i <- [0..d] ]
+
+-- | Ring of
+ring :: HexagonalCoordinate a => Int -> a -> [a]
+ring n center = do
+    (startDir, walkDir) <- zip [R, UR, UL, L, DL, DR] [UL, L, DL, DR, R, UR]
+    let start = move startDir n center
+    [ move walkDir i start | i <- [0..n-1]]
