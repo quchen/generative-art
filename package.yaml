@@ -21,7 +21,6 @@ dependencies:
     - data-r-tree
     - mwc-random
     - random
-    - regex-tdfa
     - text
     - tf-random
     - transformers
@@ -104,3 +103,4 @@ tests:
             - directory
             - text
             - filepath
+            - regex-tdfa

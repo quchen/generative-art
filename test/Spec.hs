@@ -12,6 +12,7 @@ import           Data.Traversable
 import           System.Directory
 import           System.FilePath
 import           System.IO
+import Data.Foldable
 
 import qualified Test.Bezier
 import qualified Test.Billard
@@ -32,6 +33,7 @@ import qualified Test.Triangulate
 import qualified Test.Voronoi
 
 import Test.Tasty
+import qualified VisualOutput.NormalizeSvg
 
 
 
@@ -67,7 +69,12 @@ tests = testGroup "Test suite"
     ]
 
 runPostTestScripts :: IO ()
-runPostTestScripts = generateVisualTestsuite
+runPostTestScripts = do
+    svgs <- do
+        paths <- listAllFiles "docs"
+        pure (filter (\path -> takeExtension path == ".svg") paths)
+    for_ svgs VisualOutput.NormalizeSvg.normalizeSvgFile
+    generateVisualTestsuite
 
 data FileType = RegularFile | Directory | Other | NotFound
     deriving (Eq, Ord, Show)
