@@ -4,12 +4,12 @@
 playing around with 2-dimensional geometry and generative art using Haskell and
 Cairo.
 
-![](showcases/haskell_logo_billard.png)
+![](showcases/haskell_logo_billard.svg)
 
-![](showcases/haskell_logo_triangles.png)
+![](showcases/haskell_logo_triangles.svg)
 
-![](showcases/haskell_logo_voronoi.png)
+![](showcases/haskell_logo_voronoi.svg)
 
-![](showcases/vector_fields.png)
+![](showcases/vector_fields.svg)
 
 More examples are shown in the [docs/](docs/README.md) folder.
