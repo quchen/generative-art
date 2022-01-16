@@ -35,9 +35,11 @@ mainHaskellLogo = do
         [count, file] -> pure (read count, file)
         _ -> error "Usage: haskell-logo-voronoi [COUNT [FILE]]"
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
-    let samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = sqrt (pi * picWidth * picHeight / (4 * count)), k = 4, ..}
+    let -- constructed so that we have roughly `count` points
+        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / count)
+        samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = adaptiveRadius, k = 4, ..}
     points <- poissonDisc samplingProps
-    ditheringPoints <- RT.fromList <$> poissonDisc samplingProps { radius = radius samplingProps / 4 }
+    ditheringPoints <- RT.fromList <$> poissonDisc samplingProps { radius = adaptiveRadius / 4 }
     print (length points)
     let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
         voronoiColorized = mapWithRegion (colorizePolygon ditheringPoints) voronoi
