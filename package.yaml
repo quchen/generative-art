@@ -84,7 +84,7 @@ executables:
             - threepenny-gui
             - mwc-random
             - temporary
-    gauss-shooter:
+    particle-shooter:
         main: Main.hs
         source-dirs: app/gauss_shooter
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
