@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Draw.Color (
-  setColorRGB
-, setColorRGBA
+  setColor
+, setColorAlpha
 , RGBA()
 , RGB()
 , rgb
@@ -20,12 +20,12 @@ import qualified Graphics.Rendering.Cairo as Cairo
 data RGBA a = RGBA { _rgb :: !(RGB a), _alpha :: !a }
 
 -- | Set the color to some RGBA value.
-setColorRGBA :: RGBA Double -> Cairo.Render ()
-setColorRGBA RGBA{..} = uncurryRGB Cairo.setSourceRGBA _rgb _alpha
+setColorAlpha :: RGBA Double -> Cairo.Render ()
+setColorAlpha RGBA{..} = uncurryRGB Cairo.setSourceRGBA _rgb _alpha
 
 -- | Set the color to some RGB value.
-setColorRGB :: RGB Double -> Cairo.Render ()
-setColorRGB = uncurryRGB Cairo.setSourceRGB
+setColor :: RGB Double -> Cairo.Render ()
+setColor = uncurryRGB Cairo.setSourceRGB
 
 -- | Convert a color from HSVA space
 hsva :: Double -- ^ Hue [0..360]

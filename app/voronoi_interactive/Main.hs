@@ -12,7 +12,6 @@ import qualified Graphics.Rendering.Cairo    as Cairo
 import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
-import Color
 import Delaunay
 import Draw
 import Geometry
@@ -88,8 +87,8 @@ drawCellCairo :: VoronoiCell () -> Cairo.Render ()
 drawCellCairo Cell{..} = case region of
     Polygon [] -> pure ()
     poly -> do
-        let fillColor = parseHex "#eeeeee"
-            lineColor = parseHex "#5d81b4"
+        let fillColor = parseRGBHex "#eeeeee"
+            lineColor = parseRGBHex "#5d81b4"
         polygonSketch poly
         setColor fillColor
         Cairo.fillPreserve
@@ -98,6 +97,3 @@ drawCellCairo Cell{..} = case region of
         Cairo.stroke
         circleSketch seed (Distance 5)
         Cairo.fill
-
-setColor :: RGB -> Cairo.Render ()
-setColor RGB{..} = Cairo.setSourceRGB r g b

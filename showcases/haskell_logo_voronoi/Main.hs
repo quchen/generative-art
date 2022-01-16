@@ -3,6 +3,7 @@
 module Main (main) where
 
 import Data.Char          (ord)
+import Data.Colour        ()
 import Data.Foldable      (for_)
 import Data.List          (find)
 import Data.Maybe         (fromMaybe)
@@ -12,7 +13,6 @@ import Prelude            hiding ((**))
 import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
 
-import Color
 import Delaunay
 import Draw
 import Geometry
@@ -49,7 +49,7 @@ mainHaskellLogo = do
 
     withSurfaceAuto file picWidth picHeight $ \surface -> renderWith surface $ for_ (cells voronoiColorized) drawCell
 
-haskellLogoWithColors :: [(Polygon, RGB)]
+haskellLogoWithColors :: [(Polygon, RGB Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
   where
     haskellLogoCentered = transform (Geometry.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> Geometry.scale 680) haskellLogo
@@ -59,7 +59,7 @@ haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
 findPointsInPolygon :: RT.RTree Vec2 -> Polygon -> [Vec2]
 findPointsInPolygon points poly = filter (`pointInPolygon` poly) (RT.lookupRange (boundingBox poly) points)
 
-colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> RGB
+colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> RGB Double
 colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> ditheringPointsInRegion
   where
     ditheringPointsInRegion = findPointsInPolygon ditheringPoints voronoiRegion
@@ -71,10 +71,10 @@ colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> di
     noise = perlin { perlinFrequency = 40/picWidth, perlinSeed = 12345}
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
-drawCell :: VoronoiCell RGB -> Render ()
+drawCell :: VoronoiCell (RGB Double) -> Render ()
 drawCell Cell{..} = drawPoly region props
 
-drawPoly :: Polygon -> RGB -> Render ()
+drawPoly :: Polygon -> RGB Double -> Render ()
 drawPoly (Polygon []) _ = pure ()
 drawPoly poly color = do
     let fillColor = color
@@ -86,8 +86,5 @@ drawPoly poly color = do
     setLineWidth 1
     stroke
 
-setColor :: RGB -> Render ()
-setColor RGB{..} = setSourceRGB r g b
-
-darkGrey :: RGB
-darkGrey = grey 0.1
+darkGrey :: RGB Double
+darkGrey = hsv 0 0 0.1

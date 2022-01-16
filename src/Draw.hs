@@ -55,6 +55,7 @@ import           Data.Foldable
 import           Data.List
 import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
+import Draw.Color
 import Geometry
 
 -- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.
@@ -230,7 +231,7 @@ cartesianCoordinateSystem = cairoScope $ do
     setLineWidth 1
 
     cairoScope $ do
-        hsva 0 0 0 0.5
+        setColorAlpha (hsva 0 0 0 0.5)
         sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
                   | x <- [minX, minX+100 .. maxX] ]
         sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
@@ -238,7 +239,7 @@ cartesianCoordinateSystem = cairoScope $ do
         stroke
 
     cairoScope $ do
-        hsva 0 0 0 0.2
+        setColorAlpha (hsva 0 0 0 0.2)
         setDash [4,6] 2
         sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
                   | x <- [minX, minX+10 .. maxX]
@@ -253,7 +254,7 @@ cartesianCoordinateSystem = cairoScope $ do
             moveTo (fromIntegral x) (fromIntegral y)
             showTextAligned HCenter VTop str
     setFontSize 8
-    mmaColor 0 1
+    setColorAlpha (mmaColor 0 1)
     sequence_ [ centeredText x y (show x ++ "," ++ show y)
               | x <- [minX, minX+100 .. maxX]
               , y <- [minY, minY+100 .. maxY] ]
@@ -263,13 +264,13 @@ radialCoordinateSystem :: Vec2 -> Int -> Render ()
 radialCoordinateSystem center maxR = cairoScope $ do
     let distance = Distance . fromIntegral
     setLineWidth 1
-    hsva 0 0 0 1
+    setColor (hsv 0 0 0)
     sequence_ [ circleSketch center (distance r) >> stroke
               | r <- [100, 200 .. maxR] ]
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
               | angle <- init [0, 45 .. 360 :: Int] ]
 
-    hsva 0 0 0 0.5
+    setColorAlpha (hsva 0 0 0 0.5)
     sequence_ [ circleSketch center (distance r) >> stroke
               | r <- [25, 50 .. maxR]
               , mod r 100 /= 0 ]
