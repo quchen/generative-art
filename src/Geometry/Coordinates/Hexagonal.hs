@@ -6,7 +6,6 @@ module Geometry.Coordinates.Hexagonal where
 import Geometry.Core as G
 import Graphics.Rendering.Cairo as C hiding (x,y)
 import Data.Foldable
-import Control.Monad
 import Draw
 
 data Cube = Cube !Int !Int !Int
@@ -167,10 +166,11 @@ hexagonalCoordinateSystem sideLength range = do
 hexagonsInRange :: Int -> [Cube]
 hexagonsInRange range = do
     q <- [-range,-range+1..range]
-    r <- [-range,-range+1..range]
-    let hexCoord@(Cube _ _ s) = axialToCubical (Axial q r)
-    guard (-range <= s && s <= range)
-    pure hexCoord
+    let rMin = max (-range) (-q-range)
+        rMax = min range (-q+range)
+    r <- [rMin, rMin+1 .. rMax]
+    let s = -q-r
+    pure (Cube q r s)
 
 lerp :: Double -> Double -> Double -> Double
 lerp a b t = t*a + (1-t)*b
