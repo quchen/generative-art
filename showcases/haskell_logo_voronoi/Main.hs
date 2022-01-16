@@ -16,9 +16,12 @@ import Geometry
 import Geometry.Shapes          (haskellLogo)
 import Graphics.Rendering.Cairo hiding (transform)
 import Sampling
+import qualified Util.RTree as RT
 import Voronoi
 
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
+picWidth, picHeight :: Num a => a
+picWidth = 1000
+picHeight = 720
 
 main :: IO ()
 main = mainHaskellLogo
@@ -31,21 +34,35 @@ mainHaskellLogo = do
         [count] -> pure (read count, defaultFile)
         [count, file] -> pure (read count, file)
         _ -> error "Usage: haskell-logo-voronoi [COUNT [FILE]]"
-    let w, h :: Num a => a
-        w = 1000
-        h = 720
-        haskellLogoCentered = transform (Geometry.translate (Vec2 (w/2 - 480) (h/2 - 340)) <> Geometry.scale 680) haskellLogo
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
-    points <- poissonDisc PoissonDisc { width = w, height = h, radius = sqrt (pi * w * h / (4 * count)), k = 4, ..}
+    let samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = sqrt (pi * picWidth * picHeight / (4 * count)), k = 4, ..}
+    points <- poissonDisc samplingProps
+    ditheringPoints <- RT.fromList <$> poissonDisc samplingProps { radius = radius samplingProps / 4 }
     print (length points)
-    let haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
-        voronoi = mapWithSeed colorize $ toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 w h)) points)
-        colorize p ()
-            | Just (_, color) <- find (pointInPolygon p . fst) haskellLogoWithColors
-              = color
-            | otherwise
-              = darkGrey
-    withSurfaceAuto file w h $ \surface -> renderWith surface $ for_ (cells voronoi) drawCell
+    let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
+        voronoiColorized = mapWithRegion (colorizePolygon ditheringPoints) voronoi
+
+    withSurfaceAuto file picWidth picHeight $ \surface -> renderWith surface $ for_ (cells voronoiColorized) drawCell
+
+haskellLogoWithColors :: [(Polygon, RGB)]
+haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
+  where
+    haskellLogoCentered = transform (Geometry.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> Geometry.scale 680) haskellLogo
+    haskellLogoColors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
+
+
+findPointsInPolygon :: RT.RTree Vec2 -> Polygon -> [Vec2]
+findPointsInPolygon points poly = filter (`pointInPolygon` poly) (RT.lookupRange (boundingBox poly) points)
+
+colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> RGB
+colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> ditheringPointsInRegion
+  where
+    ditheringPointsInRegion = findPointsInPolygon ditheringPoints voronoiRegion
+    colorizePoint p
+        | Just (_, color) <- find (pointInPolygon p . fst) haskellLogoWithColors
+            = color
+        | otherwise
+            = darkGrey
 
 drawCell :: VoronoiCell RGB -> Render ()
 drawCell Cell{..} = drawPoly region props
@@ -62,11 +79,10 @@ drawPoly poly color = do
     setLineWidth 1
     stroke
 
+data RGB = RGB { r :: Double, g :: Double, b :: Double }
+
 setColor :: RGB -> Render ()
 setColor RGB{..} = setSourceRGB r g b
-
-haskellLogoColors :: [RGB]
-haskellLogoColors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
 
 parseHex :: String -> RGB
 parseHex [r1, r2, g1, g2, b1, b2] = RGB
@@ -80,3 +96,8 @@ darkGrey = RGB 0.1 0.1 0.1
 
 lighten :: Double -> RGB -> RGB
 lighten d RGB{..} = RGB (r + d) (g + d) (b + d)
+
+average :: [RGB] -> RGB
+average colors = RGB (sum (r <$> colors) / count) (sum (g <$> colors) / count) (sum (b <$> colors) / count)
+  where
+    count = fromIntegral $ length colors

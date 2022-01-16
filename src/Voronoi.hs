@@ -16,6 +16,7 @@ module Voronoi
 , Voronoi'
 , VoronoiCell(..)
 , mapWithSeed
+, mapWithRegion
 
 -- * Construction
 , emptyVoronoi
@@ -63,6 +64,10 @@ instance Functor Voronoi where
 -- | Rewrite the tags of every cell, taking the position of the seed into account.
 mapWithSeed :: (Vec2 -> a -> b) -> Voronoi a -> Voronoi b
 mapWithSeed f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed props } | cell@Cell{..} <- cells ] }
+
+-- | Rewrite the tags of every cell, taking the region polygon into account.
+mapWithRegion :: (Polygon -> a -> b) -> Voronoi a -> Voronoi b
+mapWithRegion f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f region props } | cell@Cell{..} <- cells ] }
 
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
