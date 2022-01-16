@@ -25,6 +25,13 @@ packages:
       sha256: 27a9154935b4d30a22830477c60c5108fd713a184d456272c2fccbf361d2395f
   original:
     hackage: Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
+- completed:
+    hackage: data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
+    pantry-tree:
+      size: 614
+      sha256: 057a5a25c6c8fe8e60e62b9522e8f1a8be3e7470bfe44229d1e2712e6851409e
+  original:
+    hackage: data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
 snapshots:
 - completed:
     size: 586103

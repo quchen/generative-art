@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 module Delaunay.Internal where
 
@@ -6,6 +5,7 @@ import Data.List (foldl', intersect, sortOn)
 import qualified Data.Map.Strict as M
 import Data.Maybe (maybeToList, catMaybes, fromJust)
 import qualified Data.Set as S
+import qualified Util.RTree as RT
 
 import Geometry
 import Voronoi
@@ -13,13 +13,30 @@ import Voronoi
 
 
 data DelaunayTriangulation = Delaunay
-    { triangulation :: S.Set (Triangle, Circle)
-    , initialPolygon :: Polygon
-    , bounds :: BoundingBox
+    { triangulation :: !(RT.RTree DelaunayTriangle)
+    , initialPolygon :: !Polygon
+    , bounds :: {-# UNPACK #-} !BoundingBox
     }
 
-data Triangle = Triangle Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
-data Circle = Circle { center :: Vec2, radius :: Distance } deriving (Eq, Ord, Show)
+data DelaunayTriangle = DT
+    { dtTriangle :: {-# UNPACK #-} !Triangle
+    , dtCircle :: {-# UNPACK #-} !Circle
+    } deriving (Eq)
+
+data Triangle = Triangle {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 deriving (Eq, Ord, Show)
+data Circle = Circle { center :: {-# UNPACK #-} !Vec2, radius :: {-# UNPACK #-} !Distance } deriving (Eq, Ord, Show)
+
+instance HasBoundingBox Triangle where
+    boundingBox = boundingBox . toPolygon
+
+instance HasBoundingBox Circle where
+    boundingBox Circle{ radius = Distance r, ..} = BoundingBox bbMin bbMax
+      where
+        bbMin = center -. Vec2 r r
+        bbMax = center +. Vec2 r r
+
+instance HasBoundingBox DelaunayTriangle where
+    boundingBox (DT _ cc) = boundingBox cc
 
 -- | Smart constructor for triangles.
 --
@@ -36,7 +53,7 @@ edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
 getPolygons :: DelaunayTriangulation -> [Polygon]
-getPolygons Delaunay{..} = deleteInitialPolygon $ toPolygon . fst <$> S.toList triangulation
+getPolygons Delaunay{..} = deleteInitialPolygon $ toPolygon . dtTriangle <$> RT.toList triangulation
   where
     deleteInitialPolygon = filter (not . hasCommonCorner initialPolygon)
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
@@ -48,17 +65,18 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
     initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (center bounds) 2) (boundingBoxPolygon bounds)
       where center (BoundingBox p q) = (p +. q) /. 2
     initialDelaunay = Delaunay
-        { triangulation = S.fromList (zip initialTriangles (fromJust . circumcircle <$> initialTriangles))
+        { triangulation = RT.fromList (zipWith DT initialTriangles (fromJust . circumcircle <$> initialTriangles))
         , .. }
 
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goodTriangles <> newTriangles }
+bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = foldr RT.insert goodTriangles newTriangles }
   where
     validNewPoint = if newPoint `insideBoundingBox` bounds
         then newPoint
         else error "User error: Tried to add a point outside the bounding box"
-    (badTriangles, goodTriangles) = S.partition ((validNewPoint `inside`) . snd) triangulation
-    outerPolygon = collectPolygon $ go (edges . fst =<< S.toList badTriangles) M.empty
+    badTriangles = filter ((validNewPoint `inside`) . dtCircle) (RT.lookupContainsRange (boundingBox validNewPoint) triangulation)
+    goodTriangles = foldr RT.delete triangulation badTriangles
+    outerPolygon = collectPolygon $ go (edges . dtTriangle =<< badTriangles) M.empty
       where
         go [] result = result
         go (Line p q : es) result
@@ -76,8 +94,8 @@ bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = goo
                 let qs = remainingGraph M.! p
                     [q] = S.toList qs
                 in p : go q (M.delete p remainingGraph)
-    newTriangles = S.fromList
-        [ (t, c)
+    newTriangles =
+        [ DT t c
         | Line p q <- polygonEdges outerPolygon
         , let t = triangle newPoint p q
         , c <- maybeToList (circumcircle t) ]
@@ -103,18 +121,15 @@ toVoronoi delaunay@Delaunay{..} = Voronoi {..}
         ]
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
-vertexGraph Delaunay{..} = go (fst <$> S.toList triangulation) M.empty
+vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
   where
     go [] = id
     go (Triangle a b c : rest) = go rest
-        . M.alter (insertOrUpdate b) a
-        . M.alter (insertOrUpdate c) a
-        . M.alter (insertOrUpdate a) b
-        . M.alter (insertOrUpdate c) b
-        . M.alter (insertOrUpdate a) c
-        . M.alter (insertOrUpdate b) c
-    insertOrUpdate p Nothing = Just (S.singleton p)
-    insertOrUpdate p (Just ps) = Just (S.insert p ps)
+        . M.alter (insertOrUpdate [b, c]) a
+        . M.alter (insertOrUpdate [a, c]) b
+        . M.alter (insertOrUpdate [a, b]) c
+    insertOrUpdate ps Nothing = Just (S.fromList ps)
+    insertOrUpdate ps (Just qs) = Just (S.union qs (S.fromList ps))
 
 voronoiCell :: DelaunayTriangulation -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
 voronoiCell Delaunay{..} p qs

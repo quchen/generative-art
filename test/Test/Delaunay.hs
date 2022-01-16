@@ -3,6 +3,7 @@ module Test.Delaunay (tests) where
 
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Foldable (for_)
+import Data.List (scanl')
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create)
 import Test.Tasty (TestTree, testGroup)
@@ -15,9 +16,6 @@ import Draw
 import Geometry
 import Sampling
 import Voronoi
-import Data.List (scanl')
-import Draw (arrowSketch, ArrowSpec (arrowheadSize))
-import Geometry (Distance(Distance))
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"
