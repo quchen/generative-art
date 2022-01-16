@@ -73,6 +73,7 @@ executables:
             - generative-art
             - cairo
             - mwc-random
+            - Noise
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive

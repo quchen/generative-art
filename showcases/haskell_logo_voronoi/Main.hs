@@ -3,9 +3,11 @@
 module Main (main) where
 
 import Data.Char          (ord)
-import Data.Foldable      (for_)
+import Data.Foldable      (for_, foldl')
 import Data.List          (find)
+import Data.Maybe         (fromMaybe)
 import Data.Vector        (fromList)
+import Math.Noise         (Perlin (..), getValue, perlin)
 import Prelude            hiding ((**))
 import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
@@ -62,9 +64,11 @@ colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> di
     ditheringPointsInRegion = findPointsInPolygon ditheringPoints voronoiRegion
     colorizePoint p
         | Just (_, color) <- find (pointInPolygon p . fst) haskellLogoWithColors
-            = color
+            = color +. 0.1 *. grey (noise2d p)
         | otherwise
-            = darkGrey
+            = darkGrey +. 0.1 *. grey (noise2d p)
+    noise = perlin { perlinFrequency = 40/picWidth, perlinSeed = 12345}
+    noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 drawCell :: VoronoiCell RGB -> Render ()
 drawCell Cell{..} = drawPoly region props
@@ -83,6 +87,12 @@ drawPoly poly color = do
 
 data RGB = RGB { r :: Double, g :: Double, b :: Double }
 
+instance VectorSpace RGB where
+    RGB r1 g1 b1 +. RGB r2 g2 b2 = RGB (r1+r2) (g1+g2) (b1+b2)
+    RGB r1 g1 b1 -. RGB r2 g2 b2 = RGB (r1-r2) (g1-g2) (b1-b2)
+    a *. RGB{..} = RGB (a*r) (a*g) (a*b)
+    zero = RGB 0 0 0
+
 setColor :: RGB -> Render ()
 setColor RGB{..} = setSourceRGB r g b
 
@@ -93,13 +103,16 @@ parseHex [r1, r2, g1, g2, b1, b2] = RGB
     , b = read ("0x" ++ [b1, b2]) / 255 }
 parseHex _ = undefined
 
+grey :: Double -> RGB
+grey shade = RGB shade shade shade
+
 darkGrey :: RGB
 darkGrey = RGB 0.1 0.1 0.1
 
 lighten :: Double -> RGB -> RGB
-lighten d RGB{..} = RGB (r + d) (g + d) (b + d)
+lighten d color = color +. RGB d d d
 
 average :: [RGB] -> RGB
-average colors = RGB (sum (r <$> colors) / count) (sum (g <$> colors) / count) (sum (b <$> colors) / count)
+average colors = foldl' (+.) zero colors /. count
   where
     count = fromIntegral $ length colors
