@@ -10,12 +10,22 @@ module Draw.Color (
 , mmaColor
 , parseRGBAHex
 , parseRGBHex
-, module Data.Colour
+, module ReExport
+, average
+, black
+, white
+, adjustHue
+, adjustSaturation
+, adjustValue
+, adjustBrightness
 ) where
 
+import qualified Data.Colour as ReExport hiding (black, darken)
 import Data.Colour
+import Data.Colour.Names hiding (grey)
 import Data.Colour.RGBSpace as Colour
 import qualified Data.Colour.RGBSpace.HSV as Colour
+import qualified Data.Colour.RGBSpace.HSL as Colour
 import Data.Colour.SRGB as Colour
 import qualified Graphics.Rendering.Cairo as Cairo
 
@@ -98,3 +108,22 @@ mmaColor n alpha = rgba r g b alpha
         13 -> (0.736782672705901, 0.358, 0.5030266573755369)
         14 -> (0.28026441037696703, 0.715, 0.4292089322474965)
         _other -> error "modulus in mmaColor is broken"
+
+average :: [Color Double] -> Color Double
+average colors = mconcat (darken (1/fromIntegral (length colors)) <$> colors)
+
+adjustHue :: (Double -> Double) -> Color Double -> Color Double
+adjustHue f color = hsv (f h) s v
+  where (h, s, v) = Colour.hsvView (toSRGB color)
+
+adjustSaturation :: (Double -> Double) -> Color Double -> Color Double
+adjustSaturation f color = hsv h (f s) v
+  where (h, s, v) = Colour.hsvView (toSRGB color)
+
+adjustValue :: (Double -> Double) -> Color Double -> Color Double
+adjustValue f color = hsv h s (f v)
+  where (h, s, v) = Colour.hsvView (toSRGB color)
+
+adjustBrightness :: (Double -> Double) -> Color Double -> Color Double
+adjustBrightness f color = uncurryRGB (rgbUsingSpace sRGBSpace) (Colour.hsl h s (f l))
+  where (h, s, l) = Colour.hslView (toSRGB color)

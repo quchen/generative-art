@@ -68,12 +68,12 @@ drawing = do
             (saturation, gen2) = randomR (0.6, 0.9) gen1
             (value, _gen3) = randomR (0.6, 1.0) gen2
             alpha = 1
-        hsva hue saturation value alpha
+        setColorAlpha $ hsva hue saturation value alpha
         polygonSketch polygon
         fillPreserve
         stroke
     cairoScope $ for_ haskellLogo' $ \polygon -> do
         polygonSketch polygon
         setLineJoin LineJoinRound
-        hsva 0 0 0 1
+        setColorAlpha $ hsva 0 0 0 1
         stroke
