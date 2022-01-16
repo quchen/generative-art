@@ -33,6 +33,9 @@ class HexagonalCoordinate hex where
     -- ^ Move x steps in a direction
     move :: Direction -> Int -> hex -> hex
 
+    -- ^ How many steps are between two coordinates?
+    distance :: hex -> hex -> Int
+
     -- ^ Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
     toVec2
         :: Double -- ^ Size of a hex cell (radius, side length)
@@ -53,6 +56,8 @@ instance HexagonalCoordinate Cube where
         L  -> Cube (q-x) (r  )  (s+x)
         DL -> Cube (q-x) (r+x)  (s  )
         DR -> Cube (q  ) (r+x)  (s-x)
+
+    distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
 
     toVec2 size = toVec2 size . cubicalToAxial
 
@@ -91,6 +96,8 @@ instance HexagonalCoordinate Axial where
         DL -> Axial (q-x) (r+x)
         DR -> Axial (q  ) (r+x)
 
+    distance a b = distance (axialToCubical a) (axialToCubical b)
+
     toVec2 size (Axial q r) =
         let q' = fromIntegral q
             r' = fromIntegral r
@@ -108,7 +115,12 @@ hexagonsInRange range = do
     guard (-range <= s && s <= range)
     pure hexCoord
 
-hexagonalCoordinateSystem :: Double -> Int -> Render ()
+-- | Draw a hexagonal coordinate system as a helper grid, similar to
+-- 'Draw.cartesianCoordinateSystem'.
+hexagonalCoordinateSystem
+    :: Double -- ^ Side length of a hexagon (equivalent to its radius)
+    -> Int    -- ^ How many hexagons to draw in each direction
+    -> Render ()
 hexagonalCoordinateSystem sideLength range = do
     let hexagons = hexagonsInRange range
 
