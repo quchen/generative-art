@@ -103,11 +103,11 @@ picassoSquirrelRender = do
         setLineWidth 1.5
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
             cairoScope . grouped (paintWithAlpha 0.7) $ do
-                    mmaColor 3 1
+                    setColor $ mmaColor 3 1
                     circleSketch c1 (Distance 2) >> fill
                     moveToVec start >> lineToVec c1 >> stroke
             cairoScope . grouped (paintWithAlpha 0.7) $ do
-                    mmaColor 1 1
+                    setColor $ mmaColor 1 1
                     circleSketch c2 (Distance 2) >> fill
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
@@ -182,7 +182,7 @@ subdivideBezierCurve = do
 
     cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
-        mmaColor 0 1
+        setColor $ mmaColor 0 1
         bezierCurveSketch (fit beziers)
         stroke
         moveTo 200 70
@@ -194,7 +194,7 @@ subdivideBezierCurve = do
         let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
         cairoScope $ for_ (fit subpoints) $ \p -> do
-            mmaColor 1 0.1
+            setColor $ mmaColor 1 0.1
             circleSketch p (Distance 2)
             fill
 
@@ -207,7 +207,7 @@ subdivideBezierCurve = do
     let interpolated = bezierSmoothen simplified
     cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
-        mmaColor 3 1
+        setColor $ mmaColor 3 1
         bezierCurveSketch (fit interpolated)
         stroke
         moveTo 200 270
@@ -230,7 +230,7 @@ interpolateSingleCurveRender _w _h = do
     setLineWidth 1
 
     cairoScope $ do
-        mmaColor 1 1
+        setColor $ mmaColor 1 1
         bezierCurveSketch [curve]
         stroke
         bezierCurveSketch [offsetBelow curve]
@@ -245,6 +245,6 @@ interpolateSingleCurveRender _w _h = do
                 lineSketch line
                 setDash [1,1] 0
                 stroke
-        cairoScope (mmaColor 0 1 >> circle e)
-        cairoScope (mmaColor 3 1 >> circle u)
+        cairoScope (setColor (mmaColor 0 1) >> circle e)
+        cairoScope (setColor (mmaColor 3 1) >> circle u)
         cairoScope (setSourceRGBA 0 0 0 0.1 >> connect e u)

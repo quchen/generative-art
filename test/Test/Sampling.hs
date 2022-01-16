@@ -29,7 +29,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 10 10
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             Cairo.stroke
             let radius = 16
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -41,7 +41,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             Cairo.stroke
             let radius = 8
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -53,7 +53,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             Cairo.stroke
             let radius = 4
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -65,7 +65,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             Cairo.stroke
             points <- liftIO $ uniformlyDistributedPoints gen width height 300
             drawPoints points
@@ -76,14 +76,14 @@ tests = testCase "Poisson disc sampling" test
 
 drawPoints :: [Vec2] -> Cairo.Render ()
 drawPoints points = cairoScope $ do
-    mmaColor 0 1
+    setColor $ mmaColor 0 1
     for_ points $ \point -> do
         circleSketch point (Distance 2)
         Cairo.fill
 
 drawExplanation :: String -> Cairo.Render ()
 drawExplanation s = cairoScope $ do
-    hsva 0 0 0 1
+    setColor black
     Cairo.moveTo 40 4
     Cairo.setFontSize 8
     showTextAligned HCenter VTop s

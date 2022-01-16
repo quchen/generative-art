@@ -40,20 +40,20 @@ visualTest = testCase "Visual" $ do
         Cairo.translate 110 90
         setLineWidth 1
         for_ (polygonEdges hull) $ \edge@(Line start _) -> do
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             arrowSketch edge def{ arrowheadRelPos = 0.5
                                 , arrowheadSize   = Distance 5 }
             stroke
-            mmaColor 3 1
+            setColor $ mmaColor 3 1
             circleSketch start (Distance 2)
             fill
 
-        mmaColor 1 1
+        setColor $ mmaColor 1 1
         moveTo 0 85
         setFontSize 12
         showText "Convex hull"
 
-        mmaColor 0 0.5
+        setColor $ mmaColor 0 0.5
         let Polygon hullPoints = hull
         for_ (points \\ hullPoints) $ \p -> do
             circleSketch p (Distance 2)

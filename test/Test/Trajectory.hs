@@ -47,7 +47,7 @@ simplifyPathTestRender = do
         epsilons = [ Distance (2**(-e)) | e <- [10,9..1]]
 
     cairoScope $ do
-        mmaColor 0 1
+        setColor $ mmaColor 0 1
         plotPath (fitToBox graph)
         plotPoints (fitToBox graph)
 
@@ -56,6 +56,6 @@ simplifyPathTestRender = do
             Cairo.translate 0 20
             let simplified = simplifyTrajectory epsilon graph
                 interpolatedAgain = bezierSmoothen simplified
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             plotBezier (fitToBox interpolatedAgain)
             plotPoints (fitToBox simplified)

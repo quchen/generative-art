@@ -42,7 +42,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 60 60 L 10 60 M 42.765625 57.125 L 37.5 60 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 60 L 10 10 M 12.875 42.765625 L 10 37.5 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 60 10 L 60 60 L 10 60 Z M 10 10 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 10 10 L 60 10 L 60 60 L 10 60 Z M 10 10 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 10 10 L 60 10 L 60 60 L 10 60 Z M 10 10 "/>
 </g>
 <clipPath id="id13">
   <rect x="0" y="0" width="170" height="90"/>
@@ -53,7 +53,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 140 44.097656 L 90 25.902344 M 123.433594 35.007812 L 117.5 35.910156 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 25.902344 L 90 10 M 92.875 24.011719 L 90 18.746094 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 10 L 140 10 L 140 44.097656 L 90 25.902344 Z M 90 10 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 90 10 L 140 10 L 140 44.097656 L 90 25.902344 Z M 90 10 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 90 10 L 140 10 L 140 44.097656 L 90 25.902344 Z M 90 10 "/>
 </g>
 <clipPath id="id15">
   <rect x="0" y="0" width="170" height="90"/>
@@ -64,7 +64,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 140 60 L 90 60 M 122.765625 57.125 L 117.5 60 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 60 L 90 25.902344 M 92.875 49.921875 L 90 44.65625 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 90 25.902344 L 140 44.097656 L 140 60 L 90 60 Z M 90 25.902344 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.1;" d="M 90 25.902344 L 140 44.097656 L 140 60 L 90 60 Z M 90 25.902344 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(30.349258%,20.017275%,2.303803%);fill-opacity:0.1;" d="M 90 25.902344 L 140 44.097656 L 140 60 L 90 60 Z M 90 25.902344 "/>
 </g>
 </defs>
 <g id="id17">

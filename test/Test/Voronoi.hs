@@ -99,13 +99,13 @@ drawVoronoi voronoiCells = cairoScope $ do
         cairoScope $ do
             newPath
             polygonSketch polygon
-            mmaColor i 1
+            setColor $ mmaColor i 1
             strokePreserve
-            mmaColor i 0.1
+            setColor $ mmaColor i 0.1
             fill
         cairoScope $ do
             moveToVec (polygonAverage polygon)
-            hsva 0 0 0 1
+            setColor black
             showTextAligned HCenter VCenter (show i)
         drawPoint point i
 
@@ -115,6 +115,6 @@ drawSeed cell = drawPoint (seed cell) (props cell)
 drawPoint :: Vec2 -> MmaColor -> Render ()
 drawPoint point color = cairoScope $ do
     newPath
-    mmaColor color 1
+    setColor $ mmaColor color 1
     circleSketch point (Distance 3)
     fill

@@ -81,19 +81,19 @@ nubLines = nub' . map normalize
 
 paintTriangulation :: [Polygon] -> Render ()
 paintTriangulation triangulation = do
-    let setColors = map (\c -> mmaColor c) [0..]
-    for_ (zip3 [1::Int ..] setColors triangulation) $ \(i, setColor, polygon) -> do
+    let colors = map mmaColor [0..]
+    for_ (zip3 [1::Int ..] colors triangulation) $ \(i, color, polygon) -> do
         cairoScope $ do
             polygonSketch polygon
-            setColor 0.5
+            setColor (color 0.5)
             fill
         cairoScope $ do
             moveToVec (polygonAverage polygon)
-            hsva 0 0 0 1
+            setColor black
             showTextAligned HCenter VCenter (show i)
     cairoScope $ do
         setLineWidth 0.5
-        hsva 0 0 0 1
+        setColor black
         let allEdges = polygonEdges =<< triangulation
             uniqueEdges = nubLines allEdges
         for_ uniqueEdges $ \edge -> do

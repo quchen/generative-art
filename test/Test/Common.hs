@@ -31,7 +31,7 @@ renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidt
     renderWith surface $ do
         cairoScope $ do
             rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
-            hsva 0 0 0 0
+            setColor black
             setLineWidth 0
             fill
         drawing
@@ -47,7 +47,7 @@ renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
     renderPng w h (filename ++ ".png") $ do
         cairoScope $ do
-            hsva 0 0 1 1
+            setColor white
             Cairo.paint
         drawing
     renderSvg w h (filename ++ ".svg") drawing
