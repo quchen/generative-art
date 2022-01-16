@@ -21,7 +21,6 @@ dependencies:
     - data-r-tree
     - mwc-random
     - random
-    - regex-tdfa
     - text
     - tf-random
     - transformers
@@ -93,6 +92,7 @@ tests:
         dependencies:
             - generative-art
 
+            - async
             - cairo
             - process
             - QuickCheck
@@ -104,3 +104,4 @@ tests:
             - directory
             - text
             - filepath
+            - regex-tdfa
