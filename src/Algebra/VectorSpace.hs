@@ -1,5 +1,7 @@
 module Algebra.VectorSpace where
 
+import Data.Foldable (foldl')
+
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
 -- space, but also concepts like 'Angle's or 'Distance's – anything that can be
 -- added, inverted, and multiplied with a scalar.
@@ -75,3 +77,6 @@ instance VectorSpace b => VectorSpace (a -> b) where
     (c *. f) a = c *. f a
     (f -. g) a = f a -. g a
     zero = const zero
+
+vsum :: VectorSpace a => [a] -> a
+vsum = foldl' (+.) zero

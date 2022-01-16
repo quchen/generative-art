@@ -12,6 +12,7 @@ import qualified Graphics.Rendering.Cairo    as Cairo
 import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
+import Color
 import Delaunay
 import Draw
 import Geometry
@@ -98,14 +99,5 @@ drawCellCairo Cell{..} = case region of
         circleSketch seed (Distance 5)
         Cairo.fill
 
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
-
 setColor :: RGB -> Cairo.Render ()
 setColor RGB{..} = Cairo.setSourceRGB r g b
-
-parseHex :: String -> RGB
-parseHex ['#', r1, r2, g1, g2, b1, b2] = RGB
-    { r = read ("0x" ++ [r1, r2]) / 255
-    , g = read ("0x" ++ [g1, g2]) / 255
-    , b = read ("0x" ++ [b1, b2]) / 255 }
-parseHex _ = undefined

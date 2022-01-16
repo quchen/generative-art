@@ -163,4 +163,3 @@ centroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q
   where
     Area totalArea = polygonArea poly
     weight = 1 / (6 * totalArea)
-    vsum = foldl' (+.) zero

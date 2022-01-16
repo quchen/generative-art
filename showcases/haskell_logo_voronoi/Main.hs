@@ -3,7 +3,7 @@
 module Main (main) where
 
 import Data.Char          (ord)
-import Data.Foldable      (for_, foldl')
+import Data.Foldable      (for_)
 import Data.List          (find)
 import Data.Maybe         (fromMaybe)
 import Data.Vector        (fromList)
@@ -12,6 +12,7 @@ import Prelude            hiding ((**))
 import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
 
+import Color
 import Delaunay
 import Draw
 import Geometry
@@ -85,34 +86,8 @@ drawPoly poly color = do
     setLineWidth 1
     stroke
 
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
-
-instance VectorSpace RGB where
-    RGB r1 g1 b1 +. RGB r2 g2 b2 = RGB (r1+r2) (g1+g2) (b1+b2)
-    RGB r1 g1 b1 -. RGB r2 g2 b2 = RGB (r1-r2) (g1-g2) (b1-b2)
-    a *. RGB{..} = RGB (a*r) (a*g) (a*b)
-    zero = RGB 0 0 0
-
 setColor :: RGB -> Render ()
 setColor RGB{..} = setSourceRGB r g b
 
-parseHex :: String -> RGB
-parseHex [r1, r2, g1, g2, b1, b2] = RGB
-    { r = read ("0x" ++ [r1, r2]) / 255
-    , g = read ("0x" ++ [g1, g2]) / 255
-    , b = read ("0x" ++ [b1, b2]) / 255 }
-parseHex _ = undefined
-
-grey :: Double -> RGB
-grey shade = RGB shade shade shade
-
 darkGrey :: RGB
-darkGrey = RGB 0.1 0.1 0.1
-
-lighten :: Double -> RGB -> RGB
-lighten d color = color +. RGB d d d
-
-average :: [RGB] -> RGB
-average colors = foldl' (+.) zero colors /. count
-  where
-    count = fromIntegral $ length colors
+darkGrey = grey 0.1
