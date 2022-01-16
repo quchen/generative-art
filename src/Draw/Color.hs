@@ -1,8 +1,7 @@
 module Draw.Color (
   Color
 , AlphaColor
-, setColor
-, setColorAlpha
+, CairoColor(..)
 , rgb
 , hsv
 , rgba
@@ -30,16 +29,18 @@ import Data.Colour.SRGB as Colour
 import qualified Graphics.Rendering.Cairo as Cairo
 
 
+
+class CairoColor color where
+    setColor :: color -> Cairo.Render ()
+
+instance Real a => CairoColor (Colour a) where
+    setColor = uncurryRGB Cairo.setSourceRGB . toSRGB . colourConvert
+
+instance Real a => CairoColor (AlphaColour a) where
+    setColor color = uncurryRGB Cairo.setSourceRGBA (toSRGB (colourConvert (color `over` black))) (realToFrac (alphaChannel color))
+
 type Color a = Colour a
 type AlphaColor a = AlphaColour a
-
--- | Set the color to some RGBA value.
-setColorAlpha :: AlphaColor Double -> Cairo.Render ()
-setColorAlpha color = uncurryRGB Cairo.setSourceRGBA (toSRGB (color `over` black)) (alphaChannel color)
-
--- | Set the color to some RGB value.
-setColor :: Color Double -> Cairo.Render ()
-setColor = uncurryRGB Cairo.setSourceRGB . toSRGB
 
 -- | Convert a color from HSV space
 hsv :: Double -- ^ Hue [0..360]
