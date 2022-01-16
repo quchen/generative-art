@@ -66,26 +66,30 @@ instance HexagonalCoordinate Cube where
             q' = (sqrt(3)/3 * x - 1/3 * y) / size
             r' = (                2/3 * y) / size
             s' = -q'-r'
+        in cubeRound q' r' s'
 
-            q,r,s :: Int
-            q = round q'
-            r = round r'
-            s = round s'
+-- Given fractional cubical coordinates, yield the hexagon the coordinate is in.
+cubeRound :: Double -> Double -> Double -> Cube
+cubeRound q' r' s' =
+    let q,r,s :: Int
+        q = round q'
+        r = round r'
+        s = round s'
 
-            -- Rounding all three might violate the invariant that
-            -- q+r+s=0, so we calculate the discrepancy and discard
-            -- the value that was rounded the most.
-            qDiff, rDiff, sDiff :: Double
-            qDiff = abs (fromIntegral q - q')
-            rDiff = abs (fromIntegral r - r')
-            sDiff = abs (fromIntegral s - s')
-        in if
-            -- q had highest diff
-            | qDiff > rDiff && qDiff > sDiff -> Cube (-r-s) r s
-            -- r had highest diff
-            | rDiff > sDiff                  -> Cube q (-q-s) s
-            -- s is the only one left
-            | otherwise                      -> Cube q r (-q-r)
+        -- Rounding all three might violate the invariant that
+        -- q+r+s=0, so we calculate the discrepancy and discard
+        -- the value that was rounded the most.
+        qDiff, rDiff, sDiff :: Double
+        qDiff = abs (fromIntegral q - q')
+        rDiff = abs (fromIntegral r - r')
+        sDiff = abs (fromIntegral s - s')
+    in if
+        -- q had highest diff
+        | qDiff > rDiff && qDiff > sDiff -> Cube (-r-s) r s
+        -- r had highest diff
+        | rDiff > sDiff                  -> Cube q (-q-s) s
+        -- s is the only one left
+        | otherwise                      -> Cube q r (-q-r)
 
 instance HexagonalCoordinate Axial where
     move dir x (Axial q r) = case dir of
@@ -106,14 +110,6 @@ instance HexagonalCoordinate Axial where
         in Vec2 x y
 
     fromVec2 size vec = cubicalToAxial (fromVec2 size vec)
-
-hexagonsInRange :: Int -> [Cube]
-hexagonsInRange range = do
-    q <- [-range,-range+1..range]
-    r <- [-range,-range+1..range]
-    let hexCoord@(Cube _ _ s) = axialToCubical (Axial q r)
-    guard (-range <= s && s <= range)
-    pure hexCoord
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
@@ -166,3 +162,30 @@ hexagonalCoordinateSystem sideLength range = do
                 if Cube 0 0 0 == Cube q r s
                     then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
                     else showTextAligned HCenter VCenter (show val)
+
+-- | Hexagons reachable within a number of steps from the origin.
+hexagonsInRange :: Int -> [Cube]
+hexagonsInRange range = do
+    q <- [-range,-range+1..range]
+    r <- [-range,-range+1..range]
+    let hexCoord@(Cube _ _ s) = axialToCubical (Axial q r)
+    guard (-range <= s && s <= range)
+    pure hexCoord
+
+lerp :: Double -> Double -> Double -> Double
+lerp a b t = t*a + (1-t)*b
+
+cubeLerp :: Cube -> Cube -> Double -> Cube
+cubeLerp (Cube q1 r1 s1) (Cube q2 r2 s2) t =
+    let q1' = fromIntegral q1
+        q2' = fromIntegral q2
+        r1' = fromIntegral r1
+        r2' = fromIntegral r2
+        s1' = fromIntegral s1
+        s2' = fromIntegral s2
+    in cubeRound (lerp q1' q2' t) (lerp r1' r2' t) (lerp s1' s2' t)
+
+line :: Cube -> Cube -> [Cube]
+line start end =
+    let d = distance start end
+    in [ cubeLerp start end (1/fromIntegral d*fromIntegral i) | i <- [0..d] ]
