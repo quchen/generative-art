@@ -1,9 +1,8 @@
-{-# LANGUAGE RecordWildCards #-}
 module Draw.Color (
-  setColor
+  Color
+, AlphaColor
+, setColor
 , setColorAlpha
-, RGBA()
-, RGB()
 , rgb
 , hsv
 , rgba
@@ -11,56 +10,66 @@ module Draw.Color (
 , mmaColor
 , parseRGBAHex
 , parseRGBHex
+, module Data.Colour
 ) where
 
-import Data.Colour.RGBSpace
-import Data.Colour.RGBSpace.HSV
+import Data.Colour
+import Data.Colour.RGBSpace as Colour
+import qualified Data.Colour.RGBSpace.HSV as Colour
+import Data.Colour.SRGB as Colour
 import qualified Graphics.Rendering.Cairo as Cairo
 
-data RGBA a = RGBA { _rgb :: !(RGB a), _alpha :: !a }
+
+type Color a = Colour a
+type AlphaColor a = AlphaColour a
 
 -- | Set the color to some RGBA value.
-setColorAlpha :: RGBA Double -> Cairo.Render ()
-setColorAlpha RGBA{..} = uncurryRGB Cairo.setSourceRGBA _rgb _alpha
+setColorAlpha :: AlphaColor Double -> Cairo.Render ()
+setColorAlpha color = uncurryRGB Cairo.setSourceRGBA (toSRGB (color `over` black)) (alphaChannel color)
 
 -- | Set the color to some RGB value.
-setColor :: RGB Double -> Cairo.Render ()
-setColor = uncurryRGB Cairo.setSourceRGB
+setColor :: Color Double -> Cairo.Render ()
+setColor = uncurryRGB Cairo.setSourceRGB . toSRGB
+
+-- | Convert a color from HSV space
+hsv :: Double -- ^ Hue [0..360]
+    -> Double -- ^ Saturation [0..1]
+    -> Double -- ^ Value (~ brightness) [0..1]
+    -> Color Double
+hsv h s v = uncurryRGB (rgbUsingSpace sRGBSpace) (Colour.hsv h s v)
 
 -- | Convert a color from HSVA space
 hsva :: Double -- ^ Hue [0..360]
     -> Double  -- ^ Saturation [0..1]
     -> Double  -- ^ Value (~ brightness) [0..1]
     -> Double  -- ^ Alpha [0..1]
-    -> RGBA Double
-hsva h s v a = RGBA { _rgb = hsv h s v, _alpha = a }
+    -> AlphaColor Double
+hsva h s v a = Draw.Color.hsv h s v `withOpacity` a
 
 rgb :: Double  -- ^ Red [0..1]
     -> Double  -- ^ Green [0..1]
     -> Double  -- ^ Blue [0..1]
-    -> RGB Double
-rgb = RGB
+    -> Color Double
+rgb = sRGB
 
-rgba :: Double  -- ^ Red [0..1]
+rgba :: Double -- ^ Red [0..1]
     -> Double  -- ^ Green [0..1]
     -> Double  -- ^ Blue [0..1]
     -> Double  -- ^ Alpha [0..1]
-    -> RGBA Double
-rgba r g b a = RGBA { _rgb = rgb r g b, _alpha = a }
+    -> AlphaColor Double
+rgba r g b a = sRGB r g b `withOpacity` a
 
-parseRGBAHex :: String -> RGBA Double
+parseRGBAHex :: String -> AlphaColor Double
 parseRGBAHex ('#' : rrggbbaa) = parseRGBAHex rrggbbaa
-parseRGBAHex [r1, r2, g1, g2, b1, b2, a1, a2] = RGBA
-    { _rgb = rgb
-        (read ("0x" ++ [r1, r2]) / 255)
-        (read ("0x" ++ [g1, g2]) / 255)
-        (read ("0x" ++ [b1, b2]) / 255)
-    , _alpha = read ("0x" ++ [a1, a2]) / 255
-    }
+parseRGBAHex [r1, r2, g1, g2, b1, b2, a1, a2] = rgba
+    (read ("0x" ++ [r1, r2]) / 255)
+    (read ("0x" ++ [g1, g2]) / 255)
+    (read ("0x" ++ [b1, b2]) / 255)
+    (read ("0x" ++ [a1, a2]) / 255)
 parseRGBAHex [r1, r2, g1, g2, b1, b2] = parseRGBAHex [r1, r2, g1, g2, b1, b2, 'f', 'f']
 parseRGBAHex _ = undefined
 
-parseRGBHex :: String -> RGB Double
+parseRGBHex :: String -> Color Double
 parseRGBHex ('#' : rrggbb) = parseRGBHex rrggbb
 parseRGBHex [r1, r2, g1, g2, b1, b2] = rgb
     (read ("0x" ++ [r1, r2]) / 255)
@@ -69,7 +78,7 @@ parseRGBHex [r1, r2, g1, g2, b1, b2] = rgb
 parseRGBHex _ = undefined
 
 -- | Mathematica’s ColorData[97] scheme.
-mmaColor :: Int -> Double -> RGBA Double
+mmaColor :: Int -> Double -> AlphaColor Double
 mmaColor n alpha = rgba r g b alpha
   where
     (r,g,b) = case rem n 15 of
