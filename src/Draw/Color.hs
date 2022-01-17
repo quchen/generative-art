@@ -4,8 +4,10 @@ module Draw.Color (
 , CairoColor(..)
 , rgb
 , hsv
+, hsl
 , rgba
 , hsva
+, hsla
 , mmaColor
 , parseRGBAHex
 , parseRGBHex
@@ -39,6 +41,21 @@ instance Real a => CairoColor (AlphaColour a) where
 
 type Color a = Colour a
 type AlphaColor a = AlphaColour a
+
+-- | Convert a color from HSL space
+hsl :: Double -- ^ Hue [0..360]
+    -> Double -- ^ Saturation [0..1]
+    -> Double -- ^ Lightness [0..1]
+    -> Color Double
+hsl h s l = uncurryRGB (rgbUsingSpace sRGBSpace) (Colour.hsl h s l)
+
+-- | Convert a color from HSLA space
+hsla :: Double -- ^ Hue [0..360]
+    -> Double  -- ^ Saturation [0..1]
+    -> Double  -- ^ Lightness [0..1]
+    -> Double  -- ^ Alpha [0..1]
+    -> AlphaColor Double
+hsla h s l a = Draw.Color.hsl h s l `withOpacity` a
 
 -- | Convert a color from HSV space
 hsv :: Double -- ^ Hue [0..360]
