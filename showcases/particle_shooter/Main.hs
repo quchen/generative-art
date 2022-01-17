@@ -20,7 +20,7 @@ main = do
     let systemResult = runST (systemSetup systemConfig)
     let (Distance w, Distance h, _) = boundingBoxSize (_boundingBox systemConfig)
     withSurfaceAuto
-        "scratchpad/out.png"
+        "showcases/particle_shooter.png"
         (round w)
         (round h)
         (\surface -> C.renderWith surface (render systemResult))
