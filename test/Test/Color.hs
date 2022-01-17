@@ -20,37 +20,40 @@ tests = testGroup "Color operations"
     ]
 
 testBrightness :: TestTree
-testBrightness = testCase "brightness" $ renderColorTable "docs/colors/brightness" $
-    colorTable baseColors (\color brightness -> adjustBrightness (const brightness) color)
+testBrightness = testCase "lightness" $ renderColorTable "docs/colors/lightness" $
+    colorTable baseColors (\lightness -> adjustHsl id id (const lightness))
 
 testValue :: TestTree
-testValue = testCase "value" $ renderColorTable "docs/colors/value" $
-    colorTable baseColors (\color value -> adjustValue (const value) color)
+testValue = testCase "brightness" $ renderColorTable "docs/colors/brightness" $
+    colorTable baseColors (\value -> adjustHsv id id (const value))
 
 testHue :: TestTree
 testHue = testCase "hue" $ renderColorTable "docs/colors/hue" $
-    colorTable baseColors (\color hue -> adjustHue (+ 60*hue) color)
+    colorTable baseColors (\hue -> adjustHsv (+ 60*hue) id id)
 
 testSaturation :: TestTree
-testSaturation = testCase "saturation" $ renderColorTable "docs/colors/saturation" $
-    colorTable baseColors (\color saturation -> adjustSaturation (* saturation) color)
+testSaturation = testCase "saturation" $ do
+    renderColorTable "docs/colors/saturation_hsv" $
+        colorTable (drop 1 baseColors) (\saturation -> adjustHsv id (const saturation) id)
+    renderColorTable "docs/colors/saturation_hsl" $
+        colorTable (drop 1 baseColors) (\saturation -> adjustHsl id (const saturation) id)
 
 testBlending :: TestTree
 testBlending = testCase "value" $ do
     renderColorTable "docs/colors/blending_white" $
-        colorTable baseColors (\color factor -> blend factor white color)
+        colorTable baseColors (\factor -> blend factor white)
     renderColorTable "docs/colors/blending_black" $
-        colorTable baseColors (\color factor -> blend factor black color)
+        colorTable baseColors (\factor -> blend factor black)
     renderColorTable "docs/colors/blending_blue"  $
-        colorTable baseColors (\color factor -> blend factor blue  color)
+        colorTable baseColors (\factor -> blend factor blue)
 
 
 baseColors :: [Color Double]
 baseColors = [grey, maroon, olive, green, teal, navy, purple]
 
-colorTable :: [Color Double] -> (Color Double -> Double -> Color Double) -> [[Color Double]]
+colorTable :: [Color Double] -> (Double -> Color Double -> Color Double) -> [[Color Double]]
 colorTable colors generator =
-    [ generator color <$> [0, 0.1 .. 1]
+    [ flip generator color <$> [0, 0.1 .. 1]
     | color <- colors ]
 
 renderColorTable :: FilePath -> [[Color Double]] -> IO ()

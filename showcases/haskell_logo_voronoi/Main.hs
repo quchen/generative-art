@@ -31,7 +31,7 @@ main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    let defaultFile = "out/haskell_logo_voronoi.svg"
+    let defaultFile = "out/haskell_logo_voronoi.png"
     (count, file) <- getArgs >>= \case
         [] -> pure (1000, defaultFile)
         [count] -> pure (read count, defaultFile)
@@ -67,7 +67,7 @@ colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> di
         let color = case find (pointInPolygon p . fst) haskellLogoWithColors of
                 Just (_, c) -> c
                 Nothing     -> darkGrey
-        in adjustBrightness (+ (0.1 * noise2d p)) color
+        in adjustHsl id id (+ (0.1 * noise2d p)) color
     noise = perlin { perlinFrequency = 40/picWidth, perlinSeed = 12345}
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 

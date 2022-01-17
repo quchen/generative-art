@@ -13,10 +13,8 @@ module Draw.Color (
 , average
 , black
 , white
-, adjustHue
-, adjustSaturation
-, adjustValue
-, adjustBrightness
+, adjustHsl
+, adjustHsv
 ) where
 
 import qualified Data.Colour as ReExport hiding (black, darken)
@@ -113,18 +111,16 @@ mmaColor n alpha = rgba r g b alpha
 average :: [Color Double] -> Color Double
 average colors = mconcat (darken (1/fromIntegral (length colors)) <$> colors)
 
-adjustHue :: (Double -> Double) -> Color Double -> Color Double
-adjustHue f color = hsv (f h) s v
+adjustHsv :: (Double -> Double) -- ^ Adjust Hue [0..360]
+    -> (Double -> Double) -- ^ Adjust Saturation [0..1]
+    -> (Double -> Double) -- ^ Adjust Value (~ Brightness) [0..1]
+    -> Color Double -> Color Double
+adjustHsv fh fs fv color = hsv (fh h) (fs s) (fv v)
   where (h, s, v) = Colour.hsvView (toSRGB color)
 
-adjustSaturation :: (Double -> Double) -> Color Double -> Color Double
-adjustSaturation f color = hsv h (f s) v
-  where (h, s, v) = Colour.hsvView (toSRGB color)
-
-adjustValue :: (Double -> Double) -> Color Double -> Color Double
-adjustValue f color = hsv h s (f v)
-  where (h, s, v) = Colour.hsvView (toSRGB color)
-
-adjustBrightness :: (Double -> Double) -> Color Double -> Color Double
-adjustBrightness f color = uncurryRGB (rgbUsingSpace sRGBSpace) (Colour.hsl h s (f l))
+adjustHsl :: (Double -> Double) -- ^ Adjust Hue [0..360]
+    -> (Double -> Double) -- ^ Adjust Saturation [0..1]
+    -> (Double -> Double) -- ^ Adjust Luminance [0..1]
+    -> Color Double -> Color Double
+adjustHsl fh fs fl color = uncurryRGB (rgbUsingSpace sRGBSpace) (Colour.hsl (fh h) (fs s) (fl l))
   where (h, s, l) = Colour.hslView (toSRGB color)
