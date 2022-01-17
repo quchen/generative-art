@@ -81,12 +81,12 @@ testDraw line1@(Line start _) line2 = do
     setLineWidth 1
 
     cairoScope $ do
-        mmaColor 0 1
+        setColor $ mmaColor 0 1
         arrowSketch line1 def{arrowheadSize = Distance 8}
         stroke
 
     cairoScope $ do
-        mmaColor 1 1
+        setColor $ mmaColor 1 1
         arrowSketch line2 def{arrowheadSize = Distance 8}
         stroke
 
@@ -95,7 +95,7 @@ testDraw line1@(Line start _) line2 = do
     case intersectionPoint ty of
         Nothing -> cairoScope $ do
             let Vec2 x y = start +. Vec2 15 15
-            hsva 0 0 0 1
+            setColor black
             moveTo x y
             setFontSize 10
             showText $ case ty of
@@ -106,12 +106,12 @@ testDraw line1@(Line start _) line2 = do
         Just point -> do
 
             cairoScope $ do
-                mmaColor 3 1
+                setColor $ mmaColor 3 1
                 circleSketch point (Distance 3)
                 fill
 
             cairoScope $ do
-                mmaColor 3 1
+                setColor $ mmaColor 3 1
                 angleSketch point (angleOfLine line1) (angleOfLine line2)
                 stroke
 
@@ -125,7 +125,7 @@ testDraw line1@(Line start _) line2 = do
                         IntersectionReal _           -> "Intersection"
                         _                            -> bugError "Unknown intersection type"
 
-                hsva 0 0 0 1
+                setColor black
                 moveTo x y
                 setFontSize 10
                 showText (tyStr ++ ", " ++ angleDeg ++ "°")

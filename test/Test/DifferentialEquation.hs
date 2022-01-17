@@ -63,7 +63,7 @@ renderTwoBodyProblem w h = do
             newPath
             circleSketch sun (Distance 16)
             setLineWidth 2
-            mmaColor 1 1
+            setColor $ mmaColor 1 1
             fillPreserve
             setSourceRGB 0 0 0
             stroke
@@ -76,7 +76,7 @@ renderTwoBodyProblem w h = do
         paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
             circleSketch planet (Distance 8)
-            mmaColor 3 1
+            setColor $ mmaColor 3 1
             fillPreserve
             setSourceRGB 0 0 0
             setLineWidth 2
@@ -149,7 +149,7 @@ renderDoublePendulum _w _h = do
         moveToVec start
         setLineWidth 1
         for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
-            mmaColor 1 (exp (-t / 500))
+            setColor $ mmaColor 1 (exp (-t / 500))
             bezierSegmentSketch bezier
             stroke
 
@@ -204,5 +204,5 @@ renderPhaseSpace w h solution = do
     setLineWidth 1
     cairoScope $ do
         pathSketch trajectory
-        mmaColor 0 1
+        setColor $ mmaColor 0 1
         stroke

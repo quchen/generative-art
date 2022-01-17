@@ -35,11 +35,11 @@ rotateLineTest = do
 
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do
-        mmaColor i 1
+        setColor $ mmaColor i 1
         lineSketch line
         stroke )
 
-    mmaColor 1 1
+    setColor $ mmaColor 1 1
     setFontSize 12
     moveTo 90 20
     showText "Rotate line in 20° increments"
@@ -50,10 +50,10 @@ perpendicularBisectorTest = do
         bisector = perpendicularBisector line
 
     setLineWidth 1
-    mmaColor 0 1
+    setColor $ mmaColor 0 1
     lineSketch line
     stroke
-    mmaColor 1 1
+    setColor $ mmaColor 1 1
     lineSketch bisector
     stroke
 
@@ -68,12 +68,12 @@ perpendicularLineThroughTest = do
         line' = perpendicularLineThrough point line
 
     setLineWidth 1
-    mmaColor 0 1
+    setColor $ mmaColor 0 1
     lineSketch line
     stroke
     circleSketch point (Distance 3)
     stroke
-    mmaColor 1 1
+    setColor $ mmaColor 1 1
     lineSketch line'
     stroke
 
@@ -88,12 +88,12 @@ pointInPolygonTest = do
 
     setLineWidth 1
     polygonSketch square
-    mmaColor 0 1
+    setColor $ mmaColor 0 1
     strokePreserve
-    mmaColor 0 0.1
+    setColor $ mmaColor 0 0.1
     fill
 
-    mmaColor 1 1
+    setColor $ mmaColor 1 1
     for_ points (\point -> do
         circleSketch point (Distance 3)
         if pointInPolygon point square

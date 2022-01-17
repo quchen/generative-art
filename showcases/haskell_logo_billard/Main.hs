@@ -43,8 +43,8 @@ drawing = do
         billardLambda = BillardSpec{ steps = 400, table = polygonEdges lambda, startPos = Vec2 230 175, startAngle = deg 40 }
         billardUpper  = BillardSpec{ steps = 120, table = polygonEdges upper,  startPos = Vec2 400 120, startAngle = deg 20 }
         billardLower  = BillardSpec{ steps = 120, table = polygonEdges lower,  startPos = Vec2 450 220, startAngle = deg 40 }
-        billardSketch :: BillardSpec -> (Double -> Render ()) -> Render ()
-        billardSketch spec setColor = do
+        billardSketch :: BillardSpec -> (Double -> AlphaColor Double) -> Render ()
+        billardSketch spec color = do
             let points = runBillardSpec spec
                 billardLines = zipWith Line points (tail points)
             let lengths = [d | Distance d <- map lineLength billardLines]
@@ -52,22 +52,22 @@ drawing = do
             for_ billardLines (\line ->
                 let alpha = case lineLength line of
                         Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
-                in setColor alpha >> lineSketch line >> stroke)
+                in setColor (color alpha) >> lineSketch line >> stroke)
 
     Cairo.translate 10 10
 
     setLineWidth 1
     billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke
-    hsva 257 0.40 0.38 1
+    setColor $ hsva 257 0.40 0.38 1
     polygonSketch left >> stroke
 
     billardSketch billardLambda (hsva 256 0.40 0.50)
-    hsva 256 0.40 0.50 1
+    setColor $ hsva 256 0.40 0.50 1
     polygonSketch lambda >> stroke
 
     billardSketch billardUpper (hsva 304 0.45 0.56)
     billardSketch billardLower (hsva 304 0.45 0.56)
-    hsva 304 0.45 0.56 1
+    setColor $ hsva 304 0.45 0.56 1
     polygonSketch upper >> stroke
     polygonSketch lower >> stroke
 

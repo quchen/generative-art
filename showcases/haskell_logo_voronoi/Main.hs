@@ -3,7 +3,8 @@
 module Main (main) where
 
 import Data.Char          (ord)
-import Data.Foldable      (for_, foldl')
+import Data.Colour        ()
+import Data.Foldable      (for_)
 import Data.List          (find)
 import Data.Maybe         (fromMaybe)
 import Data.Vector        (fromList)
@@ -30,7 +31,7 @@ main = mainHaskellLogo
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    let defaultFile = "out/haskell_logo_voronoi.svg"
+    let defaultFile = "out/haskell_logo_voronoi.png"
     (count, file) <- getArgs >>= \case
         [] -> pure (1000, defaultFile)
         [count] -> pure (read count, defaultFile)
@@ -48,36 +49,36 @@ mainHaskellLogo = do
 
     withSurfaceAuto file picWidth picHeight $ \surface -> renderWith surface $ for_ (cells voronoiColorized) drawCell
 
-haskellLogoWithColors :: [(Polygon, RGB)]
+haskellLogoWithColors :: [(Polygon, Color Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
   where
     haskellLogoCentered = transform (Geometry.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> Geometry.scale 680) haskellLogo
-    haskellLogoColors = fmap parseHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
+    haskellLogoColors = fmap parseRGBHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
 
 
 findPointsInPolygon :: RT.RTree Vec2 -> Polygon -> [Vec2]
 findPointsInPolygon points poly = filter (`pointInPolygon` poly) (RT.lookupRange (boundingBox poly) points)
 
-colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> RGB
+colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> Color Double
 colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> ditheringPointsInRegion
   where
     ditheringPointsInRegion = findPointsInPolygon ditheringPoints voronoiRegion
-    colorizePoint p
-        | Just (_, color) <- find (pointInPolygon p . fst) haskellLogoWithColors
-            = color +. 0.1 *. grey (noise2d p)
-        | otherwise
-            = darkGrey +. 0.1 *. grey (noise2d p)
+    colorizePoint p =
+        let color = case find (pointInPolygon p . fst) haskellLogoWithColors of
+                Just (_, c) -> c
+                Nothing     -> darkGrey
+        in adjustHsl id id (+ (0.1 * noise2d p)) color
     noise = perlin { perlinFrequency = 40/picWidth, perlinSeed = 12345}
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
-drawCell :: VoronoiCell RGB -> Render ()
+drawCell :: VoronoiCell (Color Double) -> Render ()
 drawCell Cell{..} = drawPoly region props
 
-drawPoly :: Polygon -> RGB -> Render ()
+drawPoly :: Polygon -> Color Double -> Render ()
 drawPoly (Polygon []) _ = pure ()
 drawPoly poly color = do
     let fillColor = color
-        lineColor = lighten 0.2 color
+        lineColor = blend 0.1 white color
     polygonSketch poly
     setColor fillColor
     fillPreserve
@@ -85,34 +86,5 @@ drawPoly poly color = do
     setLineWidth 1
     stroke
 
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
-
-instance VectorSpace RGB where
-    RGB r1 g1 b1 +. RGB r2 g2 b2 = RGB (r1+r2) (g1+g2) (b1+b2)
-    RGB r1 g1 b1 -. RGB r2 g2 b2 = RGB (r1-r2) (g1-g2) (b1-b2)
-    a *. RGB{..} = RGB (a*r) (a*g) (a*b)
-    zero = RGB 0 0 0
-
-setColor :: RGB -> Render ()
-setColor RGB{..} = setSourceRGB r g b
-
-parseHex :: String -> RGB
-parseHex [r1, r2, g1, g2, b1, b2] = RGB
-    { r = read ("0x" ++ [r1, r2]) / 255
-    , g = read ("0x" ++ [g1, g2]) / 255
-    , b = read ("0x" ++ [b1, b2]) / 255 }
-parseHex _ = undefined
-
-grey :: Double -> RGB
-grey shade = RGB shade shade shade
-
-darkGrey :: RGB
-darkGrey = RGB 0.1 0.1 0.1
-
-lighten :: Double -> RGB -> RGB
-lighten d color = color +. RGB d d d
-
-average :: [RGB] -> RGB
-average colors = foldl' (+.) zero colors /. count
-  where
-    count = fromIntegral $ length colors
+darkGrey :: Color Double
+darkGrey = hsv 0 0 0.1

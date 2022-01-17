@@ -4,6 +4,7 @@ module Geometry.Core (
     -- * Primitives
     -- ** Vector spaces
       VectorSpace(..)
+    , vsum
 
     -- ** 2D Vectors
     , Vec2(..)

@@ -87,8 +87,8 @@ drawCellCairo :: VoronoiCell () -> Cairo.Render ()
 drawCellCairo Cell{..} = case region of
     Polygon [] -> pure ()
     poly -> do
-        let fillColor = parseHex "#eeeeee"
-            lineColor = parseHex "#5d81b4"
+        let fillColor = parseRGBHex "#eeeeee"
+            lineColor = parseRGBHex "#5d81b4"
         polygonSketch poly
         setColor fillColor
         Cairo.fillPreserve
@@ -97,15 +97,3 @@ drawCellCairo Cell{..} = case region of
         Cairo.stroke
         circleSketch seed (Distance 5)
         Cairo.fill
-
-data RGB = RGB { r :: Double, g :: Double, b :: Double }
-
-setColor :: RGB -> Cairo.Render ()
-setColor RGB{..} = Cairo.setSourceRGB r g b
-
-parseHex :: String -> RGB
-parseHex ['#', r1, r2, g1, g2, b1, b2] = RGB
-    { r = read ("0x" ++ [r1, r2]) / 255
-    , g = read ("0x" ++ [g1, g2]) / 255
-    , b = read ("0x" ++ [b1, b2]) / 255 }
-parseHex _ = undefined

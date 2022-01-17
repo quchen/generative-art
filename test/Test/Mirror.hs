@@ -18,11 +18,11 @@ tests :: TestTree
 tests = testCase "Mirror along an axis" mirrorPointsTest
 
 originalC, mirroredC :: Double -> Render ()
-originalC = mmaColor 0
-mirroredC = mmaColor 1
+originalC = setColor . mmaColor 0
+mirroredC = setColor . mmaColor 1
 
 setMirrorStyle :: Render ()
-setMirrorStyle = hsva 0 0 0 0.5 >> setDash [5,5] 0 >> setLineWidth 1
+setMirrorStyle = setColor (black `withOpacity` 0.5) >> setDash [5,5] 0 >> setLineWidth 1
 
 mirrorPointsTest :: IO ()
 mirrorPointsTest = renderAllFormats 550 550 "docs/geometry/mirror" (do
@@ -68,7 +68,7 @@ mirror1 = do
             circleSketch p' (Distance 5)
             stroke
 
-            hsva 0 0 0 0.5
+            setColor (black `withOpacity` 0.5)
             arrowSketch (Line p p') def
             stroke )
 

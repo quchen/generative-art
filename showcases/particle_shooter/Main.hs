@@ -121,16 +121,16 @@ render SystemResult{..} = do
 
     setLineWidth 1
     for_ _coulombWells $ \(center, charge) -> cairoScope $ do
-            mmaColor 0 1
+            setColor $ mmaColor 0 1
             for_ [1,3..10] $ \r -> do
-                mmaColor 0 (1/r**0.9)
+                setColor $ mmaColor 0 (1/r**0.9)
                 circleSketch center (Distance (8*(r*abs charge)**(1/2.5)))
                 stroke
 
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         cairoScope $ do
-            mmaColor 3 0.03
+            setColor $ mmaColor 3 0.03
             pathSketch trajectory
             stroke
         pure ()

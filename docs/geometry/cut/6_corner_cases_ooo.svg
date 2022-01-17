@@ -27,7 +27,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 70 0 L 110 0 M 82.734375 2.875 L 88 0 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 110 0 L 70 40 M 93.6875 12.242188 L 92 18 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 70 40 L 30 0 L 110 0 Z M 70 40 " transform="matrix(1,0,0,1,0,50)"/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 70 90 L 30 50 L 110 50 Z M 70 90 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 70 90 L 30 50 L 110 50 Z M 70 90 "/>
 </g>
 <clipPath id="id8">
   <rect x="0" y="0" width="380" height="100"/>
@@ -38,7 +38,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 230 0 L 190 40 M 213.6875 12.242188 L 212 18 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 190 40 L 150 0 M 177.757812 23.6875 L 172 22 " transform="matrix(1,0,0,1,0,50)"/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 150 0 L 230 0 L 190 40 Z M 150 0 " transform="matrix(1,0,0,1,0,50)"/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 150 50 L 230 50 L 190 90 Z M 150 50 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 150 50 L 230 50 L 190 90 Z M 150 50 "/>
 </g>
 <clipPath id="id10">
   <rect x="0" y="0" width="380" height="100"/>

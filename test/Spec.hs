@@ -11,6 +11,7 @@ import System.FilePath
 
 import qualified Test.Bezier
 import qualified Test.Billard
+import qualified Test.Color
 import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.Delaunay
@@ -49,6 +50,7 @@ tests = testGroup "Test suite"
         [ Test.Bezier.tests
         , Test.Billard.tests
         , Test.ConvexHull.tests
+        , Test.Color.tests
         , Test.Cut.tests
         , Test.DifferentialEquation.tests
         , Test.IntersectionLL.tests

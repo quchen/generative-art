@@ -42,14 +42,14 @@ testSquare = testCase "Square" test
     test = renderAllFormats 220 220 "docs/geometry/cut/random_cut_square" $ do
         setLineWidth 1
         Cairo.translate 10 10
-        let setColors = map mmaColor [0..]
-        cairoScope $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
+        let colors = map mmaColor [0..]
+        cairoScope $ for_ (zip colors cutResult) $ \(color, polygon) -> do
             polygonSketch polygon
-            setColor 0.5
+            setColor $ color 0.5
             fill
         cairoScope $ do
             for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
-            hsva 0 0 0 1
+            setColor black
             setLineWidth 0.5
             stroke
 
@@ -65,17 +65,17 @@ testHaskellLogo = testCase "Haskell logo" test
     test = renderAllFormats 500 360 "docs/geometry/cut/random_cut_haskell_logo" $ do
         setLineWidth 1
         Cairo.translate 10 10
-        let setColors = zipWith4 hsva
+        let colors = zipWith4 hsva
                 (repeat 0)
                 (repeat 0)
                 (randomRs (0.6, 0.9) (mkStdGen 13))
                 (repeat 1)
-        cairoScope $ for_ (zip setColors cutResult) $ \(setColor, polygon) -> do
+        cairoScope $ for_ (zip colors cutResult) $ \(color, polygon) -> do
             polygonSketch polygon
-            setColor
+            setColor color
             fill
         cairoScope $ do
             for_ (S.fromList (cutResult >>= polygonEdges)) $ \edge -> lineSketch edge
-            hsva 0 0 0 1
+            setColor black
             setLineWidth 0.5
             stroke
