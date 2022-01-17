@@ -47,6 +47,7 @@ over quickly.
 ![Missing image!](../../docs/geometry/mirror.svg)
 ![Missing image!](../../docs/geometry/reflection.svg)
 ![Missing image!](../../docs/geometry/simple_operations.svg)
+![Missing image!](../../docs/hexagonal/1_line_and_circle.svg)
 ![Missing image!](../../docs/interpolation/1_bezier_open.svg)
 ![Missing image!](../../docs/interpolation/2_picasso_squirrel.svg)
 ![Missing image!](../../docs/interpolation/3_simplify_path.svg)

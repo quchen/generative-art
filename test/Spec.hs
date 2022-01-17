@@ -27,6 +27,7 @@ import qualified Test.SimpleOperations
 import qualified Test.Trajectory
 import qualified Test.Triangulate
 import qualified Test.Voronoi
+import qualified Test.Geometry.Coordinates.Hexagonal
 
 import           Test.Tasty
 import qualified VisualOutput.FileSystem         as FileSystem
@@ -56,6 +57,7 @@ tests = testGroup "Test suite"
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests
+        , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.RandomCut.tests
         , Test.Reflection.tests
         , Test.Sampling.tests
