@@ -34,10 +34,10 @@ class HexagonalCoordinate hex where
 
     -- | This is really just a ℝ^3 with rounding occurring in every calculation,
     -- but alas, ℤ is not a field, so it isn’t a vector space.
-    add      :: hex -> hex -> hex
-    subtract :: hex -> hex -> hex
-    times    :: Int -> hex -> hex
-    zero     :: hex
+    hexAdd      :: hex -> hex -> hex
+    hexSubtract :: hex -> hex -> hex
+    hexTimes    :: Int -> hex -> hex
+    hexZero     :: hex
 
     -- ^ How many steps are between two coordinates?
     distance :: hex -> hex -> Int
@@ -63,10 +63,10 @@ instance HexagonalCoordinate Cube where
         DL -> Cube (q-x) (r+x)  (s  )
         DR -> Cube (q  ) (r+x)  (s-x)
 
-    Cube q1 r1 s1 `add` Cube q2 r2 s2 = Cube (q1+q2) (r1+r2) (s1+s2)
-    Cube q1 r1 s1 `subtract` Cube q2 r2 s2 = Cube (q1-q2) (r1-r2) (s1-s2)
-    n `times` Cube q r s = Cube (n*q) (n*r) (n*s)
-    zero = Cube 0 0 0
+    Cube q1 r1 s1 `hexAdd` Cube q2 r2 s2 = Cube (q1+q2) (r1+r2) (s1+s2)
+    Cube q1 r1 s1 `hexSubtract` Cube q2 r2 s2 = Cube (q1-q2) (r1-r2) (s1-s2)
+    n `hexTimes` Cube q r s = Cube (n*q) (n*r) (n*s)
+    hexZero = Cube 0 0 0
 
     distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
 
@@ -78,6 +78,12 @@ instance HexagonalCoordinate Cube where
             r' = (                2/3 * y) / size
             s' = -q'-r'
         in cubeRound q' r' s'
+
+instance Semigroup Cube where
+    (<>) = hexAdd
+
+instance Monoid Cube where
+    mempty = hexZero
 
 -- Given fractional cubical coordinates, yield the hexagon the coordinate is in.
 cubeRound :: Double -> Double -> Double -> Cube
@@ -111,10 +117,10 @@ instance HexagonalCoordinate Axial where
         DL -> Axial (q-x) (r+x)
         DR -> Axial (q  ) (r+x)
 
-    Axial q1 r1 `add` Axial q2 r2 = Axial (q1+q2) (r1+r2)
-    Axial q1 r1 `subtract` Axial q2 r2 = Axial (q1-q2) (r1-r2)
-    n `times` Axial q r = Axial (n*q) (n*r)
-    zero = Axial 0 0
+    Axial q1 r1 `hexAdd` Axial q2 r2 = Axial (q1+q2) (r1+r2)
+    Axial q1 r1 `hexSubtract` Axial q2 r2 = Axial (q1-q2) (r1-r2)
+    n `hexTimes` Axial q r = Axial (n*q) (n*r)
+    hexZero = Axial 0 0
 
     distance a b = distance (axialToCubical a) (axialToCubical b)
 
@@ -126,6 +132,12 @@ instance HexagonalCoordinate Axial where
         in Vec2 x y
 
     fromVec2 size vec = cubicalToAxial (fromVec2 size vec)
+
+instance Semigroup Axial where
+    (<>) = hexAdd
+
+instance Monoid Axial where
+    mempty = hexZero
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
