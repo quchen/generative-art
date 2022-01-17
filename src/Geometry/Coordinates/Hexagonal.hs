@@ -32,6 +32,13 @@ class HexagonalCoordinate hex where
     -- ^ Move x steps in a direction
     move :: Direction -> Int -> hex -> hex
 
+    -- | This is really just a ℝ^3 with rounding occurring in every calculation,
+    -- but alas, ℤ is not a field, so it isn’t a vector space.
+    add      :: hex -> hex -> hex
+    subtract :: hex -> hex -> hex
+    times    :: Int -> hex -> hex
+    zero     :: hex
+
     -- ^ How many steps are between two coordinates?
     distance :: hex -> hex -> Int
 
@@ -55,6 +62,11 @@ instance HexagonalCoordinate Cube where
         L  -> Cube (q-x) (r  )  (s+x)
         DL -> Cube (q-x) (r+x)  (s  )
         DR -> Cube (q  ) (r+x)  (s-x)
+
+    Cube q1 r1 s1 `add` Cube q2 r2 s2 = Cube (q1+q2) (r1+r2) (s1+s2)
+    Cube q1 r1 s1 `subtract` Cube q2 r2 s2 = Cube (q1-q2) (r1-r2) (s1-s2)
+    n `times` Cube q r s = Cube (n*q) (n*r) (n*s)
+    zero = Cube 0 0 0
 
     distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
 
@@ -98,6 +110,11 @@ instance HexagonalCoordinate Axial where
         L  -> Axial (q-x) (r  )
         DL -> Axial (q-x) (r+x)
         DR -> Axial (q  ) (r+x)
+
+    Axial q1 r1 `add` Axial q2 r2 = Axial (q1+q2) (r1+r2)
+    Axial q1 r1 `subtract` Axial q2 r2 = Axial (q1-q2) (r1-r2)
+    n `times` Axial q r = Axial (n*q) (n*r)
+    zero = Axial 0 0
 
     distance a b = distance (axialToCubical a) (axialToCubical b)
 
