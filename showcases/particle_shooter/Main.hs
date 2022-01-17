@@ -166,15 +166,5 @@ coulombPotential
     -> Double -- ^ Magnitude of the potential
 coulombPotential center charge p = charge / (let Distance d = norm (p -. center) in d)
 
--- | Vector field with magnitude 1 everywhere that goes in circles. The archetype of a curl-y field.
-circleField
-    :: Vec2   -- ^ Center
-    -> Vec2   -- ^ Particle
-    -> Vec2   -- ^ Force direction
-circleField center = \p -> circleField0 (center -. p)
-
-circleField0 :: Vec2 -> Vec2
-circleField0 v@(Vec2 x y) = Vec2 y (-x) /. normSquare v
-
 sum' :: [Double] -> Double
 sum' = foldl' (+) 0
