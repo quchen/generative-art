@@ -93,7 +93,7 @@ parseRGBAHex [r1, r2, g1, g2, b1, b2, a1, a2] = rgba
     (read ("0x" ++ [b1, b2]) / 255)
     (read ("0x" ++ [a1, a2]) / 255)
 parseRGBAHex [r1, r2, g1, g2, b1, b2] = parseRGBAHex [r1, r2, g1, g2, b1, b2, 'f', 'f']
-parseRGBAHex _ = undefined
+parseRGBAHex str = error ("parseRGBAHex: cannot parse " ++ str)
 
 parseRGBHex :: String -> Color Double
 parseRGBHex ('#' : rrggbb) = parseRGBHex rrggbb
@@ -101,7 +101,7 @@ parseRGBHex [r1, r2, g1, g2, b1, b2] = rgb
     (read ("0x" ++ [r1, r2]) / 255)
     (read ("0x" ++ [g1, g2]) / 255)
     (read ("0x" ++ [b1, b2]) / 255)
-parseRGBHex _ = undefined
+parseRGBHex str = error ("parseRGBHex: cannot parse " ++ str)
 
 -- | Mathematica’s ColorData[97] scheme.
 mmaColor :: Int -> Double -> AlphaColor Double
