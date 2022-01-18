@@ -27,6 +27,7 @@ data Direction
     | L  -- ^ Left
     | DL -- ^ Down+left
     | DR -- ^ Down+right
+    deriving (Eq, Ord, Show)
 
 class HexagonalCoordinate hex where
     -- ^ Move x steps in a direction
