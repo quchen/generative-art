@@ -65,6 +65,13 @@ library:
     source-dirs: src
 
 executables:
+    cycloids:
+        main:        Main.hs
+        source-dirs: showcases/cycloids
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+            - cairo
     haskell-logo-billard:
         main:        Main.hs
         source-dirs: showcases/haskell_logo_billard
