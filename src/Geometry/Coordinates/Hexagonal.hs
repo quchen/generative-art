@@ -166,7 +166,7 @@ hexagonalCoordinateSystem
 hexagonalCoordinateSystem sideLength range = do
     let hexagons = hexagonsInRange range
 
-    grouped (paintWithAlpha 0.2) $ cairoScope $ do
+    cairoScope $ grouped (paintWithAlpha 0.2) $ do
         -- Variable names use Cairo coordinates, i.e. inverted y axis compared to math.
 
         -- First, we draw the happy path: the left-hand side of all hexagons.
@@ -198,7 +198,7 @@ hexagonalCoordinateSystem sideLength range = do
         setSourceRGB 0 0 0
         circleSketch (Vec2 0 0) (Distance 20) >> stroke
         circleSketch (Vec2 0 0) (Distance 22) >> stroke
-    grouped (paintWithAlpha 0.5) $ do
+    cairoScope $ grouped (paintWithAlpha 0.5) $ do
         for_ hexagons $ \hexCoord@(Cube q r s) -> do
             for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
