@@ -26,16 +26,40 @@ main =
     in withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
 
 lambda :: Polygon
-lambda = Polygon
-    [ Vec2 113.386719 340.15625
-    , Vec2 226.773438 170.078125
-    , Vec2 113.386719 0
-    , Vec2 198.425781 0
-    , Vec2 425.195312 340.15625
-    , Vec2 340.15625 340.15625
-    , Vec2 269.292969 233.859375
-    , Vec2 198.425781 340.15625
-    ]
+lambda = G.transform (G.translate (negateV bbRawPoly)) rawPoly
+  where
+    bbRawPoly = boundingBoxCenter rawPoly
+    rawPoly = Polygon
+        [ Vec2 113.386719 340.15625
+        , Vec2 226.773438 170.078125
+        , Vec2 113.386719 0
+        , Vec2 198.425781 0
+        , Vec2 425.195312 340.15625
+        , Vec2 340.15625 340.15625
+        , Vec2 269.292969 233.859375
+        , Vec2 198.425781 340.15625
+        ]
+
+randomPointInPolygon :: MWC.GenST s -> Polygon -> ST s Vec2
+randomPointInPolygon gen poly = do
+    let (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = boundingBox poly
+    fix $ \loop -> do
+        x <- MWC.uniformRM (xMin, xMax) gen
+        y <- MWC.uniformRM (yMin, yMax) gen
+        let v = Vec2 x y
+        if pointInPolygon v poly
+            then pure v
+            else loop
+
+addCircuitInPolygon gen cellSize poly acceptStep knownCircuits = do
+    fix $ \loop -> do
+        p <- randomPointInPolygon gen poly
+        let pHex = fromVec2 cellSize p
+            maxLength = error "silly parameter remove me"
+        result <- addCircuit gen maxLength (Health 10 10) pHex acceptStep knownCircuits
+        case result of
+            Nothing -> loop
+            Just newCircuits -> pure newCircuits
 
 -- | Useful to limit trial and error processes: abort when health drops to zero,
 -- reduce health when an impossible move was attempted.
@@ -63,19 +87,28 @@ emptyCircuits = Circuits S.empty M.empty
 
 mainRender :: Render ()
 mainRender = do
+    let cellSize = 10
     let circuits = runST $ do
-            gen <- MWC.initialize (V.fromList [1252,3])
+            gen <- MWC.initialize (V.fromList [21252,3])
             k <- replicateM 1000 (MWC.uniformM gen)
             let _ = k :: [Int]
 
-            let maxLength = 3
-            Just x <- addCircuit gen maxLength (Health 10 10) mempty emptyCircuits
-            Just y <- addCircuit gen maxLength (Health 10 10) (move R 3 mempty) x
-            Just z <- addCircuit gen maxLength (Health 10 10) (move L 3 mempty) y
+            let acceptStep WireEnd _ = Just WireEnd
+                acceptStep step@(WireTo target) knownCircuits
+                    | target `M.notMember` _nodes knownCircuits
+                         && pointInPolygon (toVec2 cellSize target) lambda
+                        = Just step
+                acceptStep _ _ = Nothing
+
+            x <- addCircuitInPolygon gen cellSize lambda acceptStep emptyCircuits
+            y <- addCircuitInPolygon gen cellSize lambda acceptStep x
+            z <- addCircuitInPolygon gen cellSize lambda acceptStep y
             let _ = x :: Circuits Cube
             pure z
     C.translate 250 250
-    let cellSize = 20
+    cairoScope $ do
+        polygonSketch lambda
+        stroke
     hexagonalCoordinateSystem cellSize 10
     _ <- renderCircuits cellSize circuits
     pure ()
@@ -86,18 +119,17 @@ addCircuit
     -> Int
     -> Health
     -> hex
+    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits  hex
     -> ST s (Maybe (Circuits hex))
-addCircuit gen maxLength health start knownCircuits = do
+addCircuit gen maxLength health start acceptStep knownCircuits = do
     dir <- randomDirection gen
     let firstStep = move dir 1 start
         fieldIsFree f = f `M.notMember` _nodes knownCircuits
     if not (fieldIsFree start) || not (fieldIsFree firstStep)
         then pure Nothing
         else do
-            let acceptStep WireEnd = Just WireEnd
-                acceptStep step@(WireTo target) = if fieldIsFree target then Just step else Nothing
-                knownCircuitsBeforeProcess = M.insert start (WireTo firstStep) (_nodes knownCircuits)
+            let knownCircuitsBeforeProcess = knownCircuits{_nodes = M.insert start (WireTo firstStep) (_nodes knownCircuits)}
             knownCircuitsAfterProcess <- circuitProcessFinish
                 gen
                 maxLength
@@ -106,10 +138,7 @@ addCircuit gen maxLength health start knownCircuits = do
                 knownCircuitsBeforeProcess
                 start
                 firstStep
-            (pure . Just) Circuits
-                { _starts = S.insert start (_starts knownCircuits)
-                , _nodes = knownCircuitsAfterProcess
-                }
+            pure (Just knownCircuitsAfterProcess)
 
 randomDirection :: MWC.GenST s -> ST s Direction
 randomDirection gen = do
@@ -150,19 +179,19 @@ circuitProcessFinish
     => MWC.Gen s
     -> Int
     -> Health
-    -> (CellState hex -> Maybe (CellState hex))
-    -> Map hex (CellState hex)
+    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> Circuits hex
     -> hex
     -> hex
-    -> ST s (Map hex (CellState hex))
-circuitProcessFinish _gen _maxLength health _acceptStep knownCells _lastPos currentPos
-    | isDead health = pure (M.insert currentPos WireEnd knownCells)
-circuitProcessFinish gen maxLength health acceptStep knownCells lastPos currentPos = do
+    -> ST s (Circuits hex)
+circuitProcessFinish _gen _maxLength health _acceptStep knownCircuits _lastPos currentPos
+    | isDead health = pure knownCircuits { _nodes = M.insert currentPos WireEnd (_nodes knownCircuits) }
+circuitProcessFinish gen maxLength health acceptStep knownCircuits lastPos currentPos = do
     newWire <- randomAction gen lastPos currentPos
-    case acceptStep newWire of
-        Nothing              -> circuitProcessFinish gen maxLength (damage health 1) acceptStep knownCells lastPos currentPos
-        Just (WireTo target) -> circuitProcessFinish gen maxLength (heal health) acceptStep (M.insert currentPos newWire knownCells) currentPos target
-        Just WireEnd         -> pure (M.insert currentPos newWire knownCells)
+    case acceptStep newWire knownCircuits of
+        Nothing              -> circuitProcessFinish gen maxLength (damage health 1) acceptStep knownCircuits lastPos currentPos
+        Just (WireTo target) -> circuitProcessFinish gen maxLength (heal health) acceptStep knownCircuits{ _nodes = M.insert currentPos newWire (_nodes knownCircuits) } currentPos target
+        Just WireEnd         -> pure knownCircuits { _nodes = M.insert currentPos WireEnd (_nodes knownCircuits) }
 
 renderSingleWire
     :: (HexagonalCoordinate hex, Ord hex, Show hex)
