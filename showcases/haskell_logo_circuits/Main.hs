@@ -87,9 +87,9 @@ emptyCircuits = Circuits S.empty M.empty
 
 mainRender :: Render ()
 mainRender = do
-    let cellSize = 10
+    let cellSize = 5
     let circuits = runST $ do
-            gen <- MWC.initialize (V.fromList [21252,3])
+            gen <- MWC.initialize (V.fromList [21252,233])
             k <- replicateM 1000 (MWC.uniformM gen)
             let _ = k :: [Int]
 
@@ -100,16 +100,17 @@ mainRender = do
                         = Just step
                 acceptStep _ _ = Nothing
 
-            x <- addCircuitInPolygon gen cellSize lambda acceptStep emptyCircuits
-            y <- addCircuitInPolygon gen cellSize lambda acceptStep x
-            z <- addCircuitInPolygon gen cellSize lambda acceptStep y
-            let _ = x :: Circuits Cube
-            pure z
+            let iterateM n f start
+                    | n == 0 = pure start
+                    | otherwise = f start >>= iterateM (n-1) f
+            result <- iterateM 150 (addCircuitInPolygon gen cellSize lambda acceptStep) emptyCircuits
+            let _ = result :: Circuits Cube
+            pure result
     C.translate 250 250
-    cairoScope $ do
-        polygonSketch lambda
-        stroke
-    hexagonalCoordinateSystem cellSize 10
+    -- cairoScope $ do
+    --     polygonSketch lambda
+    --     stroke
+    -- hexagonalCoordinateSystem cellSize 10
     _ <- renderCircuits cellSize circuits
     pure ()
 
@@ -129,7 +130,10 @@ addCircuit gen maxLength health start acceptStep knownCircuits = do
     if not (fieldIsFree start) || not (fieldIsFree firstStep)
         then pure Nothing
         else do
-            let knownCircuitsBeforeProcess = knownCircuits{_nodes = M.insert start (WireTo firstStep) (_nodes knownCircuits)}
+            let knownCircuitsBeforeProcess = knownCircuits
+                    { _starts = S.insert start (_starts knownCircuits)
+                    , _nodes = M.insert start (WireTo firstStep) (_nodes knownCircuits)
+                    }
             knownCircuitsAfterProcess <- circuitProcessFinish
                 gen
                 maxLength
