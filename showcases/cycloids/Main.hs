@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import Data.Foldable (for_)
+import Control.Monad (when)
 import qualified Graphics.Rendering.Cairo as Cairo
 
 import Draw
@@ -18,17 +18,37 @@ scaleFactor = 1
 main :: IO ()
 main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
     Cairo.scale scaleFactor scaleFactor
-    cairoScope (setColor colorBackground >> Cairo.paint)
-    Cairo.translate (picWidth / 2) (picHeight / 2)
+    cairoScope (setColor colorBackground2 >> Cairo.paint)
 
-    let --curve t = epitrochoid Trochoid { baseRadius = 350, rotorRadius = 50, pencilRadius = 2*t } t
-        curve t = hypotrochoid Trochoid { baseRadius = t+200, rotorRadius = 0.901*(t+200), pencilRadius = -0.2*t + 1000 } t
+    let curve k t = hypotrochoid Trochoid
+            { baseRadius = t+800
+            , rotorRadius = (0.9 + 0.0001*k)*(t+800)
+            , pencilRadius = -0.2*t + 1800 }
+            (t*0.5)
 
-    moveToVec (curve 0)
-    for_ [0, 0.01 .. 3000] $ lineToVec . curve
+    for_ [0..16] $ \k -> do
+        cairoScope $ do
+            Cairo.scale 0.25 0.25
+            Cairo.rectangle 240 240 2080 2080
+            cairoScope $ do
+                setColor colorForeground2
+                Cairo.setLineWidth 20
+                Cairo.strokePreserve
+            cairoScope $ do
+                setColor colorBackground1
+                Cairo.fillPreserve
+            Cairo.clip
 
-    setColor colorForeground
-    Cairo.stroke
+            Cairo.translate (picWidth / 2) (picHeight / 2)
+            moveToVec (curve (fromIntegral k) 0)
+            for_ [0, 0.2 .. 5700] $ lineToVec . curve (fromIntegral k)
+
+            setColor colorForeground1
+            Cairo.stroke
+
+        Cairo.translate (picWidth/4) 0
+        when (k `mod` 4 == 3) $ Cairo.translate (-picWidth) (picHeight / 4)
+
   where
     scaledWidth = round (scaleFactor * picWidth)
     scaledHeight = round (scaleFactor * picHeight)
@@ -52,6 +72,8 @@ hypotrochoid Trochoid{..} t =  order0 +. pencilRadius *. order1
     order0 = polar (rad t) (Distance $ baseRadius - rotorRadius)
     order1 = polar (rad $ (rotorRadius - baseRadius) / rotorRadius * t) (Distance 1)
 
-colorBackground, colorForeground :: Color Double
-colorBackground = parseRGBHex "#073642"
-colorForeground = parseRGBHex "#586e75"
+colorBackground1, colorForeground1, colorBackground2, colorForeground2 :: Color Double
+colorBackground1 = parseRGBHex "#002b36"
+colorBackground2 = parseRGBHex "#073642"
+colorForeground1 = parseRGBHex "#586e75"
+colorForeground2 = parseRGBHex "#657b83"
