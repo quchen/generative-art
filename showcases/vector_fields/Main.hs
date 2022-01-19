@@ -2,7 +2,6 @@
 module Main (main) where
 
 import           Control.Monad            (replicateM)
-import           Data.Foldable            (for_)
 import           Data.Maybe               (fromMaybe)
 import qualified Graphics.Rendering.Cairo as Cairo
 import           Math.Noise               (Perlin (..), getValue, perlin)

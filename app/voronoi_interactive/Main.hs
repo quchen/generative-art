@@ -2,7 +2,6 @@
 
 module Main (main) where
 
-import Data.Foldable     (Foldable (foldl'), for_)
 import Numeric           (showHex)
 import Prelude           hiding ((**))
 import System.IO.Temp    (withSystemTempDirectory)

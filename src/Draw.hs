@@ -45,6 +45,7 @@ module Draw (
 
     -- * Convenience
     , module Data.Default.Class
+    , module Data.Foldable
 ) where
 
 
