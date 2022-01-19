@@ -8,9 +8,7 @@ import qualified Geometry.Core as G
 import Graphics.Rendering.Cairo as C hiding (x,y)
 import Data.Foldable
 import Draw
-import qualified Data.Set as S
 import Data.Maybe
-import Data.List
 import Control.Monad
 
 data Cube = Cube !Int !Int !Int
@@ -180,7 +178,7 @@ hexagonalCoordinateSystem
     -> Int    -- ^ How many hexagons to draw in each direction
     -> Render ()
 hexagonalCoordinateSystem sideLength range = do
-    let hexagons = hexagonsInRange range zero
+    let hexagons = hexagonsInRange range hexZero
 
     cairoScope $ grouped (paintWithAlpha 0.2) $ do
         -- Variable names use Cairo coordinates, i.e. inverted y axis compared to math.
