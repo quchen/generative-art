@@ -367,8 +367,11 @@ boundingBoxPolygon :: BoundingBox -> Polygon
 boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bb
 
-insideBoundingBox :: HasBoundingBox a => a -> BoundingBox -> Bool
-insideBoundingBox thing bb = bb == (bb <> boundingBox thing)
+insideBoundingBox :: (HasBoundingBox a, HasBoundingBox b) => a -> b -> Bool
+insideBoundingBox thing bigObject =
+    let thingBB = boundingBox thing
+        bigObjectBB = boundingBox bigObject
+    in bigObjectBB == bigObjectBB <> thingBB
 
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
