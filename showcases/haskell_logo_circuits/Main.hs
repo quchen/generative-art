@@ -133,9 +133,13 @@ addCircuit gen start acceptStep knownCircuits = do
         then pure Nothing
         else do
             let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
-            knownCircuitsAfterProcess <- circuitProcessFinish
-                gen
-                acceptStep
+            knownCircuitsAfterProcess <- fix
+                (\loop newKnownCircuits lastPos currentPos -> do
+                    action <- randomPossibleAction gen acceptStep newKnownCircuits lastPos currentPos
+                    case action of
+                        WireTo target -> loop (insertNode currentPos action newKnownCircuits) currentPos target
+                        WireEnd       -> pure (insertNode currentPos WireEnd newKnownCircuits)
+                )
                 knownCircuitsBeforeProcess
                 start
                 firstStep
@@ -197,20 +201,6 @@ weightedRandom gen choices = do
         | n <= weight = x
         | otherwise   = pick (n-weight) xs
     pick _ _  = error "weightedRandom.pick used with empty list"
-
-circuitProcessFinish
-    :: (Ord hex, HexagonalCoordinate hex)
-    => MWC.Gen s
-    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
-    -> Circuits hex
-    -> hex
-    -> hex
-    -> ST s (Circuits hex)
-circuitProcessFinish gen acceptStep knownCircuits lastPos currentPos = do
-    action <- randomPossibleAction gen acceptStep knownCircuits lastPos currentPos
-    case action of
-        WireTo target -> circuitProcessFinish gen acceptStep (insertNode currentPos action knownCircuits) currentPos target
-        WireEnd       -> pure (insertNode currentPos WireEnd knownCircuits)
 
 renderSingleWire
     :: (HexagonalCoordinate hex, Ord hex)
