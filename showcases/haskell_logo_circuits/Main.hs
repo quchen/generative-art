@@ -15,16 +15,18 @@ import Control.Monad
 import Data.Function
 import Data.Maybe
 import Geometry.Chaotic
+import Debug.Trace
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
+-- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main =
     let picWidth = 300
         picHeight = 380
     in withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
 
-hexLambda :: Int -> [Cube]
-hexLambda c = runSteps
+hexLambda :: HexagonalCoordinate hex => Int -> Hex.Polygon hex
+hexLambda c = Hex.Polygon $ runSteps
     [ id
     , move R (c*2)
     , move DR (c*10)
@@ -34,35 +36,36 @@ hexLambda c = runSteps
     , move L (c*2)
     , move UR (c*5)
     ]
-    (Cube 0 0 0)
+    hexZero
   where
     runSteps [] _pos = []
     runSteps (f:fs) pos =
         let newPoint = f pos
         in newPoint : runSteps fs newPoint
 
-randomPointInPolygon :: MWC.GenST s -> G.Polygon -> ST s Vec2
+randomPointInPolygon :: MWC.GenST s -> Hex.Polygon Cube -> ST s Cube
 randomPointInPolygon gen poly = do
-    let (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = boundingBox poly
+    let rMin = -10 -- This is a very poor algorithm. I apologize.
+        rMax = 10  -- This is a very poor algorithm. I apologize.
+        qMin = -10 -- This is a very poor algorithm. I apologize.
+        qMax = 10  -- This is a very poor algorithm. I apologize.
     fix $ \loop -> do
-        x <- MWC.uniformRM (xMin, xMax) gen
-        y <- MWC.uniformRM (yMin, yMax) gen
-        let v = Vec2 x y
-        if G.pointInPolygon v poly
-            then pure v
+        q <- MWC.uniformRM (qMin, qMax) gen
+        r <- MWC.uniformRM (rMin, rMax) gen
+        let hex = Cube q r (-q-r)
+        if Hex.pointInPolygon hex poly
+            then pure hex
             else loop
 
 addCircuitInPolygon
-    :: (Ord hex, HexagonalCoordinate hex)
-    => MWC.GenST s
+    :: MWC.GenST s
     -> Double
-    -> G.Polygon
-    -> MoveConstraints hex
-    -> Circuits hex
-    -> ST s (Circuits hex)
+    -> Hex.Polygon Cube
+    -> MoveConstraints Cube
+    -> Circuits Cube
+    -> ST s (Circuits Cube)
 addCircuitInPolygon gen cellSize poly constraints knownCircuits = fix $ \loop -> do
-    p <- randomPointInPolygon gen poly
-    let pHex = fromVec2 cellSize p
+    pHex <- randomPointInPolygon gen poly
     if _acceptStart constraints pHex
         then addCircuit gen pHex constraints knownCircuits >>= \case
             Nothing -> loop
@@ -95,10 +98,9 @@ fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
 fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 circuitProcess
-    :: (Ord hex, HexagonalCoordinate hex)
-    => Double
-    -> G.Polygon
-    -> Circuits hex
+    :: Double
+    -> Hex.Polygon Cube
+    -> Circuits Cube
 circuitProcess cellSize polygon = runST $ do
     gen <- MWC.initialize (V.fromList [21252,233])
     k <- replicateM 1000 (MWC.uniformM gen)
@@ -107,11 +109,11 @@ circuitProcess cellSize polygon = runST $ do
     let acceptStep WireEnd _ = Just WireEnd
         acceptStep step@(WireTo target) knownCircuits
             | target `M.notMember` _nodes knownCircuits
-                    && G.pointInPolygon (toVec2 cellSize target) polygon
+                    && Hex.pointInPolygon target polygon
                 = Just step
         acceptStep _ _ = Nothing
 
-        acceptStart hex = toVec2 cellSize hex `G.pointInPolygon` polygon
+        acceptStart hex = hex `Hex.pointInPolygon` polygon && not (hex `Hex.isOnEdge` polygon)
 
         constraints = MoveConstraints
             { _acceptStep = acceptStep
@@ -125,15 +127,18 @@ mainRender :: Render ()
 mainRender = do
     let cellSize = 3
         lambdaScale = 8
-        lambda = G.Polygon (map (toVec2 cellSize) (hexLambda lambdaScale))
+        lambda = hexLambda lambdaScale
     let
-    C.translate 0 10
-    setLineWidth 1
-    renderCircuits cellSize (circuitProcess cellSize lambda :: Circuits Axial)
+    C.translate 10 10
     cairoScope $ do
-        setColor (rgba 0 0 0 0.3)
-        D.polygonSketch lambda
-        stroke
+        setColor (mmaColor 1 1)
+        Hex.polygonSketch cellSize lambda
+    -- setLineWidth 1
+    -- renderCircuits cellSize (circuitProcess cellSize lambda)
+    -- cairoScope $ do
+    --     setColor (rgba 0 0 0 0.3)
+    --     polygonSketch lambda
+    --     stroke
 
 
 iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
