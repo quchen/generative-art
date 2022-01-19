@@ -45,10 +45,10 @@ hexLambda c = Hex.Polygon $ runSteps
 
 randomPointInPolygon :: MWC.GenST s -> Hex.Polygon Cube -> ST s Cube
 randomPointInPolygon gen poly = do
-    let rMin = -10 -- This is a very poor algorithm. I apologize.
-        rMax = 10  -- This is a very poor algorithm. I apologize.
-        qMin = -10 -- This is a very poor algorithm. I apologize.
-        qMax = 10  -- This is a very poor algorithm. I apologize.
+    let rMin = 0 -- This is a very poor algorithm. I apologize.
+        rMax = 20  -- This is a very poor algorithm. I apologize.
+        qMin = 0 -- This is a very poor algorithm. I apologize.
+        qMax = 20  -- This is a very poor algorithm. I apologize.
     fix $ \loop -> do
         q <- MWC.uniformRM (qMin, qMax) gen
         r <- MWC.uniformRM (rMin, rMax) gen
@@ -132,7 +132,8 @@ mainRender = do
     cairoScope $ do
         setColor (mmaColor 1 1)
         Hex.polygonSketch cellSize lambda
-    -- setLineWidth 1
+    setLineWidth 1
+    -- hexagonalCoordinateSystem cellSize 10
     renderCircuits cellSize (circuitProcess 100 lambda)
     -- cairoScope $ do
     --     setColor (rgba 0 0 0 0.3)
