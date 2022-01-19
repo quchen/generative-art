@@ -1,7 +1,5 @@
 module Main (main) where
 
-
-
 import Geometry as G
 import Draw as D
 import Graphics.Rendering.Cairo as C hiding (x,y)
@@ -16,16 +14,14 @@ import qualified Data.Vector as V
 import Control.Monad
 import Data.Function
 import Data.Maybe
-import Data.Foldable
 import Geometry.Chaotic
-
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main =
     let picWidth = 300
         picHeight = 380
-    in withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface mainRender)
+    in withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
 
 hexLambda :: Int -> [Cube]
 hexLambda c = runSteps
@@ -61,17 +57,20 @@ addCircuitInPolygon
     => MWC.GenST s
     -> Double
     -> Polygon
+    -> (hex -> Bool)
     -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits hex
     -> ST s (Circuits hex)
-addCircuitInPolygon gen cellSize poly acceptStep knownCircuits = do
+addCircuitInPolygon gen cellSize poly acceptStart acceptStep knownCircuits = do
     fix $ \loop -> do
         p <- randomPointInPolygon gen poly
         let pHex = fromVec2 cellSize p
-        result <- addCircuit gen pHex acceptStep knownCircuits
-        case result of
-            Nothing -> loop
-            Just newCircuits -> pure newCircuits
+        if acceptStart pHex
+            then do
+                addCircuit gen pHex acceptStep knownCircuits >>= \case
+                    Nothing -> loop
+                    Just newCircuits -> pure newCircuits
+            else loop
 
 data Circuits hex = Circuits
     { _starts :: Set hex
@@ -110,19 +109,19 @@ mainRender = do
                         = Just step
                 acceptStep _ _ = Nothing
 
-            result <- iterateM 250 (addCircuitInPolygon gen cellSize lambda acceptStep) emptyCircuits
+                acceptStart hex = toVec2 cellSize hex `pointInPolygon` lambda
+
+            result <- iterateM 250 (addCircuitInPolygon gen cellSize lambda acceptStart acceptStep) emptyCircuits
             let _ = result :: Circuits Cube
             pure result
-    -- cartesianCoordinateSystem
     C.translate 0 10
-    -- hexagonalCoordinateSystem cellSize 7
     setLineWidth 1
-    setColor (rgb 0.7 0.8 0.7)
-    -- cairoScope $ do
-    --     setColor (rgb 0.7 0.8 0.7)
-    --     polygonSketch lambda
-    --     stroke
     renderCircuits cellSize circuits
+    cairoScope $ do
+        setColor (rgba 0 0 0 0.3)
+        polygonSketch lambda
+        stroke
+
 
 iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
 iterateM n _f start | n <= 0 = pure start
@@ -212,8 +211,6 @@ weightedRandom gen choices = do
         | n <= weight = x
         | otherwise   = pick (n-weight) xs
     pick _ _  = error "weightedRandom.pick used with empty list"
-
-
 
 renderSingleWire
     :: (HexagonalCoordinate hex, Ord hex)
