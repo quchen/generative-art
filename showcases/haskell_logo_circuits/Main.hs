@@ -103,9 +103,6 @@ mainRender = do
                         = Just step
                 acceptStep _ _ = Nothing
 
-            let iterateM n f start
-                    | n == 0 = pure start
-                    | otherwise = f start >>= iterateM (n-1) f
             result <- iterateM 150 (addCircuitInPolygon gen cellSize lambda acceptStep) emptyCircuits
             let _ = result :: Circuits Cube
             pure result
@@ -117,6 +114,10 @@ mainRender = do
     -- hexagonalCoordinateSystem cellSize 10
     _ <- renderCircuits cellSize circuits
     pure ()
+
+iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
+iterateM n _f start | n <= 0 = pure start
+iterateM n f start = f start >>= iterateM (n-1) f
 
 addCircuit
     :: (HexagonalCoordinate hex, Ord hex)
@@ -192,9 +193,9 @@ weightedRandom gen choices = do
     i <- MWC.uniformRM (1, total) gen
     pure (pick i choices)
   where
-    pick n ((k,x):xs)
-        | n <= k    = x
-        | otherwise = pick (n-k) xs
+    pick n ((weight,x):xs)
+        | n <= weight = x
+        | otherwise   = pick (n-weight) xs
     pick _ _  = error "weightedRandom.pick used with empty list"
 
 circuitProcessFinish
