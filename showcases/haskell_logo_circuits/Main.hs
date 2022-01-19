@@ -170,11 +170,11 @@ randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedR
     possibleActions = flip filter actions $ \(_weight, action) ->
         isJust (acceptStep action knownCircuits)
 
-    straightOn = currentPos `hexAdd` hexSubtract currentPos lastPos
-    right = Hex.rotateAround currentPos 1 straightOn
-    left = Hex.rotateAround currentPos (-1) straightOn
+    straightOn i = currentPos `hexAdd` hexTimes i (hexSubtract currentPos lastPos)
+    right = Hex.rotateAround currentPos 1 (straightOn 1)
+    left = Hex.rotateAround currentPos (-1) (straightOn 1)
 
-    continueStraight = WireTo straightOn
+    continueStraight = WireTo (straightOn 1)
     continueRight = WireTo right
     continueLeft = WireTo left
     terminate = WireEnd
