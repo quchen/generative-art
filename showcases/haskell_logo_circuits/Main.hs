@@ -15,6 +15,7 @@ import Control.Monad.ST
 import qualified Data.Vector as V
 import Control.Monad
 import Data.Function
+import Data.Maybe
 
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
@@ -167,21 +168,26 @@ data CellState hex
     | WireEnd
     deriving (Eq, Ord, Show)
 
-randomAction
+randomPossibleAction
     :: HexagonalCoordinate hex
     => MWC.GenST s
+    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> Circuits hex
     -> hex
     -> hex
     -> ST s (CellState hex)
-randomAction gen lastPos currentPos = do
-    n <- MWC.uniformRM (1, 100) gen
-    let _ = n :: Int
-    if | n <= 50 -> pure continueStraight
-       | n <= 95 -> do
-           d <- MWC.uniformM gen
-           pure (if d then continueRight else continueLeft)
-       | otherwise -> pure terminate
+randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedRandom gen possibleActions
   where
+    actions =
+        [ (50, continueStraight)
+        , (20, continueRight)
+        , (20, continueLeft)
+        , (5, terminate)
+        ]
+
+    possibleActions = flip filter actions $ \(_weight, action) ->
+        isJust (acceptStep action knownCircuits)
+
     straightOn = currentPos `hexAdd` hexSubtract currentPos lastPos
     right = Hex.rotateAround currentPos 1 straightOn
     left = Hex.rotateAround currentPos (-1) straightOn
@@ -190,6 +196,24 @@ randomAction gen lastPos currentPos = do
     continueRight = WireTo right
     continueLeft = WireTo left
     terminate = WireEnd
+
+-- | Pick an element from a list with a certain weight.
+weightedRandom :: MWC.GenST s -> [(Int, a)] -> ST s a
+weightedRandom _ choices
+    | any (< 0) weights = error "weightedRandom: negative weight"
+    | all (== 0) weights = error "weightedRandom: all weights were zero"
+  where
+    weights = [weight | (weight, _val) <- choices]
+
+weightedRandom gen choices = do
+    let total = sum [weight | (weight, _val) <- choices]
+    i <- MWC.uniformRM (1, total) gen
+    pure (pick i choices)
+  where
+    pick n ((k,x):xs)
+        | n <= k    = x
+        | otherwise = pick (n-k) xs
+    pick _ _  = error "weightedRandom.pick used with empty list"
 
 circuitProcessFinish
     :: (Ord hex, HexagonalCoordinate hex)
@@ -203,7 +227,7 @@ circuitProcessFinish
 circuitProcessFinish _gen health _acceptStep knownCircuits _lastPos currentPos
     | isDead health = pure (insertNode currentPos WireEnd knownCircuits)
 circuitProcessFinish gen health acceptStep knownCircuits lastPos currentPos = do
-    newWire <- randomAction gen lastPos currentPos
+    newWire <- randomPossibleAction gen acceptStep knownCircuits lastPos currentPos
     case acceptStep newWire knownCircuits of
         Nothing              -> circuitProcessFinish gen (damage health 1) acceptStep knownCircuits lastPos currentPos
         Just (WireTo target) -> circuitProcessFinish gen (heal health) acceptStep (insertNode currentPos newWire knownCircuits) currentPos target
