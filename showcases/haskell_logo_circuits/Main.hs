@@ -15,7 +15,6 @@ import Control.Monad.ST
 import qualified Data.Vector as V
 import Control.Monad
 import Data.Function
-import Debug.Trace
 
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
@@ -51,12 +50,19 @@ randomPointInPolygon gen poly = do
             then pure v
             else loop
 
+addCircuitInPolygon
+    :: (Ord hex, HexagonalCoordinate hex)
+    => MWC.GenST s
+    -> Double
+    -> Polygon
+    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> Circuits hex
+    -> ST s (Circuits hex)
 addCircuitInPolygon gen cellSize poly acceptStep knownCircuits = do
     fix $ \loop -> do
         p <- randomPointInPolygon gen poly
         let pHex = fromVec2 cellSize p
-            maxLength = error "silly parameter remove me"
-        result <- addCircuit gen maxLength (Health 10 10) pHex acceptStep knownCircuits
+        result <- addCircuit gen (Health 16 16) pHex acceptStep knownCircuits
         case result of
             Nothing -> loop
             Just newCircuits -> pure newCircuits
@@ -83,7 +89,19 @@ data Circuits hex = Circuits
     } deriving (Eq, Ord, Show)
 
 emptyCircuits :: Circuits hex
-emptyCircuits = Circuits S.empty M.empty
+emptyCircuits = Circuits
+    { _starts = S.empty
+    , _nodes = M.empty
+    }
+
+insertNode :: Ord hex => hex -> CellState hex -> Circuits hex -> Circuits hex
+insertNode cellPos cellState circuits = circuits { _nodes = M.insert cellPos cellState (_nodes circuits) }
+
+insertStart :: Ord hex => hex -> Circuits hex -> Circuits hex
+insertStart start circuits = circuits { _starts = S.insert start (_starts circuits) }
+
+fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
+fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 mainRender :: Render ()
 mainRender = do
@@ -107,36 +125,31 @@ mainRender = do
             let _ = result :: Circuits Cube
             pure result
     C.translate 250 250
-    -- cairoScope $ do
-    --     polygonSketch lambda
-    --     stroke
+    cairoScope $ do
+        setColor (rgb 1 0 0)
+        polygonSketch lambda
+        stroke
     -- hexagonalCoordinateSystem cellSize 10
     _ <- renderCircuits cellSize circuits
     pure ()
 
 addCircuit
-    :: (HexagonalCoordinate hex, Ord hex, Show hex)
+    :: (HexagonalCoordinate hex, Ord hex)
     => MWC.GenST s
-    -> Int
     -> Health
     -> hex
     -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits  hex
     -> ST s (Maybe (Circuits hex))
-addCircuit gen maxLength health start acceptStep knownCircuits = do
+addCircuit gen health start acceptStep knownCircuits = do
     dir <- randomDirection gen
     let firstStep = move dir 1 start
-        fieldIsFree f = f `M.notMember` _nodes knownCircuits
-    if not (fieldIsFree start) || not (fieldIsFree firstStep)
+    if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
         then pure Nothing
         else do
-            let knownCircuitsBeforeProcess = knownCircuits
-                    { _starts = S.insert start (_starts knownCircuits)
-                    , _nodes = M.insert start (WireTo firstStep) (_nodes knownCircuits)
-                    }
+            let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
             knownCircuitsAfterProcess <- circuitProcessFinish
                 gen
-                maxLength
                 health
                 acceptStep
                 knownCircuitsBeforeProcess
@@ -181,24 +194,23 @@ randomAction gen lastPos currentPos = do
 circuitProcessFinish
     :: (Ord hex, HexagonalCoordinate hex)
     => MWC.Gen s
-    -> Int
     -> Health
     -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits hex
     -> hex
     -> hex
     -> ST s (Circuits hex)
-circuitProcessFinish _gen _maxLength health _acceptStep knownCircuits _lastPos currentPos
-    | isDead health = pure knownCircuits { _nodes = M.insert currentPos WireEnd (_nodes knownCircuits) }
-circuitProcessFinish gen maxLength health acceptStep knownCircuits lastPos currentPos = do
+circuitProcessFinish _gen health _acceptStep knownCircuits _lastPos currentPos
+    | isDead health = pure (insertNode currentPos WireEnd knownCircuits)
+circuitProcessFinish gen health acceptStep knownCircuits lastPos currentPos = do
     newWire <- randomAction gen lastPos currentPos
     case acceptStep newWire knownCircuits of
-        Nothing              -> circuitProcessFinish gen maxLength (damage health 1) acceptStep knownCircuits lastPos currentPos
-        Just (WireTo target) -> circuitProcessFinish gen maxLength (heal health) acceptStep knownCircuits{ _nodes = M.insert currentPos newWire (_nodes knownCircuits) } currentPos target
-        Just WireEnd         -> pure knownCircuits { _nodes = M.insert currentPos WireEnd (_nodes knownCircuits) }
+        Nothing              -> circuitProcessFinish gen (damage health 1) acceptStep knownCircuits lastPos currentPos
+        Just (WireTo target) -> circuitProcessFinish gen (heal health) acceptStep (insertNode currentPos newWire knownCircuits) currentPos target
+        Just WireEnd         -> pure (insertNode currentPos WireEnd knownCircuits)
 
 renderSingleWire
-    :: (HexagonalCoordinate hex, Ord hex, Show hex)
+    :: (HexagonalCoordinate hex, Ord hex)
     => Double
     -> Map hex (CellState hex)
     -> hex
@@ -210,7 +222,6 @@ renderSingleWire cellSize allKnownCells start = do
     go currentPosHex = case M.lookup currentPosHex allKnownCells of
         Nothing -> do
             stroke
-            let !_ = trace (show currentPosHex) ()
             crossSketch (toVec2 cellSize currentPosHex) (Distance (cellSize/2))
         Just (WireTo target) -> do
             case M.lookup target allKnownCells of
@@ -231,7 +242,7 @@ renderSingleWire cellSize allKnownCells start = do
             pure ()
 
 renderCircuits
-    :: (HexagonalCoordinate hex, Ord hex, Show hex)
+    :: (HexagonalCoordinate hex, Ord hex)
     => Double
     -> Circuits hex
     -> Render ()
