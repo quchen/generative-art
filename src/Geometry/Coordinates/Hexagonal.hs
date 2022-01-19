@@ -3,10 +3,14 @@
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
 module Geometry.Coordinates.Hexagonal where
 
-import Geometry.Core as G
+import Geometry.Core as G hiding (Polygon, pointInPolygon)
+import qualified Geometry.Core as G
 import Graphics.Rendering.Cairo as C hiding (x,y)
 import Data.Foldable
 import Draw
+import qualified Data.Set as S
+import Data.Maybe
+import Data.List
 import Control.Monad
 
 data Cube = Cube !Int !Int !Int
@@ -161,12 +165,12 @@ rotateAround center n hex =
 
 -- | 'Polygon' to match a 'HexagonalCoordinate'. Useful e.g. for collision
 -- checking, and of course also for painting. :-)
-hexagonPoly :: HexagonalCoordinate hex => Double -> hex -> Polygon
+hexagonPoly :: HexagonalCoordinate hex => Double -> hex -> G.Polygon
 hexagonPoly sideLength hex =
     let center = toVec2 sideLength hex
         oneCorner = center +. Vec2 0 sideLength
         corner n = G.transform (G.rotateAround center (deg (60*n))) oneCorner
-    in Polygon [corner n | n <- [0..5]]
+    in G.Polygon [corner n | n <- [0..5]]
 
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
@@ -176,7 +180,7 @@ hexagonalCoordinateSystem
     -> Int    -- ^ How many hexagons to draw in each direction
     -> Render ()
 hexagonalCoordinateSystem sideLength range = do
-    let hexagons = hexagonsInRange range
+    let hexagons = hexagonsInRange range zero
 
     cairoScope $ grouped (paintWithAlpha 0.2) $ do
         -- Variable names use Cairo coordinates, i.e. inverted y axis compared to math.
@@ -204,7 +208,7 @@ hexagonalCoordinateSystem sideLength range = do
                 | r == range                -> pathSketch [corner i | i <- [(-1), 0, 1, 2, 3]]
                 | otherwise                 -> pathSketch [corner i | i <- [0, 1, 2, 3]]
             when (hexCoord == Cube 0 0 0) $ do
-                let centerHexagon = Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 polygonSketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
                 polygonSketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
@@ -221,15 +225,16 @@ hexagonalCoordinateSystem sideLength range = do
                     else showTextAligned HCenter VCenter (show val)
 
 -- | Hexagons reachable within a number of steps from the origin.
-hexagonsInRange :: Int -> [Cube]
-hexagonsInRange range = do
+hexagonsInRange :: Int -> Cube -> [Cube]
+hexagonsInRange range center = do
     q <- [-range,-range+1..range]
     let rMin = max (-range) (-q-range)
         rMax = min range (-q+range)
     r <- [rMin, rMin+1 .. rMax]
     let s = -q-r
-    pure (Cube q r s)
+    pure (Cube q r s `hexAdd` center)
 
+-- | Linear interpolation.
 lerp :: Double -> Double -> Double -> Double
 lerp a b t = t*a + (1-t)*b
 
@@ -254,3 +259,20 @@ ring n center = do
     (startDir, walkDir) <- zip [R, UR, UL, L, DL, DR] [UL, L, DL, DR, R, UR]
     let start = move startDir n center
     [ move walkDir i start | i <- [0..n-1]]
+
+data Polygon hex = Polygon [hex]
+    deriving (Eq, Ord, Show)
+
+isOnEdge :: Cube -> Polygon Cube -> Bool
+isOnEdge hex (Polygon corners) =
+    let edges = concat (zipWith line corners (cycle corners))
+    in isJust (find (== hex) edges)
+
+pointInPolygon :: Cube -> Polygon Cube -> Bool
+pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
+  where
+    -- | This elimintes numerical instabilities
+    onEdge = isOnEdge hex polygon
+
+    -- This feels like cheating
+    inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
