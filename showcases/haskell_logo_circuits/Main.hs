@@ -177,7 +177,7 @@ randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedR
         [ (100, continueStraight)
         , (25, continueRight)
         , (25, continueLeft)
-        , (5, terminate)
+        , (5, terminate) -- This needs to be a valid choice as a fallback if nothing else goes
         ]
 
     possibleActions = flip filter actions $ \(_weight, action) ->
@@ -196,9 +196,11 @@ randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedR
 --
 -- The probability of an entry is thus \(\frac\text{weight}\text{\sum weights}}\).
 weightedRandom :: MWC.GenST s -> [(Int, a)] -> ST s a
+weightedRandom _ []
+    = error "weightedRandom: empty list of choices"
 weightedRandom _ choices
-    | any (< 0) weights = error "weightedRandom: negative weight"
-    | all (== 0) weights = error "weightedRandom: all weights were zero"
+    | any (< 0) weights = error ("weightedRandom: negative weight, " ++ show weights)
+    | all (== 0) weights = error ("weightedRandom: all weights were zero, " ++ show weights)
   where
     weights = [weight | (weight, _val) <- choices]
 
@@ -207,7 +209,7 @@ weightedRandom gen choices = do
     i <- MWC.uniformRM (1, total) gen
     pure (pick i choices)
   where
-    pick n ((weight,x):xs)
+    pick n ((weight, x):xs)
         | n <= weight = x
         | otherwise   = pick (n-weight) xs
     pick _ _  = error "weightedRandom.pick used with empty list"
@@ -249,8 +251,6 @@ renderCircuits
     => Double
     -> Circuits hex
     -> Render ()
-renderCircuits _ allCircuits
-    | S.null (_starts allCircuits) = pure ()
 renderCircuits cellSize allCircuits = case S.minView (_starts allCircuits) of
     Nothing -> pure ()
     Just (start, rest) -> do
