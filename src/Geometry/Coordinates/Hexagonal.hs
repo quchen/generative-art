@@ -7,6 +7,7 @@ import Geometry.Core as G
 import Graphics.Rendering.Cairo as C hiding (x,y)
 import Data.Foldable
 import Draw
+import Control.Monad
 
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
@@ -202,13 +203,12 @@ hexagonalCoordinateSystem sideLength range = do
                 -- Lower boundary
                 | r == range                -> pathSketch [corner i | i <- [(-1), 0, 1, 2, 3]]
                 | otherwise                 -> pathSketch [corner i | i <- [0, 1, 2, 3]]
+            when (hexCoord == Cube 0 0 0) $ do
+                let centerHexagon = Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                polygonSketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
+                polygonSketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
 
-    cairoScope $ grouped (paintWithAlpha 0.2) $ do
-        setLineWidth 1
-        setSourceRGB 0 0 0
-        circleSketch (Vec2 0 0) (Distance 20) >> stroke
-        circleSketch (Vec2 0 0) (Distance 22) >> stroke
     cairoScope $ grouped (paintWithAlpha 0.5) $ do
         for_ hexagons $ \hexCoord@(Cube q r s) -> do
             for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
