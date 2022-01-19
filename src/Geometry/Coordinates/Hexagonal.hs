@@ -158,6 +158,16 @@ rotateAround center n hex =
         rotated = rot n hex'
     in rotated `hexAdd` center
 
+-- | 'Polygon' to match a 'HexagonalCoordinate'. Useful e.g. for collision
+-- checking, and of course also for painting. :-)
+hexagonPoly :: HexagonalCoordinate hex => Double -> hex -> Polygon
+hexagonPoly sideLength hex =
+    let center = toVec2 sideLength hex
+        oneCorner = center +. Vec2 0 sideLength
+        corner n = G.transform (G.rotateAround center (deg (60*n))) oneCorner
+    in Polygon [corner n | n <- [0..5]]
+
+
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
 hexagonalCoordinateSystem
