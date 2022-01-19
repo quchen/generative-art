@@ -4,8 +4,9 @@ module Why where
 
 
 import           Control.Monad.ST
+import           Data.Foldable
 import           Data.Ratio
-import           Data.Vector
+import           Data.Vector         (Vector)
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as VMut
 import           System.Random.MWC
