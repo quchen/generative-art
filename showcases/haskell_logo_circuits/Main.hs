@@ -92,31 +92,37 @@ insertStart start circuits = circuits { _starts = S.insert start (_starts circui
 fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
 fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
+circuitProcess
+    :: (Ord hex, HexagonalCoordinate hex)
+    => Double
+    -> Polygon
+    -> Circuits hex
+circuitProcess cellSize polygon = runST $ do
+    gen <- MWC.initialize (V.fromList [21252,233])
+    k <- replicateM 1000 (MWC.uniformM gen)
+    let _ = k :: [Int]
+
+    let acceptStep WireEnd _ = Just WireEnd
+        acceptStep step@(WireTo target) knownCircuits
+            | target `M.notMember` _nodes knownCircuits
+                    && pointInPolygon (toVec2 cellSize target) polygon
+                = Just step
+        acceptStep _ _ = Nothing
+
+        acceptStart hex = toVec2 cellSize hex `pointInPolygon` polygon
+
+    result <- iterateM 250 (addCircuitInPolygon gen cellSize polygon acceptStart acceptStep) emptyCircuits
+    pure result
+
 mainRender :: Render ()
 mainRender = do
     let cellSize = 3
         lambdaScale = 8
         lambda = Polygon (map (toVec2 cellSize) (hexLambda lambdaScale))
-    let circuits = runST $ do
-            gen <- MWC.initialize (V.fromList [21252,233])
-            k <- replicateM 1000 (MWC.uniformM gen)
-            let _ = k :: [Int]
-
-            let acceptStep WireEnd _ = Just WireEnd
-                acceptStep step@(WireTo target) knownCircuits
-                    | target `M.notMember` _nodes knownCircuits
-                         && pointInPolygon (toVec2 cellSize target) lambda
-                        = Just step
-                acceptStep _ _ = Nothing
-
-                acceptStart hex = toVec2 cellSize hex `pointInPolygon` lambda
-
-            result <- iterateM 250 (addCircuitInPolygon gen cellSize lambda acceptStart acceptStep) emptyCircuits
-            let _ = result :: Circuits Cube
-            pure result
+    let
     C.translate 0 10
     setLineWidth 1
-    renderCircuits cellSize circuits
+    renderCircuits cellSize (circuitProcess cellSize lambda :: Circuits Axial)
     cairoScope $ do
         setColor (rgba 0 0 0 0.3)
         D.polygonSketch lambda
