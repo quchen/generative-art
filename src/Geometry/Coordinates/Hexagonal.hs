@@ -42,6 +42,9 @@ class HexagonalCoordinate hex where
     -- ^ How many steps are between two coordinates?
     distance :: hex -> hex -> Int
 
+    rotateCw :: hex -> hex
+    rotateCcw :: hex -> hex
+
     -- ^ Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
     toVec2
         :: Double -- ^ Size of a hex cell (radius, side length)
@@ -69,6 +72,9 @@ instance HexagonalCoordinate Cube where
     hexZero = Cube 0 0 0
 
     distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
+
+    rotateCw (Cube q r s) = Cube (-r) (-s) (-q)
+    rotateCcw (Cube q r s) = Cube (-s) (-q) (-r)
 
     toVec2 size = toVec2 size . cubicalToAxial
 
@@ -124,6 +130,9 @@ instance HexagonalCoordinate Axial where
 
     distance a b = distance (axialToCubical a) (axialToCubical b)
 
+    rotateCw = cubicalToAxial . rotateCw . axialToCubical
+    rotateCcw = cubicalToAxial . rotateCcw . axialToCubical
+
     toVec2 size (Axial q r) =
         let q' = fromIntegral q
             r' = fromIntegral r
@@ -138,6 +147,15 @@ instance Semigroup Axial where
 
 instance Monoid Axial where
     mempty = hexZero
+
+rotateAround :: HexagonalCoordinate hex => hex -> Int -> hex -> hex
+rotateAround center n hex =
+    let hex' = hex `hexSubtract` center
+        rot i x | i > 0 = rot (i-1) (rotateCw x)
+                | i < 0 = rot (i+1) (rotateCcw x)
+                | otherwise = x
+        rotated = rot n hex'
+    in rotated `hexAdd` center
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
@@ -159,7 +177,7 @@ hexagonalCoordinateSystem sideLength range = do
         for_ hexagons $ \hexCoord@(Cube q r s) -> do
             let center = toVec2 sideLength hexCoord
                 bottomCorner = center +. Vec2 0 sideLength
-                rotateCW degrees = rotateAround center (deg degrees)
+                rotateCW degrees = G.rotateAround center (deg degrees)
                 corner i = G.transform (rotateCW (i*60)) bottomCorner
             if
                 -- Rightmost corner: the only full hexagon, woo!
@@ -184,7 +202,7 @@ hexagonalCoordinateSystem sideLength range = do
         for_ hexagons $ \hexCoord@(Cube q r s) -> do
             for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
-                    coord = G.transform (scaleAround center 0.2 <> rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
+                    coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
                 moveToVec coord
                 setColor (hsva angle 1 0.7 1)
                 if Cube 0 0 0 == Cube q r s

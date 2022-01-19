@@ -27,7 +27,7 @@ hexagonSketch :: Double -> Vec2 -> Render ()
 hexagonSketch sideLength center = polygonSketch (G.transform (G.translate center <> G.scale sideLength <> G.rotate (deg 30)) regularPolygon 6)
 
 lineAndCircle :: TestTree
-lineAndCircle = testCase "Line and circle"   (renderAllFormats 380 350 "docs/hexagonal/1_line_and_circle" (drawing 30 380 350))
+lineAndCircle = testCase "Line and circle" (renderAllFormats 380 350 "docs/hexagonal/1_line_and_circle" (drawing 30 380 350))
 
 drawing :: Double -> Int -> Int -> Render ()
 drawing sideLength w h = do
