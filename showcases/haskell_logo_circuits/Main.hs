@@ -63,26 +63,10 @@ addCircuitInPolygon gen cellSize poly acceptStep knownCircuits = do
     fix $ \loop -> do
         p <- randomPointInPolygon gen poly
         let pHex = fromVec2 cellSize p
-        result <- addCircuit gen (Health 16 16) pHex acceptStep knownCircuits
+        result <- addCircuit gen pHex acceptStep knownCircuits
         case result of
             Nothing -> loop
             Just newCircuits -> pure newCircuits
-
--- | Useful to limit trial and error processes: abort when health drops to zero,
--- reduce health when an impossible move was attempted.
---
--- max health (for 'heal'), current health
-data Health = Health !Int !Int
-    deriving (Eq, Ord, Show)
-
-damage :: Health -> Int -> Health
-damage (Health maxHealth h) dmg = Health maxHealth (h - dmg)
-
-heal :: Health -> Health
-heal (Health maxHealth h) = Health maxHealth (max maxHealth h)
-
-isDead :: Health -> Bool
-isDead (Health _ h) = h <= 0
 
 data Circuits hex = Circuits
     { _starts :: Set hex
@@ -137,12 +121,11 @@ mainRender = do
 addCircuit
     :: (HexagonalCoordinate hex, Ord hex)
     => MWC.GenST s
-    -> Health
     -> hex
     -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits  hex
     -> ST s (Maybe (Circuits hex))
-addCircuit gen health start acceptStep knownCircuits = do
+addCircuit gen start acceptStep knownCircuits = do
     dir <- randomDirection gen
     let firstStep = move dir 1 start
     if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
@@ -151,7 +134,6 @@ addCircuit gen health start acceptStep knownCircuits = do
             let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
             knownCircuitsAfterProcess <- circuitProcessFinish
                 gen
-                health
                 acceptStep
                 knownCircuitsBeforeProcess
                 start
@@ -179,9 +161,9 @@ randomPossibleAction
 randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedRandom gen possibleActions
   where
     actions =
-        [ (50, continueStraight)
-        , (20, continueRight)
-        , (20, continueLeft)
+        [ (100, continueStraight)
+        , (25, continueRight)
+        , (25, continueLeft)
         , (5, terminate)
         ]
 
@@ -218,20 +200,16 @@ weightedRandom gen choices = do
 circuitProcessFinish
     :: (Ord hex, HexagonalCoordinate hex)
     => MWC.Gen s
-    -> Health
     -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
     -> Circuits hex
     -> hex
     -> hex
     -> ST s (Circuits hex)
-circuitProcessFinish _gen health _acceptStep knownCircuits _lastPos currentPos
-    | isDead health = pure (insertNode currentPos WireEnd knownCircuits)
-circuitProcessFinish gen health acceptStep knownCircuits lastPos currentPos = do
-    newWire <- randomPossibleAction gen acceptStep knownCircuits lastPos currentPos
-    case acceptStep newWire knownCircuits of
-        Nothing              -> circuitProcessFinish gen (damage health 1) acceptStep knownCircuits lastPos currentPos
-        Just (WireTo target) -> circuitProcessFinish gen (heal health) acceptStep (insertNode currentPos newWire knownCircuits) currentPos target
-        Just WireEnd         -> pure (insertNode currentPos WireEnd knownCircuits)
+circuitProcessFinish gen acceptStep knownCircuits lastPos currentPos = do
+    action <- randomPossibleAction gen acceptStep knownCircuits lastPos currentPos
+    case action of
+        WireTo target -> circuitProcessFinish gen acceptStep (insertNode currentPos action knownCircuits) currentPos target
+        WireEnd       -> pure (insertNode currentPos WireEnd knownCircuits)
 
 renderSingleWire
     :: (HexagonalCoordinate hex, Ord hex)
