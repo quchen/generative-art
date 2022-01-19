@@ -119,7 +119,7 @@ mainRender = do
     renderCircuits cellSize circuits
     cairoScope $ do
         setColor (rgba 0 0 0 0.3)
-        polygonSketch lambda
+        D.polygonSketch lambda
         stroke
 
 
