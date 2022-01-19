@@ -59,12 +59,11 @@ randomPointInPolygon gen poly = do
 
 addCircuitInPolygon
     :: MWC.GenST s
-    -> Double
     -> Hex.Polygon Cube
     -> MoveConstraints Cube
     -> Circuits Cube
     -> ST s (Circuits Cube)
-addCircuitInPolygon gen cellSize poly constraints knownCircuits = fix $ \loop -> do
+addCircuitInPolygon gen poly constraints knownCircuits = fix $ \loop -> do
     pHex <- randomPointInPolygon gen poly
     if _acceptStart constraints pHex
         then addCircuit gen pHex constraints knownCircuits >>= \case
@@ -98,10 +97,10 @@ fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
 fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 circuitProcess
-    :: Double
+    :: Int
     -> Hex.Polygon Cube
     -> Circuits Cube
-circuitProcess cellSize polygon = runST $ do
+circuitProcess iterations polygon = runST $ do
     gen <- MWC.initialize (V.fromList [21252,233])
     k <- replicateM 1000 (MWC.uniformM gen)
     let _ = k :: [Int]
@@ -120,7 +119,7 @@ circuitProcess cellSize polygon = runST $ do
             , _acceptStart = acceptStart
             }
 
-    result <- iterateM 250 (addCircuitInPolygon gen cellSize polygon constraints) emptyCircuits
+    result <- iterateM iterations (addCircuitInPolygon gen polygon constraints) emptyCircuits
     pure result
 
 mainRender :: Render ()
@@ -134,7 +133,7 @@ mainRender = do
         setColor (mmaColor 1 1)
         Hex.polygonSketch cellSize lambda
     -- setLineWidth 1
-    -- renderCircuits cellSize (circuitProcess cellSize lambda)
+    renderCircuits cellSize (circuitProcess 100 lambda)
     -- cairoScope $ do
     --     setColor (rgba 0 0 0 0.3)
     --     polygonSketch lambda
