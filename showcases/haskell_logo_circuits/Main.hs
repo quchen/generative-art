@@ -16,29 +16,34 @@ import qualified Data.Vector as V
 import Control.Monad
 import Data.Function
 import Data.Maybe
+import Data.Foldable
+import Geometry.Chaotic
 
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main =
-    let picWidth = 500
-        picHeight = 500
-    in withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
+    let picWidth = 300
+        picHeight = 380
+    in withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface mainRender)
 
-lambda :: Polygon
-lambda = G.transform (G.translate (negateV bbRawPoly)) rawPoly
+hexLambda :: Int -> [Cube]
+hexLambda c = runSteps
+    [ id
+    , move R (c*2)
+    , move DR (c*10)
+    , move L (c*2)
+    , move UL (c*3)
+    , move DL (c*3)
+    , move L (c*2)
+    , move UR (c*5)
+    ]
+    (Cube 0 0 0)
   where
-    bbRawPoly = boundingBoxCenter rawPoly
-    rawPoly = Polygon
-        [ Vec2 113.386719 340.15625
-        , Vec2 226.773438 170.078125
-        , Vec2 113.386719 0
-        , Vec2 198.425781 0
-        , Vec2 425.195312 340.15625
-        , Vec2 340.15625 340.15625
-        , Vec2 269.292969 233.859375
-        , Vec2 198.425781 340.15625
-        ]
+    runSteps [] _pos = []
+    runSteps (f:fs) pos =
+        let newPoint = f pos
+        in newPoint : runSteps fs newPoint
 
 randomPointInPolygon :: MWC.GenST s -> Polygon -> ST s Vec2
 randomPointInPolygon gen poly = do
@@ -90,7 +95,9 @@ fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 mainRender :: Render ()
 mainRender = do
-    let cellSize = 5
+    let cellSize = 3
+        lambdaScale = 8
+        lambda = Polygon (map (toVec2 cellSize) (hexLambda lambdaScale))
     let circuits = runST $ do
             gen <- MWC.initialize (V.fromList [21252,233])
             k <- replicateM 1000 (MWC.uniformM gen)
@@ -103,17 +110,19 @@ mainRender = do
                         = Just step
                 acceptStep _ _ = Nothing
 
-            result <- iterateM 150 (addCircuitInPolygon gen cellSize lambda acceptStep) emptyCircuits
+            result <- iterateM 250 (addCircuitInPolygon gen cellSize lambda acceptStep) emptyCircuits
             let _ = result :: Circuits Cube
             pure result
-    C.translate 250 250
-    cairoScope $ do
-        setColor (rgb 1 0 0)
-        polygonSketch lambda
-        stroke
-    -- hexagonalCoordinateSystem cellSize 10
-    _ <- renderCircuits cellSize circuits
-    pure ()
+    -- cartesianCoordinateSystem
+    C.translate 0 10
+    -- hexagonalCoordinateSystem cellSize 7
+    setLineWidth 1
+    setColor (rgb 0.7 0.8 0.7)
+    -- cairoScope $ do
+    --     setColor (rgb 0.7 0.8 0.7)
+    --     polygonSketch lambda
+    --     stroke
+    renderCircuits cellSize circuits
 
 iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
 iterateM n _f start | n <= 0 = pure start
@@ -185,6 +194,8 @@ randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedR
     terminate = WireEnd
 
 -- | Pick an element from a list with a certain weight.
+--
+-- The probability of an entry is thus \(\frac\text{weight}\text{\sum weights}}\).
 weightedRandom :: MWC.GenST s -> [(Int, a)] -> ST s a
 weightedRandom _ choices
     | any (< 0) weights = error "weightedRandom: negative weight"
@@ -202,6 +213,8 @@ weightedRandom gen choices = do
         | otherwise   = pick (n-weight) xs
     pick _ _  = error "weightedRandom.pick used with empty list"
 
+
+
 renderSingleWire
     :: (HexagonalCoordinate hex, Ord hex)
     => Double
@@ -210,29 +223,29 @@ renderSingleWire
     -> Render ()
 renderSingleWire cellSize allKnownCells start = do
     moveToVec (toVec2 cellSize start)
-    go start
-  where
-    go currentPosHex = case M.lookup currentPosHex allKnownCells of
-        Nothing -> do
-            stroke
-            crossSketch (toVec2 cellSize currentPosHex) (Distance (cellSize/2))
-        Just (WireTo target) -> do
-            case M.lookup target allKnownCells of
-                Just WireEnd -> do
-                    let circleRadius = cellSize/2
-                        currentPosVec = toVec2 cellSize currentPosHex
-                        circleCenterVec = toVec2 cellSize target
-                        Line _ targetVecShortened = resizeLine (\(Distance d) -> Distance (d - circleRadius)) (Line currentPosVec circleCenterVec)
-                    lineToVec targetVecShortened
-                    stroke
-                    circleSketch circleCenterVec (Distance circleRadius)
-                    stroke
-                _other -> lineToVec (toVec2 cellSize target)
-            go target
-        Just WireEnd ->
-            -- We handle this case in the WireTo part so we can shorten the line leading
-            -- to the circle to avoid circle/line overlap
-            pure ()
+    fix (\go currentPosHex -> case M.lookup currentPosHex allKnownCells of
+            Nothing -> do
+                stroke
+                crossSketch (toVec2 cellSize currentPosHex) (Distance (cellSize/2))
+            Just (WireTo target) -> do
+                case M.lookup target allKnownCells of
+                    Just WireEnd -> do
+                        let circleRadius = cellSize/2
+                            currentPosVec = toVec2 cellSize currentPosHex
+                            circleCenterVec = toVec2 cellSize target
+                            Line _ targetVecShortened = resizeLine (\(Distance d) -> Distance (d - circleRadius)) (Line currentPosVec circleCenterVec)
+                        lineToVec targetVecShortened
+                        stroke
+                        circleSketch circleCenterVec (Distance circleRadius)
+                        stroke
+                    _other -> lineToVec (toVec2 cellSize target)
+                go target
+            Just WireEnd ->
+                -- We handle this case in the WireTo part so we can shorten the line leading
+                -- to the circle to avoid circle/line overlap
+                pure ()
+        )
+        start
 
 renderCircuits
     :: (HexagonalCoordinate hex, Ord hex)
@@ -244,5 +257,13 @@ renderCircuits _ allCircuits
 renderCircuits cellSize allCircuits = case S.minView (_starts allCircuits) of
     Nothing -> pure ()
     Just (start, rest) -> do
+        n <- liftIO $ do
+            gen <- MWC.initialize (V.fromList [fromIntegral $ perturb (S.size (_starts allCircuits))])
+            MWC.uniformRM (0,2) gen
+        [ darker, dark, brighter ] !! n
         renderSingleWire cellSize (_nodes allCircuits) start
         renderCircuits cellSize allCircuits{ _starts = rest }
+  where
+    darker = setColor (hsva 257 0.40 0.38 1)
+    dark = setColor (hsva 256 0.40 0.50 1)
+    brighter = setColor (hsva 304 0.45 0.56 1)
