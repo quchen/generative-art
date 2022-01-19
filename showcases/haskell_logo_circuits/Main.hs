@@ -41,14 +41,14 @@ hexLambda c = runSteps
         let newPoint = f pos
         in newPoint : runSteps fs newPoint
 
-randomPointInPolygon :: MWC.GenST s -> Polygon -> ST s Vec2
+randomPointInPolygon :: MWC.GenST s -> G.Polygon -> ST s Vec2
 randomPointInPolygon gen poly = do
     let (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = boundingBox poly
     fix $ \loop -> do
         x <- MWC.uniformRM (xMin, xMax) gen
         y <- MWC.uniformRM (yMin, yMax) gen
         let v = Vec2 x y
-        if pointInPolygon v poly
+        if G.pointInPolygon v poly
             then pure v
             else loop
 
@@ -56,21 +56,23 @@ addCircuitInPolygon
     :: (Ord hex, HexagonalCoordinate hex)
     => MWC.GenST s
     -> Double
-    -> Polygon
-    -> (hex -> Bool)
-    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> G.Polygon
+    -> MoveConstraints hex
     -> Circuits hex
     -> ST s (Circuits hex)
-addCircuitInPolygon gen cellSize poly acceptStart acceptStep knownCircuits = do
-    fix $ \loop -> do
-        p <- randomPointInPolygon gen poly
-        let pHex = fromVec2 cellSize p
-        if acceptStart pHex
-            then do
-                addCircuit gen pHex acceptStep knownCircuits >>= \case
-                    Nothing -> loop
-                    Just newCircuits -> pure newCircuits
-            else loop
+addCircuitInPolygon gen cellSize poly constraints knownCircuits = fix $ \loop -> do
+    p <- randomPointInPolygon gen poly
+    let pHex = fromVec2 cellSize p
+    if _acceptStart constraints pHex
+        then addCircuit gen pHex constraints knownCircuits >>= \case
+            Nothing -> loop
+            Just newCircuits -> pure newCircuits
+        else loop
+
+data MoveConstraints hex = MoveConstraints
+    { _acceptStart :: hex -> Bool
+    , _acceptStep :: CellState hex -> Circuits hex -> Maybe (CellState hex)
+    }
 
 data Circuits hex = Circuits
     { _starts :: Set hex
@@ -95,7 +97,7 @@ fieldIsFree f circuits = f `M.notMember` _nodes circuits
 circuitProcess
     :: (Ord hex, HexagonalCoordinate hex)
     => Double
-    -> Polygon
+    -> G.Polygon
     -> Circuits hex
 circuitProcess cellSize polygon = runST $ do
     gen <- MWC.initialize (V.fromList [21252,233])
@@ -105,20 +107,25 @@ circuitProcess cellSize polygon = runST $ do
     let acceptStep WireEnd _ = Just WireEnd
         acceptStep step@(WireTo target) knownCircuits
             | target `M.notMember` _nodes knownCircuits
-                    && pointInPolygon (toVec2 cellSize target) polygon
+                    && G.pointInPolygon (toVec2 cellSize target) polygon
                 = Just step
         acceptStep _ _ = Nothing
 
-        acceptStart hex = toVec2 cellSize hex `pointInPolygon` polygon
+        acceptStart hex = toVec2 cellSize hex `G.pointInPolygon` polygon
 
-    result <- iterateM 250 (addCircuitInPolygon gen cellSize polygon acceptStart acceptStep) emptyCircuits
+        constraints = MoveConstraints
+            { _acceptStep = acceptStep
+            , _acceptStart = acceptStart
+            }
+
+    result <- iterateM 250 (addCircuitInPolygon gen cellSize polygon constraints) emptyCircuits
     pure result
 
 mainRender :: Render ()
 mainRender = do
     let cellSize = 3
         lambdaScale = 8
-        lambda = Polygon (map (toVec2 cellSize) (hexLambda lambdaScale))
+        lambda = G.Polygon (map (toVec2 cellSize) (hexLambda lambdaScale))
     let
     C.translate 0 10
     setLineWidth 1
@@ -137,10 +144,10 @@ addCircuit
     :: (HexagonalCoordinate hex, Ord hex)
     => MWC.GenST s
     -> hex
-    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> MoveConstraints hex
     -> Circuits  hex
     -> ST s (Maybe (Circuits hex))
-addCircuit gen start acceptStep knownCircuits = do
+addCircuit gen start constraints knownCircuits = do
     dir <- randomDirection gen
     let firstStep = move dir 1 start
     if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
@@ -149,7 +156,7 @@ addCircuit gen start acceptStep knownCircuits = do
             let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
             knownCircuitsAfterProcess <- fix
                 (\loop newKnownCircuits lastPos currentPos -> do
-                    action <- randomPossibleAction gen acceptStep newKnownCircuits lastPos currentPos
+                    action <- randomPossibleAction gen constraints newKnownCircuits lastPos currentPos
                     case action of
                         WireTo target -> loop (insertNode currentPos action newKnownCircuits) currentPos target
                         WireEnd       -> pure (insertNode currentPos WireEnd newKnownCircuits)
@@ -172,12 +179,12 @@ data CellState hex
 randomPossibleAction
     :: HexagonalCoordinate hex
     => MWC.GenST s
-    -> (CellState hex -> Circuits hex -> Maybe (CellState hex))
+    -> MoveConstraints hex
     -> Circuits hex
     -> hex
     -> hex
     -> ST s (CellState hex)
-randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedRandom gen possibleActions
+randomPossibleAction gen constraints knownCircuits lastPos currentPos = weightedRandom gen possibleActions
   where
     actions =
         [ (100, continueStraight)
@@ -187,7 +194,7 @@ randomPossibleAction gen acceptStep knownCircuits lastPos currentPos = weightedR
         ]
 
     possibleActions = flip filter actions $ \(_weight, action) ->
-        isJust (acceptStep action knownCircuits)
+        isJust (_acceptStep constraints action knownCircuits)
 
     straightOn i = currentPos `hexAdd` hexTimes i (hexSubtract currentPos lastPos)
     right = Hex.rotateAround currentPos 1 (straightOn 1)
