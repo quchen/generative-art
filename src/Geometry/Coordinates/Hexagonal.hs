@@ -7,9 +7,11 @@ import Geometry.Core as G hiding (Polygon, pointInPolygon)
 import qualified Geometry.Core as G
 import Graphics.Rendering.Cairo as C hiding (x,y)
 import Data.Foldable
-import Draw
+import Draw hiding (polygonSketch)
+import qualified Draw as D
 import Data.Maybe
 import Control.Monad
+import qualified Data.Set as S
 
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
@@ -207,8 +209,8 @@ hexagonalCoordinateSystem sideLength range = do
                 | otherwise                 -> pathSketch [corner i | i <- [0, 1, 2, 3]]
             when (hexCoord == Cube 0 0 0) $ do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
-                polygonSketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
-                polygonSketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
+                D.polygonSketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
+                D.polygonSketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
 
     cairoScope $ grouped (paintWithAlpha 0.5) $ do
@@ -263,7 +265,7 @@ data Polygon hex = Polygon [hex]
 
 isOnEdge :: Cube -> Polygon Cube -> Bool
 isOnEdge hex (Polygon corners) =
-    let edges = concat (zipWith line corners (cycle corners))
+    let edges = concat (zipWith line corners (tail (cycle corners)))
     in isJust (find (== hex) edges)
 
 pointInPolygon :: Cube -> Polygon Cube -> Bool
@@ -274,3 +276,10 @@ pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
 
     -- This feels like cheating
     inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
+
+polygonSketch :: Double -> Polygon Cube -> Render ()
+polygonSketch cellSize (Polygon corners) =
+    let edgeHexes = S.fromList (concat (zipWith line corners (tail (cycle corners))))
+    in for_ edgeHexes $ \hex -> do
+        D.polygonSketch (hexagonPoly cellSize hex)
+        fill
