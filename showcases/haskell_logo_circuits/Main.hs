@@ -213,18 +213,21 @@ renderSingleWire cellSize allKnownCells start = do
             let !_ = trace (show currentPosHex) ()
             crossSketch (toVec2 cellSize currentPosHex) (Distance (cellSize/2))
         Just (WireTo target) -> do
-            lineToVec (toVec2 cellSize target)
+            case M.lookup target allKnownCells of
+                Just WireEnd -> do
+                    let circleRadius = cellSize/2
+                        currentPosVec = toVec2 cellSize currentPosHex
+                        circleCenterVec = toVec2 cellSize target
+                        Line _ targetVecShortened = resizeLine (\(Distance d) -> Distance (d - circleRadius)) (Line currentPosVec circleCenterVec)
+                    lineToVec targetVecShortened
+                    stroke
+                    circleSketch circleCenterVec (Distance circleRadius)
+                    stroke
+                _other -> lineToVec (toVec2 cellSize target)
             go target
-        Just WireEnd -> do
-            stroke
-            let currentPosVec2 = toVec2 cellSize currentPosHex
-            cairoScope $ do
-                setOperator OperatorClear
-                circleSketch currentPosVec2 (Distance (cellSize/2))
-                fill
-            cairoScope $ do
-                circleSketch currentPosVec2 (Distance (cellSize/2))
-                stroke
+        Just WireEnd ->
+            -- We handle this case in the WireTo part so we can shorten the line leading
+            -- to the circle to avoid circle/line overlap
             pure ()
 
 renderCircuits
