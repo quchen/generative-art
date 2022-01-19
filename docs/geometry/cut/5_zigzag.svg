@@ -12,7 +12,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 35 70 L 10 20 M 28.675781 50.921875 L 23.75 47.5 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 20 L 10 20 M 4.734375 22.875 L 10 20 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 20 L 60 20 L 60 70 L 35 30 L 35 70 Z M 10 20 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 10 20 L 60 20 L 60 70 L 35 30 L 35 70 Z M 10 20 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 10 20 L 60 20 L 60 70 L 35 30 L 35 70 Z M 10 20 "/>
 </g>
 <clipPath id="id3">
   <rect x="0" y="0" width="150" height="90"/>
@@ -26,7 +26,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 105 45 L 92.5 45 M 104.640625 42.125 L 99.375 45 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 92.5 45 L 80 20 M 91.800781 37.171875 L 86.875 33.75 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 80 20 L 130 20 L 130 45 L 114.375 45 L 105 30 L 105 45 L 92.5 45 Z M 80 20 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(10.721896%,16.022803%,23.80084%);fill-opacity:0.1;" d="M 80 20 L 130 20 L 130 45 L 114.375 45 L 105 30 L 105 45 L 92.5 45 Z M 80 20 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(36.8417%,50.6779%,70.9798%);fill-opacity:0.1;" d="M 80 20 L 130 20 L 130 45 L 114.375 45 L 105 30 L 105 45 L 92.5 45 Z M 80 20 "/>
 </g>
 <clipPath id="id5">
   <rect x="0" y="0" width="150" height="90"/>
@@ -36,7 +36,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 105 45 L 105 70 M 102.125 50.984375 L 105 56.25 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 105 70 L 92.5 45 M 104.300781 62.171875 L 99.375 58.75 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 92.5 45 L 105 45 L 105 70 Z M 92.5 45 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(30.349258%,20.017275%,2.303803%);fill-opacity:0.1;" d="M 92.5 45 L 105 45 L 105 70 Z M 92.5 45 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(88.0722%,61.1041%,14.2051%);fill-opacity:0.1;" d="M 92.5 45 L 105 45 L 105 70 Z M 92.5 45 "/>
 </g>
 <clipPath id="id7">
   <rect x="0" y="0" width="150" height="90"/>
@@ -46,7 +46,7 @@
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(56.0181%,69.1569%,19.4885%);stroke-opacity:1;stroke-miterlimit:10;" d="M 130 45 L 130 70 M 127.125 50.984375 L 130 56.25 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(56.0181%,69.1569%,19.4885%);stroke-opacity:1;stroke-miterlimit:10;" d="M 130 70 L 114.375 45 M 128.199219 61.691406 L 122.96875 58.75 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(56.0181%,69.1569%,19.4885%);stroke-opacity:1;stroke-miterlimit:10;" d="M 114.375 45 L 130 45 L 130 70 Z M 114.375 45 "/>
-<path style=" stroke:none;fill-rule:nonzero;fill:rgb(18.068734%,23.102453%,4.073561%);fill-opacity:0.1;" d="M 114.375 45 L 130 45 L 130 70 Z M 114.375 45 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(56.0181%,69.1569%,19.4885%);fill-opacity:0.1;" d="M 114.375 45 L 130 45 L 130 70 Z M 114.375 45 "/>
 </g>
 </defs>
 <g id="id9">

@@ -36,8 +36,11 @@ class CairoColor color where
 instance Real a => CairoColor (Colour a) where
     setColor = uncurryRGB Cairo.setSourceRGB . toSRGB . colourConvert
 
-instance Real a => CairoColor (AlphaColour a) where
-    setColor color = uncurryRGB Cairo.setSourceRGBA (toSRGB (colourConvert (color `over` black))) (realToFrac (alphaChannel color))
+instance (Real a, Floating a) => CairoColor (AlphaColour a) where
+    setColor color = uncurryRGB Cairo.setSourceRGBA
+        (toSRGB (colourConvert (dissolve (1/alpha) color `over` black)))
+        (realToFrac alpha)
+      where alpha = alphaChannel color
 
 type Color a = Colour a
 type AlphaColor a = AlphaColour a
