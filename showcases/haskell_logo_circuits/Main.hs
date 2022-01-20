@@ -21,23 +21,30 @@ import Debug.Trace
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 8
-        processGeometry = hexLambda lambdaScale
-        circuits = circuitProcess 300 processGeometry
-    withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface (mainRender circuits))
-    withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface (mainRender circuits))
-  where
-    picWidth = 310
-    picHeight = 380
+    let lambdaScale = 6
+        lambdaGeometry = hexLambda lambdaScale
+        lambdaCircuits = circuitProcess 190 lambdaGeometry
 
-mainRender :: (HexagonalCoordinate hex, Ord hex) => Circuits hex -> Render ()
-mainRender circuits = do
-    let cellSize = 3
-    C.translate 10 10
-    -- cairoScope $ grouped (paintWithAlpha 0.5) cartesianCoordinateSystem
-    -- hexagonalCoordinateSystem cellSize 10
-    setLineWidth 1
-    renderCircuits cellSize circuits
+        surroundingScale = 45
+        surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
+        surroundingCircuits = circuitProcess 800 surroundingGeometry
+    let mainRender = do
+            let cellSize = 3
+            -- cartesianCoordinateSystem
+            C.translate 240 210
+            setLineWidth 1
+            renderCircuits purple cellSize lambdaCircuits
+            renderCircuits grey cellSize surroundingCircuits
+    withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
+    withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface $ do
+        cairoScope $ do
+            setSourceRGB 1 1 1
+            paint
+        mainRender
+        )
+  where
+    picWidth = 480
+    picHeight = 420
 
 data ProcessGeometry hex = ProcessGeometry
     { _inside :: Set hex
@@ -62,16 +69,30 @@ hexLambda c = ProcessGeometry
         , move L  (c*2)
         , move UR (c*5)
         ]
-        hexZero
+        (move UL (c*5) (move L c hexZero))
     walkInSteps [] _pos = []
     walkInSteps (f:fs) pos =
         let newPoint = f pos
         in newPoint : walkInSteps fs newPoint
 
-    floodFillStart = move DR c (move R c hexZero)
+    floodFillStart = hexZero
     floodFilled = floodFill floodFillStart (edgePoints polygon)
     pointsOnInside = floodFilled `S.difference` pointsOnEdge
     pointsOnEdge = edgePoints polygon
+
+largeSurroundingCircle :: Int -> ProcessGeometry Cube -> ProcessGeometry Cube
+largeSurroundingCircle c excludes =
+    let allExcluded = _inside excludes <> _edge excludes
+        largeCircle = S.fromList (hexagonsInRange c hexZero)
+        excludesExtended = S.unions (S.map (\hex -> S.fromList (ring 1 hex)) (_edge excludes))
+        edge = let outer = S.fromList (ring c hexZero)
+                   inner = excludesExtended `S.difference` allExcluded
+               in outer <> inner
+        inside = largeCircle `S.difference` edge `S.difference` allExcluded
+    in ProcessGeometry
+        { _inside = inside
+        , _edge = edge
+        }
 
 randomEntry :: MWC.GenST s -> Set Cube -> ST s Cube
 randomEntry gen entries = do
@@ -114,7 +135,7 @@ circuitProcess
     -> ProcessGeometry Cube
     -> Circuits Cube
 circuitProcess iterations processGeometry = runST $ do
-    gen <- MWC.initialize (V.fromList [21252,233])
+    gen <- MWC.initialize (V.fromList [252,2333])
     k <- replicateM 1000 (MWC.uniformM gen)
     let _ = k :: [Int]
 
@@ -269,19 +290,38 @@ renderSingleWire cellSize allKnownCells start = do
 
 renderCircuits
     :: (HexagonalCoordinate hex, Ord hex)
-    => Double
+    => ColorScheme
+    -> Double
     -> Circuits hex
     -> Render ()
-renderCircuits cellSize allCircuits = case S.minView (_starts allCircuits) of
+renderCircuits scheme cellSize allCircuits = case S.minView (_starts allCircuits) of
     Nothing -> pure ()
     Just (start, rest) -> do
-        n <- liftIO $ do
-            gen <- MWC.initialize (V.fromList [fromIntegral $ perturb (S.size (_starts allCircuits))])
-            MWC.uniformRM (0,2) gen
-        [ darker, dark, brighter ] !! n
+        gen <- liftIO $ MWC.initialize (V.fromList [fromIntegral $ perturb (S.size (_starts allCircuits))])
+        randomColor gen scheme
         renderSingleWire cellSize (_nodes allCircuits) start
-        renderCircuits cellSize allCircuits{ _starts = rest }
+        renderCircuits scheme cellSize allCircuits{ _starts = rest }
+
+newtype ColorScheme = ColorScheme (V.Vector (Render ()))
+
+purple :: ColorScheme
+purple = ColorScheme (V.fromList [darker, dark, brighter])
   where
     darker = setColor (hsva 257 0.40 0.38 1)
     dark = setColor (hsva 256 0.40 0.50 1)
     brighter = setColor (hsva 304 0.45 0.56 1)
+
+grey :: ColorScheme
+grey = ColorScheme (V.fromList [setGrey x | x <- [850, 875, 900]])
+  where
+    setGrey per1000 =
+        let x = fromIntegral per1000 / 1000
+        in setColor (rgb x x x)
+
+randomColor
+    :: MWC.GenIO
+    -> ColorScheme
+    -> Render ()
+randomColor gen (ColorScheme scheme) = do
+    n <- liftIO $ MWC.uniformRM (0, V.length scheme-1) gen
+    scheme V.! n
