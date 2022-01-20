@@ -20,53 +20,66 @@ import Debug.Trace
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
-main =
-    let picWidth = 300
-        picHeight = 380
-    in withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
-
-hexLambda :: HexagonalCoordinate hex => Int -> Hex.Polygon hex
-hexLambda c = Hex.Polygon $ runSteps
-    [ id
-    , move R (c*2)
-    , move DR (c*10)
-    , move L (c*2)
-    , move UL (c*3)
-    , move DL (c*3)
-    , move L (c*2)
-    , move UR (c*5)
-    ]
-    hexZero
+main = do
+    let lambdaScale = 8
+        processGeometry = hexLambda lambdaScale
+        circuits = circuitProcess 300 processGeometry
+    withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface (mainRender circuits))
+    withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface (mainRender circuits))
   where
-    runSteps [] _pos = []
-    runSteps (f:fs) pos =
-        let newPoint = f pos
-        in newPoint : runSteps fs newPoint
+    picWidth = 310
+    picHeight = 380
 
-randomPointInPolygon :: MWC.GenST s -> Hex.Polygon Cube -> ST s Cube
-randomPointInPolygon gen poly = do
-    let rMin = 0 -- This is a very poor algorithm. I apologize.
-        rMax = 20  -- This is a very poor algorithm. I apologize.
-        qMin = 0 -- This is a very poor algorithm. I apologize.
-        qMax = 20  -- This is a very poor algorithm. I apologize.
-    fix $ \loop -> do
-        q <- MWC.uniformRM (qMin, qMax) gen
-        r <- MWC.uniformRM (rMin, rMax) gen
-        let hex = Cube q r (-q-r)
-        if Hex.pointInPolygon hex poly
-            then pure hex
-            else loop
+data ProcessGeometry hex = ProcessGeometry
+    { _inside :: Set hex
+    , _edge :: Set hex
+    } deriving (Eq, Ord, Show)
+
+hexLambda :: Int -> ProcessGeometry Cube
+hexLambda c | c <= 0 = ProcessGeometry S.empty S.empty
+hexLambda c = ProcessGeometry
+    { _inside = pointsOnInside
+    , _edge =  pointsOnEdge
+    }
+  where
+    polygon = Hex.Polygon corners
+    corners = walkInSteps
+        [ id
+        , move R (c*2)
+        , move DR (c*10)
+        , move L (c*2)
+        , move UL (c*3)
+        , move DL (c*3)
+        , move L (c*2)
+        , move UR (c*5)
+        ]
+        hexZero
+    walkInSteps [] _pos = []
+    walkInSteps (f:fs) pos =
+        let newPoint = f pos
+        in newPoint : walkInSteps fs newPoint
+
+    floodFillStart = move DR c (move R c hexZero)
+    floodFilled = floodFill floodFillStart (edgePoints polygon)
+    pointsOnInside = floodFilled `S.difference` pointsOnEdge
+    pointsOnEdge = edgePoints polygon
+
+randomEntry :: MWC.GenST s -> Set Cube -> ST s Cube
+randomEntry gen entries = do
+    let n = S.size entries
+    i <- MWC.uniformRM (0,n-1) gen
+    pure (S.toList entries !! i)
 
 addCircuitInPolygon
     :: MWC.GenST s
-    -> Hex.Polygon Cube
+    -> ProcessGeometry Cube
     -> MoveConstraints Cube
     -> Circuits Cube
     -> ST s (Circuits Cube)
-addCircuitInPolygon gen poly constraints knownCircuits = fix $ \loop -> do
-    pHex <- randomPointInPolygon gen poly
-    if _acceptStart constraints pHex
-        then addCircuit gen pHex constraints knownCircuits >>= \case
+addCircuitInPolygon gen processGeometry constraints knownCircuits = fix $ \loop -> do
+    start <- randomEntry gen (_inside processGeometry)
+    if _acceptStart constraints start
+        then addCircuit gen start constraints knownCircuits >>= \case
             Nothing -> loop
             Just newCircuits -> pure newCircuits
         else loop
@@ -98,9 +111,9 @@ fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 circuitProcess
     :: Int
-    -> Hex.Polygon Cube
+    -> ProcessGeometry Cube
     -> Circuits Cube
-circuitProcess iterations polygon = runST $ do
+circuitProcess iterations processGeometry = runST $ do
     gen <- MWC.initialize (V.fromList [21252,233])
     k <- replicateM 1000 (MWC.uniformM gen)
     let _ = k :: [Int]
@@ -108,38 +121,37 @@ circuitProcess iterations polygon = runST $ do
     let acceptStep WireEnd _ = Just WireEnd
         acceptStep step@(WireTo target) knownCircuits
             | target `M.notMember` _nodes knownCircuits
-                    && Hex.pointInPolygon target polygon
+                    && target `S.member` (_inside processGeometry <> _edge processGeometry)
                 = Just step
         acceptStep _ _ = Nothing
 
-        acceptStart hex = hex `Hex.pointInPolygon` polygon && not (hex `Hex.isOnEdge` polygon)
+        acceptStart hex = hex `S.member` _inside processGeometry
 
         constraints = MoveConstraints
             { _acceptStep = acceptStep
             , _acceptStart = acceptStart
             }
 
-    result <- iterateM iterations (addCircuitInPolygon gen polygon constraints) emptyCircuits
+    result <- iterateM iterations (addCircuitInPolygon gen processGeometry constraints) emptyCircuits
     pure result
 
-mainRender :: Render ()
-mainRender = do
+mainRender :: (HexagonalCoordinate hex, Ord hex) => Circuits hex -> Render ()
+mainRender circuits = do
     let cellSize = 3
-        lambdaScale = 8
-        lambda = hexLambda lambdaScale
-    let
     C.translate 10 10
-    cairoScope $ do
-        setColor (mmaColor 1 1)
-        Hex.polygonSketch cellSize lambda
-    setLineWidth 1
+    -- cairoScope $ grouped (paintWithAlpha 0.5) cartesianCoordinateSystem
     -- hexagonalCoordinateSystem cellSize 10
-    renderCircuits cellSize (circuitProcess 100 lambda)
-    -- cairoScope $ do
-    --     setColor (rgba 0 0 0 0.3)
-    --     polygonSketch lambda
-    --     stroke
-
+    -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
+    --     for_ (_edge processGeometry) $ \hex -> do
+    --         setColor (mmaColor 1 1)
+    --         D.polygonSketch (hexagonPoly cellSize hex)
+    --         stroke
+    --     for_ (_inside processGeometry) $ \hex -> do
+    --         setColor (mmaColor 0 1)
+    --         D.polygonSketch (hexagonPoly cellSize hex)
+    --         stroke
+    setLineWidth 1
+    renderCircuits cellSize circuits
 
 iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
 iterateM n _f start | n <= 0 = pure start
