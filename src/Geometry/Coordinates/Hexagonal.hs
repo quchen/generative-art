@@ -12,6 +12,7 @@ import qualified Draw as D
 import Data.Maybe
 import Control.Monad
 import qualified Data.Set as S
+import Data.Set (Set)
 
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
@@ -277,9 +278,30 @@ pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
     -- This feels like cheating
     inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
 
+edgePoints :: Polygon Cube -> S.Set Cube
+edgePoints (Polygon corners) = S.fromList (concat (zipWith line corners (tail (cycle corners))))
+
 polygonSketch :: Double -> Polygon Cube -> Render ()
-polygonSketch cellSize (Polygon corners) =
-    let edgeHexes = S.fromList (concat (zipWith line corners (tail (cycle corners))))
-    in for_ edgeHexes $ \hex -> do
+polygonSketch cellSize polygon =
+    for_ (edgePoints polygon) $ \hex -> do
         D.polygonSketch (hexagonPoly cellSize hex)
-        fill
+
+-- | Fill all neighbours of a point, and their neighbours, and…
+
+-- Diverges if the geometry is not closed, or the starting point is not contained
+-- in it!
+floodFill
+    :: (HexagonalCoordinate hex, Ord hex)
+    => hex -- ^ Starting point
+    -> Set hex
+    -> Set hex
+floodFill p = go (S.singleton p)
+  where
+    go :: (HexagonalCoordinate hex, Ord hex) => Set hex -> Set hex -> Set hex
+    go toVisit filled = case S.minView toVisit of
+        Nothing -> filled
+        Just (hex, rest) ->
+            let neighbours = S.fromList (ring 1 hex)
+                filled' = filled `S.union` neighbours
+                toVisit' = rest `S.union` (neighbours `S.difference` filled)
+            in go toVisit' filled'
