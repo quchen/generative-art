@@ -30,6 +30,15 @@ main = do
     picWidth = 310
     picHeight = 380
 
+mainRender :: (HexagonalCoordinate hex, Ord hex) => Circuits hex -> Render ()
+mainRender circuits = do
+    let cellSize = 3
+    C.translate 10 10
+    -- cairoScope $ grouped (paintWithAlpha 0.5) cartesianCoordinateSystem
+    -- hexagonalCoordinateSystem cellSize 10
+    setLineWidth 1
+    renderCircuits cellSize circuits
+
 data ProcessGeometry hex = ProcessGeometry
     { _inside :: Set hex
     , _edge :: Set hex
@@ -45,12 +54,12 @@ hexLambda c = ProcessGeometry
     polygon = Hex.Polygon corners
     corners = walkInSteps
         [ id
-        , move R (c*2)
+        , move R  (c*2)
         , move DR (c*10)
-        , move L (c*2)
+        , move L  (c*2)
         , move UL (c*3)
         , move DL (c*3)
-        , move L (c*2)
+        , move L  (c*2)
         , move UR (c*5)
         ]
         hexZero
@@ -70,19 +79,10 @@ randomEntry gen entries = do
     i <- MWC.uniformRM (0,n-1) gen
     pure (S.toList entries !! i)
 
-addCircuitInPolygon
-    :: MWC.GenST s
-    -> ProcessGeometry Cube
-    -> MoveConstraints Cube
-    -> Circuits Cube
-    -> ST s (Circuits Cube)
-addCircuitInPolygon gen processGeometry constraints knownCircuits = fix $ \loop -> do
-    start <- randomEntry gen (_inside processGeometry)
-    if _acceptStart constraints start
-        then addCircuit gen start constraints knownCircuits >>= \case
-            Nothing -> loop
-            Just newCircuits -> pure newCircuits
-        else loop
+data CellState hex
+    = WireTo hex
+    | WireEnd
+    deriving (Eq, Ord, Show)
 
 data MoveConstraints hex = MoveConstraints
     { _acceptStart :: hex -> Bool
@@ -135,27 +135,23 @@ circuitProcess iterations processGeometry = runST $ do
     result <- iterateM iterations (addCircuitInPolygon gen processGeometry constraints) emptyCircuits
     pure result
 
-mainRender :: (HexagonalCoordinate hex, Ord hex) => Circuits hex -> Render ()
-mainRender circuits = do
-    let cellSize = 3
-    C.translate 10 10
-    -- cairoScope $ grouped (paintWithAlpha 0.5) cartesianCoordinateSystem
-    -- hexagonalCoordinateSystem cellSize 10
-    -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
-    --     for_ (_edge processGeometry) $ \hex -> do
-    --         setColor (mmaColor 1 1)
-    --         D.polygonSketch (hexagonPoly cellSize hex)
-    --         stroke
-    --     for_ (_inside processGeometry) $ \hex -> do
-    --         setColor (mmaColor 0 1)
-    --         D.polygonSketch (hexagonPoly cellSize hex)
-    --         stroke
-    setLineWidth 1
-    renderCircuits cellSize circuits
-
 iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
 iterateM n _f start | n <= 0 = pure start
 iterateM n f start = f start >>= iterateM (n-1) f
+
+addCircuitInPolygon
+    :: MWC.GenST s
+    -> ProcessGeometry Cube
+    -> MoveConstraints Cube
+    -> Circuits Cube
+    -> ST s (Circuits Cube)
+addCircuitInPolygon gen processGeometry constraints knownCircuits = fix $ \loop -> do
+    start <- randomEntry gen (_inside processGeometry)
+    if _acceptStart constraints start
+        then addCircuit gen start constraints knownCircuits >>= \case
+            Nothing -> loop
+            Just newCircuits -> pure newCircuits
+        else loop
 
 addCircuit
     :: (HexagonalCoordinate hex, Ord hex)
@@ -187,11 +183,6 @@ randomDirection :: MWC.GenST s -> ST s Direction
 randomDirection gen = do
     n <- MWC.uniformRM (0,5) gen
     pure (V.fromList [R, UR, UL, L, DL, DR] V.! n)
-
-data CellState hex
-    = WireTo hex
-    | WireEnd
-    deriving (Eq, Ord, Show)
 
 randomPossibleAction
     :: HexagonalCoordinate hex
