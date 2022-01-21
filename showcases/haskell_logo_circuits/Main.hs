@@ -25,13 +25,13 @@ main = do
         lambdaGeometry = hexLambda lambdaScale
         lambdaCircuits = circuitProcess 190 lambdaGeometry
 
-        surroundingScale = 45
+        surroundingScale = lambdaScale*8
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
         surroundingCircuits = circuitProcess 800 surroundingGeometry
     let mainRender = do
             let cellSize = 3
             -- cartesianCoordinateSystem
-            C.translate 240 210
+            C.translate 240 220
             setLineWidth 1
             renderCircuits purple cellSize lambdaCircuits
             renderCircuits grey cellSize surroundingCircuits
@@ -44,7 +44,7 @@ main = do
         )
   where
     picWidth = 480
-    picHeight = 420
+    picHeight = 440
 
 data ProcessGeometry hex = ProcessGeometry
     { _inside :: Set hex
@@ -135,7 +135,7 @@ circuitProcess
     -> ProcessGeometry Cube
     -> Circuits Cube
 circuitProcess iterations processGeometry = runST $ do
-    gen <- MWC.initialize (V.fromList [252,2333])
+    gen <- MWC.initialize (V.fromList [252,231233,2333,233])
     k <- replicateM 1000 (MWC.uniformM gen)
     let _ = k :: [Int]
 
