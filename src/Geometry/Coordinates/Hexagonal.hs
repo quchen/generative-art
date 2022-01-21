@@ -33,7 +33,7 @@ data Direction
     | L  -- ^ Left
     | DL -- ^ Down+left
     | DR -- ^ Down+right
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Bounded, Enum)
 
 class HexagonalCoordinate hex where
     -- ^ Move x steps in a direction
