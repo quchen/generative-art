@@ -16,6 +16,7 @@ import Data.Function
 import Data.Maybe
 import Geometry.Chaotic
 import Debug.Trace
+import Why (fisherYatesShuffle)
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
@@ -23,11 +24,11 @@ main :: IO ()
 main = do
     let lambdaScale = 6
         lambdaGeometry = hexLambda lambdaScale
-        lambdaCircuits = circuitProcess 190 lambdaGeometry
+        lambdaCircuits = circuitProcess lambdaGeometry
 
         surroundingScale = lambdaScale*8
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
-        surroundingCircuits = circuitProcess 800 surroundingGeometry
+        surroundingCircuits = circuitProcess surroundingGeometry
     let mainRender = do
             let cellSize = 3
             -- cartesianCoordinateSystem
@@ -106,7 +107,7 @@ data CellState hex
     deriving (Eq, Ord, Show)
 
 data MoveConstraints hex = MoveConstraints
-    { _acceptStart :: hex -> Bool
+    { _acceptStart :: hex -> Circuits hex -> Bool
     , _acceptStep :: CellState hex -> Circuits hex -> Maybe (CellState hex)
     }
 
@@ -127,14 +128,16 @@ insertNode cellPos cellState circuits = circuits { _nodes = M.insert cellPos cel
 insertStart :: Ord hex => hex -> Circuits hex -> Circuits hex
 insertStart start circuits = circuits { _starts = S.insert start (_starts circuits) }
 
+deleteStart :: Ord hex => hex -> Circuits hex -> Circuits hex
+deleteStart start circuits = circuits { _starts = S.delete start (_starts circuits) }
+
 fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
 fieldIsFree f circuits = f `M.notMember` _nodes circuits
 
 circuitProcess
-    :: Int
-    -> ProcessGeometry Cube
+    :: ProcessGeometry Cube
     -> Circuits Cube
-circuitProcess iterations processGeometry = runST $ do
+circuitProcess processGeometry = runST $ do
     gen <- MWC.initialize (V.fromList [252,231233,2333,233])
     k <- replicateM 1000 (MWC.uniformM gen)
     let _ = k :: [Int]
@@ -146,64 +149,96 @@ circuitProcess iterations processGeometry = runST $ do
                 = Just step
         acceptStep _ _ = Nothing
 
-        acceptStart hex = hex `S.member` _inside processGeometry
+        acceptStart start knownCircuits =
+            (start `S.member` _inside processGeometry)
+                && not (all (\neighbour -> M.member neighbour (_nodes knownCircuits)) (ring 1 start))
 
         constraints = MoveConstraints
             { _acceptStep = acceptStep
             , _acceptStart = acceptStart
             }
 
-    result <- iterateM iterations (addCircuitInPolygon gen processGeometry constraints) emptyCircuits
+    (_starts, result) <- iterateUntilM
+        (\(startingCandidates, _) -> S.null startingCandidates)
+        (\(startingCandidates, knownCircuits) ->
+            growSingleCircuit gen startingCandidates constraints knownCircuits)
+        (_inside processGeometry, emptyCircuits)
     pure result
 
-iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
-iterateM n _f start | n <= 0 = pure start
-iterateM n f start = f start >>= iterateM (n-1) f
+iterateUntilM :: Monad f => (a -> Bool) -> (a -> f a) -> a -> f a
+iterateUntilM p = go
+  where
+    go _f x | p x = pure x
+    go f x = f x >>= go f
 
-addCircuitInPolygon
-    :: MWC.GenST s
-    -> ProcessGeometry Cube
+growSingleCircuit
+    :: MWC.Gen s
+    -> Set Cube
     -> MoveConstraints Cube
     -> Circuits Cube
-    -> ST s (Circuits Cube)
-addCircuitInPolygon gen processGeometry constraints knownCircuits = fix $ \loop -> do
-    start <- randomEntry gen (_inside processGeometry)
-    if _acceptStart constraints start
-        then addCircuit gen start constraints knownCircuits >>= \case
-            Nothing -> loop
-            Just newCircuits -> pure newCircuits
-        else loop
+    -> ST s (Set Cube, Circuits Cube)
+growSingleCircuit gen startingCandidates constraints knownCircuits = do
+    firstStepResult <- fix
+        (\loop starts -> do
+            if S.null starts
+                then pure Nothing
+            else do
+                start <- randomEntry gen starts
+                if _acceptStart constraints start knownCircuits
+                    then doFirstStep gen start knownCircuits >>= \case
+                        Left FirstStepFailed -> loop starts
+                        Left FirstStepImpossible -> loop (S.delete start starts)
+                        Right firstStep -> pure (Just (start, starts, firstStep))
+                    else loop (S.delete start starts))
+        startingCandidates
+    case firstStepResult of
+        Just (start, startCandidates', firstStep) -> do
+            grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
+            let startCandidates'' = startCandidates' `S.difference` M.keysSet (_nodes knownCircuits)
+            pure (startCandidates'', grownCircuit)
+        Nothing -> pure (S.empty, knownCircuits)
 
-addCircuit
+data FirstStepResult
+    = FirstStepFailed
+    | FirstStepImpossible
+    deriving (Eq, Ord, Show)
+
+doFirstStep
     :: (HexagonalCoordinate hex, Ord hex)
-    => MWC.GenST s
+    => MWC.Gen s
+    -> hex
+    -> Circuits hex
+    -> ST s (Either FirstStepResult hex)
+doFirstStep gen start knownCircuits = do
+    plausibleFirstSteps <- fisherYatesShuffle gen (V.fromList [move dir 1 start | dir <- [minBound..]])
+    let firstStep = V.head plausibleFirstSteps
+    if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
+        then if not (V.any (\step -> fieldIsFree step knownCircuits) plausibleFirstSteps)
+            then pure (Left FirstStepImpossible)
+            else pure (Left FirstStepFailed)
+        else pure (Right firstStep)
+
+growCircuit
+    :: (HexagonalCoordinate hex, Ord hex)
+    => MWC.Gen s
+    -> hex
     -> hex
     -> MoveConstraints hex
-    -> Circuits  hex
-    -> ST s (Maybe (Circuits hex))
-addCircuit gen start constraints knownCircuits = do
-    dir <- randomDirection gen
-    let firstStep = move dir 1 start
-    if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
-        then pure Nothing
-        else do
-            let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
-            knownCircuitsAfterProcess <- fix
-                (\loop newKnownCircuits lastPos currentPos -> do
-                    action <- randomPossibleAction gen constraints newKnownCircuits lastPos currentPos
-                    case action of
-                        WireTo target -> loop (insertNode currentPos action newKnownCircuits) currentPos target
-                        WireEnd       -> pure (insertNode currentPos WireEnd newKnownCircuits)
-                )
-                knownCircuitsBeforeProcess
-                start
-                firstStep
-            pure (Just knownCircuitsAfterProcess)
-
-randomDirection :: MWC.GenST s -> ST s Direction
-randomDirection gen = do
-    n <- MWC.uniformRM (0,5) gen
-    pure (V.fromList [R, UR, UL, L, DL, DR] V.! n)
+    -> Circuits hex
+    -> ST s (Circuits hex)
+growCircuit gen start firstStep constraints knownCircuits = do
+    let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
+    knownCircuitsAfterProcess <- fix
+        (\loop newKnownCircuits lastPos currentPos -> do
+            action <- randomPossibleAction gen constraints newKnownCircuits lastPos currentPos
+            case action of
+                WireTo target -> loop (insertNode currentPos action newKnownCircuits) currentPos target
+                WireEnd       -> pure (insertNode currentPos WireEnd newKnownCircuits)
+        )
+        knownCircuitsBeforeProcess
+        start
+        firstStep
+    pure knownCircuitsAfterProcess
 
 randomPossibleAction
     :: HexagonalCoordinate hex
