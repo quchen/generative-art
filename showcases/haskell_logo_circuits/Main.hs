@@ -31,8 +31,8 @@ main = do
         surroundingCircuits = circuitProcess surroundingGeometry
     let mainRender = do
             let cellSize = 3
-            -- cartesianCoordinateSystem
             C.translate 240 220
+            -- cairoScope $ grouped (paintWithAlpha 0.5) $ hexagonalCoordinateSystem cellSize 50
             setLineWidth 1
             renderCircuits purple cellSize lambdaCircuits
             renderCircuits grey cellSize surroundingCircuits
@@ -95,19 +95,13 @@ largeSurroundingCircle c excludes =
         , _edge = edge
         }
 
-randomEntry :: MWC.GenST s -> Set Cube -> ST s Cube
-randomEntry gen entries = do
-    let n = S.size entries
-    i <- MWC.uniformRM (0,n-1) gen
-    pure (S.toList entries !! i)
-
 data CellState hex
     = WireTo hex
     | WireEnd
     deriving (Eq, Ord, Show)
 
 data MoveConstraints hex = MoveConstraints
-    { _acceptStart :: hex -> Circuits hex -> Bool
+    { _isInBounds :: hex -> Bool
     , _acceptStep :: CellState hex -> Circuits hex -> Maybe (CellState hex)
     }
 
@@ -128,12 +122,6 @@ insertNode cellPos cellState circuits = circuits { _nodes = M.insert cellPos cel
 insertStart :: Ord hex => hex -> Circuits hex -> Circuits hex
 insertStart start circuits = circuits { _starts = S.insert start (_starts circuits) }
 
-deleteStart :: Ord hex => hex -> Circuits hex -> Circuits hex
-deleteStart start circuits = circuits { _starts = S.delete start (_starts circuits) }
-
-fieldIsFree :: Ord hex => hex -> Circuits hex -> Bool
-fieldIsFree f circuits = f `M.notMember` _nodes circuits
-
 circuitProcess
     :: ProcessGeometry Cube
     -> Circuits Cube
@@ -149,19 +137,17 @@ circuitProcess processGeometry = runST $ do
                 = Just step
         acceptStep _ _ = Nothing
 
-        acceptStart start knownCircuits =
-            (start `S.member` _inside processGeometry)
-                && not (all (\neighbour -> M.member neighbour (_nodes knownCircuits)) (ring 1 start))
+        isInBounds p = p `S.member` _inside processGeometry
+                    || p `S.member` _edge processGeometry
 
         constraints = MoveConstraints
             { _acceptStep = acceptStep
-            , _acceptStart = acceptStart
+            , _isInBounds = isInBounds
             }
 
     (_starts, result) <- iterateUntilM
         (\(startingCandidates, _) -> S.null startingCandidates)
-        (\(startingCandidates, knownCircuits) ->
-            growSingleCircuit gen startingCandidates constraints knownCircuits)
+        (growSingleCircuit gen constraints)
         (_inside processGeometry, emptyCircuits)
     pure result
 
@@ -173,50 +159,52 @@ iterateUntilM p = go
 
 growSingleCircuit
     :: MWC.Gen s
-    -> Set Cube
     -> MoveConstraints Cube
-    -> Circuits Cube
+    -> (Set Cube, Circuits Cube)
     -> ST s (Set Cube, Circuits Cube)
-growSingleCircuit gen startingCandidates constraints knownCircuits = do
-    firstStepResult <- fix
-        (\loop starts -> do
-            if S.null starts
-                then pure Nothing
-            else do
-                start <- randomEntry gen starts
-                if _acceptStart constraints start knownCircuits
-                    then doFirstStep gen start knownCircuits >>= \case
-                        Left FirstStepFailed -> loop starts
-                        Left FirstStepImpossible -> loop (S.delete start starts)
-                        Right firstStep -> pure (Just (start, starts, firstStep))
-                    else loop (S.delete start starts))
-        startingCandidates
-    case firstStepResult of
-        Just (start, startCandidates', firstStep) -> do
-            grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
-            let startCandidates'' = startCandidates' `S.difference` M.keysSet (_nodes knownCircuits)
-            pure (startCandidates'', grownCircuit)
-        Nothing -> pure (S.empty, knownCircuits)
+growSingleCircuit gen constraints (initialStartingCandidates, knownCircuits) =
+    fix
+        (\loop startingCandidates -> do
+            startCandidate <- randomEntry gen startingCandidates
+            case startCandidate of
+                Nothing -> pure (mempty, knownCircuits)
+                Just start -> do
+                    stepCandidate <- randomFirstStep gen start knownCircuits constraints
+                    case stepCandidate of
+                        Nothing -> loop (S.delete start startingCandidates)
+                        Just firstStep -> do
+                            grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
+                            let startCandidates' = startingCandidates `S.difference` M.keysSet (_nodes knownCircuits)
+                            pure (startCandidates', grownCircuit)
+        )
+        initialStartingCandidates
 
-data FirstStepResult
-    = FirstStepFailed
-    | FirstStepImpossible
-    deriving (Eq, Ord, Show)
+randomEntry :: Foldable f => MWC.GenST s -> f a -> ST s (Maybe a)
+randomEntry gen xs = do
+    let n = length xs
+    if n <= 0 then
+        pure Nothing
+        else do
+            i <- MWC.uniformRM (0,n-1) gen
+            pure (Just (toList xs !! i))
 
-doFirstStep
+randomFirstStep
     :: (HexagonalCoordinate hex, Ord hex)
     => MWC.Gen s
     -> hex
     -> Circuits hex
-    -> ST s (Either FirstStepResult hex)
-doFirstStep gen start knownCircuits = do
-    plausibleFirstSteps <- fisherYatesShuffle gen (V.fromList [move dir 1 start | dir <- [minBound..]])
-    let firstStep = V.head plausibleFirstSteps
-    if not (fieldIsFree start knownCircuits) || not (fieldIsFree firstStep knownCircuits)
-        then if not (V.any (\step -> fieldIsFree step knownCircuits) plausibleFirstSteps)
-            then pure (Left FirstStepImpossible)
-            else pure (Left FirstStepFailed)
-        else pure (Right firstStep)
+    -> MoveConstraints hex
+    -> ST s (Maybe hex)
+randomFirstStep gen start knownCircuits constraints = do
+    let neighbours = V.fromList (ring 1 start)
+    scrambledNeighbours <- fisherYatesShuffle gen neighbours
+    pure (V.find (\firstStep -> fieldIsAllowed firstStep knownCircuits constraints) scrambledNeighbours)
+
+fieldIsAllowed :: Ord hex => hex -> Circuits hex -> MoveConstraints hex -> Bool
+fieldIsAllowed hex circuits constraints = not inAnyCircuit && inBounds
+  where
+    inAnyCircuit = hex `M.member` _nodes circuits
+    inBounds = _isInBounds constraints hex
 
 growCircuit
     :: (HexagonalCoordinate hex, Ord hex)
