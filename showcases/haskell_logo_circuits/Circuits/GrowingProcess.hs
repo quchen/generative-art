@@ -9,18 +9,17 @@ module Circuits.GrowingProcess (
 
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Function
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
+import           Data.Map          (Map)
+import qualified Data.Map          as M
 import           Data.Maybe
-import           Data.Set                       (Set)
-import qualified Data.Set                       as S
-import qualified Data.Vector                    as V
-import           Draw                           as D
-import           Geometry.Coordinates.Hexagonal as Hex
-import qualified System.Random.MWC              as MWC
-import           Why                            (fisherYatesShuffle)
+import           Data.Set          (Set)
+import qualified Data.Set          as S
+import qualified Data.Vector       as V
+import qualified System.Random.MWC as MWC
 
+import Draw                           as D
+import Geometry.Coordinates.Hexagonal as Hex
+import Why                            (fisherYatesShuffle)
 
 
 data ProcessGeometry hex = ProcessGeometry
@@ -59,14 +58,14 @@ circuitProcess
     :: ProcessGeometry Cube
     -> Circuits Cube
 circuitProcess processGeometry = runST $ do
-    gen <- MWC.initialize (V.fromList [252,231233,2333,233])
-    k <- replicateM 1000 (MWC.uniformM gen)
+    gen <- MWC.initialize (V.fromList [252,231233,2333,233,1])
+    k <- replicateM 1000 (MWC.uniformM gen) -- Warm up MWC gen
     let _ = k :: [Int]
 
     let acceptStep WireEnd _ = Just WireEnd
         acceptStep step@(WireTo target) knownCircuits
             | target `M.notMember` _nodes knownCircuits
-                    && target `S.member` (_inside processGeometry <> _edge processGeometry)
+              && (target `S.member` _inside processGeometry || target `S.member` _edge processGeometry)
                 = Just step
         acceptStep _ _ = Nothing
 
@@ -78,39 +77,55 @@ circuitProcess processGeometry = runST $ do
             , _isInBounds = isInBounds
             }
 
-    (_starts, result) <- iterateUntilM
-        (\(startingCandidates, _) -> S.null startingCandidates)
+    (_starts, result) <- iterateUntilNothingM
         (growSingleCircuit gen constraints)
         (_inside processGeometry, emptyCircuits)
     pure result
 
-iterateUntilM :: Monad f => (a -> Bool) -> (a -> f a) -> a -> f a
-iterateUntilM p = go
+iterateUntilNothingM
+    :: Monad m
+    => (a -> m (Maybe a))
+    -> a
+    -> m a
+iterateUntilNothingM f = go
   where
-    go _f x | p x = pure x
-    go f x = f x >>= go f
+    go x = f x >>= \case
+        Nothing -> pure x
+        Just x' -> go x'
 
 growSingleCircuit
     :: MWC.Gen s
     -> MoveConstraints Cube
     -> (Set Cube, Circuits Cube)
-    -> ST s (Set Cube, Circuits Cube)
+    -> ST s (Maybe (Set Cube, Circuits Cube))
 growSingleCircuit gen constraints (initialStartingCandidates, knownCircuits) =
-    fix
-        (\loop startingCandidates -> do
-            startCandidate <- randomEntry gen startingCandidates
-            case startCandidate of
-                Nothing -> pure (mempty, knownCircuits)
-                Just start -> do
-                    stepCandidate <- randomFirstStep gen start knownCircuits constraints
-                    case stepCandidate of
-                        Nothing -> loop (S.delete start startingCandidates)
-                        Just firstStep -> do
-                            grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
-                            let startCandidates' = startingCandidates `S.difference` M.keysSet (_nodes knownCircuits)
-                            pure (startCandidates', grownCircuit)
-        )
-        initialStartingCandidates
+    pickStartAndFirstStep gen constraints (initialStartingCandidates, knownCircuits) >>= \case
+        NoFirstStepPossible -> pure Nothing
+        FirstStepIs remainingStartingCandidates start firstStep -> do
+            grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
+            pure (Just (remainingStartingCandidates, grownCircuit))
+
+data FirstStep hex
+    = NoFirstStepPossible
+    | FirstStepIs (Set hex) hex hex
+    deriving (Eq, Ord, Show)
+
+-- | Pick a starting point and a first step. If a listed point is an impossible
+-- start, remove it from the list of possible starts.
+pickStartAndFirstStep
+    :: (HexagonalCoordinate hex, Ord hex)
+    => MWC.GenST s
+    -> MoveConstraints hex
+    -> (Set hex, Circuits hex) -- ^ Possible starting points, existing circuits
+    -> ST s (FirstStep hex)
+pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) =
+    let allowedSCs = S.filter (\start -> fieldIsAllowed start knownCircuits constraints) startingCandidates
+        loop thinnedOutSCs = randomEntry gen thinnedOutSCs >>= \case
+            Nothing -> pure NoFirstStepPossible
+            Just start -> randomFirstStep gen start knownCircuits constraints >>= \case
+                Nothing -> loop (S.delete start thinnedOutSCs)
+                Just firstStep -> pure (FirstStepIs thinnedOutSCs start firstStep)
+    in loop allowedSCs
 
 randomEntry :: Foldable f => MWC.GenST s -> f a -> ST s (Maybe a)
 randomEntry gen xs = do
@@ -149,17 +164,12 @@ growCircuit
     -> ST s (Circuits hex)
 growCircuit gen start firstStep constraints knownCircuits = do
     let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
-    knownCircuitsAfterProcess <- fix
-        (\loop newKnownCircuits lastPos currentPos -> do
+        loop newKnownCircuits lastPos currentPos = do
             action <- randomPossibleAction gen constraints newKnownCircuits lastPos currentPos
             case action of
                 WireTo target -> loop (insertNode currentPos action newKnownCircuits) currentPos target
                 WireEnd       -> pure (insertNode currentPos WireEnd newKnownCircuits)
-        )
-        knownCircuitsBeforeProcess
-        start
-        firstStep
-    pure knownCircuitsAfterProcess
+    loop knownCircuitsBeforeProcess start firstStep
 
 randomPossibleAction
     :: HexagonalCoordinate hex
@@ -201,7 +211,6 @@ weightedRandom _ choices
     | all (== 0) weights = error ("weightedRandom: all weights were zero, " ++ show weights)
   where
     weights = [weight | (weight, _val) <- choices]
-
 weightedRandom gen choices = do
     let total = sum [weight | (weight, _val) <- choices]
     i <- MWC.uniformRM (1, total) gen

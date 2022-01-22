@@ -9,18 +9,18 @@ module Circuits.Render (
 
 
 import           Data.Function
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
-import qualified Data.Set                       as S
-import qualified Data.Vector                    as V
-import           Draw                           as D
-import           Geometry                       as G
-import           Geometry.Chaotic
-import           Geometry.Coordinates.Hexagonal as Hex
-import           Graphics.Rendering.Cairo       as C hiding (x, y)
-import qualified System.Random.MWC              as MWC
+import           Data.Map                 (Map)
+import qualified Data.Map                 as M
+import qualified Data.Set                 as S
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as C hiding (x, y)
+import qualified System.Random.MWC        as MWC
 
 import Circuits.GrowingProcess
+import Draw                           as D
+import Geometry                       as G
+import Geometry.Chaotic
+import Geometry.Coordinates.Hexagonal as Hex
 
 
 

@@ -1,9 +1,10 @@
 module Main (main) where
 
-import qualified Data.Set                       as S
-import           Draw                           as D
-import           Geometry.Coordinates.Hexagonal as Hex
-import           Graphics.Rendering.Cairo       as C hiding (x, y)
+import qualified Data.Set                 as S
+import           Graphics.Rendering.Cairo as C hiding (x, y)
+
+import Draw                           as D
+import Geometry.Coordinates.Hexagonal as Hex
 
 import Circuits.GrowingProcess
 import Circuits.Render
@@ -37,7 +38,10 @@ main = do
     picWidth = 480
     picHeight = 440
 
-hexLambda :: Int -> ProcessGeometry Cube
+-- | A lambda in hexagonal coordinates.
+hexLambda
+    :: Int -- ^ Scale parameter. c*10 will be the total height.
+    -> ProcessGeometry Cube
 hexLambda c | c <= 0 = ProcessGeometry S.empty S.empty
 hexLambda c = ProcessGeometry
     { _inside = pointsOnInside
@@ -66,7 +70,11 @@ hexLambda c = ProcessGeometry
     pointsOnInside = floodFilled `S.difference` pointsOnEdge
     pointsOnEdge = edgePoints polygon
 
-largeSurroundingCircle :: Int -> ProcessGeometry Cube -> ProcessGeometry Cube
+-- | A large hexagon with some geometry cut out.
+largeSurroundingCircle
+    :: Int                  -- ^ Radius of the hexagon
+    -> ProcessGeometry Cube -- ^ Geometry to be cut out
+    -> ProcessGeometry Cube
 largeSurroundingCircle c excludes =
     let allExcluded = _inside excludes <> _edge excludes
         largeCircle = S.fromList (hexagonsInRange c hexZero)
