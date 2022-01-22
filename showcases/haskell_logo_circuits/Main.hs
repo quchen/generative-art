@@ -13,7 +13,7 @@ import Circuits.Render
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 3
+    let lambdaScale = 6
         lambdaGeometry = hexLambda lambdaScale
         lambdaCircuits = circuitProcess lambdaGeometry
 
@@ -21,8 +21,9 @@ main = do
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
         surroundingCircuits = circuitProcess surroundingGeometry
     let mainRender = do
-            let cellSize = 6
-            C.translate 240 220
+            -- cartesianCoordinateSystem
+            let cellSize = 3
+            C.translate 260 220
             -- cairoScope $ grouped (paintWithAlpha 0.5) $ hexagonalCoordinateSystem cellSize 50
             setLineWidth 1
             renderCircuits purple cellSize lambdaCircuits
@@ -35,7 +36,7 @@ main = do
         mainRender
         )
   where
-    picWidth = 480
+    picWidth = 520
     picHeight = 440
 
 -- | A lambda in hexagonal coordinates.
