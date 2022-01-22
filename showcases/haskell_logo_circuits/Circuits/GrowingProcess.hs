@@ -98,12 +98,12 @@ growSingleCircuit
     -> MoveConstraints Cube
     -> (Set Cube, Circuits Cube)
     -> ST s (Maybe (Set Cube, Circuits Cube))
-growSingleCircuit gen constraints (initialStartingCandidates, knownCircuits) =
-    pickStartAndFirstStep gen constraints (initialStartingCandidates, knownCircuits) >>= \case
+growSingleCircuit gen constraints (startingCandidates, knownCircuits) =
+    pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) >>= \case
         NoFirstStepPossible -> pure Nothing
-        FirstStepIs remainingStartingCandidates start firstStep -> do
+        FirstStepIs thinnedOutSCs start firstStep -> do
             grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
-            pure (Just (remainingStartingCandidates, grownCircuit))
+            pure (Just (thinnedOutSCs, grownCircuit))
 
 data FirstStep hex
     = NoFirstStepPossible
@@ -127,14 +127,14 @@ pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) =
                 Just firstStep -> pure (FirstStepIs thinnedOutSCs start firstStep)
     in loop allowedSCs
 
-randomEntry :: Foldable f => MWC.GenST s -> f a -> ST s (Maybe a)
+randomEntry :: MWC.GenST s -> Set a -> ST s (Maybe a)
 randomEntry gen xs = do
-    let n = length xs
+    let n = S.size xs
     if n <= 0 then
         pure Nothing
         else do
             i <- MWC.uniformRM (0,n-1) gen
-            pure (Just (toList xs !! i))
+            pure (Just (S.elemAt i xs))
 
 randomFirstStep
     :: (HexagonalCoordinate hex, Ord hex)
