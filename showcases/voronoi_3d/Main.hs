@@ -46,7 +46,8 @@ main = do
                     (  translate (Vec2 0 (picHeight/5))
                     <> scaleAround' origin 1 0.35
                     <> rotateAround origin (deg 45)
-                    <> translate (Vec2 560 0) )
+                    <> translate (Vec2 560 0 )
+                    <> scaleAround (seed c) 0.9 )
                     (region c)
                 , props c) )
             <$> cells voronoiWithProps
@@ -63,7 +64,10 @@ randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (
     origin = Vec2 720 720
 
 randomColor :: Vec2 -> Color Double
-randomColor = \p -> hsl 20 1 (0.1 * fromIntegral (round (4 * (1.5 + noise2d p))))
+randomColor = \p -> hsl
+    (295 + 3 * fromIntegral (round (3 * noise2d p)))
+    1
+    (0.1 * fromIntegral (round (4 * (1.5 + noise2d p))))
   where
     noise = perlin { perlinOctaves = 4, perlinFrequency = 0.005, perlinSeed = 321896 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
