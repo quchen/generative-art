@@ -3,9 +3,6 @@
 module Main (main) where
 
 import Data.Char          (ord)
-import Data.Colour        ()
-import Data.Foldable      (for_)
-import Data.List          (find)
 import Data.Maybe         (fromMaybe)
 import Data.Vector        (fromList)
 import Math.Noise         (Perlin (..), getValue, perlin)

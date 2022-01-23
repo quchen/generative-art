@@ -45,34 +45,25 @@ executables:
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
     haskell-logo-triangles:
         main:        Main.hs
         source-dirs: showcases/haskell_logo_triangles
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
-            - random
-            - transformers
-            - containers
     vector-fields:
         main: Main.hs
         source-dirs: showcases/vector_fields
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
             - Noise
-            - mwc-random
     haskell-logo-voronoi:
         main: Main.hs
         source-dirs: showcases/haskell_logo_voronoi
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
         dependencies:
             - generative-art
-            - cairo
-            - mwc-random
             - Noise
     voronoi-interactive:
         main: Main.hs
@@ -80,9 +71,7 @@ executables:
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
             - threepenny-gui
-            - mwc-random
             - temporary
     particle-shooter:
         main: Main.hs
@@ -90,9 +79,6 @@ executables:
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
-            - mwc-random
-            - vector
             - parallel
     circuits:
         main: Main.hs
@@ -100,9 +86,6 @@ executables:
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-            - cairo
-            - containers
-            - mwc-random
             - parallel
 
 tests:
