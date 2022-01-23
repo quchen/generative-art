@@ -1,8 +1,8 @@
 module Main (main) where
 
-import qualified Data.Set                 as S
-import           Graphics.Rendering.Cairo as C hiding (x, y)
-import Control.Parallel.Strategies
+import           Control.Parallel.Strategies
+import qualified Data.Set                    as S
+import           Graphics.Rendering.Cairo    as C hiding (x, y)
 
 import Draw                           as D
 import Geometry.Coordinates.Hexagonal as Hex

@@ -7,6 +7,7 @@ module Circuits.GrowingProcess (
 
 
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Map          (Map)
@@ -16,7 +17,6 @@ import           Data.Set          (Set)
 import qualified Data.Set          as S
 import qualified Data.Vector       as V
 import qualified System.Random.MWC as MWC
-import Control.DeepSeq
 
 import Geometry.Coordinates.Hexagonal as Hex
 import Why                            (fisherYatesShuffle)
