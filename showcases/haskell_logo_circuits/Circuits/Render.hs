@@ -1,9 +1,13 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Circuits.Render (
-    renderCircuits
+      renderCircuits
+    , renderProcessGeometry
 
     , ColorScheme(..)
     , purple
     , grey
+    , pitchBlackForDebugging
 ) where
 
 
@@ -86,6 +90,9 @@ grey = ColorScheme (V.fromList [setGrey x | x <- [850, 875, 900]])
         let x = fromIntegral per1000 / 1000
         in setColor (rgb x x x)
 
+pitchBlackForDebugging :: ColorScheme
+pitchBlackForDebugging = ColorScheme (V.fromList [setColor (rgb 0 0 0)])
+
 randomColor
     :: MWC.GenIO
     -> ColorScheme
@@ -93,3 +100,33 @@ randomColor
 randomColor gen (ColorScheme scheme) = do
     n <- liftIO $ MWC.uniformRM (0, V.length scheme-1) gen
     scheme V.! n
+
+-- renderProcessGeometry
+--     :: HexagonalCoordinate  hex
+--     => Double
+--     -> ProcessGeometry hex
+--     -> Render ()
+renderProcessGeometry
+    :: (HexagonalCoordinate hex, CairoColor filling, CairoColor edges)
+    => filling
+    -> edges
+    -> Double
+    -> ProcessGeometry hex
+    -> Render ()
+renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
+    cairoScope $ do
+        for_ _inside $ \hex -> do
+            D.polygonSketch (hexagonPoly cellSize hex)
+        setColor (insideColor)
+        fillPreserve
+        setSourceRGB 0 0 0
+        stroke
+
+    cairoScope $ do
+        setColor (edgeColor)
+        for_ _edge $ \hex -> do
+            D.polygonSketch (hexagonPoly cellSize hex)
+        setColor (edgeColor)
+        fillPreserve
+        setSourceRGB 0 0 0
+        stroke

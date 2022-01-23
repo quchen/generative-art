@@ -13,7 +13,7 @@ import Circuits.Render
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 6
+    let lambdaScale = 3
         lambdaGeometry = hexLambda lambdaScale
         lambdaCircuits = circuitProcess lambdaGeometry
 
@@ -22,12 +22,17 @@ main = do
         surroundingCircuits = circuitProcess surroundingGeometry
     let mainRender = do
             -- cartesianCoordinateSystem
-            let cellSize = 3
+            let cellSize = 6
             C.translate 260 220
+            cairoScope $ grouped (paintWithAlpha 0.2) $ do
+                setLineWidth 1
+                renderProcessGeometry (mmaColor 0 1) (mmaColor 1 1) cellSize lambdaGeometry
+                renderProcessGeometry (mmaColor 2 1) (mmaColor 3 1) cellSize surroundingGeometry
             -- cairoScope $ grouped (paintWithAlpha 0.5) $ hexagonalCoordinateSystem cellSize 50
-            setLineWidth 1
-            renderCircuits purple cellSize lambdaCircuits
-            renderCircuits grey cellSize surroundingCircuits
+            cairoScope $ grouped (paintWithAlpha 0.3) $ do
+                setLineWidth 2
+                renderCircuits pitchBlackForDebugging cellSize lambdaCircuits
+                renderCircuits pitchBlackForDebugging cellSize surroundingCircuits
     withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
     withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface $ do
         cairoScope $ do

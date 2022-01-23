@@ -17,7 +17,6 @@ import qualified Data.Set          as S
 import qualified Data.Vector       as V
 import qualified System.Random.MWC as MWC
 
-import Draw                           as D
 import Geometry.Coordinates.Hexagonal as Hex
 import Why                            (fisherYatesShuffle)
 
