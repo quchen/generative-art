@@ -63,8 +63,7 @@ randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (
     origin = Vec2 720 720
 
 randomColor :: Vec2 -> Color Double
-randomColor = \p -> hsl 180 0.8 (0.5 + 0.2 * noise2d p)
---randomColor = \p -> hsl (180 + 360 * noise2d p) 0.8 0.6
+randomColor = \p -> hsl 20 1 (0.1 * fromIntegral (round (4 * (1.5 + noise2d p))))
   where
     noise = perlin { perlinOctaves = 4, perlinFrequency = 0.005, perlinSeed = 321896 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
