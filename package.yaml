@@ -94,6 +94,16 @@ executables:
             - mwc-random
             - vector
             - parallel
+    circuits:
+        main: Main.hs
+        source-dirs: showcases/circuits
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+            - cairo
+            - containers
+            - mwc-random
+            - parallel
 
 tests:
     testsuite:

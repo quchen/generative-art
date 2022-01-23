@@ -4,6 +4,8 @@
 playing around with 2-dimensional geometry and generative art using Haskell and
 Cairo.
 
+![](showcases/circuits.svg)
+
 ![](showcases/haskell_logo_billard.svg)
 
 ![](showcases/haskell_logo_triangles.svg)
