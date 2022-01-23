@@ -13,12 +13,19 @@ import Data.Maybe
 import Control.Monad
 import qualified Data.Set as S
 import Data.Set (Set)
+import Control.DeepSeq
 
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
 
 data Axial = Axial !Int !Int
     deriving (Eq, Ord, Show)
+
+instance NFData Cube where
+    rnf _ = () -- Constructors are already strict
+
+instance NFData Axial where
+    rnf _ = () -- Constructors are already strict
 
 cubicalToAxial :: Cube -> Axial
 cubicalToAxial (Cube q r _s) = Axial q r
