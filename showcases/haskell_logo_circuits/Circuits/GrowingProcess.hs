@@ -78,7 +78,7 @@ circuitProcess processGeometry = runST $ do
 
     (_starts, result) <- iterateUntilNothingM
         (growSingleCircuit gen constraints)
-        (_inside processGeometry, emptyCircuits)
+        (_inside processGeometry <> _edge processGeometry, emptyCircuits)
     pure result
 
 iterateUntilNothingM
