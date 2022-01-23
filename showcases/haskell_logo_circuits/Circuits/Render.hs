@@ -66,13 +66,15 @@ renderCircuits
     -> Double
     -> Circuits hex
     -> Render ()
-renderCircuits scheme cellSize allCircuits = case S.minView (_starts allCircuits) of
-    Nothing -> pure ()
-    Just (start, rest) -> do
-        gen <- liftIO $ MWC.initialize (V.fromList [fromIntegral $ perturb (S.size (_starts allCircuits))])
-        randomColor gen scheme
-        renderSingleWire cellSize (_nodes allCircuits) start
-        renderCircuits scheme cellSize allCircuits{ _starts = rest }
+renderCircuits scheme cellSize allCircuits = do
+    gen <- liftIO $ MWC.initialize (V.fromList [fromIntegral (perturb cellSize), fromIntegral $ perturb (S.size (_starts allCircuits))])
+    let loop circuits = case S.minView (_starts circuits) of
+            Nothing -> pure ()
+            Just (start, rest) -> do
+                randomColor gen scheme
+                renderSingleWire cellSize (_nodes circuits) start
+                loop circuits{ _starts = rest }
+    loop allCircuits
 
 newtype ColorScheme = ColorScheme (V.Vector (Render ()))
 
