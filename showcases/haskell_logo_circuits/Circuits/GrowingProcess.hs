@@ -16,6 +16,7 @@ import           Data.Set          (Set)
 import qualified Data.Set          as S
 import qualified Data.Vector       as V
 import qualified System.Random.MWC as MWC
+import Control.DeepSeq
 
 import Geometry.Coordinates.Hexagonal as Hex
 import Why                            (fisherYatesShuffle)
@@ -31,6 +32,10 @@ data CellState hex
     | WireEnd
     deriving (Eq, Ord, Show)
 
+instance NFData hex => NFData (CellState hex) where
+    rnf (WireTo target) = rnf target
+    rnf WireEnd = ()
+
 data MoveConstraints hex = MoveConstraints
     { _isInBounds :: hex -> Bool
     , _acceptStep :: CellState hex -> Circuits hex -> Maybe (CellState hex)
@@ -40,6 +45,10 @@ data Circuits hex = Circuits
     { _starts :: Set hex
     , _nodes :: Map hex (CellState hex)
     } deriving (Eq, Ord, Show)
+
+instance NFData hex => NFData (Circuits hex) where
+    rnf Circuits{_starts=starts, _nodes=nodes}
+        = rnf starts `seq` rnf nodes
 
 emptyCircuits :: Circuits hex
 emptyCircuits = Circuits

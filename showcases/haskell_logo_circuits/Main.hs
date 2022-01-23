@@ -2,6 +2,7 @@ module Main (main) where
 
 import qualified Data.Set                 as S
 import           Graphics.Rendering.Cairo as C hiding (x, y)
+import Control.Parallel.Strategies
 
 import Draw                           as D
 import Geometry.Coordinates.Hexagonal as Hex
@@ -15,21 +16,23 @@ main :: IO ()
 main = do
     let lambdaScale = 6
         lambdaGeometry = hexLambda lambdaScale
-        lambdaCircuits = circuitProcess lambdaGeometry
 
         surroundingScale = lambdaScale*8
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
-        surroundingCircuits = circuitProcess surroundingGeometry
+
+        (lambdaCircuits, surroundingCircuits) =
+            (circuitProcess lambdaGeometry, circuitProcess surroundingGeometry)
+            `using` parTuple2 rdeepseq rdeepseq
     let mainRender = do
-            -- cartesianCoordinateSystem
-            let cellSize = 3
-            C.translate 260 220
+            -- cairoScope $ grouped (paintWithAlpha 0.5) $ cartesianCoordinateSystem
+            let cellSize = 5
+            C.translate (2560/2) (1440/2)
             -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
             --     setLineWidth 1
             --     renderProcessGeometry (mmaColor 0 1) (mmaColor 1 1) cellSize lambdaGeometry
             --     renderProcessGeometry (mmaColor 2 1) (mmaColor 3 1) cellSize surroundingGeometry
             cairoScope $ do
-                setLineWidth 1
+                setLineWidth 2
                 renderCircuits purple  cellSize lambdaCircuits
                 renderCircuits grey cellSize surroundingCircuits
     withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
@@ -40,8 +43,8 @@ main = do
         mainRender
         )
   where
-    picWidth = 520
-    picHeight = 440
+    picWidth = 2560
+    picHeight = 1440
 
 -- | A lambda in hexagonal coordinates.
 hexLambda

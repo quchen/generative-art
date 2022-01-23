@@ -103,6 +103,7 @@ executables:
             - cairo
             - containers
             - mwc-random
+            - parallel
 
 tests:
     testsuite:
