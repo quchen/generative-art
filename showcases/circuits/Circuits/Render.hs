@@ -86,7 +86,7 @@ purple = ColorScheme (V.fromList [darker, dark, brighter])
     brighter = setColor (hsva 304 0.45 0.56 1)
 
 grey :: ColorScheme
-grey = ColorScheme (V.fromList [setGrey x | x <- [900, 925, 950]])
+grey = ColorScheme (V.fromList [setGrey x | x <- [850, 875, 900]])
   where
     setGrey per1000 =
         let x = fromIntegral per1000 / 1000

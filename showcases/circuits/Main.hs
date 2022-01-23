@@ -25,26 +25,26 @@ main = do
             `using` parTuple2 rdeepseq rdeepseq
     let mainRender = do
             -- cairoScope $ grouped (paintWithAlpha 0.5) $ cartesianCoordinateSystem
-            let cellSize = 5
-            C.translate (2560/2) (1440/2)
+            let cellSize = 3
+            C.translate (fromIntegral picWidth/2) (fromIntegral picHeight/2)
             -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
             --     setLineWidth 1
             --     renderProcessGeometry (mmaColor 0 1) (mmaColor 1 1) cellSize lambdaGeometry
             --     renderProcessGeometry (mmaColor 2 1) (mmaColor 3 1) cellSize surroundingGeometry
             cairoScope $ do
-                setLineWidth 2
+                setLineWidth 1
                 renderCircuits purple  cellSize lambdaCircuits
                 renderCircuits grey cellSize surroundingCircuits
-    withSurfaceAuto "out/haskell_logo_circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
-    withSurfaceAuto "out/haskell_logo_circuits.png" picWidth picHeight (\surface -> renderWith surface $ do
+    withSurfaceAuto "out/circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
+    withSurfaceAuto "out/circuits.png" picWidth picHeight (\surface -> renderWith surface $ do
         cairoScope $ do
             setSourceRGB 1 1 1
             paint
         mainRender
         )
   where
-    picWidth = 2560
-    picHeight = 1440
+    picWidth = 520
+    picHeight = 440
 
 -- | A lambda in hexagonal coordinates.
 hexLambda
