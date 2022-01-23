@@ -1,13 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import Data.Maybe         (fromMaybe)
 import Data.List (sortOn)
+import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
-import Data.Vector        (fromList)
-import Math.Noise         (Perlin (..), getValue, perlin)
-import Prelude            hiding ((**))
-import System.Random.MWC  (initialize)
+import Data.Vector (fromList)
+import Math.Noise (Perlin (..), getValue, perlin)
+import Prelude hiding ((**))
+import System.Random.MWC (initialize)
 import qualified Graphics.Rendering.Cairo as Cairo
 
 import Draw
@@ -37,8 +37,8 @@ main = do
 
     points <- poissonDisc samplingProps
     print (length points)
-    let voronoi = toVoronoi (lloydRelaxation $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points)
-        voronoiWithHeight = mapWithSeed (const . randomHeight) voronoi
+    let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points)
+        voronoiWithProps = mapWithSeed (\p () -> (randomColor p, randomHeight p)) voronoi
         origin = Vec2 (picWidth/2) (picHeight/2)
         voronoiCells = sortOn ((\(Polygon ps) -> minimum (yCoordinate <$> ps)) . fst) $
             ( \c ->
@@ -46,29 +46,35 @@ main = do
                     (  translate (Vec2 0 (picHeight/5))
                     <> scaleAround' origin 1 0.35
                     <> rotateAround origin (deg 45)
-                    <> translate (Vec2 560 0)
-                    )
+                    <> translate (Vec2 560 0) )
                     (region c)
                 , props c) )
-            <$> cells voronoiWithHeight
+            <$> cells voronoiWithProps
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         cairoScope (setColor black >> Cairo.paint)
         for_ voronoiCells $ uncurry drawCell
 
 randomHeight :: Vec2 -> Double
-randomHeight p = 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (p -. origin))
+randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (p -. origin))
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.001, perlinSeed = 1980166}
+    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.001, perlinSeed = 1980166 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
     origin = Vec2 720 720
 
-drawCell :: Polygon -> Double -> Cairo.Render ()
+randomColor :: Vec2 -> Color Double
+randomColor = \p -> hsl 180 0.8 (0.5 + 0.2 * noise2d p)
+--randomColor = \p -> hsl (180 + 360 * noise2d p) 0.8 0.6
+  where
+    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.005, perlinSeed = 321896 }
+    noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
+
+drawCell :: Polygon -> (Color Double, Double) -> Cairo.Render ()
 drawCell (Polygon []) _ = pure ()
-drawCell poly@(Polygon ps) height = cairoScope $ do
-    let lineColor = hsva 180 1 0.5 1
-        sideColor = blend 0.1 (dissolve 0.8 lineColor) (black `withOpacity` 0.3)
-        topColor = blend 0.7 (dissolve 0.8 lineColor) (black `withOpacity` 0.3)
+drawCell poly@(Polygon ps) (color, height) = cairoScope $ do
+    let lineColor = color
+        sideColor = blend 0.1 (lineColor `withOpacity` 0.8) (black `withOpacity` 0.3)
+        topColor = blend 0.7 (lineColor `withOpacity` 0.8) (black `withOpacity` 0.3)
 
     Cairo.setLineJoin Cairo.LineJoinBevel
 
