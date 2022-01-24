@@ -104,6 +104,7 @@ import Data.List
 import Data.Maybe
 import Text.Printf
 import Control.DeepSeq
+import qualified System.Random.MWC as MWC
 
 import Util
 
@@ -112,6 +113,10 @@ import Util
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 instance NFData Vec2 where rnf _ = ()
+
+instance MWC.UniformRange Vec2 where
+    uniformRM (Vec2 xMin yMin, Vec2 xMax yMax) gen =
+        Vec2 <$> MWC.uniformRM (xMin, xMax) gen <*> MWC.uniformRM (yMin, yMax) gen
 
 -- | Polygon, defined by its corners.
 --
