@@ -67,7 +67,7 @@ randomColor :: Vec2 -> Color Double
 randomColor = \p -> hsl
     (30 + 3 * fromIntegral (round (3 * noise2d p)))
     1
-    (0.1 * fromIntegral (round (4 * (1.5 + noise2d p))))
+    (0.1 * fromIntegral (round (3 * (2 + noise2d p))))
   where
     noise = perlin { perlinOctaves = 4, perlinFrequency = 0.005, perlinSeed = 321896 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
@@ -75,9 +75,9 @@ randomColor = \p -> hsl
 drawCell :: Polygon -> (Color Double, Double) -> Cairo.Render ()
 drawCell (Polygon []) _ = pure ()
 drawCell poly@(Polygon ps) (color, height) = cairoScope $ do
-    let lineColor = color
-        sideColor = blend 0.1 (lineColor `withOpacity` 0.8) (black `withOpacity` 0.3)
-        topColor = blend 0.7 (lineColor `withOpacity` 0.8) (black `withOpacity` 0.3)
+    let lineColor = blend 0.95 color white
+        sideColor = blend 0.1 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
+        topColor = blend 0.7 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
 
     Cairo.setLineJoin Cairo.LineJoinBevel
 
