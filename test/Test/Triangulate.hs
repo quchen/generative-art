@@ -75,7 +75,7 @@ testSpiral = testCase "Spiral" test
         paintTriangulation triangulation
 
 nubLines :: [Line] -> [Line]
-nubLines = nub' . map normalize
+nubLines = nubOrd . map normalize
   where
     normalize (Line v1 v2) = Line (min v1 v2) (max v1 v2)
 

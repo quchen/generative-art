@@ -8,7 +8,7 @@ import Data.List
 import Data.Ord
 
 import Geometry.Core
-import Util
+
 
 
 -- | Split a polygon into a number of triangles.
@@ -41,3 +41,14 @@ clipEar parentPolygon = go parentPolygon
 triples :: Polygon -> [(Polygon, [Vec2], Polygon)]
 triples (Polygon ps)
   = map (\(p:x:q:rest) -> (Polygon [p,x,q], rest, Polygon (p:q:rest))) (rotations ps)
+
+-- | All rotations of a list.
+--
+-- prop> \n xs -> rotations xs !! n == rotate n xs
+rotations :: [a] -> [[a]]
+rotations = go []
+  where
+    go _ [] = []
+    go xs (y:ys) = let xs' = xs ++ [y]
+                       rotation = y:ys ++ xs
+                   in rotation : go xs' ys

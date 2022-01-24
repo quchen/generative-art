@@ -1,7 +1,6 @@
 module Test.Color (tests) where
 
 import Data.Colour.Names
-import Data.Foldable (for_)
 import Data.List (transpose)
 import qualified Graphics.Rendering.Cairo as Cairo
 import Test.Tasty

@@ -4,7 +4,6 @@ module Test.Sampling (tests) where
 
 
 import Control.Monad.IO.Class (liftIO)
-import Data.Foldable (for_)
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create)
 import Test.Tasty (TestTree)

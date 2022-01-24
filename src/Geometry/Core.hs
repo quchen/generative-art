@@ -137,6 +137,14 @@ instance Eq Polygon where
             p2Edges' = rotateUntil (== edge1) p2Edges
         in p1Edges == p2Edges'
 
+-- | Rotate a list until the predicate holds. If it never holds, return the
+-- input list.
+rotateUntil :: (a -> Bool) -> [a] -> [a]
+rotateUntil p xs = zipWith
+    (flip const)
+    xs
+    (dropWhile (not . p) (cycle xs))
+
 instance Ord Polygon where
     compare p1 p2
       = let Polygon p1Edges = normalizePolygon p1
@@ -810,7 +818,7 @@ validatePolygon = \polygon -> do
         (_1:_2:_3:_) -> pure ()
         _other       -> Left (NotEnoughCorners (length ps))
 
-    noIdenticalPoints (Polygon corners) = case nub' corners of
+    noIdenticalPoints (Polygon corners) = case nubOrd corners of
         uniques | uniques == corners -> pure ()
                 | otherwise -> Left (IdenticalPoints (corners \\ uniques))
 

@@ -8,7 +8,6 @@ import Control.Applicative
 import Text.Printf
 
 import Geometry
-import Util
 
 import Test.QuickCheck
 import Test.Tasty
@@ -164,6 +163,10 @@ polygonInstancesTest = testGroup "Eq Polygon"
           = let Polygon corners = polygon
                 polygon' = Polygon (rotateList rot corners)
             in polygon === polygon'
+
+-- | Rotate a list n times.
+rotateList :: Int -> [a] -> [a]
+rotateList n xs = let (a,b) = splitAt n xs in b ++ a
 
 transformationTest :: TestTree
 transformationTest = testGroup "Affine transformations"
