@@ -207,6 +207,18 @@ instance ChaosSource Polygon where
 instance ChaosSource Bezier where
     perturb (Bezier a b c d) = perturb (a,b,c,d)
 
+instance ChaosSource BoundingBox where
+    perturb (BoundingBox a b) = perturb (a, b)
+
+instance ChaosSource Angle where
+    perturb (Angle a) = perturb a
+
+instance ChaosSource Hex.Cube where
+    perturb (Hex.Cube q r s) = perturb (q,r,s)
+
+instance ChaosSource Hex.Axial where
+    perturb (Hex.Axial q r) = perturb (q,r)
+
 -- | Infinite list of normally distributed values.
 normals :: ChaosSource seed => seed -> [Double]
 normals seed
