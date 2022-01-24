@@ -20,7 +20,6 @@ import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Penrose
 import qualified Test.Properties
-import qualified Test.RandomCut
 import qualified Test.Reflection
 import qualified Test.Sampling
 import qualified Test.SimpleOperations
@@ -58,7 +57,6 @@ tests = testGroup "Test suite"
         , Test.Mirror.tests
         , Test.Penrose.tests
         , Test.Geometry.Coordinates.Hexagonal.tests
-        , Test.RandomCut.tests
         , Test.Reflection.tests
         , Test.Sampling.tests
         , Test.SimpleOperations.tests
