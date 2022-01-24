@@ -30,6 +30,7 @@ import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector as V
 
 import Geometry
+import qualified Geometry.Coordinates.Hexagonal as Hex
 
 
 -- | Types that can be turned into a random number generator easily, to yield pure chaotic output.
@@ -206,6 +207,21 @@ instance MwcChaosSource Bezier where
 
 instance MwcChaosSource BoundingBox where
     mwcChaos (BoundingBox a b) = mwcChaos (a, b)
+
+instance MwcChaosSource Angle where
+    mwcChaos (Angle a) = mwcChaos a
+
+instance MwcChaosSource Distance where
+    mwcChaos (Distance d) = mwcChaos d
+
+instance MwcChaosSource Area where
+    mwcChaos (Area a) = mwcChaos a
+
+instance MwcChaosSource Hex.Cube where
+    mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
+
+instance MwcChaosSource Hex.Axial where
+    mwcChaos (Hex.Axial q r) = mwcChaos (q,r)
 
 -- | Initialize an 'MWC.Gen' with anything 'MwcChaosSource'.
 
