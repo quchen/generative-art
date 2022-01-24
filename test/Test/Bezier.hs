@@ -53,7 +53,7 @@ paintBezierOpenPicture points smoothed = do
     let circle r = cairoScope $ do
             (x,y) <- getCurrentPoint
             newPath
-            circleSketch (Vec2 x y) (Distance r)
+            circleSketch (Vec2 x y) r
             closePath
         prettyBezier (Bezier (Vec2 x0 y0) (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) ) = do
             do -- Paint actual curve
@@ -104,16 +104,16 @@ picassoSquirrelRender = do
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
             cairoScope . grouped (paintWithAlpha 0.7) $ do
                     setColor $ mmaColor 3 1
-                    circleSketch c1 (Distance 2) >> fill
+                    circleSketch c1 2 >> fill
                     moveToVec start >> lineToVec c1 >> stroke
             cairoScope . grouped (paintWithAlpha 0.7) $ do
                     setColor $ mmaColor 1 1
-                    circleSketch c2 (Distance 2) >> fill
+                    circleSketch c2 2 >> fill
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
         setSourceRGB 0 0 0
         for_ (concat [face, ear, back, tail1, tail2, foot]) $ \p -> do
-            circleSketch p (Distance 2.5) >> fill
+            circleSketch p 2.5 >> fill
 
 
 
@@ -189,18 +189,18 @@ subdivideBezierCurve = do
         showText (show (length beziers) ++ " curves")
 
     let subpoints = beziers >>= bezierSubdivideT 10
-    let simplified = simplifyTrajectory (Distance 0.05) subpoints
+    let simplified = simplifyTrajectory 0.05 subpoints
     cairoScope $ do
         let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
         cairoScope $ for_ (fit subpoints) $ \p -> do
             setColor $ mmaColor 1 0.1
-            circleSketch p (Distance 2)
+            circleSketch p 2
             fill
 
         cairoScope $ for_ (fit simplified) $ \p -> do
             newPath
-            circleSketch p (Distance 2)
+            circleSketch p 2
             setSourceRGB 0 0 0
             stroke
 
@@ -238,9 +238,9 @@ interpolateSingleCurveRender _w _h = do
 
     for_ (zip evenlySpaced unevenlySpaced) $ \(e, u') -> do
         let u = offsetBelow u'
-        let circle p = newPath >> circleSketch p (Distance 3) >> stroke
+        let circle p = newPath >> circleSketch p 3 >> stroke
             connect p q = do
-                let shrink factor = resizeLineSymmetric (\(Distance d) -> Distance (factor*d))
+                let shrink factor = resizeLineSymmetric (\d -> factor*d)
                     line = shrink 0.8 (Line p q)
                 lineSketch line
                 setDash [1,1] 0

@@ -34,7 +34,7 @@ planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tolNorm tol
         -- Also some tiny friction for the same reason.
       = let gravity = (- attraction / let r2 = normSquare x in r2 ** (2.94/2)) *. x
             attraction = 2200
-            friction = (-0.0001 * let Distance d = norm v in d) *. v
+            friction = (-0.0001 * norm v) *. v
             a = gravity +. friction
         in (v, a)
     y0 = (Vec2 100 0, Vec2 4 4)
@@ -43,8 +43,7 @@ planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tolNorm tol
     dt0 = 10
     tol = 0.001
 
-    unDistance (Distance d) = d
-    tolNorm (x,v) = max (unDistance (norm x)) (unDistance (norm v))
+    tolNorm (x,v) = max (norm x) (norm v)
 
 renderTwoBodyProblem :: Int -> Int -> Render ()
 renderTwoBodyProblem w h = do
@@ -61,7 +60,7 @@ renderTwoBodyProblem w h = do
 
     let paintSun = cairoScope $ do
             newPath
-            circleSketch sun (Distance 16)
+            circleSketch sun 16
             setLineWidth 2
             setColor $ mmaColor 1 1
             fillPreserve
@@ -75,7 +74,7 @@ renderTwoBodyProblem w h = do
 
         paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
-            circleSketch planet (Distance 8)
+            circleSketch planet 8
             setColor $ mmaColor 3 1
             fillPreserve
             setSourceRGB 0 0 0
@@ -198,7 +197,7 @@ renderPhaseSpace w h solution = do
         bbCanvas = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
         scaleToCanvas :: Transform geo => geo -> geo
         scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
-        trajectory = simplifyTrajectory (Distance 0.25) -- SVG compression :-)
+        trajectory = simplifyTrajectory 0.25 -- SVG compression :-)
                      [scaleToCanvas (Vec2 x v) | (_t, (x,v)) <- solution']
 
     setLineWidth 1

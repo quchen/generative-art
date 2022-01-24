@@ -41,11 +41,11 @@ intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/h
     testVirtualR
   where
     testVirtualInL = testDraw
-        (angledLine (Vec2 10 10) (rad      0) (Distance 100))
-        (angledLine (Vec2 60 30) (rad (pi/2)) (Distance  50))
+        (angledLine (Vec2 10 10) (rad      0) 100)
+        (angledLine (Vec2 60 30) (rad (pi/2)) 50)
     testVirtualR = testDraw
-        (angledLine (Vec2 370 60) (rad      0) (Distance  50))
-        (angledLine (Vec2 350 10) (rad (pi/2)) (Distance 100))
+        (angledLine (Vec2 370 60) (rad      0) 50)
+        (angledLine (Vec2 350 10) (rad (pi/2)) 100)
 
 intersectionVirtual :: IO ()
 intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtual" $ do
@@ -53,11 +53,11 @@ intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtu
     testVirtual2
   where
     testVirtual1 = testDraw
-        (angledLine (Vec2 50 0) (rad ( pi/6)) (Distance 100))
-        (angledLine (Vec2 50 120) (rad (-pi/6)) (Distance 100))
+        (angledLine (Vec2 50 0) (rad ( pi/6)) 100)
+        (angledLine (Vec2 50 120) (rad (-pi/6)) 100)
     testVirtual2 = testDraw
-        (transform (translate (Vec2 300 60 +. polar (rad (-pi/6)) (Distance 20))) (angledLine (Vec2 0 0) (rad (-pi/6)) (Distance 100)))
-        (transform (translate (Vec2 300 60 +. polar (rad ( pi/6)) (Distance 20))) (angledLine (Vec2 0 0) (rad ( pi/6)) (Distance 100)))
+        (transform (translate (Vec2 300 60 +. polar (rad (-pi/6)) 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) 100))
+        (transform (translate (Vec2 300 60 +. polar (rad ( pi/6)) 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) 100))
 
 intersectionParallel :: IO ()
 intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/parallel" $ do
@@ -73,8 +73,8 @@ intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/para
 
 intersectionAlmostParallel :: IO ()
 intersectionAlmostParallel = renderAllFormats 580 120 "docs/geometry/intersection/almost_parallel" $ testDraw
-    (angledLine (Vec2 50 0) (rad (pi/6)) (Distance 80))
-    (angledLine (Vec2 50 20) (rad (pi/6)) (Distance 80))
+    (angledLine (Vec2 50 0) (rad (pi/6)) 80)
+    (angledLine (Vec2 50 20) (rad (pi/6)) 80)
 
 testDraw :: Line -> Line -> Render ()
 testDraw line1@(Line start _) line2 = do
@@ -82,12 +82,12 @@ testDraw line1@(Line start _) line2 = do
 
     cairoScope $ do
         setColor $ mmaColor 0 1
-        arrowSketch line1 def{arrowheadSize = Distance 8}
+        arrowSketch line1 def{arrowheadSize = 8}
         stroke
 
     cairoScope $ do
         setColor $ mmaColor 1 1
-        arrowSketch line2 def{arrowheadSize = Distance 8}
+        arrowSketch line2 def{arrowheadSize = 8}
         stroke
 
     let ty = intersectionLL line1 line2
@@ -107,7 +107,7 @@ testDraw line1@(Line start _) line2 = do
 
             cairoScope $ do
                 setColor $ mmaColor 3 1
-                circleSketch point (Distance 3)
+                circleSketch point 3
                 fill
 
             cairoScope $ do

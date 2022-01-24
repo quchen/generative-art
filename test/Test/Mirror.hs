@@ -35,14 +35,14 @@ mirrorPointsTest = renderAllFormats 550 550 "docs/geometry/mirror" (do
 mirror1 :: Render ()
 mirror1 = do
     testDraw
-        (angledLine (Vec2 10 100) (Angle 0) (Distance 100))
+        (angledLine (Vec2 10 100) (Angle 0) 100)
         [ Vec2 40 10
         , Vec2 20 20
         , Vec2 60 60
         , Vec2 80 160
         ]
     testDraw
-        (angledLine (Vec2 150 100) (deg (-30)) (Distance 100))
+        (angledLine (Vec2 150 100) (deg (-30)) 100)
         [ Vec2 160 10
         , Vec2 140 20
         , Vec2 180 60
@@ -62,10 +62,10 @@ mirror1 = do
             let p' = transform (mirrorAlong mirror) p
 
             mirroredC 1
-            crossSketch p (Distance 5)
+            crossSketch p 5
             stroke
             originalC 1
-            circleSketch p' (Distance 5)
+            circleSketch p' 5
             stroke
 
             setColor (black `withOpacity` 0.5)
@@ -74,7 +74,7 @@ mirror1 = do
 
 mirror2 :: Render ()
 mirror2 = do
-    let mirror = angledLine (Vec2 10 100) (deg 10) (Distance 510)
+    let mirror = angledLine (Vec2 10 100) (deg 10) 510
 
     cairoScope $ do
         setMirrorStyle
@@ -90,12 +90,12 @@ mirror2 = do
             let mirrored = transform (mirrorAlong mirror) line
             originalC 1 >> arrowSketch line def >> stroke
             mirroredC 1 >> arrowSketch mirrored def >> stroke
-    mirrorLineTest (angledLine (Vec2 50 10) (deg 20) (Distance 100))
-    mirrorLineTest (angledLine (Vec2 150 10) (deg 90) (Distance 100))
-    mirrorLineTest (angledLine (Vec2 160 10) (deg 90) (Distance 150))
-    mirrorLineTest (angledLine (Vec2 300 10) (deg 120) (Distance 180))
-    mirrorLineTest (angledLine (Vec2 250 160) (deg 0) (Distance 200))
-    mirrorLineTest (angledLine (Vec2 120 110) (deg 180) (Distance 100))
+    mirrorLineTest (angledLine (Vec2 50 10) (deg 20) 100)
+    mirrorLineTest (angledLine (Vec2 150 10) (deg 90) 100)
+    mirrorLineTest (angledLine (Vec2 160 10) (deg 90) 150)
+    mirrorLineTest (angledLine (Vec2 300 10) (deg 120) 180)
+    mirrorLineTest (angledLine (Vec2 250 160) (deg 0) 200)
+    mirrorLineTest (angledLine (Vec2 120 110) (deg 180) 100)
 
     let mirrorPolygonTest poly = do
             let mirrored = transform (mirrorAlong mirror) poly

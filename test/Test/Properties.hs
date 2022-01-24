@@ -34,8 +34,8 @@ tests = testGroup "Properties"
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
     (\angle1@(Angle angle1Raw) angle2@(Angle angle2Raw) ->
-        let line1 = angledLine (Vec2 0 0) angle1 (Distance 1)
-            line2 = angledLine (Vec2 0 0) angle2 (Distance 1)
+        let line1 = angledLine (Vec2 0 0) angle1 1
+            line2 = angledLine (Vec2 0 0) angle2 1
             actualAngle = angleBetween line1 line2
             expectedAngleRaw = angle2Raw - angle1Raw
             expectedAngle = rad expectedAngleRaw
@@ -62,7 +62,7 @@ areaTest = testGroup "Area"
             let poly = (transform (translate moveVec <> rotateAround center angle) . Polygon)
                            [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
                 actual = polygonArea poly
-                expected = Area (abs ((x2-x1) * (y2-y1)))
+                expected = abs ((x2-x1) * (y2-y1))
             in actual ~== expected ))
 
     parallelogram = testProperty "Parallelogram" (forAll
@@ -70,9 +70,9 @@ areaTest = testGroup "Area"
         (\(v1, v2) ->
             let actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
                 Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
-                Distance v1norm = norm v1
-                Distance v2norm = norm v2
-                expected = Area (abs (v1norm * v2norm * sin rawAngleBetween))
+                v1norm = norm v1
+                v2norm = norm v2
+                expected = abs (v1norm * v2norm * sin rawAngleBetween)
             in actual ~== expected ))
 
 intersectionLLTest :: TestTree
@@ -88,14 +88,14 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
   where
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
-    dist = fmap Distance (choose (-100, 100))
+    dist = choose (-100, 100)
 
 lengthOfAngledLineTest :: TestTree
 lengthOfAngledLineTest = testProperty "Length of angled line" (forAll
     ((,,) <$> vec2 <*> arbitrary <*> arbitrary)
     (\(start, angle, Positive len) ->
-        let actual = lineLength (angledLine start angle (Distance len))
-            expected = Distance len
+        let actual = lineLength (angledLine start angle len)
+            expected = len
         in actual ~== expected ))
   where
     coord = choose (-100, 100 :: Double)
@@ -233,4 +233,4 @@ distanceFromLineTest = testProperty "Distance from point to line" $
         offset2 <- arbitrary
         let trafo = rotate angle2 <> translate offset2 <> rotate angle1 <> translate offset1
 
-        pure (Distance (abs distance), transform trafo (point, line))
+        pure (abs distance, transform trafo (point, line))

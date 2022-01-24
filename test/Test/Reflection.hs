@@ -20,7 +20,7 @@ tests = testCase "Reflection of rays on a mirror" testReflection
 testReflection :: IO ()
 testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
 
-    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) (Distance 510)
+    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
 
     setLineWidth 1
 
@@ -33,10 +33,10 @@ testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
     cairoScope $ do
         let rayOrigin = Vec2 180 250
         setColor (hsv 0 1 0.7)
-        circleSketch rayOrigin (Distance 5)
+        circleSketch rayOrigin 5
         stroke
         for_ (zip [-135,-120.. -10] [0,6..]) (\(angleDeg, colorDeg) -> do
-            let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
+            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
                 Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
@@ -47,10 +47,10 @@ testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
     cairoScope $ do
         let rayOrigin = Vec2 350 30
         setColor (hsva 180 1 0.7 1)
-        circleSketch rayOrigin (Distance 5)
+        circleSketch rayOrigin 5
         stroke
         for_ (zip [-135,-120.. -10] [180,180+6..]) (\(angleDeg, colorDeg) -> do
-            let rayRaw = angledLine rayOrigin (deg angleDeg) (Distance 100)
+            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
                 Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd

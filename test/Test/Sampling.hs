@@ -77,7 +77,7 @@ drawPoints :: [Vec2] -> Cairo.Render ()
 drawPoints points = cairoScope $ do
     setColor $ mmaColor 0 1
     for_ points $ \point -> do
-        circleSketch point (Distance 2)
+        circleSketch point 2
         Cairo.fill
 
 drawExplanation :: String -> Cairo.Render ()

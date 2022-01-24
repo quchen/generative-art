@@ -34,7 +34,7 @@ simplifyPathTestRender = do
             pathSketch points
             stroke
         plotPoints points = for_ points $ \p -> do
-            circleSketch p (Distance 1)
+            circleSketch p 1
             fillPreserve
             cairoScope $ do
                 setSourceRGB 0 0 0
@@ -44,7 +44,7 @@ simplifyPathTestRender = do
             setLineWidth 1
             bezierCurveSketch segments
             stroke
-        epsilons = [ Distance (2**(-e)) | e <- [10,9..1]]
+        epsilons = [ 2**(-e) | e <- [10,9..1]]
 
     cairoScope $ do
         setColor $ mmaColor 0 1

@@ -65,7 +65,7 @@ reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
         let convexPolygon = convexHull points
             orientation = polygonOrientation convexPolygon
             maxY = maximum (map (\(Vec2 _ y) -> y) points)
-            scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (Angle 0) (Distance 1)
+            scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (Angle 0) 1
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
             actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))
             expected = [convexPolygon]
@@ -74,7 +74,7 @@ reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
 lineTest :: IO ()
 lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
     Cairo.translate 3 32
-    let paper = angledLine (Vec2 0 0) (deg 20) (Distance 100)
+    let paper = angledLine (Vec2 0 0) (deg 20) 100
         scissors = perpendicularBisector paper
         Cut paperStart p paperEnd = cutLine scissors paper
 
@@ -112,14 +112,14 @@ polyCutDraw initialPolygon scissors cutResults = do
         lineSketch scissors
         stroke
         setDash [] 0
-        arrowSketch scissors def{arrowheadSize = Distance 5, arrowDrawBody = False}
+        arrowSketch scissors def{arrowheadSize = 5, arrowDrawBody = False}
         stroke
     drawPolygon i polygon = grouped paint $ do
         setColor $ mmaColor i 1
         for_ (polygonEdges polygon) $ \edge -> do
             arrowSketch edge def
                 { arrowheadRelPos   = 0.45
-                , arrowheadSize     = Distance 6
+                , arrowheadSize     = 6
                 , arrowheadDrawLeft = False
                 }
             stroke
@@ -131,7 +131,7 @@ polyCutDraw initialPolygon scissors cutResults = do
 cutSquareTest :: IO ()
 cutSquareTest = do
     let polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
-        scissors = centerLine (angledLine (Vec2 25 25) (deg 20) (Distance 100))
+        scissors = centerLine (angledLine (Vec2 25 25) (deg 20) 100)
         cutResult = cutPolygon scissors polygon
 
     renderAllFormats 170 90 "docs/geometry/cut/2_square" $ do
@@ -151,7 +151,7 @@ cutSquareTest = do
 complicatedPolygonTest :: IO ()
 complicatedPolygonTest = do
     let polygon = spiralPolygon 9 20
-        scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) (Distance 220))
+        scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) 220)
         cutResult = cutPolygon scissors polygon
 
     renderAllFormats 400 190 "docs/geometry/cut/3_complicated" $ do
@@ -239,11 +239,11 @@ pathologicalCornerCutsTests = do
                 (placeCut cutResult)
             setColor $ mmaColor 0 1
             for_ (let Polygon corners = polygon in corners) $ \corner -> do
-                circleSketch (placeOriginal corner) (Distance 2.5)
+                circleSketch (placeOriginal corner) 2.5
                 stroke
             for_ cutResult $ \cutPoly ->
                 for_ (let Polygon corners = cutPoly in corners) $ \corner -> do
-                    circleSketch (placeCut corner) (Distance 2.5)
+                    circleSketch (placeCut corner) 2.5
                     stroke
         let renderDescription = do
                 setColor $ mmaColor 1 1
@@ -288,8 +288,8 @@ pathologicalCornerCutsTests = do
 
 assertAreaConserved :: Polygon -> [Polygon] -> Assertion
 assertAreaConserved polygon cutResult = do
-    let Area originalArea = signedPolygonArea polygon
-        sumOfCutAreas = sum [ a | Area a <- map signedPolygonArea cutResult ]
+    let originalArea = signedPolygonArea polygon
+        sumOfCutAreas = sum (map signedPolygonArea cutResult)
     unless (originalArea ~== sumOfCutAreas) (assertFailure (unlines
         ("Total area is not conserved!"
         : map ("    " ++)
@@ -310,22 +310,22 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
     , testCase "Simple calculated graph" $
         renderAllFormats 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ do
             let polygon = Geometry.transform (Geometry.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
-                scissors = angledLine (Vec2 0 0) (deg 20) (Distance 1)
+                scissors = angledLine (Vec2 0 0) (deg 20) 1
                 cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
             Cairo.translate 60 60
             drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
     ]
   where
-    moveRight (Distance d) line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
-    nudge = moveRight (Distance 2.5) . resizeLineSymmetric (\(Distance d) -> Distance (0.85*d))
-    arrowSpec = def{arrowheadSize = Distance 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
+    moveRight d line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
+    nudge = moveRight 2.5 . resizeLineSymmetric (\d -> 0.85*d)
+    arrowSpec = def{arrowheadSize = 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
 
     drawCutEdgeGraph orientation ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons orientation ceg
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             setColor $ mmaColor 0 1
-            circleSketch start (Distance 3)
+            circleSketch start 3
             strokePreserve
             setColor $ mmaColor 0 0.3
             fill

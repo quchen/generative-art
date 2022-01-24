@@ -12,20 +12,20 @@ import           Geometry.LUT
 
 -- | Build a lookup table from arc length to the line that we’re on at that arc
 -- length.
-trajectoryLut :: [Vec2] -> VLUT Distance Line
-trajectoryLut = VLUT . V.fromList . go (Distance 0) . pairLines
+trajectoryLut :: [Vec2] -> VLUT Double Line
+trajectoryLut = VLUT . V.fromList . go 0 . pairLines
   where
     pairLines :: [Vec2] -> [Line]
     pairLines xs = zipWith Line xs (tail xs)
 
-    go :: Distance -> [Line] -> [(Distance, Line)]
+    go :: Double -> [Line] -> [(Double, Line)]
     go !_ [] = []
     go currentDistance (currentLine:rest)
        = let newPosition = currentDistance +. lineLength currentLine
          in (currentDistance, currentLine) : go newPosition rest
 
--- | Domain of 'Distance's covered by a trajectory’s LUT
-domain :: VLUT Distance Line -> Distance
+-- | Domain of distances covered by a trajectory’s LUT
+domain :: VLUT Double Line -> Double
 domain (VLUT lut)
   = let (allButTheLastDistance, lastLine) = V.last lut
     in allButTheLastDistance +. lineLength lastLine
@@ -39,7 +39,7 @@ domain (VLUT lut)
 -- let goto = pointOnTrajectory […]
 -- 'print' [goto ('Distance' d) | d <- [0, 0.1 .. 5]]
 -- @
-pointOnTrajectory :: [Vec2] -> Distance -> Vec2
+pointOnTrajectory :: [Vec2] -> Double -> Vec2
 pointOnTrajectory points
   = let lut = trajectoryLut points
     in \dist ->
@@ -58,7 +58,7 @@ pointOnTrajectory points
 --
 -- This implements the Ramer-Douglas-Peucker algorithm,
 -- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
-simplifyTrajectory :: Distance -> [Vec2] -> [Vec2]
+simplifyTrajectory :: Double -> [Vec2] -> [Vec2]
 simplifyTrajectory epsilon  = V.toList . go . V.fromList
   where
     go :: Vector Vec2 -> Vector Vec2

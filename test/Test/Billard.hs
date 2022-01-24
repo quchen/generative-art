@@ -62,7 +62,7 @@ brokenTable = do
 
 billard :: [Line] -> Vec2 -> Angle -> Int -> Render ()
 billard table startPoint startAngle numReflections = do
-    let startVec = angledLine startPoint startAngle (Distance 100)
+    let startVec = angledLine startPoint startAngle 100
         billardPoints = startPoint : take numReflections (billardProcess table startVec)
 
     setLineWidth 1
@@ -75,7 +75,7 @@ billard table startPoint startAngle numReflections = do
     cairoScope $ do
         setColor $ mmaColor 0 1
         for_ billardPoints (\point -> do
-            circleSketch point (Distance 3)
+            circleSketch point 3
             stroke )
 
     cairoScope $ do

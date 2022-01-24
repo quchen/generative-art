@@ -41,43 +41,43 @@ testPolygonCutting = testGroup "Adding polygons"
         Cairo.translate 10 10
         drawVoronoi [cell1]
         drawSeed cell2
-        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        drawArrow (Vec2 110 50) (deg 0) 30
         Cairo.translate 0 120
         drawVoronoi [cell2]
         drawSeed cell1
-        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        drawArrow (Vec2 110 50) (deg 0) 30
         Cairo.translate 150 (-120)
         drawVoronoi [cell1']
         drawSeed cell2
-        drawArrow (Vec2 110 50) (deg 45) (Distance 30)
+        drawArrow (Vec2 110 50) (deg 45) 30
         Cairo.translate 0 120
         drawVoronoi [cell2']
         drawSeed cell1
-        drawArrow (Vec2 110 50) (deg (-45)) (Distance 30)
+        drawArrow (Vec2 110 50) (deg (-45)) 30
         Cairo.translate 150 (-60)
         drawVoronoi [cell1', cell2']
     test2 = renderAllFormats 420 360 "docs/voronoi/2_add_polygon" $ do
         Cairo.translate 10 70
         drawVoronoi [cell1', cell2']
         drawSeed cell3
-        drawArrow (Vec2 110 20) (deg (-45)) (Distance 30)
-        drawArrow (Vec2 110 80) (deg 45) (Distance 30)
+        drawArrow (Vec2 110 20) (deg (-45)) 30
+        drawArrow (Vec2 110 80) (deg 45) 30
         Cairo.translate 0 180
         drawVoronoi [cell3]
         for_ [cell1, cell2] drawSeed
-        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        drawArrow (Vec2 110 50) (deg 0) 30
         Cairo.translate 150 (-240)
         drawVoronoi [cell1'']
         drawSeed cell3
-        drawArrow (Vec2 110 90) (deg 45) (Distance 30)
+        drawArrow (Vec2 110 90) (deg 45) 30
         Cairo.translate 0 120
         drawVoronoi [cell2'']
         drawSeed cell3
-        drawArrow (Vec2 110 50) (deg 0) (Distance 30)
+        drawArrow (Vec2 110 50) (deg 0) 30
         Cairo.translate 0 120
         drawVoronoi [cell3']
         for_ [cell1, cell2] drawSeed
-        drawArrow (Vec2 110 10) (deg (-45)) (Distance 30)
+        drawArrow (Vec2 110 10) (deg (-45)) 30
         Cairo.translate 150 (-120)
         drawVoronoi [cell1'', cell2'', cell3']
     drawArrow start angle len = do
@@ -116,5 +116,5 @@ drawPoint :: Vec2 -> MmaColor -> Render ()
 drawPoint point color = cairoScope $ do
     newPath
     setColor $ mmaColor color 1
-    circleSketch point (Distance 3)
+    circleSketch point 3
     fill

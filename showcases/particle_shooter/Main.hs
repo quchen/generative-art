@@ -18,7 +18,7 @@ import Numerics.VectorAnalysis
 main :: IO ()
 main = do
     let systemResult = runST (systemSetup systemConfig)
-    let (Distance w, Distance h, _) = boundingBoxSize (_boundingBox systemConfig)
+    let (w, h) = boundingBoxSize (_boundingBox systemConfig)
     withSurfaceAuto
         "showcases/particle_shooter.png"
         (round w)
@@ -83,7 +83,7 @@ systemSetup config@SystemConfig{..} = do
         let mkParticle = do
                 let x0 = Vec2 0 0
                 a <- Random.uniformRM (0, 360) gen
-                let Line _ v0 = angledLine (Vec2 0 0) (deg a) (Distance 1)
+                let v0 = polar (deg a) 1
                 q <- _particleCharge gen
                 pure ((x0, v0), q)
         replicateM _numParticles mkParticle
@@ -102,7 +102,7 @@ systemSetup config@SystemConfig{..} = do
             let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-                simplify = simplifyTrajectory (Distance 1)
+                simplify = simplifyTrajectory 1
             in ((simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
         !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
@@ -124,7 +124,7 @@ render SystemResult{..} = do
             setColor $ mmaColor 0 1
             for_ [1,3..10] $ \r -> do
                 setColor $ mmaColor 0 (1/r**0.9)
-                circleSketch center (Distance (8*(r*abs charge)**(1/2.5)))
+                circleSketch center (8*(r*abs charge)**(1/2.5))
                 stroke
 
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
@@ -153,7 +153,7 @@ potentials SystemConfig{..} gen = do
             charge <- _hillCharge gen
             pure (center, charge)
         let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.1) _boundingBox))
-                           . filter (\(center, _) -> let Distance d = norm center in d > 70)
+                           . filter (\(center, _) -> norm center > 70)
         pure (removeOutliers hills')
     pure (\p -> sum' [coulombPotential center charge p | (center, charge) <- hills]
          , hills
@@ -164,7 +164,7 @@ coulombPotential
     -> Double -- ^ Charge
     -> Vec2   -- ^ Particle location
     -> Double -- ^ Magnitude of the potential
-coulombPotential center charge p = charge / (let Distance d = norm (p -. center) in d)
+coulombPotential center charge p = charge / norm (p -. center)
 
 sum' :: [Double] -> Double
 sum' = foldl' (+) 0

@@ -24,13 +24,13 @@ data DelaunayTriangle = DT
     } deriving (Eq)
 
 data Triangle = Triangle {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 deriving (Eq, Ord, Show)
-data Circle = Circle { center :: {-# UNPACK #-} !Vec2, radius :: {-# UNPACK #-} !Distance } deriving (Eq, Ord, Show)
+data Circle = Circle { center :: {-# UNPACK #-} !Vec2, radius :: {-# UNPACK #-} !Double } deriving (Eq, Ord, Show)
 
 instance HasBoundingBox Triangle where
     boundingBox = boundingBox . toPolygon
 
 instance HasBoundingBox Circle where
-    boundingBox Circle{ radius = Distance r, ..} = BoundingBox bbMin bbMax
+    boundingBox Circle{ radius = r, ..} = BoundingBox bbMin bbMax
       where
         bbMin = center -. Vec2 r r
         bbMax = center +. Vec2 r r
@@ -161,5 +161,5 @@ lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices
 centroid :: Polygon -> Vec2
 centroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q)) ps (tail (cycle ps)))
   where
-    Area totalArea = polygonArea poly
+    totalArea = polygonArea poly
     weight = 1 / (6 * totalArea)

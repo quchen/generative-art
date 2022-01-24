@@ -107,10 +107,10 @@ drawTile Tile{..} = cairoScope $ do
 
 drawConnectors :: Tile -> Render ()
 drawConnectors tile@Tile{..} = cairoScope $ do
-    let Distance unitLength = norm (tileP0 -. tileP1)
-        r1 = Distance (0.3 * unitLength)
-        r2 = Distance (0.2 * unitLength)
-        r3 = Distance (0.8 * unitLength)
+    let unitLength = norm (tileP0 -. tileP1)
+        r1 = 0.3 * unitLength
+        r2 = 0.2 * unitLength
+        r3 = 0.8 * unitLength
     polygonSketch (asPolygon tile)
     clip
     case tileType of

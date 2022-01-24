@@ -133,14 +133,7 @@ instance EqApprox Double where
 
 instance EqApprox Vec2 where
     approxEqualTolerance (Tolerance tol) v1 v2
-      = let Distance distance = norm (v2 -. v1)
-        in distance <= tol
-
-instance EqApprox Distance where
-    approxEqualTolerance tol (Distance x) (Distance y) = approxEqualTolerance tol x y
-
-instance EqApprox Area where
-    approxEqualTolerance tol (Area x) (Area y) = approxEqualTolerance tol x y
+      = norm (v2 -. v1) <= tol
 
 instance EqApprox Angle where
     approxEqualTolerance tol (Angle x) (Angle y)

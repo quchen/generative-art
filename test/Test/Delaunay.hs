@@ -36,7 +36,7 @@ testRandomTriangulation = testCase "Random points" test
             Cairo.stroke
             setColor $ mmaColor 1 1
             for_ ps $ \p -> do
-                circleSketch p (Distance 4)
+                circleSketch p 4
                 Cairo.fill
 
 testConversionToVoronoi :: TestTree
@@ -53,7 +53,7 @@ testConversionToVoronoi = testCase "Conversion to Voronoi" test
             Cairo.stroke
             setColor $ mmaColor 1 1
             for_ ps $ \p -> do
-                circleSketch p (Distance 4)
+                circleSketch p 4
                 Cairo.fill
         for_ (cells voronoi) $ \Cell{..} -> do
             setColor $ mmaColor 3 1
@@ -82,9 +82,9 @@ testLloydRelaxation = testCase "Lloyd relaxation" test
                 polygonSketch region
                 Cairo.stroke
                 setColor $ mmaColor 3 1
-                arrowSketch (Line seed (centroid region)) def { arrowheadSize = Distance 4 }
+                arrowSketch (Line seed (centroid region)) def { arrowheadSize = 4 }
                 Cairo.stroke
                 setColor $ mmaColor 1 1
-                circleSketch seed (Distance 4)
+                circleSketch seed 4
                 Cairo.fill
             Cairo.translate 210 0

@@ -29,7 +29,7 @@ tests = testGroup "Convex hull"
 
 visualTest :: TestTree
 visualTest = testCase "Visual" $ do
-    let points = (take 128 . filter (\vec -> norm vec <= Distance 100) . map (30 *.))
+    let points = (take 128 . filter (\vec -> norm vec <= 100) . map (30 *.))
                     (gaussianVecs (Seed 55))
         hull = convexHull points
 
@@ -42,10 +42,10 @@ visualTest = testCase "Visual" $ do
         for_ (polygonEdges hull) $ \edge@(Line start _) -> do
             setColor $ mmaColor 1 1
             arrowSketch edge def{ arrowheadRelPos = 0.5
-                                , arrowheadSize   = Distance 5 }
+                                , arrowheadSize   = 5 }
             stroke
             setColor $ mmaColor 3 1
-            circleSketch start (Distance 2)
+            circleSketch start 2
             fill
 
         setColor $ mmaColor 1 1
@@ -56,7 +56,7 @@ visualTest = testCase "Visual" $ do
         setColor $ mmaColor 0 0.5
         let Polygon hullPoints = hull
         for_ (points \\ hullPoints) $ \p -> do
-            circleSketch p (Distance 2)
+            circleSketch p 2
             fill
 
     assertions points hull =

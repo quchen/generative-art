@@ -34,7 +34,7 @@ data BillardSpec = BillardSpec
 
 runBillardSpec :: BillardSpec -> [Vec2]
 runBillardSpec BillardSpec{..} =
-    take steps (drop 1 (billardProcess table (angledLine startPos startAngle (Distance 10))))
+    take steps (drop 1 (billardProcess table (angledLine startPos startAngle 10)))
 
 drawing :: Render ()
 drawing = do
@@ -47,11 +47,11 @@ drawing = do
         billardSketch spec color = do
             let points = runBillardSpec spec
                 billardLines = zipWith Line points (tail points)
-            let lengths = [d | Distance d <- map lineLength billardLines]
+            let lengths = map lineLength billardLines
                 (meanLength, sigmaLength) = meanStddev lengths
             for_ billardLines (\line ->
-                let alpha = case lineLength line of
-                        Distance d -> min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
+                let alpha = let d = lineLength line
+                            in min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
                 in setColor (color alpha) >> lineSketch line >> stroke)
 
     Cairo.translate 10 10

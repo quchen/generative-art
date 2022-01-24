@@ -67,7 +67,7 @@ nextSample = do
             loop (candidate:cs) = do
                 neighbours <- neighbouringSamples candidate
                 let distance p q = norm (q -. p)
-                if any (\p -> distance candidate p <= Distance r) neighbours
+                if any (\p -> distance candidate p <= r) neighbours
                     then loop cs
                     else pure (Just candidate)
 
@@ -87,7 +87,7 @@ nextCandidates v = do
     let deltaPhi = rad (2*pi / fromIntegral k)
         candidates = filter (isWithinBounds width height)
             [ v +. polar (phi0 +. i *. deltaPhi) r
-            | let r = Distance (radius + 0.000001)
+            | let r = radius + 0.000001
             , i <- [1..fromIntegral k] ]
     pure candidates
 

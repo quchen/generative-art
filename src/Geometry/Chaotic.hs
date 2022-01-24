@@ -99,12 +99,6 @@ instance MwcChaosSource BoundingBox where
 instance MwcChaosSource Angle where
     mwcChaos (Angle a) = mwcChaos a
 
-instance MwcChaosSource Distance where
-    mwcChaos (Distance d) = mwcChaos d
-
-instance MwcChaosSource Area where
-    mwcChaos (Area a) = mwcChaos a
-
 instance MwcChaosSource Hex.Cube where
     mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
 

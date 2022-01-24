@@ -49,7 +49,7 @@ randomCutS acceptCut polygon = findGoodCut
     findGoodCut = do
         p <- Vec2 <$> randomR' (minX, maxX) <*> randomR' (minY, maxY)
         angle <- fmap deg (randomR' (0, 360))
-        let scissors = angledLine p angle (Distance 1)
+        let scissors = angledLine p angle 1
             cutResult = cutPolygon scissors polygon
         if acceptCut cutResult
             then pure cutResult
@@ -86,6 +86,4 @@ randomCutProcessS recurse acceptCut polygon
 minMaxAreaRatio :: [Polygon] -> Double
 minMaxAreaRatio cutResult
   = let cutResultAreas = map polygonArea cutResult
-        Area minA = minimum cutResultAreas
-        Area maxA = maximum cutResultAreas
-    in minA / maxA
+    in minimum cutResultAreas / maximum cutResultAreas

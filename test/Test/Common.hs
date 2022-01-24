@@ -16,14 +16,14 @@ import Geometry
 
 angleSketch :: Vec2 -> Angle -> Angle -> Render ()
 angleSketch point angle1 angle2 = do
-    let radius = Distance 10
+    let radius = 10
     arcSketch point radius angle1 angle2
     let arcEnd = transform (translate (polar angle2 radius)) point
         arrowAngleTweak = rad (-0.2)
         tangentStart = transform (translate (polar (angle2 -. rad (pi/2) +. arrowAngleTweak) radius)) arcEnd
         tangent = Line tangentStart arcEnd
     arrowSketch tangent def
-        { arrowheadSize = Distance 6
+        { arrowheadSize = 6
         , arrowDrawBody = False }
 
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()

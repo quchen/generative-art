@@ -30,7 +30,7 @@ testVisual = testCase "Visual" $ renderAllFormats 320 400 "docs/geometry/simple_
 
 rotateLineTest :: Render ()
 rotateLineTest = do
-    let initialLine = angledLine (Vec2 0 0) (rad 0) (Distance 75)
+    let initialLine = angledLine (Vec2 0 0) (rad 0) 75
         rotated = iterate (Geometry.transform (rotateAround (Vec2 25 0) (deg 20))) initialLine
 
     setLineWidth 1
@@ -46,7 +46,7 @@ rotateLineTest = do
 
 perpendicularBisectorTest :: Render ()
 perpendicularBisectorTest = do
-    let line = angledLine (Vec2 0 0) (deg 30) (Distance 50)
+    let line = angledLine (Vec2 0 0) (deg 30) 50
         bisector = perpendicularBisector line
 
     setLineWidth 1
@@ -63,7 +63,7 @@ perpendicularBisectorTest = do
 
 perpendicularLineThroughTest :: Render ()
 perpendicularLineThroughTest = do
-    let line = angledLine (Vec2 0 0) (deg 30) (Distance 50)
+    let line = angledLine (Vec2 0 0) (deg 30) 50
         point = Vec2 20 30
         line' = perpendicularLineThrough point line
 
@@ -71,7 +71,7 @@ perpendicularLineThroughTest = do
     setColor $ mmaColor 0 1
     lineSketch line
     stroke
-    circleSketch point (Distance 3)
+    circleSketch point 3
     stroke
     setColor $ mmaColor 1 1
     lineSketch line'
@@ -95,7 +95,7 @@ pointInPolygonTest = do
 
     setColor $ mmaColor 1 1
     for_ points (\point -> do
-        circleSketch point (Distance 3)
+        circleSketch point 3
         if pointInPolygon point square
             then fill
             else stroke )

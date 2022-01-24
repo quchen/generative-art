@@ -56,10 +56,6 @@ module Geometry.Core (
     , getDeg
     , rad
 
-    -- ** Safety newtypes
-    , Distance(..)
-    , Area(..)
-
     -- * Transformations
     , Transformation(..)
     , identityTransformation
@@ -384,8 +380,8 @@ insideBoundingBox thing bigObject =
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
-boundingBoxSize :: HasBoundingBox a => a -> (Distance, Distance, Area)
-boundingBoxSize x = (Distance (abs deltaX), Distance (abs deltaY), Area (abs (deltaX*deltaY)))
+boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
+boundingBoxSize x = (abs deltaX, abs deltaY)
   where
     BoundingBox lo hi = boundingBox x
     Vec2 deltaX deltaY = hi -. lo
@@ -473,8 +469,8 @@ transformBoundingBox source target scalingBehavior
 
         translateToMatchCenter = translate (targetCenter -. sourceCenter)
 
-        (Distance sourceWidth, Distance sourceHeight, _) = boundingBoxSize bbSource
-        (Distance targetWidth, Distance targetHeight, _) = boundingBoxSize bbTarget
+        (sourceWidth, sourceHeight) = boundingBoxSize bbSource
+        (targetWidth, targetHeight) = boundingBoxSize bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
 
@@ -498,8 +494,8 @@ dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 -- | Euclidean norm.
-norm :: Vec2 -> Distance
-norm = Distance . sqrt . normSquare
+norm :: Vec2 -> Double
+norm = sqrt . normSquare
 
 -- | Squared Euclidean norm. Does not require a square root, and is thus
 -- suitable for sorting points by distance without excluding certain kinds of
@@ -508,8 +504,8 @@ normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates
-polar :: Angle -> Distance -> Vec2
-polar (Angle a) (Distance d) = Vec2 (d * cos a) (d * sin a)
+polar :: Angle -> Double -> Vec2
+polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
 
 -- | Newtype safety wrapper.
 newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
@@ -537,23 +533,6 @@ rad r = Angle (r `mod'` (2*pi))
 getDeg :: Angle -> Double
 getDeg (Angle a) = a / pi * 180
 
--- | Newtype safety wrapper.
-newtype Distance = Distance Double deriving (Eq, Ord, Show)
-
-instance NFData Distance where rnf _ = ()
-
-instance VectorSpace Distance where
-    Distance a +. Distance b = Distance (a + b)
-    Distance a -. Distance b = Distance (a - b)
-    a *. Distance b = Distance (a * b)
-    negateV (Distance a) = Distance (-a)
-    zero = Distance 0
-
--- | Newtype safety wrapper.
-newtype Area = Area Double deriving (Eq, Ord, Show)
-
-instance NFData Area where rnf _ = ()
-
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
 -- it unit length.
@@ -566,9 +545,12 @@ vectorOf (Line start end) = end -. start
 -- moveAlong (Line start end) (Distance 0) == start
 -- moveAlong (Line start end) (lineLength …) == end
 -- @
-moveAlongLine :: Line -> Distance -> Vec2
-moveAlongLine line@(Line start _end) (Distance d)
-  = let Distance len = lineLength line
+moveAlongLine
+    :: Line
+    -> Double -- ^ Distance
+    -> Vec2
+moveAlongLine line@(Line start _end) d
+  = let len = lineLength line
     in start +. (d/len) *. vectorOf line
 
 -- | Angle of a single line, relative to the x axis.
@@ -581,26 +563,29 @@ angleBetween line1 line2
         Angle a2 = angleOfLine line2
     in rad (a2 - a1)
 
-angledLine :: Vec2 -> Angle -> Distance -> Line
-angledLine start angle (Distance len) = Line start end
-  where
-    end = transform (rotateAround start angle) (start +. Vec2 len 0)
 
-lineLength :: Line -> Distance
+angledLine
+    :: Vec2   -- ^ Start
+    -> Angle
+    -> Double -- ^ Length
+    -> Line
+angledLine start angle len = Line start (start +. polar angle len)
+
+lineLength :: Line -> Double
 lineLength = norm . vectorOf
 
 -- | Resize a line, keeping the starting point.
-resizeLine :: (Distance -> Distance) -> Line -> Line
+resizeLine :: (Double -> Double) -> Line -> Line
 resizeLine f line@(Line start _end)
   = let v = vectorOf line
-        len@(Distance d) = norm v
-        Distance d' = f len
-        v' = (d'/d) *. v
+        len = norm v
+        len' = f len
+        v' = (len'/len) *. v
         end' = start +. v'
     in Line start end'
 
 -- | Resize a line, keeping the middle point.
-resizeLineSymmetric :: (Distance -> Distance) -> Line -> Line
+resizeLineSymmetric :: (Double -> Double) -> Line -> Line
 resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . transform (translate delta)) line
   where
     middle = 0.5 *. (start +. end)
@@ -617,13 +602,13 @@ centerLine line@(Line start end) = transform (translate delta) line
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
-normalizeLine = resizeLine (const (Distance 1))
+normalizeLine = resizeLine (const 1)
 
 -- | Distance of a point from a line.
-distanceFromLine :: Vec2 -> Line -> Distance
+distanceFromLine :: Vec2 -> Line -> Double
 distanceFromLine (Vec2 ux uy) (Line p1@(Vec2 x1 y1) p2@(Vec2 x2 y2))
-  = let Distance l = norm (p2 -. p1)
-    in Distance (abs ((x2-x1)*(y1-uy) - (x1-ux) * (y2-y1)) / l)
+  = let l = norm (p2 -. p1)
+    in abs ((x2-x1)*(y1-uy) - (x1-ux) * (y2-y1)) / l
 
 -- | Direction vector of a line.
 direction :: Line -> Vec2
@@ -756,8 +741,8 @@ data PolygonOrientation = PolygonPositive | PolygonNegative
 
 polygonOrientation :: Polygon -> PolygonOrientation
 polygonOrientation polygon
-    | signedPolygonArea polygon >= Area 0 = PolygonPositive
-    | otherwise                           = PolygonNegative
+    | signedPolygonArea polygon >= 0 = PolygonPositive
+    | otherwise                      = PolygonNegative
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
@@ -844,10 +829,10 @@ polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
     in (1/num) *. total
 
-polygonCircumference :: Polygon -> Distance
+polygonCircumference :: Polygon -> Double
 polygonCircumference poly = foldl'
-    (\(Distance acc) edge -> let Distance d = lineLength edge in Distance (acc + d))
-    (Distance 0)
+    (\acc edge -> acc + lineLength edge)
+    0
     (polygonEdges poly)
 
 -- | Determinant of the matrix
@@ -863,15 +848,15 @@ det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
 -- UNTESTED
 --
 -- http://mathworld.wolfram.com/PolygonArea.html
-polygonArea :: Polygon -> Area
+polygonArea :: Polygon -> Double
 polygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
-    in Area (abs (sum determinants / 2))
+    in abs (sum determinants / 2)
 
-signedPolygonArea :: Polygon -> Area
+signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
-    in Area (sum determinants / 2)
+    in sum determinants / 2
 
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
@@ -981,6 +966,6 @@ billardProcess edges = go (const True)
 
     distanceFrom :: Vec2 -> Vec2 -> Vec2 -> Ordering
     distanceFrom start p q
-      = let Distance pDistance = lineLength (Line start p)
-            Distance qDistance = lineLength (Line start q)
+      = let pDistance = lineLength (Line start p)
+            qDistance = lineLength (Line start q)
         in compare pDistance qDistance

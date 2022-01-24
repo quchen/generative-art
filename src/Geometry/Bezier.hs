@@ -124,10 +124,10 @@ _bezierT'' (Bezier a b c d) (T t)
 -- The number of segments doesn’t need to be very high: 16 is already plenty for most curves.
 bezierLength
     :: Bezier   -- ^ Curve
-    -> Distance
-bezierLength bezier = Distance (retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6)
+    -> Double
+bezierLength bezier = retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6
   where
-    f t = let Distance d = norm (bezierT' bezier (T t)) in d
+    f t = norm (bezierT' bezier (T t))
 
 
 
@@ -154,10 +154,10 @@ bezierSubdivideS n bz = map bezier distances
     -- RK estimator. This allows both large and tiny curves to be subdivided well.
     -- Increasing this to beyond 2^10 shows only pixel-wide changes, if even.
     bezier = bezierS_ode bz (len / 2^10)
-    Distance len = bezierLength bz
+    len = bezierLength bz
 
-    distances :: [Distance]
-    distances = [Distance (fromIntegral i * len/fromIntegral (n-1)) | i <- [0..n-1]]
+    distances :: [Double]
+    distances = [fromIntegral i * len/fromIntegral (n-1) | i <- [0..n-1]]
 
 -- | Get the position on a Bezier curve as a fraction of its length, via solving a
 -- differential equation. This is /much/ more expensive to compute than 'bezierT'.
@@ -169,7 +169,7 @@ bezierSubdivideS n bz = map bezier distances
 -- let s = 'bezierS' bezier 0.01
 -- 'print' [s ('Distance' d) | d <- [0, 0.1 .. 5]]
 -- @
-bezierS :: Bezier -> Double -> Distance -> Vec2
+bezierS :: Bezier -> Double -> Double -> Vec2
 bezierS = bezierS_ode
 
 -- There’s also another method to do this using Newton’s method, detialed in the
@@ -177,12 +177,12 @@ bezierS = bezierS_ode
 bezierS_ode
     :: Bezier
     -> Double   -- ^ Precision parameter (smaller is more precise but slower).
-    -> Distance -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
+    -> Double -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
     -> Vec2     -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
-    in \(Distance s) -> let T t = lookupInterpolated lut (S s)
-                        in bezierT bz t
+    in \s -> let T t = lookupInterpolated lut (S s)
+             in bezierT bz t
 
 -- | S⇆T lookup table for a Bezier curve
 --
@@ -198,7 +198,7 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 
     sol = rungeKuttaConstantStep dt_ds t0 s0 ds
 
-    dt_ds _s t = T (1 / let Distance d = norm (bezierT' bz t) in d)
+    dt_ds _s t = T (1 / norm (bezierT' bz t))
 
     t0 = T 0
     s0 = 0

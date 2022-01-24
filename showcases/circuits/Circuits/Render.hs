@@ -39,17 +39,17 @@ renderSingleWire cellSize allKnownCells start = do
     fix (\go currentPosHex -> case M.lookup currentPosHex allKnownCells of
             Nothing -> do
                 stroke
-                crossSketch (toVec2 cellSize currentPosHex) (Distance (cellSize/2))
+                crossSketch (toVec2 cellSize currentPosHex) (cellSize/2)
             Just (WireTo target) -> do
                 case M.lookup target allKnownCells of
                     Just WireEnd -> do
                         let circleRadius = cellSize/2
                             currentPosVec = toVec2 cellSize currentPosHex
                             circleCenterVec = toVec2 cellSize target
-                            Line _ targetVecShortened = resizeLine (\(Distance d) -> Distance (d - circleRadius)) (Line currentPosVec circleCenterVec)
+                            Line _ targetVecShortened = resizeLine (\d -> d - circleRadius) (Line currentPosVec circleCenterVec)
                         lineToVec targetVecShortened
                         stroke
-                        circleSketch circleCenterVec (Distance circleRadius)
+                        circleSketch circleCenterVec circleRadius
                         stroke
                     _other -> lineToVec (toVec2 cellSize target)
                 go target

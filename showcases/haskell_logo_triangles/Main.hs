@@ -60,8 +60,7 @@ drawing = do
     setLineCap LineCapRound
     setLineJoin LineJoinRound
     cairoScope $ for_ shattered $ \polygon -> do
-        let gen = let Area a = polygonArea polygon
-                      (x,y) = decodeFloat a
+        let gen = let (x,y) = decodeFloat (polygonArea polygon)
                   in mkStdGen (fromIntegral x + y)
             (hue, gen1) = randomR (200, 215) gen
             (saturation, gen2) = randomR (0.6, 0.9) gen1

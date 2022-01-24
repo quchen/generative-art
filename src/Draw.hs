@@ -120,18 +120,18 @@ bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
     for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
 
 data ArrowSpec = ArrowSpec
-    { arrowheadRelPos    :: Double   -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center.
-    , arrowheadSize      :: Distance -- ^ Length of each of the sides of the arrow head.
-    , arrowDrawBody      :: Bool     -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')?
-    , arrowheadAngle     :: Angle    -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt.
-    , arrowheadDrawRight :: Bool     -- ^ Draw the left part of the arrow head?
-    , arrowheadDrawLeft  :: Bool     -- ^ Draw the right part of the arrow head?
+    { arrowheadRelPos    :: Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center.
+    , arrowheadSize      :: Double -- ^ Length of each of the sides of the arrow head.
+    , arrowDrawBody      :: Bool   -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')?
+    , arrowheadAngle     :: Angle  -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt.
+    , arrowheadDrawRight :: Bool   -- ^ Draw the left part of the arrow head?
+    , arrowheadDrawLeft  :: Bool   -- ^ Draw the right part of the arrow head?
     }
 
 instance Default ArrowSpec where
     def = ArrowSpec
         { arrowheadRelPos    = 1
-        , arrowheadSize      = Distance 10
+        , arrowheadSize      = 10
         , arrowDrawBody      = True
         , arrowheadAngle     = Angle 0.5
         , arrowheadDrawRight = True
@@ -168,9 +168,9 @@ arrowSketch line ArrowSpec{..} = do
 -- | Convenience function to sketch a circle.
 circleSketch
     :: Vec2     -- ^ Center
-    -> Distance -- ^ Radius
+    -> Double -- ^ Radius
     -> Render ()
-circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)
+circleSketch (Vec2 x y) r = arc x y r 0 (2*pi)
 
 -- | Sketch a cross like ×. Sometimes useful to decorate a line with for e.g.
 -- strikethrough effects, or to contrast the o in tic tac toe.
@@ -178,11 +178,11 @@ circleSketch (Vec2 x y) (Distance r) = arc x y r 0 (2*pi)
 -- When drawn with the same radius, it combines to ⨂ with a 'circleSketch'.
 crossSketch
     :: Vec2     -- ^ Center
-    -> Distance -- ^ Radius
+    -> Double -- ^ Radius
     -> Render ()
-crossSketch center (Distance r) = do
+crossSketch center r = do
     let lowerRight = Geometry.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
-        line1 = angledLine lowerRight (deg (45+180)) (Distance (2*r))
+        line1 = angledLine lowerRight (deg (45+180)) (2*r)
         line2 = Geometry.transform (rotateAround center (deg 90)) line1
     lineSketch line1
     lineSketch line2
@@ -190,11 +190,11 @@ crossSketch center (Distance r) = do
 -- | Sketch part of a circle.
 arcSketch
     :: Vec2 -- ^ Center
-    -> Distance -- ^ Radius
+    -> Double -- ^ Radius
     -> Angle -- ^ Starting angle (absolute)
     -> Angle -- ^ Ending angle (absolute)
     -> Render ()
-arcSketch (Vec2 x y) (Distance r) (Angle angleStart) (Angle angleEnd)
+arcSketch (Vec2 x y) r (Angle angleStart) (Angle angleEnd)
   = arc x y r angleStart angleEnd
 
 -- | Sketch the line defined by a sequence of points.
@@ -263,7 +263,7 @@ cartesianCoordinateSystem = cairoScope $ do
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 radialCoordinateSystem :: Vec2 -> Int -> Render ()
 radialCoordinateSystem center maxR = cairoScope $ do
-    let distance = Distance . fromIntegral
+    let distance = fromIntegral
     setLineWidth 1
     setColor (hsv 0 0 0)
     sequence_ [ circleSketch center (distance r) >> stroke

@@ -64,7 +64,7 @@ testHaskellLogo = testCase "Haskell logo" test
                            (y1,y2) = decodeFloat y
                        in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
                 (angle, _gen') = randomR (0, 360) (mkStdGen seed)
-            in Geometry.transform (translate (polar (Angle angle) (Distance 10))) v
+            in Geometry.transform (translate (polar (Angle angle) 10)) v
 
 testSpiral :: TestTree
 testSpiral = testCase "Spiral" test
