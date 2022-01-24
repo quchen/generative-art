@@ -65,7 +65,7 @@ randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (
 
 randomColor :: Vec2 -> Color Double
 randomColor = \p -> hsl
-    (295 + 3 * fromIntegral (round (3 * noise2d p)))
+    (30 + 3 * fromIntegral (round (3 * noise2d p)))
     1
     (0.1 * fromIntegral (round (4 * (1.5 + noise2d p))))
   where
