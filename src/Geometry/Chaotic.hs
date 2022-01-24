@@ -1,25 +1,35 @@
 {-# LANGUAGE BangPatterns #-}
 
 -- | Functions that vary chaotically based on their input. Useful for introducing
--- deterministic noise in pure code, e.g. for slightly moving points around.
+-- deterministic noise in pure code, e.g. for slightly moving points around, in the
+-- middle of pure code.
 module Geometry.Chaotic (
-    -- * RNG functions
+    -- * STDGen chaos
       ChaosSource(..)
     , stdGen
 
-    -- * Utilities
+    -- ** Utilities
     , normals
     , gaussian
     , normalVecs
     , gaussianVecs
+
+    -- * MWC-Random chaos
+    , MwcChaosSource(..)
+    , initializeMwc
 ) where
 
 import Data.Bits
 import Data.Int
 import Data.List
+import Data.Foldable
 import Data.Word
-import Geometry
 import qualified System.Random as R
+import qualified System.Random.MWC as MWC
+import qualified Data.Vector.Mutable as VM
+import qualified Data.Vector as V
+
+import Geometry
 
 
 -- | Types that can be turned into a random number generator easily, to yield pure chaotic output.
@@ -133,3 +143,77 @@ normalVecs = vecPair normals
 
 gaussianVecs :: ChaosSource seed => Double -> Double -> seed -> [Vec2]
 gaussianVecs mu sigma = vecPair (gaussian mu sigma)
+
+class MwcChaosSource a where
+    mwcChaos :: a -> [Word32]
+
+instance MwcChaosSource Integer where
+    mwcChaos n
+        | n == 0 = [0]
+        | n < 0 = 1 : mwcChaos (abs n)
+        | otherwise =
+            let (rest, chunk) = quotRem n (fromIntegral (maxBound :: Word32))
+            in fromIntegral chunk : mwcChaos rest
+
+-- | Perturb using an 'Integral' value by mapping it to an 'Int'. It’s basically
+-- 'fromIntegral' and does very little the (seed!) randomness is introduced by
+-- 'stir' when combining different values.
+mwcChaosIntegral :: Integral a => a -> [Word32]
+mwcChaosIntegral x = mwcChaos (fromIntegral x :: Integer)
+
+instance MwcChaosSource Int where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Int8 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Int16 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Int32 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Int64 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Word8 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Word16 where mwcChaos = mwcChaosIntegral
+instance MwcChaosSource Word32 where mwcChaos = pure . id
+instance MwcChaosSource Word64 where mwcChaos = mwcChaosIntegral
+
+instance (MwcChaosSource a, MwcChaosSource b) => MwcChaosSource (a, b) where
+    mwcChaos (a,b) = mwcChaos [mwcChaos a, mwcChaos b]
+
+instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c) => MwcChaosSource (a, b, c) where
+    mwcChaos (a, b, c) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c]
+
+instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d) => MwcChaosSource (a, b, c, d) where
+    mwcChaos (a, b, c, d) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d]
+
+instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d, MwcChaosSource e) => MwcChaosSource (a, b, c, d, e) where
+    mwcChaos (a, b, c, d, e) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d, mwcChaos e]
+
+instance MwcChaosSource Float where
+    mwcChaos = mwcChaos . decodeFloat
+
+instance MwcChaosSource Double where
+    mwcChaos = mwcChaos . decodeFloat
+
+instance MwcChaosSource Vec2 where
+    mwcChaos (Vec2 x y) = mwcChaos (x,y)
+
+instance MwcChaosSource Line where
+    mwcChaos (Line start end) = mwcChaos (start, end)
+
+instance MwcChaosSource a => MwcChaosSource [a] where
+    mwcChaos = concatMap mwcChaos
+
+instance MwcChaosSource Polygon where
+    mwcChaos (Polygon corners) = mwcChaos corners
+
+instance MwcChaosSource Bezier where
+    mwcChaos (Bezier a b c d) = mwcChaos (a,b,c,d)
+
+instance MwcChaosSource BoundingBox where
+    mwcChaos (BoundingBox a b) = mwcChaos (a, b)
+
+-- | Initialize an 'MWC.Gen' with anything 'MwcChaosSource'.
+
+-- No type signature as to not depend explicitly on more packages than necessary…
+initializeMwc seed = do
+    let seedList = mwcChaos seed
+    vecM <- VM.replicate 256 (0 :: Word32)
+    for_ (zip [0..] seedList) $ \(i, seedElement) -> do
+        VM.modify vecM (\old -> old `xor` seedElement) (mod i 256)
+    vec <- V.unsafeFreeze vecM
+    MWC.initialize vec
