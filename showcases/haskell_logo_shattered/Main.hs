@@ -13,6 +13,7 @@ import Draw
 import Geometry               as G
 import Geometry.Shapes
 import Numerics.Interpolation
+import qualified Geometry.Chaotic as Chaos
 
 
 
@@ -40,7 +41,7 @@ main = do
             pure (G.transform (G.rotateAround (polygonCenter polygon) angle) polygon)
 
     renderDrawing = do
-        gen <- liftIO $ MWC.initialize (V.fromList [])
+        gen <- liftIO $ Chaos.initializeMwc shattered
         let fitToCanvas = G.transform (transformBoundingBox shattered (Vec2 10 10, Vec2 (fromIntegral picWidth-10) (fromIntegral picHeight-10)) FitAllMaintainAspect)
         drawing gen (fitToCanvas shattered)
 
