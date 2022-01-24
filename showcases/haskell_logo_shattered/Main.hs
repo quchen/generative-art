@@ -68,7 +68,7 @@ randomCut gen polygon = do
     let BoundingBox vMin vMax = boundingBox polygon
     p <- MWC.uniformRM (vMin, vMax) gen
     angle <- MWC.uniformM gen
-    let scissors = angledLine p angle (Distance 1)
+    let scissors = angledLine p angle 1
     pure (cutPolygon scissors polygon)
 
 -- | Calculate the min/max ratio of the areas of a list of polygons. Useful to
@@ -80,8 +80,8 @@ randomCut gen polygon = do
 minMaxAreaRatio :: [Polygon] -> Double
 minMaxAreaRatio cutResult
   = let cutResultAreas = map polygonArea cutResult
-        Area minA = minimum cutResultAreas
-        Area maxA = maximum cutResultAreas
+        minA = minimum cutResultAreas
+        maxA = maximum cutResultAreas
     in minA / maxA
 
 drawing :: MWC.GenIO -> [Polygon] -> Render ()
