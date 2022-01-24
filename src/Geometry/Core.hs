@@ -510,6 +510,9 @@ polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
 -- | Newtype safety wrapper.
 newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
 
+instance MWC.Uniform Angle where
+    uniformM gen = fmap deg (MWC.uniformRM (0, 360) gen)
+
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
