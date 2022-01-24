@@ -8,7 +8,7 @@ import Graphics.Rendering.Cairo  as Cairo hiding (x, y)
 import System.Random
 
 import Draw
-import Geometry
+import Geometry as G
 import Geometry.Processes.RandomCut
 import Geometry.Shapes
 
@@ -19,7 +19,7 @@ picWidth = 1000
 picHeight = 720
 
 haskellLogo' :: [Polygon]
-haskellLogo' = Geometry.transform (Geometry.scale 340) haskellLogo
+haskellLogo' = G.transform (G.scale 340) haskellLogo
 
 main :: IO ()
 main = withSurfaceAuto "out/haskell_logo_triangles.svg" picWidth picHeight renderDrawing
@@ -57,21 +57,23 @@ drawing = do
         acceptCut polygons = minMaxAreaRatio polygons >= 1/3
         shattered = runShatterProcess recurse acceptCut haskellLogo' (mkStdGen 16)
     Cairo.translate 10 10
-    setLineCap LineCapRound
-    setLineJoin LineJoinRound
+    setLineWidth 0.5
     cairoScope $ for_ shattered $ \polygon -> do
         let gen = let (x,y) = decodeFloat (polygonArea polygon)
                   in mkStdGen (fromIntegral x + y)
-            (hue, gen1) = randomR (200, 215) gen
-            (saturation, gen2) = randomR (0.6, 0.9) gen1
-            (value, _gen3) = randomR (0.6, 1.0) gen2
+            hue = 30
+            (saturation, gen1) = randomR (0.2, 0.7) gen
+            value = 1
             alpha = 1
-        setColor $ hsva hue saturation value alpha
-        polygonSketch polygon
+            (displacementX, gen2) = randomR (-1, 1) gen1
+            (displacementY, gen3) = randomR (-1, 1) gen2
+            displacement = Vec2 displacementX displacementY
+            (rotateDegrees, _gen4) = randomR (-15, 15) gen3
+        setColor (hsva hue saturation value alpha)
+        polygonSketch (G.transform (G.translate displacement <> G.rotateAround (polygonCenter polygon) (deg rotateDegrees)) polygon)
         fillPreserve
+        setColor black
         stroke
-    cairoScope $ for_ haskellLogo' $ \polygon -> do
-        polygonSketch polygon
-        setLineJoin LineJoinRound
-        setColor $ hsva 0 0 0 1
-        stroke
+
+polygonCenter :: Polygon -> Vec2
+polygonCenter (Polygon corners) = foldl' (+.) (Vec2 0 0) corners /. fromIntegral (length corners)
