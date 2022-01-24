@@ -3,6 +3,7 @@
 module Geometry.Processes.RandomCut (
       randomCutS
     , randomCutProcess
+    , minMaxAreaRatio
 ) where
 
 
@@ -75,3 +76,16 @@ randomCutProcessS recurse acceptCut polygon
         recurses <- traverse (randomCutProcessS recurse acceptCut) cutResult
         pure (concat recurses)
     | otherwise = pure [polygon]
+
+-- | Calculate the min/max ratio of the areas of a list of polygons. Useful to
+-- build cutoff predicates with, e.g.
+--
+-- @
+-- \polys -> 'minMaxAreaRatio' polys >= 1/3
+-- @
+minMaxAreaRatio :: [Polygon] -> Double
+minMaxAreaRatio cutResult
+  = let cutResultAreas = map polygonArea cutResult
+        Area minA = minimum cutResultAreas
+        Area maxA = maximum cutResultAreas
+    in minA / maxA

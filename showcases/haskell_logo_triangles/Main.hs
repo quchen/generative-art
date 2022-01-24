@@ -7,7 +7,6 @@ import Data.Foldable
 import Graphics.Rendering.Cairo  as Cairo hiding (x, y)
 import System.Random
 
-import Comparison
 import Draw
 import Geometry
 import Geometry.Processes.RandomCut

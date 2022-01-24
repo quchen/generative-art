@@ -11,7 +11,6 @@ import qualified Data.Set                  as S
 import           Graphics.Rendering.Cairo  as Cairo hiding (transform, x, y)
 import           System.Random
 
-import Comparison
 import Draw
 import Geometry
 import Geometry.Processes.RandomCut
