@@ -10,8 +10,9 @@ import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import qualified System.Random.MWC        as MWC
 
 import Draw
-import Geometry        as G
+import Geometry               as G
 import Geometry.Shapes
+import Numerics.Interpolation
 
 
 
@@ -31,8 +32,11 @@ main = do
             acceptCut polygons = minMaxAreaRatio polygons >= 1/3
         gen <- MWC.initialize (V.fromList [1])
         cutUpLogoParts <- for haskellLogo (shatterProcess gen recurse acceptCut)
+        let BoundingBox (Vec2 xMin _) (Vec2 xMax _) = boundingBox cutUpLogoParts
         for (concat cutUpLogoParts) $ \polygon -> do
-            angle <- fmap deg (MWC.uniformRM (-15, 15) gen)
+            let Vec2 x _ = polygonCenter polygon
+                wiggleAmount = linearInterpolate (xMin, xMax) (0, 40) x
+            angle <- fmap deg (MWC.uniformRM (-wiggleAmount, wiggleAmount) gen)
             pure (G.transform (G.rotateAround (polygonCenter polygon) angle) polygon)
 
     renderDrawing = do
