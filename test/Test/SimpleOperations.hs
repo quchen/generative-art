@@ -129,14 +129,15 @@ nonIntersectingRayTest = testCase "Non-intersecting ray" $ renderAllFormats 170 
     let geometry = [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         rays = do
             origin <-
-                [ Vec2 (-1) 10
-                , Vec2 25 25
-                , Vec2 10 10
-                , Vec2 75 25
+                [ Vec2 (-5) 10
+                -- , Vec2 25 25
+                -- , Vec2 10 10
+                -- , Vec2 75 25
                 ]
             let ray = nonIntersectingRay origin geometry
             pure (resizeLine (const 50) ray)
 
+    cairoScope $ grouped (paintWithAlpha 0.2) $ radialCoordinateSystem (Vec2 25 25) 100
     paintGeometry geometry
     for_ rays paintRay
 

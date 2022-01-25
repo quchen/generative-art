@@ -110,6 +110,7 @@ import qualified System.Random.MWC as MWC
 
 import Util
 
+import Debug.Trace
 
 
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
@@ -525,31 +526,29 @@ newtype Angle = Rad Double
 instance Eq Angle where
     a == b = getRad a == getRad b
 
-instance Ord Angle where
-    compare = comparing getRad
-
 instance MWC.Uniform Angle where
     uniformM gen = fmap deg (MWC.uniformRM (0, 360) gen)
 
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
+    show (Rad r) = printf "deg %2.1f" (r/pi*180)
     show angle = printf "deg %2.8f" (getDeg angle)
 
 instance VectorSpace Angle where
     Rad a +. Rad b = Rad (a + b)
     Rad a -. Rad b = Rad (a - b)
-    a *. Rad b = rad (a * b)
+    a *. Rad b = Rad (a * b)
+    Rad a /. b = Rad (a / b)
     negateV (Rad a) = Rad (-a)
-    zero = rad 0
+    zero = Rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
-deg degrees = rad (degrees / 360 * 2 * pi)
+deg degrees = Rad (degrees / 180 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
--- rad r | r < 0 = rad (r + 2*pi)
 rad = Rad
 
 getDeg :: Angle -> Double
@@ -790,10 +789,13 @@ pointInPolygon p polygon@(Polygon corners)
 nonIntersectingRay :: Vec2 -> [Vec2] -> Line
 nonIntersectingRay origin [] = Line origin (origin +. Vec2 1 0)
 nonIntersectingRay origin obstacles
-  = let angles = sort (map (\p -> angleOfLine (Line origin p)) obstacles)
-        gapPairs = zip angles (tail (cycle angles))
-        (maxGapStart, maxGapEnd) = maximumBy (comparing (\(start, end) -> end -. start)) gapPairs
-    in angledLine origin ((maxGapStart +. maxGapEnd) /. 2) 1
+  = let linesSortedByAngle = sortBy (comparing (getRad . angleOfLine)) (map (Line origin) obstacles)
+        linePairs = zip linesSortedByAngle (tail (cycle linesSortedByAngle))
+        (maxGapStartLine, maxGapEndLine) = maximumBy (\(l1, l2) (m1, m2) -> compare (gapAngle l1 l2) (gapAngle m1 m2)) linePairs
+        -- !_ = traceId $ unlines [unlines $ map show [start, end, end-.start, (start +. end) /. 2] | (start, end) <- gapPairs]
+    in transform (rotateAround origin (rad $ gapAngle maxGapEndLine maxGapStartLine)) maxGapStartLine
+
+gapAngle line1 line2 = asin (dotProduct (vectorOf line1) (vectorOf line2) / (norm (vectorOf line1) * norm (vectorOf line2)))
 
 data PolygonError
     = NotEnoughCorners Int

@@ -79,7 +79,8 @@ runPostTestScripts = do
 
     mdAsync <- do
         putStrLn "Generate visual testsuite file (Markdown)"
-        async (Visual.generateMarkdown "test/out/README.md" svgs)
+        async (pure ())
+        -- async (Visual.generateMarkdown "test/out/README.md" svgs)
 
     htmlAsync <- do
         putStrLn "Generate visual testsuite file (HTML)"
