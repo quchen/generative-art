@@ -41,7 +41,7 @@ main = do
                     , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
                     ]
             ]
-        frames = take 1 (iterate grayScottProcess initialState)
+        frames = take 1000 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, frame) -> withSurfaceAuto (printf "out/gray_scott_%06i.png" index) picWidth picHeight (renderDrawing frame)
   where
     renderDrawing grid surface = Cairo.renderWith surface $ do
