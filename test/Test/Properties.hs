@@ -6,6 +6,7 @@ module Test.Properties (tests) where
 
 import Control.Applicative
 import Text.Printf
+import Data.List
 
 import Geometry
 
@@ -20,7 +21,13 @@ import Test.Helpers
 
 tests :: TestTree
 tests = testGroup "Properties"
-    [ angleBetweenTest
+    [ testGroup "Angles"
+        [ angleBetweenTest
+        , angleOrderingTest
+        , angleDifferencesTest
+        , angleGapsTest
+        , angleSubtraction
+        ]
     , areaTest
     , intersectionLLTest
     , lengthOfAngledLineTest
@@ -34,11 +41,10 @@ tests = testGroup "Properties"
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
     (\angle1@(Angle angle1Raw) angle2@(Angle angle2Raw) ->
-        let line1 = angledLine (Vec2 0 0) angle1 1
-            line2 = angledLine (Vec2 0 0) angle2 1
+        let line1 = angledLine zero angle1 1
+            line2 = angledLine zero angle2 1
             actualAngle = angleBetween line1 line2
-            expectedAngleRaw = angle2Raw - angle1Raw
-            expectedAngle = rad expectedAngleRaw
+            expectedAngle = rad (angle2Raw - angle1Raw)
         in counterexample
             (unlines ["Counterexample:"
                      , "  Line 1: " ++ show line1 ++ " (angle: " ++ show angle1 ++ ")"
@@ -47,6 +53,40 @@ angleBetweenTest = testProperty "Angle between two lines"
                      , "  Δ expected: " ++ show expectedAngle
                      ])
             (expectedAngle ~== actualAngle) )
+
+angleOrderingTest :: TestTree
+angleOrderingTest = testCase "Angle ordering" $ assertBool "This list should be sorted" $
+        let shouldBeSorted = [deg n | n <- [0, 10, 20, 50, 350, -5, -1]]
+        in sort shouldBeSorted == shouldBeSorted
+
+angleSubtraction :: TestTree
+angleSubtraction = testProperty "Angle subtraction"
+    (\angle delta ->
+        let _ = delta :: Angle
+        in counterexample
+            (unlines
+                [ "The angle from α-Δ to α is not the same as from α to α+Δ!"
+                , "α = " ++ show angle
+                , "Δ = " ++ show delta
+                ])
+            (angle -. (angle -. delta) ~== (angle +. delta) -. angle))
+
+angleGapsTest :: TestTree
+angleGapsTest = testCase "Gaps between angles" $ do
+    let increment = 27
+        angles = map deg (takeWhile (< 720) (iterate (+ increment) (-144)))
+        angleDifferences = zipWith (\a1 a2 -> (a1, a2, a2 -. a1)) angles (tail angles)
+        badDifference = find (\(_, _, difference) -> not (difference ~== deg increment)) angleDifferences
+    case badDifference of
+        Just (a1, a2, difference) -> assertFailure $ show a2 ++ "-" ++ show a1 ++ " is not " ++ show increment ++ "° but " ++ show difference ++ "!"
+        Nothing -> pure ()
+
+angleDifferencesTest :: TestTree
+angleDifferencesTest = testGroup "Angle differences"
+    [ testCase "Underflow" $ assertBool "10°-20° == -10°" (deg 10 -. deg 20 ~== deg 350)
+    , testCase "Smaller than 0°" $ assertBool "10°-20° == 350°" (deg 10 -. deg 20 ~== deg (-10))
+    , testCase "Independent of crossing 360° or not" $ assertBool "10°..20° is as big as 355°..5°" (deg 20 -. deg 10 ~== deg 5 -. deg 355)
+    ]
 
 areaTest :: TestTree
 areaTest = testGroup "Area"

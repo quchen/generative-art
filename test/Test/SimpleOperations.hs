@@ -21,6 +21,7 @@ tests = testGroup "Simple operations"
         , perpendicularBisectorTest
         , perpendicularLineThroughTest
         , pointInPolygonTest
+        , nonIntersectingRayTest
         ]
     , pointInPolygonRegression
     ]
@@ -104,6 +105,40 @@ pointInPolygonTest = testCase "Point in polygon" $ renderAllFormats 200 70 "docs
     setFontSize 12
     moveTo 60 20
     showText "Point in polygon?"
+    fill
+
+nonIntersectingRayTest :: TestTree
+nonIntersectingRayTest = testCase "Non-intersecting ray" $ renderAllFormats 170 120 "docs/geometry/non_intersecting_ray" $ do
+    C.translate 30 50
+    let paintRay r@(Line start _) = cairoScope $ do
+            newPath
+            setLineWidth 1
+            setColor (mmaColor 0 1)
+            circleSketch start 2
+            fill
+            arrowSketch r def
+            stroke
+        paintGeometry points = for_ points $ \vec2 -> do
+            setLineWidth 1
+            setColor (mmaColor 1 1)
+            moveToVec vec2
+            newPath
+            circleSketch vec2 2
+            stroke
+
+    let geometry = [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
+        rays = do
+            origin <-
+                [ Vec2 (-1) 10
+                , Vec2 25 25
+                , Vec2 10 10
+                , Vec2 75 25
+                ]
+            let ray = nonIntersectingRay origin geometry
+            pure (resizeLine (const 50) ray)
+
+    paintGeometry geometry
+    for_ rays paintRay
 
 -- This nasty point was inside the polygon, because the line leading towards it
 -- crossed the polygon in three places: once as a normal intersection, and twice
