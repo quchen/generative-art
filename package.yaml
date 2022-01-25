@@ -112,6 +112,7 @@ executables:
             - generative-art
             - parallel
             - comonad
+            - JuicyPixels
 
 tests:
     testsuite:
