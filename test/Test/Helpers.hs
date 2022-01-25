@@ -136,15 +136,13 @@ instance EqApprox Vec2 where
       = norm (v2 -. v1) <= tol
 
 instance EqApprox Angle where
-    approxEqualTolerance tol (Angle x) (Angle y)
-      = let Angle x' = rad x
-            Angle y' = rad y
-            -- If x and y are just around 0°/360° within the tolerance interval,
+    approxEqualTolerance tol x y
+      = let -- If x and y are just around 0°/360° within the tolerance interval,
             -- the angles above will be apart by 2π, so we check the π rotated
             -- version here as well, avoiding the instability around 0.
-            Angle x'' = rad (x+pi)
-            Angle y'' = rad (y+pi)
-        in approxEqualTolerance tol x' y' || approxEqualTolerance tol x'' y''
+            x' = x +. rad pi
+            y' = y +. rad pi
+        in approxEqualTolerance tol (getRad x) (getRad y) || approxEqualTolerance tol (getRad x') (getRad y')
 
 instance EqApprox Transformation where
     approxEqualTolerance tol

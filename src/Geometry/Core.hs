@@ -51,10 +51,11 @@ module Geometry.Core (
     , polygonOrientation
 
     -- ** Angles
-    , Angle(..)
+    , Angle
     , deg
     , getDeg
     , rad
+    , getRad
 
     -- * Transformations
     , Transformation(..)
@@ -108,8 +109,6 @@ import Control.DeepSeq
 import qualified System.Random.MWC as MWC
 
 import Util
-
-import Debug.Trace
 
 
 
@@ -288,9 +287,11 @@ translate (Vec2 dx dy) = Transformation
 --
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
-rotate (Angle a) = Transformation
+rotate angle = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
+  where
+    a = getRad angle
 
 -- | Rotate around a point.
 rotateAround :: Vec2 -> Angle -> Transformation
@@ -513,10 +514,19 @@ normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates
 polar :: Angle -> Double -> Vec2
-polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
+polar angle d =
+    let a = getRad angle
+    in Vec2 (d * cos a) (d * sin a)
 
--- | Newtype safety wrapper.
-newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
+-- | Newtype safety wrapper. Use 'rad'/'getRad' and 'deg'/'getDeg' for construction
+-- and consumption.
+newtype Angle = Rad Double
+
+instance Eq Angle where
+    a == b = getRad a == getRad b
+
+instance Ord Angle where
+    compare = comparing getRad
 
 instance MWC.Uniform Angle where
     uniformM gen = fmap deg (MWC.uniformRM (0, 360) gen)
@@ -527,10 +537,10 @@ instance Show Angle where
     show angle = printf "deg %2.8f" (getDeg angle)
 
 instance VectorSpace Angle where
-    Angle a +. Angle b = rad (a + b)
-    Angle a -. Angle b = rad (a - b)
-    a *. Angle b = rad (a * b)
-    negateV (Angle a) = rad (-a)
+    Rad a +. Rad b = Rad (a + b)
+    Rad a -. Rad b = Rad (a - b)
+    a *. Rad b = rad (a * b)
+    negateV (Rad a) = Rad (-a)
     zero = rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
@@ -540,10 +550,13 @@ deg degrees = rad (degrees / 360 * 2 * pi)
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
 -- rad r | r < 0 = rad (r + 2*pi)
-rad r = Angle (r `mod'` (2*pi))
+rad = Rad
 
 getDeg :: Angle -> Double
-getDeg (Angle a) = a / pi * 180
+getDeg angle = getRad angle / pi * 180
+
+getRad :: Angle -> Double
+getRad (Rad r) = r `mod'` (2*pi)
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
@@ -570,11 +583,7 @@ angleOfLine :: Line -> Angle
 angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
 angleBetween :: Line -> Line -> Angle
-angleBetween line1 line2
-  = let Angle a1 = angleOfLine line1
-        Angle a2 = angleOfLine line2
-    in rad (a2 - a1)
-
+angleBetween line1 line2 = angleOfLine line2 -. angleOfLine line1
 
 angledLine
     :: Vec2   -- ^ Start
@@ -783,14 +792,8 @@ nonIntersectingRay origin [] = Line origin (origin +. Vec2 1 0)
 nonIntersectingRay origin obstacles
   = let angles = sort (map (\p -> angleOfLine (Line origin p)) obstacles)
         gapPairs = zip angles (tail (cycle angles))
-        (maxGapStart, maxGapEnd) = traceShowId $ maximumBy (comparing (\(start, end) -> end -. start)) gapPairs
-        angleAverage (Angle a) (Angle b) = rad ((a+b)/2)
-
-        !_ = traceId $ "Angles: " ++ show angles
-        !_ = traceId $ "gapPairs: " ++ show gapPairs
-        !_ = traceId $ "Differences: " ++ show [(start, end, end -. start) | (start, end) <- gapPairs]
-        !_ = traceId $ "Average: " ++ show (angleAverage maxGapStart maxGapEnd)
-    in angledLine origin (angleAverage maxGapStart maxGapEnd) 1
+        (maxGapStart, maxGapEnd) = maximumBy (comparing (\(start, end) -> end -. start)) gapPairs
+    in angledLine origin ((maxGapStart +. maxGapEnd) /. 2) 1
 
 data PolygonError
     = NotEnoughCorners Int

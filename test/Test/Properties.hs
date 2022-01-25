@@ -40,11 +40,11 @@ tests = testGroup "Properties"
 
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
-    (\angle1@(Angle angle1Raw) angle2@(Angle angle2Raw) ->
+    (\angle1 angle2 ->
         let line1 = angledLine zero angle1 1
             line2 = angledLine zero angle2 1
             actualAngle = angleBetween line1 line2
-            expectedAngle = rad (angle2Raw - angle1Raw)
+            expectedAngle = angle2 -. angle1
         in counterexample
             (unlines ["Counterexample:"
                      , "  Line 1: " ++ show line1 ++ " (angle: " ++ show angle1 ++ ")"
@@ -109,10 +109,10 @@ areaTest = testGroup "Area"
         ((,) <$> vec2 <*> vec2)
         (\(v1, v2) ->
             let actual = polygonArea (Polygon [zero, v1, v1 +. v2, v2])
-                Angle rawAngleBetween = angleBetween (Line zero v1) (Line zero v2)
+                a = angleBetween (Line zero v1) (Line zero v2)
                 v1norm = norm v1
                 v2norm = norm v2
-                expected = abs (v1norm * v2norm * sin rawAngleBetween)
+                expected = abs (v1norm * v2norm * sin (getRad a))
             in actual ~== expected ))
 
 intersectionLLTest :: TestTree
@@ -176,7 +176,8 @@ dotProductTest = testGroup "Dot product"
                     pure (if xy then Vec2 a b else Vec2 b a)
             in forAll ((,) <$> nonZeroVec <*> nonZeroVec) $ \(v1, v2) ->
                 let v0 = Vec2 0 0
-                    angle@(Angle a) = angleBetween (Line v0 v1) (Line v0 v2)
+                    angle = angleBetween (Line v0 v1) (Line v0 v2)
+                    a = getRad angle
                     prod = dotProduct v1 v2
                 in -- Exclude almost-90° angles to avoid blinker tests
                     abs (cos a) >= 1e-10 ==> counterexample
@@ -211,10 +212,10 @@ rotateList n xs = let (a,b) = splitAt n xs in b ++ a
 transformationTest :: TestTree
 transformationTest = testGroup "Affine transformations"
     [ testGroup "Algebraic properties"
-        [ testProperty "Multiple rotations add angles" $ \a1@(Angle a1') a2@(Angle a2') ->
+        [ testProperty "Multiple rotations add angles" $ \a1 a2 ->
             approxEqualTolerance (Tolerance 1e-5)
                 (transformationProduct (rotate a1) (rotate a2))
-                (rotate (Angle (a1' + a2')))
+                (rotate (a1 +. a2))
         ]
     , testGroup "Invertibility"
         [ invertibilityTest "Identity"
