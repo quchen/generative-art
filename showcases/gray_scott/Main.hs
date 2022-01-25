@@ -9,20 +9,14 @@ import System.Random.MWC (create)
 import Draw
 import Geometry
 import Sampling
+import Text.Printf (printf)
 
 picWidth, picHeight :: Num a => a
-picWidth = 100
-picHeight = 100
+picWidth = 200
+picHeight = 200
 
 main :: IO ()
-main = withSurfaceAuto "out/gray_scott.png" picWidth picHeight renderDrawing
-  where
-    renderDrawing surface = Cairo.renderWith surface $ do
-        cairoScope (setColor white >> Cairo.paint)
-        drawing
-
-drawing :: Cairo.Render ()
-drawing = do
+main = do
     gen <- Cairo.liftIO create
     seeds <- Cairo.liftIO $ poissonDisc PoissonDisc
         { width = picWidth
@@ -44,11 +38,18 @@ drawing = do
             , let p = Vec2 x y
             , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
             ]
-        finalState = foldr ($) initialState (replicate 400 grayScottProcess)
-    for_ [ Vec2 x y | x <- [0, 1..picWidth], y <- [0, 1..picHeight] ] $ \p@(Vec2 x y) -> do
-        Cairo.rectangle x y 1 1
-        setColor (hsv 0 0 (fst (finalState ! p)))
-        Cairo.fill
+        frames = scanl (flip ($)) initialState (replicate 5000 grayScottProcess)
+    for_ (zip [0 :: Int ..] frames) $ \(index, frame) -> withSurfaceAuto (printf "out/gray_scott_%06i.png" index) picWidth picHeight (renderDrawing frame)
+  where
+    renderDrawing grid surface = Cairo.renderWith surface $ do
+        cairoScope (setColor white >> Cairo.paint)
+        drawing grid
+
+drawing :: M.Map Vec2 (Double, Double) -> Cairo.Render ()
+drawing grid = for_ [ Vec2 x y | x <- [0, 1..picWidth], y <- [0, 1..picHeight] ] $ \p@(Vec2 x y) -> do
+    Cairo.rectangle x y 1 1
+    setColor (hsv 0 0 (fst (grid ! p)))
+    Cairo.fill
 
 data GrayScott = GS
     { feedRateU :: Double
