@@ -87,6 +87,13 @@ executables:
         dependencies:
             - generative-art
             - parallel
+    gray-scott:
+        main: Main.hs
+        source-dirs: showcases/gray_scott
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+            - parallel
 
 tests:
     testsuite:
