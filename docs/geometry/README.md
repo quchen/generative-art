@@ -2,10 +2,10 @@
 
 ## Simple operations
 
-![](simple_operations.svg)
-
-## Cutting lines
-
+![](rotate_line.svg)
+![](perpendicular_bisector.svg)
+![](perpendicular_line_through_point.svg)
+![](point_in_polygon.svg)
 ![](cut/1_line.svg)
 
 ## Line intersections

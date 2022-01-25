@@ -3,7 +3,7 @@ module Test.SimpleOperations (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
 import Geometry
@@ -16,20 +16,18 @@ import Test.Tasty.HUnit
 
 tests :: TestTree
 tests = testGroup "Simple operations"
-    [ testVisual
+    [ testGroup "Visual"
+        [ rotateLineTest
+        , perpendicularBisectorTest
+        , perpendicularLineThroughTest
+        , pointInPolygonTest
+        ]
     , pointInPolygonRegression
     ]
 
-testVisual :: TestTree
-testVisual = testCase "Visual" $ renderAllFormats 320 400 "docs/geometry/simple_operations" (do
-    Cairo.translate 30 50 >> rotateLineTest
-    Cairo.translate  0 80 >> perpendicularBisectorTest
-    Cairo.translate  0 80 >> perpendicularLineThroughTest
-    Cairo.translate  0 80 >> pointInPolygonTest
-    )
-
-rotateLineTest :: Render ()
-rotateLineTest = do
+rotateLineTest :: TestTree
+rotateLineTest = testCase "Rotate line" $ renderAllFormats 300 90 "docs/geometry/rotate_line" $ do
+    C.translate 30 30
     let initialLine = angledLine (Vec2 0 0) (rad 0) 75
         rotated = iterate (Geometry.transform (rotateAround (Vec2 25 0) (deg 20))) initialLine
 
@@ -44,8 +42,9 @@ rotateLineTest = do
     moveTo 90 20
     showText "Rotate line in 20° increments"
 
-perpendicularBisectorTest :: Render ()
-perpendicularBisectorTest = do
+perpendicularBisectorTest :: TestTree
+perpendicularBisectorTest = testCase "Perpendicular bisector" $ renderAllFormats 190 60 "docs/geometry/perpendicular_bisector" $ do
+    C.translate 10 20
     let line = angledLine (Vec2 0 0) (deg 30) 50
         bisector = perpendicularBisector line
 
@@ -61,8 +60,9 @@ perpendicularBisectorTest = do
     moveTo 40 10
     showText "Perpendicular bisector"
 
-perpendicularLineThroughTest :: Render ()
-perpendicularLineThroughTest = do
+perpendicularLineThroughTest :: TestTree
+perpendicularLineThroughTest = testCase "Perpendicular line through point" $ renderAllFormats 250 70 "docs/geometry/perpendicular_line_through_point" $ do
+    C.translate 10 10
     let line = angledLine (Vec2 0 0) (deg 30) 50
         point = Vec2 20 30
         line' = perpendicularLineThrough point line
@@ -81,8 +81,9 @@ perpendicularLineThroughTest = do
     moveTo 40 40
     showText "Perpendicular line through point"
 
-pointInPolygonTest :: Render ()
-pointInPolygonTest = do
+pointInPolygonTest :: TestTree
+pointInPolygonTest = testCase "Point in polygon" $ renderAllFormats 200 70 "docs/geometry/point_in_polygon" $ do
+    C.translate 30 10
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
 
