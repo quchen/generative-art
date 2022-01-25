@@ -2,9 +2,10 @@
 module Main where
 
 import Control.Comonad
-import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create)
 import Text.Printf (printf)
+import qualified Codec.Picture as P
+import qualified Data.Vector.Storable as V
 
 import Draw
 import Geometry
@@ -17,12 +18,12 @@ picHeight = 200
 
 main :: IO ()
 main = do
-    gen <- Cairo.liftIO create
-    seeds <- Cairo.liftIO $ poissonDisc PoissonDisc
+    gen <- create
+    seeds <- poissonDisc PoissonDisc
         { width = picWidth
         , height = picHeight
         , k = 4
-        , radius = 100
+        , radius = 200
         , .. }
     let grayScottProcess = grayScott GS
             { feedRateU = 0.04
@@ -33,29 +34,24 @@ main = do
             , height = picHeight }
         initialState = planeFromList
             [ row
-            | y <- [0..picHeight]
+            | y <- [0..picHeight - 1]
             , let row =
                     [ (1 - v, v)
-                    | x <- [0..picWidth]
+                    | x <- [0..picWidth - 1]
                     , let p = Vec2 x y
                     , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
                     ]
             ]
-        frames = take 1000 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
-    for_ (zip [0 :: Int ..] frames) $ \(index, frame) -> withSurfaceAuto (printf "out/gray_scott_%06i.png" index) picWidth picHeight (renderDrawing frame)
-  where
-    renderDrawing grid surface = Cairo.renderWith surface $ do
-        cairoScope (setColor white >> Cairo.paint)
-        drawing grid
+        frames = take 200 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+    for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
+        let file = printf "out/gray_scott_%06i.png" index
+        P.writePng file (renderImage grid)
+
+renderImage :: Grid -> P.Image P.Pixel8
+renderImage grid = P.Image picWidth picHeight (V.concat (V.fromList <$> planeToList (renderPixel <$> grid)))
+  where renderPixel (u, _v) = round (u * 255)
 
 type Grid = Plane (Double, Double)
-
-drawing :: Grid -> Cairo.Render ()
-drawing grid = for_ (zip [1..] (planeToList grid)) $ \(y, row) ->
-    for_ (zip [1..] row) $ \(x, (u, _v)) -> do
-        Cairo.rectangle x y 1 1
-        setColor (hsv 0 0 u)
-        Cairo.fill
 
 data GrayScott = GS
     { feedRateU :: Double
