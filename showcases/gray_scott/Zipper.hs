@@ -43,10 +43,11 @@ zipperFromList = \case
 
 instance Comonad Zipper where
     extract = current
-    extend f zipper = fmap f $ Zipper
-        { before  = iterate1 moveBefore zipper
+    extend f zipper = f <$> Zipper
+        { before  = take (length (before zipper)) (iterate1 moveBefore zipper)
         , current = zipper
-        , after   = iterate1 moveAfter zipper }
+        , after   = take (length (after zipper)) (iterate1 moveAfter zipper)
+        }
       where
         iterate1 f x = tail (iterate f x)
 
@@ -81,13 +82,13 @@ planeFromList = \case
 
 instance Comonad Plane where
     extract = current . current . unPlane
-    extend f plane = fmap f $ Plane $ Zipper
-        { before  = fmap foo (iterate1 moveUp plane)
+    extend f plane = f <$> Plane Zipper
+        { before  = take (length (before (unPlane plane))) (fmap foo (iterate1 moveUp plane))
         , current = foo plane
-        , after   = fmap foo (iterate1 moveDown plane) }
+        , after   = take (length (after (unPlane plane))) (fmap foo (iterate1 moveDown plane)) }
       where
         foo p = Zipper
-            { before = iterate1 moveLeft p
+            { before = take (length (before (current (unPlane p)))) (iterate1 moveLeft p)
             , current = p
-            , after = iterate1 moveRight p }
+            , after = take (length (after (current (unPlane p)))) (iterate1 moveRight p) }
         iterate1 f x = tail (iterate f x)
