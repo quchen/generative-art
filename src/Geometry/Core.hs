@@ -513,7 +513,15 @@ polar :: Angle -> Double -> Vec2
 polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
 
 -- | Newtype safety wrapper.
-newtype Angle = Angle { getRad :: Double } deriving (Eq, Ord)
+--
+-- Angles are not 'Ord', since the cyclic structure is very error-prone when
+-- combined with comparisons in practice :-( Write your own comparators such as
+-- @'comparing' 'getDeg'@ if you _really_ want to compare them directly. Often
+-- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
+-- 'det' (measure leftness/rightness) is a much better choice to express what you
+-- want.
+newtype Angle = Angle { getRad :: Double }
+    deriving (Eq)
 
 instance MWC.Uniform Angle where
     uniformM gen = fmap deg (MWC.uniformRM (0, 360) gen)
@@ -849,12 +857,20 @@ polygonCircumference poly = foldl'
 -- > \ y1 y2 /
 --
 -- This is useful to calculate the (signed) area of the parallelogram spanned by
--- two vectors.
+-- two vectors, or to check whether a vector is to the left or right of another
+-- vector.
+--
+-- >>> det (Vec2 1 0) (Vec2 1 0) -- Colinear
+-- 0
+--
+-- >>> det (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec to the right of 1st (in Cairo coordinates)
+-- 0.1
+--
+-- >>> det (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec to the left of 1st (in Cairo coordinates)
+-- -0.1
 det :: Vec2 -> Vec2 -> Double
 det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
 
--- UNTESTED
---
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Double
 polygonArea (Polygon ps)

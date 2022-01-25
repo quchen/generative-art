@@ -196,8 +196,13 @@ extractSinglePolygon orientation = go Nothing S.empty
                             let leftness end = angleOfLine (Line pivot from) -. angleOfLine (Line pivot end)
                                 rightness end = negateV (leftness end)
                                 pickNextVertex = minimumBy $ comparing $ case orientation of
-                                    PolygonPositive -> leftness
-                                    PolygonNegative -> rightness
+                                    -- TODO: comparing by angles is flaky because of their modular arithmetic.
+                                    -- leftness/rightness should be rewritten in terms of 'det', which allows
+                                    -- judging whether a vector is left/right of another much better.
+                                    -- The 'getRad' was just put here quickly so the 'Ord Angle' instance
+                                    -- could be removed.
+                                    PolygonPositive -> getRad . leftness
+                                    PolygonNegative -> getRad . rightness
                             in  pickNextVertex (filter (/= from) toVertices)
                     otherVertices = toVertices \\ [useAsNext]
                     (Polygon rest, edgeGraph') = go

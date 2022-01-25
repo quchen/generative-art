@@ -136,7 +136,7 @@ voronoiCell Delaunay{..} p qs
     | p `elem` corners = Nothing
     | otherwise          = Just Cell { region = polygonRestrictedToBounds, seed = p, props = () }
   where
-    sortedRays = sortOn angleOfLine (Line p <$> S.toList qs)
+    sortedRays = sortOn (getRad . angleOfLine) (Line p <$> S.toList qs)
     voronoiVertex l1 l2
         | Line _ q1 <- l1, Line _ q2 <- l2, q1 `elem` corners, q2 `elem` corners
           = intersectionPoint (intersectionLL (transform (rotateAround q1 (deg 90)) l1) (transform (rotateAround q2 (deg 90)) l2))
