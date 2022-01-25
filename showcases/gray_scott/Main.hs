@@ -1,15 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import qualified Data.Map.Strict as M
+import Control.Comonad
 import qualified Graphics.Rendering.Cairo as Cairo
-import Data.Maybe (fromMaybe)
 import System.Random.MWC (create)
+import Text.Printf (printf)
 
 import Draw
 import Geometry hiding (Grid)
 import Sampling
-import Text.Printf (printf)
+import Zipper
 
 picWidth, picHeight :: Num a => a
 picWidth = 200
@@ -31,27 +31,31 @@ main = do
             , diffusionRateV = 0.1
             , width = picWidth
             , height = picHeight }
-        initialState = M.fromList
-            [ (p, (1 - v, v))
-            | x <- [0..picWidth]
-            , y <- [0..picHeight]
-            , let p = Vec2 x y
-            , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
+        initialState = planeFromList
+            [ row
+            | y <- [0..picHeight]
+            , let row =
+                    [ (1 - v, v)
+                    | x <- [0..picWidth]
+                    , let p = Vec2 x y
+                    , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
+                    ]
             ]
-        frames = scanl (flip ($)) initialState (replicate 5000 grayScottProcess)
+        frames = take 1 (iterate grayScottProcess initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, frame) -> withSurfaceAuto (printf "out/gray_scott_%06i.png" index) picWidth picHeight (renderDrawing frame)
   where
     renderDrawing grid surface = Cairo.renderWith surface $ do
         cairoScope (setColor white >> Cairo.paint)
         drawing grid
 
-type Grid = M.Map Vec2 (Double, Double)
+type Grid = Plane (Double, Double)
 
 drawing :: Grid -> Cairo.Render ()
-drawing grid = for_ [ Vec2 x y | x <- [0, 1..picWidth], y <- [0, 1..picHeight] ] $ \p@(Vec2 x y) -> do
-    Cairo.rectangle x y 1 1
-    setColor (hsv 0 0 (fst (grid ! p)))
-    Cairo.fill
+drawing grid = for_ (zip [1..] (planeToList grid)) $ \(y, row) ->
+    for_ (zip [1..] row) $ \(x, (u, _v)) -> do
+        Cairo.rectangle x y 1 1
+        setColor (hsv 0 0 u)
+        Cairo.fill
 
 data GrayScott = GS
     { feedRateU :: Double
@@ -62,17 +66,14 @@ data GrayScott = GS
     , height :: Double
     }
 
-(!) :: Grid -> Vec2 -> (Double, Double)
-(!) grid (Vec2 x y) = fromMaybe (1, 0) (grid M.!? p)
-  where p = Vec2 (fromIntegral (round x `mod` picWidth)) (fromIntegral (round y `mod` picHeight))
-
 grayScott :: GrayScott -> Grid -> Grid
-grayScott GS{..} grid = M.mapWithKey grayScottStep grid
+grayScott GS{..} = extend grayScottStep
   where
-    grayScottStep p (u0, v0) = (u0 + deltaU, v0 + deltaV)
+    grayScottStep grid = (u0 + deltaU, v0 + deltaV)
       where
-        u q = fst (grid ! q)
-        v q = snd (grid ! q)
-        deltaU = diffusionRateU * laplace u p - u0 * v0^2 + feedRateU * (1 - u0)
-        deltaV = diffusionRateV * laplace v p + u0 * v0^2 - killRateV * v0
-        laplace f (Vec2 x y) = f (Vec2 (x+1) y) + f (Vec2 (x-1) y) + f (Vec2 x (y+1)) + f (Vec2 x (y-1)) - 4 * f (Vec2 x y)
+        (u0, v0) = extract grid
+        u f = fst (extract (f grid))
+        v f = snd (extract (f grid))
+        deltaU = diffusionRateU * laplace u - u0 * v0^2 + feedRateU * (1 - u0)
+        deltaV = diffusionRateV * laplace v + u0 * v0^2 - killRateV * v0
+        laplace f = f moveRight + f moveUp + f moveLeft + f moveDown - 4 * f id

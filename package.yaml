@@ -111,6 +111,7 @@ executables:
         dependencies:
             - generative-art
             - parallel
+            - comonad
 
 tests:
     testsuite:
