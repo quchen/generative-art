@@ -7,7 +7,7 @@ import Data.Maybe (fromMaybe)
 import System.Random.MWC (create)
 
 import Draw
-import Geometry
+import Geometry hiding (Grid)
 import Sampling
 import Text.Printf (printf)
 
@@ -45,7 +45,9 @@ main = do
         cairoScope (setColor white >> Cairo.paint)
         drawing grid
 
-drawing :: M.Map Vec2 (Double, Double) -> Cairo.Render ()
+type Grid = M.Map Vec2 (Double, Double)
+
+drawing :: Grid -> Cairo.Render ()
 drawing grid = for_ [ Vec2 x y | x <- [0, 1..picWidth], y <- [0, 1..picHeight] ] $ \p@(Vec2 x y) -> do
     Cairo.rectangle x y 1 1
     setColor (hsv 0 0 (fst (grid ! p)))
@@ -60,11 +62,11 @@ data GrayScott = GS
     , height :: Double
     }
 
-(!) :: M.Map Vec2 (Double, Double) -> Vec2 -> (Double, Double)
+(!) :: Grid -> Vec2 -> (Double, Double)
 (!) grid (Vec2 x y) = fromMaybe (1, 0) (grid M.!? p)
   where p = Vec2 (fromIntegral (round x `mod` picWidth)) (fromIntegral (round y `mod` picHeight))
 
-grayScott :: GrayScott -> M.Map Vec2 (Double, Double) -> M.Map Vec2 (Double, Double)
+grayScott :: GrayScott -> Grid -> Grid
 grayScott GS{..} grid = M.mapWithKey grayScottStep grid
   where
     grayScottStep p (u0, v0) = (u0 + deltaU, v0 + deltaV)
