@@ -4,6 +4,7 @@ module Geometry (
     , module Geometry.Cut
     , module Geometry.Trajectory
     , module Geometry.Triangulate
+    , module Geometry.Processes.Billard
 ) where
 
 import Geometry.Bezier
@@ -11,3 +12,4 @@ import Geometry.Core
 import Geometry.Cut
 import Geometry.Trajectory
 import Geometry.Triangulate
+import Geometry.Processes.Billard

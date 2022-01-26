@@ -10,12 +10,12 @@ import Data.Foldable
 import System.FilePath
 
 import qualified Test.Bezier
-import qualified Test.Billard
 import qualified Test.Color
 import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
+import qualified Test.Geometry.Processes.Billard
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
 import qualified Test.Penrose
@@ -48,11 +48,11 @@ tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
         [ Test.Bezier.tests
-        , Test.Billard.tests
         , Test.ConvexHull.tests
         , Test.Color.tests
         , Test.Cut.tests
         , Test.DifferentialEquation.tests
+        , Test.Geometry.Processes.Billard.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests
