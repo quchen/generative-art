@@ -10,10 +10,12 @@ import Delaunay.Internal
 import Draw
 import Geometry hiding (Grid)
 import Sampling
+import qualified Codec.Picture.Types as P
+import Control.Monad (when)
 
 picWidth, picHeight :: Num a => a
-picWidth = 100
-picHeight = 100
+picWidth = 200
+picHeight = 200
 
 main :: IO ()
 main = do
@@ -34,19 +36,18 @@ main = do
             , diffusionRateV = 0.1
             , width = picWidth
             , height = picHeight }
-        frames = take 5 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+        frames = take 500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
-        P.writePng file (renderImage grid)
+        P.writePng file =<< renderImage grid
 
-renderImage :: Grid -> P.Image P.Pixel8
-renderImage grid = P.generateImage pixel picWidth picHeight
-  where
-
-    pixel x y = round $ 255 * (sum pointsWithinRadius / fromIntegral (length pointsWithinRadius))
-      where
-        p = Vec2 (fromIntegral x) (fromIntegral y)
-        pointsWithinRadius = fst . fst . snd <$> M.toList (M.filterWithKey (\q _ -> norm (q -. p) < 2) grid)
+renderImage :: Grid -> IO (P.Image P.Pixel8)
+renderImage grid = do
+    img <- P.createMutableImage picWidth picHeight 255
+    for_ (M.toList grid) $ \(Vec2 x y, ((u, _), _)) ->
+        when (x >= 0 && x <= picWidth - 1 && y >= 0 && y <= picHeight - 1) $
+            P.writePixel img (round x) (round y) (round (255 * u))
+    P.freezeImage img
 
 type Grid = M.Map Vec2 ((Double, Double), [Vec2])
 
@@ -64,9 +65,13 @@ grayScott GS{..} grid = M.mapWithKey grayScottStep grid
   where
     grayScottStep p ((u0, v0), neighbours) = ((u0 + deltaU, v0 + deltaV), neighbours)
       where
-        u = fst . fst . (grid M.!)
-        v = snd . fst . (grid M.!)
-        deltaU = diffusionRateU * laplace u - u0 * v0^2 + feedRateU * (1 - u0)
-        deltaV = diffusionRateV * laplace v + u0 * v0^2 - (feedRateU + killRateV) * v0
-        laplace f = sum (delta f <$> neighbours) / fromIntegral (length neighbours)
-        delta f q = (f q - f p) / normSquare (q -. p)
+        deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
+        deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
+        (laplaceU, laplaceV) =
+            let (u'', v'') = foldl' foo (0, 0) neighbours
+                d = fromIntegral (length neighbours)
+            in  (u'' / d, v'' / d)
+        foo (u'', v'') q =
+            let d = normSquare (q -. p)
+                (u, v) = fst (grid M.! q)
+            in (u'' + (u - u0) / d, v'' + (v - v0) / d)
