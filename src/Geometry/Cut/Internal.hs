@@ -203,8 +203,8 @@ extractSinglePolygon orientation = go Nothing S.empty
                                     -- could be removed.
                                     PolygonPositive -> getRad . leftness
                                     PolygonNegative -> getRad . rightness
-                            in  pickNextVertex (filter (/= from) toVertices)
-                    otherVertices = toVertices \\ [useAsNext]
+                            in  pickNextVertex (delete from toVertices)
+                    otherVertices = delete useAsNext toVertices
                     (Polygon rest, edgeGraph') = go
                         (Just pivot)
                         (S.insert pivot visited)
