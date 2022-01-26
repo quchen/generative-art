@@ -63,15 +63,9 @@ data GrayScott = GS
 grayScott :: GrayScott -> Grid -> Grid
 grayScott GS{..} grid = M.mapWithKey grayScottStep grid
   where
-    grayScottStep p ((u0, v0), neighbours) = ((u0 + deltaU, v0 + deltaV), neighbours)
+    grayScottStep p (uv0@(u0, v0), neighbours) = ((u0 + deltaU, v0 + deltaV), neighbours)
       where
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
-        (laplaceU, laplaceV) =
-            let (u'', v'') = foldl' foo (0, 0) neighbours
-                d = fromIntegral (length neighbours)
-            in  (u'' / d, v'' / d)
-        foo (u'', v'') q =
-            let d = normSquare (q -. p)
-                (u, v) = fst (grid M.! q)
-            in (u'' + (u - u0) / d, v'' + (v - v0) / d)
+        (laplaceU, laplaceV) = foldl' (\uv q -> uv +. delta q) (0, 0) neighbours /. fromIntegral (length neighbours)
+        delta q = (fst (grid M.! q) -. uv0) /. normSquare (q -. p)
