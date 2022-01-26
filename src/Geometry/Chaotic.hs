@@ -1,5 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 
+-- We can’t provide a type sig for 'initializeMwc' without adding another explicit
+-- dependency, so we disable warnings for this module.
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 -- | Functions that vary chaotically based on their input. Useful for introducing
 -- deterministic noise in pure code, e.g. for slightly moving points around, in the
 -- middle of pure code.
