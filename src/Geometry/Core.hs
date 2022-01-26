@@ -884,10 +884,9 @@ det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
 
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Double
-polygonArea (Polygon ps)
-  = let determinants = zipWith det ps (tail (cycle ps))
-    in abs (sum determinants / 2)
+polygonArea = abs . signedPolygonArea
 
+-- | Sign depends on orientation.
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
