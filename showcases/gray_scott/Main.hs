@@ -13,8 +13,8 @@ import Sampling
 import Zipper
 
 picWidth, picHeight :: Num a => a
-picWidth = 500
-picHeight = 500
+picWidth = 200
+picHeight = 200
 
 main :: IO ()
 main = do
@@ -28,8 +28,8 @@ main = do
     let grayScottProcess = grayScott GS
             { feedRateU = 0.029
             , killRateV = 0.057
-            , diffusionRateU = 0.2
-            , diffusionRateV = 0.1
+            , diffusionRateU = 0.04
+            , diffusionRateV = 0.02
             , width = picWidth
             , height = picHeight }
         initialState = planeFromList
@@ -42,7 +42,7 @@ main = do
                     , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
                     ]
             ]
-        frames = take 1000 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+        frames = take 1500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
         P.writePng file (renderImage grid)
