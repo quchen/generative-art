@@ -14,8 +14,11 @@ import qualified Codec.Picture.Types as P
 import Control.Monad (when)
 
 picWidth, picHeight :: Num a => a
-picWidth = 200
-picHeight = 200
+picWidth = 100
+picHeight = 100
+
+latticeConstant :: Double
+latticeConstant = 0.6
 
 main :: IO ()
 main = do
@@ -25,9 +28,9 @@ main = do
         k = 4
 
     seeds <- poissonDisc PoissonDisc { radius = 50, .. }
-    vertices <- poissonDisc PoissonDisc { radius = 1, .. }
+    vertices <- poissonDisc PoissonDisc { radius = latticeConstant, .. }
     let lattice = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) vertices
-        generator p = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
+        generator p = sum ((\q -> exp (- 0.05 * normSquare (p -. q))) <$> seeds)
         initialState = M.mapWithKey (\p ps -> ((1 - generator p, generator p), toList ps)) (vertexGraph lattice)
         grayScottProcess = grayScott GS
             { feedRateU = 0.029
@@ -44,10 +47,23 @@ main = do
 renderImage :: Grid -> IO (P.Image P.Pixel8)
 renderImage grid = do
     img <- P.createMutableImage picWidth picHeight 255
-    for_ (M.toList grid) $ \(Vec2 x y, ((u, _), _)) ->
-        when (x >= 0 && x <= picWidth - 1 && y >= 0 && y <= picHeight - 1) $
-            P.writePixel img (round x) (round y) (round (255 * u))
+    for_ (M.toList grid) $ \(p, ((_, v), _)) ->
+        for_ (antialias p v) $ \(x, y, v) ->
+            when (x >= 0 && x <= picWidth - 1 && y >= 0 && y <= picHeight - 1) $ do
+                px0 <- P.readPixel img x y
+                let v0 = fromIntegral px0 / 255 :: Double
+                    clamp = max 0 . min 1
+                    v' = clamp (v0 - v)
+                P.writePixel img x y (round (255 * v'))
     P.freezeImage img
+
+antialias :: Vec2 -> Double -> [(Int, Int, Double)]
+antialias (Vec2 x y) px =
+    [ (x', y', px * exp (- 0.5 * ((fromIntegral x' - x)^2 + (fromIntegral y' - y)^2) / latticeConstant ^ 2))
+    | x' <- let x0 = round x in [x0 - 2 .. x0 + 2]
+    , y' <- let y0 = round y in [y0 - 2 .. y0 + 2]
+    ]
+
 
 type Grid = M.Map Vec2 ((Double, Double), [Vec2])
 
@@ -68,4 +84,4 @@ grayScott GS{..} grid = M.mapWithKey grayScottStep grid
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
         (laplaceU, laplaceV) = foldl' (\uv q -> uv +. delta q) (0, 0) neighbours /. fromIntegral (length neighbours)
-        delta q = (fst (grid M.! q) -. uv0) /. normSquare (q -. p)
+        delta q = (fst (grid M.! q) -. uv0) /. norm (q -. p)
