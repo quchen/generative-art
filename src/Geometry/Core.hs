@@ -57,6 +57,7 @@ module Geometry.Core (
     , getDeg
     , rad
     , getRad
+    , normalizeAngle
 
     -- * Transformations
     , Transformation(..)
@@ -516,7 +517,7 @@ polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 -- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
 -- 'det' (measure leftness/rightness) is a much better choice to express what you
 -- want.
-newtype Angle = Rad { getRad :: Double }
+newtype Angle = Rad Double
     deriving (Eq)
 
 instance MWC.Uniform Angle where
@@ -525,25 +526,39 @@ instance MWC.Uniform Angle where
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
-    show (Rad a) = printf "deg %2.8f" (a / pi * 180)
+    show (Rad r) = printf "deg %2.8f" (r / pi * 180)
 
 instance VectorSpace Angle where
-    Rad a +. Rad b = rad (a + b)
-    Rad a -. Rad b = rad (a - b)
-    a *. Rad b = rad (a * b)
-    negateV (Rad a) = rad (-a)
-    zero = rad 0
+    Rad a +. Rad b = Rad (a + b)
+    Rad a -. Rad b = Rad (a - b)
+    a *. Rad b = Rad (a * b)
+    negateV (Rad a) = Rad (-a)
+    zero = Rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
-deg degrees = rad (degrees / 360 * 2 * pi)
+deg degrees = Rad (degrees / 180 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
-rad r = Rad (r `mod'` (2*pi))
+rad = Rad
 
+-- | Get an angle’s value in degrees
 getDeg :: Angle -> Double
-getDeg (Rad a) = a / pi * 180
+getDeg (Rad r) = r / pi * 180
+
+-- | Get an angle’s value in radians
+getRad :: Angle -> Double
+getRad (Rad r) = r
+
+-- | Get the angle’s value, normalized to one revolution. This makes e.g. 720° mean
+-- the same as 360°, which is otherwise not true for 'Angle's – turning twice might
+-- be something else than turning once, after all.
+normalizeAngle
+    :: Angle -- ^ Interval start
+    -> Angle -- ^ Angle to normalize
+    -> Angle -- ^ Normalized angle [start ... start + one revolution]
+normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make

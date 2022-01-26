@@ -36,8 +36,8 @@ angleBetweenTest = testProperty "Angle between two lines"
     (\angle1 angle2 ->
         let line1 = angledLine (Vec2 0 0) angle1 1
             line2 = angledLine (Vec2 0 0) angle2 1
-            actualAngle = angleBetween line1 line2
-            expectedAngle = angle2 -. angle1
+            actualAngle = normalizeAngle zero (angleBetween line1 line2)
+            expectedAngle = normalizeAngle zero (angle2 -. angle1)
         in counterexample
             (unlines ["Counterexample:"
                      , "  Line 1: " ++ show line1 ++ " (angle: " ++ show angle1 ++ ")"

@@ -117,7 +117,7 @@ testDraw line1@(Line start _) line2 = do
 
             cairoScope $ do
                 let Vec2 x y = point +. Vec2 15 15
-                    angleDeg = printf "%2.f" (getDeg (angleBetween line1 line2))
+                    angleDeg = printf "%2.f" (getDeg (normalizeAngle (rad 0) (angleBetween line1 line2)))
                     tyStr = case ty of
                         IntersectionVirtual _        -> "Virtual"
                         IntersectionVirtualInsideL _ -> "Virtual (but inside left argument)"
