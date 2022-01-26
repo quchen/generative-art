@@ -133,7 +133,7 @@ instance Default ArrowSpec where
         { arrowheadRelPos    = 1
         , arrowheadSize      = 10
         , arrowDrawBody      = True
-        , arrowheadAngle     = Rad 0.5
+        , arrowheadAngle     = rad 0.5
         , arrowheadDrawRight = True
         , arrowheadDrawLeft  = True
         }
@@ -144,14 +144,12 @@ arrowSketch line ArrowSpec{..} = do
     when arrowDrawBody (lineSketch line)
 
     let Line start end = line
-        Rad rawLineAngle = angleOfLine line
-        Rad rawArrowheadAngle = arrowheadAngle
 
         arrowTip = start +. (arrowheadRelPos *. (end -. start))
 
-    let arrowheadHalf (+-) = angledLine arrowTip (Rad (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
-        Line _ arrowLeftEnd  = arrowheadHalf (+)
-        Line _ arrowRightEnd = arrowheadHalf (-)
+    let arrowheadHalf (+-) = angledLine arrowTip (angleOfLine line +. rad pi +- arrowheadAngle) arrowheadSize
+        Line _ arrowLeftEnd  = arrowheadHalf (+.)
+        Line _ arrowRightEnd = arrowheadHalf (-.)
     case (arrowheadDrawRight, arrowheadDrawLeft) of
         (True, True) -> do
             moveToVec arrowLeftEnd
@@ -194,8 +192,8 @@ arcSketch
     -> Angle -- ^ Starting angle (absolute)
     -> Angle -- ^ Ending angle (absolute)
     -> Render ()
-arcSketch (Vec2 x y) r (Rad angleStart) (Rad angleEnd)
-  = arc x y r angleStart angleEnd
+arcSketch (Vec2 x y) r angleStart angleEnd
+  = arc x y r (getRad angleStart) (getRad angleEnd)
 
 -- | Sketch the line defined by a sequence of points.
 pathSketch :: [Vec2] -> Render ()

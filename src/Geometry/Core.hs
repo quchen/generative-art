@@ -52,10 +52,11 @@ module Geometry.Core (
     , polygonOrientation
 
     -- ** Angles
-    , Angle(..)
+    , Angle
     , deg
     , getDeg
     , rad
+    , getRad
 
     -- * Transformations
     , Transformation(..)
