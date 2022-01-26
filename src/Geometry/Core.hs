@@ -512,11 +512,11 @@ polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 -- | Newtype safety wrapper.
 --
 -- Angles are not 'Ord', since the cyclic structure is very error-prone when
--- combined with comparisons in practice :-( Write your own comparators such as
--- @'comparing' 'getDeg'@ if you _really_ want to compare them directly. Often
--- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
--- 'det' (measure leftness/rightness) is a much better choice to express what you
--- want.
+-- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Write
+-- your own comparators such as @'comparing' 'getDeg'@ paired with 'normalizeAngle'
+-- if you _really_ want to compare them directly. Often times, using the
+-- 'dotProduct' (measure same-direction-ness) or cross product via 'det' (measure
+-- leftness/rightness) is a much better choice to express what you want.
 newtype Angle = Rad Double
     deriving (Eq)
 
