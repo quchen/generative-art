@@ -18,7 +18,7 @@ picWidth = 100
 picHeight = 100
 
 latticeConstant :: Double
-latticeConstant = 0.6
+latticeConstant = 1
 
 main :: IO ()
 main = do
@@ -27,16 +27,17 @@ main = do
         height = picHeight
         k = 4
 
-    seeds <- poissonDisc PoissonDisc { radius = 50, .. }
+    seeds <- poissonDisc PoissonDisc { radius = 100, .. }
     vertices <- poissonDisc PoissonDisc { radius = latticeConstant, .. }
     let lattice = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) vertices
-        generator p = sum ((\q -> exp (- 0.05 * normSquare (p -. q))) <$> seeds)
+        diffusionRate = 0.1
+        generator p = sum ((\q -> exp (- 0.005 / diffusionRate * normSquare (p -. q))) <$> seeds)
         initialState = M.mapWithKey (\p ps -> ((1 - generator p, generator p), toList ps)) (vertexGraph lattice)
         grayScottProcess = grayScott GS
             { feedRateU = 0.029
             , killRateV = 0.057
-            , diffusionRateU = 0.2
-            , diffusionRateV = 0.1
+            , diffusionRateU = 2 * diffusionRate
+            , diffusionRateV = diffusionRate
             , width = picWidth
             , height = picHeight }
         frames = take 500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
@@ -60,8 +61,9 @@ renderImage grid = do
 antialias :: Vec2 -> Double -> [(Int, Int, Double)]
 antialias (Vec2 x y) px =
     [ (x', y', px * exp (- 0.5 * ((fromIntegral x' - x)^2 + (fromIntegral y' - y)^2) / latticeConstant ^ 2))
-    | x' <- let x0 = round x in [x0 - 2 .. x0 + 2]
-    , y' <- let y0 = round y in [y0 - 2 .. y0 + 2]
+    | let d = 2 * round latticeConstant
+    , x' <- let x0 = round x in [x0 - d .. x0 + d]
+    , y' <- let y0 = round y in [y0 - d .. y0 + d]
     ]
 
 
