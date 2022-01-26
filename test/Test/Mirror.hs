@@ -35,7 +35,7 @@ mirrorPointsTest = renderAllFormats 550 550 "docs/geometry/mirror" (do
 mirror1 :: Render ()
 mirror1 = do
     testDraw
-        (angledLine (Vec2 10 100) (Angle 0) 100)
+        (angledLine (Vec2 10 100) (deg 0) 100)
         [ Vec2 40 10
         , Vec2 20 20
         , Vec2 60 60

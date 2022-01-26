@@ -133,7 +133,7 @@ instance Default ArrowSpec where
         { arrowheadRelPos    = 1
         , arrowheadSize      = 10
         , arrowDrawBody      = True
-        , arrowheadAngle     = Angle 0.5
+        , arrowheadAngle     = Rad 0.5
         , arrowheadDrawRight = True
         , arrowheadDrawLeft  = True
         }
@@ -144,12 +144,12 @@ arrowSketch line ArrowSpec{..} = do
     when arrowDrawBody (lineSketch line)
 
     let Line start end = line
-        Angle rawLineAngle = angleOfLine line
-        Angle rawArrowheadAngle = arrowheadAngle
+        Rad rawLineAngle = angleOfLine line
+        Rad rawArrowheadAngle = arrowheadAngle
 
         arrowTip = start +. (arrowheadRelPos *. (end -. start))
 
-    let arrowheadHalf (+-) = angledLine arrowTip (Angle (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
+    let arrowheadHalf (+-) = angledLine arrowTip (Rad (rawLineAngle + pi +- rawArrowheadAngle)) arrowheadSize
         Line _ arrowLeftEnd  = arrowheadHalf (+)
         Line _ arrowRightEnd = arrowheadHalf (-)
     case (arrowheadDrawRight, arrowheadDrawLeft) of
@@ -194,7 +194,7 @@ arcSketch
     -> Angle -- ^ Starting angle (absolute)
     -> Angle -- ^ Ending angle (absolute)
     -> Render ()
-arcSketch (Vec2 x y) r (Angle angleStart) (Angle angleEnd)
+arcSketch (Vec2 x y) r (Rad angleStart) (Rad angleEnd)
   = arc x y r angleStart angleEnd
 
 -- | Sketch the line defined by a sequence of points.

@@ -101,7 +101,7 @@ instance MwcChaosSource BoundingBox where
     mwcChaos (BoundingBox a b) = mwcChaos (a, b)
 
 instance MwcChaosSource Angle where
-    mwcChaos (Angle a) = mwcChaos a
+    mwcChaos (Rad a) = mwcChaos a
 
 instance MwcChaosSource Hex.Cube where
     mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
@@ -209,7 +209,7 @@ instance ChaosSource BoundingBox where
     perturb (BoundingBox a b) = perturb (a, b)
 
 instance ChaosSource Angle where
-    perturb (Angle a) = perturb a
+    perturb (Rad a) = perturb a
 
 instance ChaosSource Hex.Cube where
     perturb (Hex.Cube q r s) = perturb (q,r,s)

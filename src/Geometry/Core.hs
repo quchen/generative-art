@@ -280,7 +280,7 @@ translate (Vec2 dx dy) = Transformation
 --
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
-rotate (Angle a) = Transformation
+rotate (Rad a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
@@ -505,7 +505,7 @@ normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates
 polar :: Angle -> Double -> Vec2
-polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
+polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
 -- | Newtype safety wrapper.
 --
@@ -515,7 +515,7 @@ polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
 -- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
 -- 'det' (measure leftness/rightness) is a much better choice to express what you
 -- want.
-newtype Angle = Angle { getRad :: Double }
+newtype Angle = Rad { getRad :: Double }
     deriving (Eq)
 
 instance MWC.Uniform Angle where
@@ -524,13 +524,13 @@ instance MWC.Uniform Angle where
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
-    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+    show (Rad a) = printf "deg %2.8f" (a / pi * 180)
 
 instance VectorSpace Angle where
-    Angle a +. Angle b = rad (a + b)
-    Angle a -. Angle b = rad (a - b)
-    a *. Angle b = rad (a * b)
-    negateV (Angle a) = rad (-a)
+    Rad a +. Rad b = rad (a + b)
+    Rad a -. Rad b = rad (a - b)
+    a *. Rad b = rad (a * b)
+    negateV (Rad a) = rad (-a)
     zero = rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
@@ -539,10 +539,10 @@ deg degrees = rad (degrees / 360 * 2 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
-rad r = Angle (r `mod'` (2*pi))
+rad r = Rad (r `mod'` (2*pi))
 
 getDeg :: Angle -> Double
-getDeg (Angle a) = a / pi * 180
+getDeg (Rad a) = a / pi * 180
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
@@ -570,8 +570,8 @@ angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
 angleBetween :: Line -> Line -> Angle
 angleBetween line1 line2
-  = let Angle a1 = angleOfLine line1
-        Angle a2 = angleOfLine line2
+  = let Rad a1 = angleOfLine line1
+        Rad a2 = angleOfLine line2
     in rad (a2 - a1)
 
 
