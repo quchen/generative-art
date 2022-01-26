@@ -1,57 +1,58 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
+import qualified Data.Map.Strict as M
 import Control.Comonad
 import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
 import qualified Data.Vector.Storable as V
 
+import Delaunay.Internal
 import Draw
 import Geometry
 import Sampling
 import Zipper
 
 picWidth, picHeight :: Num a => a
-picWidth = 200
-picHeight = 200
+picWidth = 100
+picHeight = 100
 
 main :: IO ()
 main = do
     gen <- create
-    seeds <- poissonDisc PoissonDisc
-        { width = picWidth
-        , height = picHeight
-        , k = 4
-        , radius = 100
-        , .. }
-    let grayScottProcess = grayScott GS
+    let width = picWidth
+        height = picHeight
+        k = 4
+
+    vertices <- poissonDisc PoissonDisc { radius = 1, .. }
+    let lattice = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) vertices
+
+    seeds <- poissonDisc PoissonDisc { radius = 100, .. }
+
+    let generator p = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
+        initialState = M.mapWithKey (\p ps -> ((1 - generator p, generator p), toList ps)) (vertexGraph lattice)
+        grayScottProcess = grayScott GS
             { feedRateU = 0.029
             , killRateV = 0.057
-            , diffusionRateU = 0.04
-            , diffusionRateV = 0.02
+            , diffusionRateU = 0.2
+            , diffusionRateV = 0.1
             , width = picWidth
             , height = picHeight }
-        initialState = planeFromList
-            [ row
-            | y <- [0..picHeight - 1]
-            , let row =
-                    [ (1 - v, v)
-                    | x <- [0..picWidth - 1]
-                    , let p = Vec2 x y
-                    , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
-                    ]
-            ]
-        frames = take 1500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+        frames = take 1000 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
         P.writePng file (renderImage grid)
 
 renderImage :: Grid -> P.Image P.Pixel8
-renderImage grid = P.Image picWidth picHeight (V.concat (V.fromList <$> planeToList (renderPixel <$> grid)))
-  where renderPixel (u, _v) = round (u * 255)
+renderImage grid = P.generateImage pixel picWidth picHeight
+  where
+    pixel x y = round $ 255 * (sum pointsWithinRadius / fromIntegral (length pointsWithinRadius))
+      where
+        p = Vec2 (fromIntegral x) (fromIntegral y)
+        pointsWithinRadius = fst . fst . snd <$> M.toList (M.filterWithKey (\q _ -> norm (q -. p) < 2) grid)
 
-type Grid = Plane (Double, Double)
+type Grid = M.Map Vec2 ((Double, Double), [Vec2])
 
 data GrayScott = GS
     { feedRateU :: Double
@@ -63,13 +64,13 @@ data GrayScott = GS
     }
 
 grayScott :: GrayScott -> Grid -> Grid
-grayScott GS{..} = extend grayScottStep
+grayScott GS{..} grid = M.mapWithKey grayScottStep grid
   where
-    grayScottStep grid = (u0 + deltaU, v0 + deltaV)
+    grayScottStep p ((u0, v0), neighbours) = ((u0 + deltaU, v0 + deltaV), neighbours)
       where
-        (u0, v0) = extract grid
-        u f = fst (extract (f grid))
-        v f = snd (extract (f grid))
+        u = fst . fst . (grid M.!)
+        v = snd . fst . (grid M.!)
         deltaU = diffusionRateU * laplace u - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplace v + u0 * v0^2 - (feedRateU + killRateV) * v0
-        laplace f = f moveRight + f moveUp + f moveLeft + f moveDown - 4 * f id
+        laplace f = sum (delta f <$> neighbours) / fromIntegral (length neighbours)
+        delta f q = (f q - f p) / norm (q -. p)
