@@ -41,7 +41,7 @@ main = finally (defaultMain (defaultOptions tests))
 
 defaultOptions :: TestTree -> TestTree
 defaultOptions = foldr (.) id
-    [ localOption (Timeout 1000000 "1s") ]
+    [ localOption (Timeout (10^7) "10s") ]
 
 tests :: TestTree
 tests = testGroup "Test suite"
