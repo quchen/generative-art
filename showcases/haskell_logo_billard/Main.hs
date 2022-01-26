@@ -34,7 +34,7 @@ data BillardSpec = BillardSpec
 
 runBillardSpec :: BillardSpec -> [Vec2]
 runBillardSpec BillardSpec{..} =
-    take steps (drop 1 (billardProcess table (angledLine startPos startAngle 10)))
+    take steps (drop 1 (billard table (angledLine startPos startAngle 10)))
 
 drawing :: Render ()
 drawing = do

@@ -193,7 +193,7 @@ extractSinglePolygon orientation = go Nothing S.empty
                 let useAsNext = case lastPivot of
                         Nothing -> next1 -- arbitrary starting point WLOG
                         Just from ->
-                            let leftness end = angleOfLine (Line pivot from) -. angleOfLine (Line pivot end)
+                            let leftness end = normalizeAngle (rad 0) (angleOfLine (Line pivot from) -. angleOfLine (Line pivot end))
                                 rightness end = negateV (leftness end)
                                 pickNextVertex = minimumBy $ comparing $ case orientation of
                                     -- TODO: comparing by angles is flaky because of their modular arithmetic.
@@ -203,8 +203,8 @@ extractSinglePolygon orientation = go Nothing S.empty
                                     -- could be removed.
                                     PolygonPositive -> getRad . leftness
                                     PolygonNegative -> getRad . rightness
-                            in  pickNextVertex (filter (/= from) toVertices)
-                    otherVertices = toVertices \\ [useAsNext]
+                            in  pickNextVertex (delete from toVertices)
+                    otherVertices = delete useAsNext toVertices
                     (Polygon rest, edgeGraph') = go
                         (Just pivot)
                         (S.insert pivot visited)

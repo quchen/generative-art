@@ -31,6 +31,7 @@ module Geometry.Core (
     , LLIntersection(..)
     , intersectionLL
     , intersectionPoint
+    , reflection
 
     -- ** Polygons
     , Polygon(..)
@@ -51,10 +52,12 @@ module Geometry.Core (
     , polygonOrientation
 
     -- ** Angles
-    , Angle(..)
+    , Angle
     , deg
     , getDeg
     , rad
+    , getRad
+    , normalizeAngle
 
     -- * Transformations
     , Transformation(..)
@@ -84,10 +87,6 @@ module Geometry.Core (
     , boundingBoxCenter
     , boundingBoxSize
 
-    -- * Processes
-    , reflection
-    , billardProcess
-
     -- * Useful stuff
     , vectorOf
     , det
@@ -98,10 +97,8 @@ module Geometry.Core (
 
 
 import Algebra.VectorSpace
-import Control.Monad
 import Data.Fixed
 import Data.List
-import Data.Maybe
 import Text.Printf
 import Control.DeepSeq
 import qualified System.Random.MWC as MWC
@@ -285,7 +282,7 @@ translate (Vec2 dx dy) = Transformation
 --
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
-rotate (Angle a) = Transformation
+rotate (Rad a) = Transformation
     (cos a) (-sin a) 0
     (sin a) ( cos a) 0
 
@@ -510,17 +507,17 @@ normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates
 polar :: Angle -> Double -> Vec2
-polar (Angle a) d = Vec2 (d * cos a) (d * sin a)
+polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
 -- | Newtype safety wrapper.
 --
 -- Angles are not 'Ord', since the cyclic structure is very error-prone when
--- combined with comparisons in practice :-( Write your own comparators such as
--- @'comparing' 'getDeg'@ if you _really_ want to compare them directly. Often
--- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
--- 'det' (measure leftness/rightness) is a much better choice to express what you
--- want.
-newtype Angle = Angle { getRad :: Double }
+-- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Write
+-- your own comparators such as @'comparing' 'getDeg'@ paired with 'normalizeAngle'
+-- if you _really_ want to compare them directly. Often times, using the
+-- 'dotProduct' (measure same-direction-ness) or cross product via 'det' (measure
+-- leftness/rightness) is a much better choice to express what you want.
+newtype Angle = Rad Double
     deriving (Eq)
 
 instance MWC.Uniform Angle where
@@ -529,25 +526,39 @@ instance MWC.Uniform Angle where
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
-    show (Angle a) = printf "deg %2.8f" (a / pi * 180)
+    show (Rad r) = printf "deg %2.8f" (r / pi * 180)
 
 instance VectorSpace Angle where
-    Angle a +. Angle b = rad (a + b)
-    Angle a -. Angle b = rad (a - b)
-    a *. Angle b = rad (a * b)
-    negateV (Angle a) = rad (-a)
-    zero = rad 0
+    Rad a +. Rad b = Rad (a + b)
+    Rad a -. Rad b = Rad (a - b)
+    a *. Rad b = Rad (a * b)
+    negateV (Rad a) = Rad (-a)
+    zero = Rad 0
 
 -- | Degrees-based 'Angle' smart constructor.
 deg :: Double -> Angle
-deg degrees = rad (degrees / 360 * 2 * pi)
+deg degrees = Rad (degrees / 180 * pi)
 
 -- | Radians-based 'Angle' smart constructor.
 rad :: Double -> Angle
-rad r = Angle (r `mod'` (2*pi))
+rad = Rad
 
+-- | Get an angle’s value in degrees
 getDeg :: Angle -> Double
-getDeg (Angle a) = a / pi * 180
+getDeg (Rad r) = r / pi * 180
+
+-- | Get an angle’s value in radians
+getRad :: Angle -> Double
+getRad (Rad r) = r
+
+-- | Get the angle’s value, normalized to one revolution. This makes e.g. 720° mean
+-- the same as 360°, which is otherwise not true for 'Angle's – turning twice might
+-- be something else than turning once, after all.
+normalizeAngle
+    :: Angle -- ^ Interval start
+    -> Angle -- ^ Angle to normalize
+    -> Angle -- ^ Normalized angle [start ... start + one revolution]
+normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end.
 -- The norm of the vector is the length of the line. Use 'normalizeLine' to make
@@ -575,8 +586,8 @@ angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
 angleBetween :: Line -> Line -> Angle
 angleBetween line1 line2
-  = let Angle a1 = angleOfLine line1
-        Angle a2 = angleOfLine line2
+  = let Rad a1 = angleOfLine line1
+        Rad a2 = angleOfLine line2
     in rad (a2 - a1)
 
 
@@ -873,10 +884,9 @@ det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
 
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Double
-polygonArea (Polygon ps)
-  = let determinants = zipWith det ps (tail (cycle ps))
-    in abs (sum determinants / 2)
+polygonArea = abs . signedPolygonArea
 
+-- | Sign depends on orientation.
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith det ps (tail (cycle ps))
@@ -946,50 +956,3 @@ reflection ray mirror
           where
             mirrorAxis = perpendicularLineThrough iPoint mirror
             ray' = transform (mirrorAlong mirrorAxis) ray
-
--- | Shoot a billard ball, and record its trajectory as it is reflected off the
--- edges of a provided geometry.
-billardProcess
-    :: [Line] -- ^ Geometry; typically involves the edges of a bounding polygon.
-    -> Line   -- ^ Initial velocity vector of the ball. Only start and direction,
-              --   not length, are relevant for the algorithm.
-    -> [Vec2] -- ^ List of collision points. Finite iff the ball escapes the
-              --   geometry.
-billardProcess edges = go (const True)
-  where
-    -- The predicate is used to exclude the line just mirrored off of, otherwise
-    -- we get rays stuck in a single line due to numerical shenanigans. Note
-    -- that this is a valid use case for equality of Double (contained in
-    -- Line/Vec2). :-)
-    go :: (Line -> Bool) -> Line -> [Vec2]
-    go considerEdge ballVec@(Line ballStart _)
-      = let reflectionRays :: [(Line, Line)]
-            reflectionRays = do
-                edge <- edges
-                (Line _ reflectionEnd, incidentPoint, ty) <- maybeToList (reflection ballVec edge)
-                guard $ case ty of
-                    IntersectionReal _           -> True
-                    IntersectionVirtualInsideR _ -> True
-                    _otherwise                   -> False
-                guard (incidentPoint `liesAheadOf` ballVec)
-                guard (considerEdge edge)
-                pure (edge, Line incidentPoint reflectionEnd)
-
-        in case reflectionRays of
-            [] -> let Line _ end = ballVec in [end]
-            _  ->
-                let (edgeReflectedOn, reflectionRay@(Line reflectionStart _))
-                      = minimumBy
-                          (\(_, Line p _) (_, Line q _) -> distanceFrom ballStart p q)
-                          reflectionRays
-                in reflectionStart : go (/= edgeReflectedOn) reflectionRay
-
-    liesAheadOf :: Vec2 -> Line -> Bool
-    liesAheadOf point (Line rayStart rayEnd)
-      = dotProduct (point -. rayStart) (rayEnd -. rayStart) > 0
-
-    distanceFrom :: Vec2 -> Vec2 -> Vec2 -> Ordering
-    distanceFrom start p q
-      = let pDistance = lineLength (Line start p)
-            qDistance = lineLength (Line start q)
-        in compare pDistance qDistance

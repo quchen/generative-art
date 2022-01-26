@@ -1,5 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 
+-- We can’t provide a type sig for 'initializeMwc' without adding another explicit
+-- dependency, so we disable warnings for this module.
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+
 -- | Functions that vary chaotically based on their input. Useful for introducing
 -- deterministic noise in pure code, e.g. for slightly moving points around, in the
 -- middle of pure code.
@@ -97,7 +101,7 @@ instance MwcChaosSource BoundingBox where
     mwcChaos (BoundingBox a b) = mwcChaos (a, b)
 
 instance MwcChaosSource Angle where
-    mwcChaos (Angle a) = mwcChaos a
+    mwcChaos = mwcChaos . getRad
 
 instance MwcChaosSource Hex.Cube where
     mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
@@ -205,7 +209,7 @@ instance ChaosSource BoundingBox where
     perturb (BoundingBox a b) = perturb (a, b)
 
 instance ChaosSource Angle where
-    perturb (Angle a) = perturb a
+    perturb = perturb . getRad
 
 instance ChaosSource Hex.Cube where
     perturb (Hex.Cube q r s) = perturb (q,r,s)
