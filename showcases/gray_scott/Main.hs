@@ -13,8 +13,8 @@ import Sampling
 import Zipper
 
 picWidth, picHeight :: Num a => a
-picWidth = 200
-picHeight = 200
+picWidth = 500
+picHeight = 500
 
 main :: IO ()
 main = do
@@ -23,11 +23,11 @@ main = do
         { width = picWidth
         , height = picHeight
         , k = 4
-        , radius = 200
+        , radius = 100
         , .. }
     let grayScottProcess = grayScott GS
-            { feedRateU = 0.04
-            , killRateV = 0.1
+            { feedRateU = 0.029
+            , killRateV = 0.057
             , diffusionRateU = 0.2
             , diffusionRateV = 0.1
             , width = picWidth
@@ -42,7 +42,7 @@ main = do
                     , let v = sum ((\q -> exp (- 0.5 * normSquare (p -. q))) <$> seeds)
                     ]
             ]
-        frames = take 200 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+        frames = take 1000 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
         P.writePng file (renderImage grid)
@@ -71,5 +71,5 @@ grayScott GS{..} = extend grayScottStep
         u f = fst (extract (f grid))
         v f = snd (extract (f grid))
         deltaU = diffusionRateU * laplace u - u0 * v0^2 + feedRateU * (1 - u0)
-        deltaV = diffusionRateV * laplace v + u0 * v0^2 - killRateV * v0
+        deltaV = diffusionRateV * laplace v + u0 * v0^2 - (feedRateU + killRateV) * v0
         laplace f = f moveRight + f moveUp + f moveLeft + f moveDown - 4 * f id
