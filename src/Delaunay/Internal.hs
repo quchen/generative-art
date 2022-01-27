@@ -92,7 +92,15 @@ bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = fol
             | M.null remainingGraph = []
             | otherwise =
                 let qs = remainingGraph M.! p
-                    [q] = S.toList qs
+                    q = case S.toList qs of
+                        [single] -> single
+                        multiple -> bugError $ unlines
+                            [ "Expected a single edge, got: " ++ show multiple
+                            , ""
+                            , "Full edge graph:"
+                            , unlines (show <$> M.toList edgeGraph)
+                            , "Bad triangles:"
+                            , unlines (show . dtTriangle <$> badTriangles) ]
                 in p : go q (M.delete p remainingGraph)
     newTriangles =
         [ DT t c
