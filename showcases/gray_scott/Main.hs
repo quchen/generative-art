@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import Control.Comonad
 import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
@@ -9,12 +8,12 @@ import qualified Data.Vector.Storable as V
 
 import Draw
 import Geometry hiding (Grid)
+import Plane
 import Sampling
-import Zipper
 
 picWidth, picHeight :: Num a => a
-picWidth = 100
-picHeight = 100
+picWidth = 200
+picHeight = 200
 
 main :: IO ()
 main = do
@@ -23,7 +22,7 @@ main = do
         height = picHeight
         k = 4
 
-    seeds <- poissonDisc PoissonDisc { radius = 100, .. }
+    seeds <- poissonDisc PoissonDisc { radius = 300, .. }
 
     let diffusionRate = 0.1
         initialState = planeFromList
@@ -44,7 +43,7 @@ main = do
             , diffusionRateV = diffusionRate
             , width = picWidth
             , height = picHeight }
-        frames = take 500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
+        frames = take 100 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
         P.writePng file (renderImage grid)
@@ -65,20 +64,11 @@ data GrayScott = GS
     }
 
 grayScott :: GrayScott -> Grid -> Grid
-grayScott GS{..} = extend grayScottStep
+grayScott GS{..} = mapNeighbours grayScottStep
   where
-    grayScottStep grid = uv0 +. (deltaU, deltaV)
+    grayScottStep (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = uv22 +. (deltaU, deltaV)
       where
-        uv0@(u0, v0) = extract grid
+        (u0, v0) = uv22
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
-        (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = neighbours grid
         (laplaceU, laplaceV) = (uv11 +. 2*.uv12 +. uv13 +. 2*.uv21 -. 12*.uv22 +. 2*. uv23 +. uv31 +. 2*.uv32 +. uv33) /. 4
-
-neighbours :: Plane a -> (a, a, a, a, a, a, a, a, a)
-neighbours grid = (x11, x12, x13, x21, x22, x23, x31, x32, x33)
-  where
-    row1 = moveUp <$> row2
-    row2 = [moveLeft grid, grid, moveRight grid]
-    row3 = moveDown <$> row2
-    [x11, x12, x13, x21, x22, x23, x31, x32, x33] = extract <$> concat [row1, row2, row3]
