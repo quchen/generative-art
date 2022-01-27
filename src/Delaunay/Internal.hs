@@ -117,7 +117,7 @@ circumcircle (Triangle p1 p2 p3) = case maybeCenter of
     maybeCenter = intersectionPoint intersectionOfBisectors
 
 inside :: Vec2 -> Circle -> Bool
-point `inside` Circle {..} = norm (center -. point) <= radius
+point `inside` Circle {..} = normSquare (center -. point) <= radius * radius
 
 toVoronoi :: DelaunayTriangulation -> Voronoi'
 toVoronoi delaunay@Delaunay{..} = Voronoi {..}
