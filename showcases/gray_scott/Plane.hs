@@ -23,7 +23,7 @@ a `mod` b | a >= 0     = a `Prelude.mod` b
 -- (up\/down), the inner layer through columns (left\/right).
 -- Like the 'Zipper', the 'Plane' has periodic boundary conditions.
 data Plane a = Plane
-    { items     :: !(V.Vector (V.Vector a))
+    { items     :: {-# UNPACK #-} !(V.Vector (V.Vector a))
     , positionX :: {-# UNPACK #-} !Int
     , positionY :: {-# UNPACK #-} !Int
     , sizeX     :: {-# UNPACK #-} !Int
