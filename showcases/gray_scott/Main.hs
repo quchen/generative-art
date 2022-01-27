@@ -70,7 +70,15 @@ grayScott GS{..} = extend grayScottStep
     grayScottStep grid = uv0 +. (deltaU, deltaV)
       where
         uv0@(u0, v0) = extract grid
-        uv f = extract (f grid)
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
-        (laplaceU, laplaceV) = uv moveRight +. uv moveUp +. uv moveLeft +. uv moveDown -. 4 *. uv id
+        (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = neighbours grid
+        (laplaceU, laplaceV) = (uv11 +. 2*.uv12 +. uv13 +. 2*.uv21 -. 12*.uv22 +. 2*. uv23 +. uv31 +. 2*.uv32 +. uv33) /. 4
+
+neighbours :: Plane a -> (a, a, a, a, a, a, a, a, a)
+neighbours grid = (x11, x12, x13, x21, x22, x23, x31, x32, x33)
+  where
+    row1 = moveUp <$> row2
+    row2 = [moveLeft grid, grid, moveRight grid]
+    row3 = moveDown <$> row2
+    [x11, x12, x13, x21, x22, x23, x31, x32, x33] = extract <$> concat [row1, row2, row3]
