@@ -2,13 +2,20 @@ module Test.ConvexHull (tests) where
 
 
 
-import Data.Default.Class
-import Data.Foldable
-import Data.List
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import           Control.Monad
+import           Control.Monad.ST
+import           Data.Default.Class
+import           Data.Foldable
+import           Data.Function
+import           Data.List
+import qualified Data.Vector                     as V
+import           Graphics.Rendering.Cairo        as Cairo hiding (x, y)
+import           System.Random.MWC               as MWC
+import           System.Random.MWC.Distributions as MWC
 
 import Draw
 import Geometry
+import Geometry.Chaotic
 
 import Test.Common
 import Test.Helpers
@@ -29,8 +36,12 @@ tests = testGroup "Convex hull"
 
 visualTest :: TestTree
 visualTest = testCase "Visual" $ do
-    let points = (take 128 . filter (\vec -> norm vec <= 100) . map (30 *.))
-                    (gaussianVecs (Seed 55))
+    let points = runST $ do
+            gen <- MWC.initialize (V.fromList [])
+            replicateM 128 (fix $ \loop -> do
+                v <- Vec2 <$> MWC.normal 0 30 gen <*> MWC.normal 0 30 gen
+                if norm v <= 100 then pure v else loop)
+
         hull = convexHull points
 
     renderVisual points hull
@@ -70,7 +81,9 @@ idempotencyTest = testProperty "Idempotency" (forAll gen prop)
     gen = do
         seed <- arbitrary
         numPoints <- choose (10, 100)
-        pure (take numPoints (gaussianVecs seed))
+        pure $ runST $ do
+            g <- initializeMwc (seed :: Int)
+            replicateM numPoints (Vec2 <$> standard g <*> standard g)
     prop points = let Polygon hull  = convexHull points
                       Polygon hull' = convexHull hull
                   in hull === hull'

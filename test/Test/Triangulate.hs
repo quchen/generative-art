@@ -2,11 +2,15 @@ module Test.Triangulate (tests) where
 
 
 
+import           Control.Monad.ST
 import           Data.Foldable
-import           Graphics.Rendering.Cairo as Cairo hiding
+import           Data.Traversable
+import qualified Data.Vector                     as V
+import           Graphics.Rendering.Cairo        as Cairo hiding
     (transform, translate, x, y)
-import qualified Graphics.Rendering.Cairo as Cairo
-import           System.Random
+import qualified Graphics.Rendering.Cairo        as Cairo
+import           System.Random.MWC
+import           System.Random.MWC.Distributions
 
 import Draw
 import Geometry
@@ -54,17 +58,20 @@ testHaskellLogo = testCase "Haskell logo" test
         for_ triangulation (cairoScope . paintTriangulation)
 
     wonkyHaskellLogo :: [Polygon]
-    wonkyHaskellLogo = map wigglePoly (Geometry.transform (Geometry.scale 340) haskellLogo)
-      where
-        wigglePoly :: Polygon -> Polygon
-        wigglePoly (Polygon corners) = Polygon (map wiggle corners)
-        wiggle :: Vec2 -> Vec2
-        wiggle v@(Vec2 x y)
-          = let seed = let (x1,x2) = decodeFloat x
-                           (y1,y2) = decodeFloat y
-                       in fromIntegral x1 + x2 + fromIntegral y1 + y2 + 1
-                (angle, _gen') = randomR (0, 360) (mkStdGen seed)
-            in Geometry.transform (translate (polar (deg angle) 10)) v
+    wonkyHaskellLogo = wigglePolys 5 (Geometry.transform (Geometry.scale 340) haskellLogo)
+
+wigglePolys :: Double -> [Polygon] -> [Polygon]
+wigglePolys sigma polys = runST $ do
+    gen <- initialize (V.fromList [1])
+    for polys (wigglePoly gen sigma)
+
+wigglePoly :: GenST s -> Double -> Polygon -> ST s Polygon
+wigglePoly gen sigma (Polygon corners) = do
+    wiggled <- for corners $ \corner -> do
+        x <- normal 0 sigma gen
+        y <- normal 0 sigma gen
+        pure (corner +. Vec2 x y)
+    pure (Polygon wiggled)
 
 testSpiral :: TestTree
 testSpiral = testCase "Spiral" test
