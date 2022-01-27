@@ -2,16 +2,16 @@ module Test.ConvexHull (tests) where
 
 
 
-import Data.Default.Class
-import Data.Foldable
-import Data.List
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
-import Control.Monad.ST
-import System.Random.MWC               as MWC
-import System.Random.MWC.Distributions as MWC
-import Control.Monad
-import qualified Data.Vector as V
-import Data.Function
+import           Control.Monad
+import           Control.Monad.ST
+import           Data.Default.Class
+import           Data.Foldable
+import           Data.Function
+import           Data.List
+import qualified Data.Vector                     as V
+import           Graphics.Rendering.Cairo        as Cairo hiding (x, y)
+import           System.Random.MWC               as MWC
+import           System.Random.MWC.Distributions as MWC
 
 import Draw
 import Geometry

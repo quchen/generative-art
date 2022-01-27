@@ -27,10 +27,10 @@ import           Data.Bits
 import           Data.Char
 import           Data.Foldable
 import           Data.Int
+import qualified Data.Vector       as V
 import           Data.Word
-import qualified System.Random       as R
-import qualified System.Random.MWC   as MWC
-import qualified Data.Vector as V
+import qualified System.Random     as R
+import qualified System.Random.MWC as MWC
 
 import           Geometry
 import qualified Geometry.Coordinates.Hexagonal as Hex

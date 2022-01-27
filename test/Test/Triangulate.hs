@@ -2,21 +2,19 @@ module Test.Triangulate (tests) where
 
 
 
-import           Data.Foldable
-import           Graphics.Rendering.Cairo as Cairo hiding
-    (transform, translate, x, y)
-import qualified Graphics.Rendering.Cairo as Cairo
 import           Control.Monad.ST
-import           System.Random.MWC.Distributions
+import           Data.Foldable
+import           Data.Traversable
+import qualified Data.Vector                     as V
+import           Graphics.Rendering.Cairo        as Cairo hiding
+    (transform, translate, x, y)
+import qualified Graphics.Rendering.Cairo        as Cairo
 import           System.Random.MWC
-import qualified Data.Vector as V
-import Data.Traversable
-import Control.Monad
+import           System.Random.MWC.Distributions
 
 import Draw
 import Geometry
 import Geometry.Shapes
-import Geometry.Chaotic
 import Util
 
 import Test.Common
