@@ -33,7 +33,7 @@ main = do
                     [ (1 - v, v)
                     | x <- [0..picWidth - 1]
                     , let p = Vec2 x y
-                    , let v = sum ((\q -> exp (- 0.005 / diffusionRate * normSquare (p -. q))) <$> seeds)
+                    , let v = sum ((\q -> exp (- 0.0005 / diffusionRate * normSquare (p -. q))) <$> seeds)
                     ]
             ]
 
