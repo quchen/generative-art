@@ -1,10 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Helpers (
-      Seed(..)
-    , MakeSeed(..)
-    , gaussianVecs
-    , GaussianVec(..)
+      GaussianVec(..)
     , LotsOfGaussianPoints(..)
 
     , EqApprox(..)
@@ -57,57 +54,12 @@ instance Arbitrary LotsOfGaussianPoints where
         (pure . LotsOfGaussianPoints . take numPoints . gaussianVecs) seed
     shrink (LotsOfGaussianPoints xs)
       = let -- Some sufficiently chaotic seed function :-)
-            seed = foldl' (\(Seed s) vec -> Seed (round (normSquare vec) + s*s)) (Seed 0) xs
+            seed = foldl' (\s vec -> round (normSquare vec) + s*s) 0 xs
         in map (\numPoints -> LotsOfGaussianPoints (take numPoints (gaussianVecs seed)))
                [3 .. length xs-1]
 
-newtype Seed = Seed Int
-    deriving (Eq, Ord, Show)
-
--- | Create a 'Seed' value out of some data, useful for generating random but
--- determinstic functions for interesting test data.
-class MakeSeed a where
-    makeSeed :: a -> Seed
-
-instance MakeSeed Seed where
-    makeSeed (Seed i) = (Seed (i+1))
-
-instance (MakeSeed a, MakeSeed b) => MakeSeed (a, b) where
-    makeSeed (x,y) = makeSeed [makeSeed x, makeSeed y]
-
-instance (MakeSeed a, MakeSeed b, MakeSeed c) => MakeSeed (a, b, c) where
-    makeSeed (x, y, z) = makeSeed [makeSeed x, makeSeed y, makeSeed z]
-
-instance MakeSeed Int where
-    makeSeed = Seed
-
-instance MakeSeed Integer where
-    makeSeed i = makeSeed (fromInteger i :: Int)
-
-instance MakeSeed Float where
-    makeSeed = makeSeed . decodeFloat
-
-instance MakeSeed Double where
-    makeSeed = makeSeed . decodeFloat
-
-instance MakeSeed Vec2 where
-    makeSeed (Vec2 x y) = makeSeed [x, y]
-
-instance MakeSeed Line where
-    makeSeed (Line (Vec2 x1 y1) (Vec2 x2 y2))
-      = makeSeed [makeSeed x1, makeSeed x2, makeSeed y1, makeSeed y2]
-
-instance MakeSeed a => MakeSeed [a] where
-    makeSeed xs = Seed (sum (zipWith (\(Seed s) n -> s^n) (map makeSeed xs) [1..]))
-
-instance MakeSeed Polygon where
-    makeSeed (Polygon corners) = makeSeed corners
-
-instance Arbitrary Seed where
-    arbitrary = fmap (\(Large s) -> Seed s) arbitrary
-
-gaussianVecs :: Seed -> [Vec2]
-gaussianVecs (Seed seed)
+gaussianVecs :: Int -> [Vec2]
+gaussianVecs seed
   = let go (u1:rest)
             | u1 <= 0 = go rest -- to avoid diverging on log(0)
         go (u1:u2:rest)

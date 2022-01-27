@@ -24,6 +24,7 @@ module Geometry.Chaotic (
 ) where
 
 import           Data.Bits
+import           Data.Char
 import           Data.Foldable
 import           Data.Int
 import qualified Data.Vector         as V
@@ -31,6 +32,7 @@ import qualified Data.Vector.Mutable as VM
 import           Data.Word
 import qualified System.Random       as R
 import qualified System.Random.MWC   as MWC
+import Control.Monad.ST
 
 import           Geometry
 import qualified Geometry.Coordinates.Hexagonal as Hex
@@ -64,23 +66,29 @@ instance MwcChaosSource Word16 where mwcChaos = mwcChaosIntegral
 instance MwcChaosSource Word32 where mwcChaos = pure . id
 instance MwcChaosSource Word64 where mwcChaos = mwcChaosIntegral
 
+instance MwcChaosSource () where
+    mwcChaos _ = [1]
+
 instance (MwcChaosSource a, MwcChaosSource b) => MwcChaosSource (a, b) where
-    mwcChaos (a,b) = mwcChaos [mwcChaos a, mwcChaos b]
+    mwcChaos (a,b) = concat [mwcChaos a, mwcChaos b]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c) => MwcChaosSource (a, b, c) where
-    mwcChaos (a, b, c) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c]
+    mwcChaos (a, b, c) = concat [mwcChaos a, mwcChaos b, mwcChaos c]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d) => MwcChaosSource (a, b, c, d) where
-    mwcChaos (a, b, c, d) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d]
+    mwcChaos (a, b, c, d) = concat [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d, MwcChaosSource e) => MwcChaosSource (a, b, c, d, e) where
-    mwcChaos (a, b, c, d, e) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d, mwcChaos e]
+    mwcChaos (a, b, c, d, e) = concat [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d, mwcChaos e]
 
 instance MwcChaosSource Float where
     mwcChaos = mwcChaos . decodeFloat
 
 instance MwcChaosSource Double where
     mwcChaos = mwcChaos . decodeFloat
+
+instance MwcChaosSource Char where
+    mwcChaos = mwcChaos . ord
 
 instance MwcChaosSource Vec2 where
     mwcChaos (Vec2 x y) = mwcChaos (x,y)
@@ -172,6 +180,9 @@ instance ChaosSource Word16 where perturb = perturbIntegral
 instance ChaosSource Word32 where perturb = perturbIntegral
 instance ChaosSource Word64 where perturb = perturbIntegral
 
+instance ChaosSource () where
+    perturb _ = 1
+
 instance (ChaosSource a, ChaosSource b) => ChaosSource (a, b) where
     perturb (a,b) = perturb a `stir` perturb b
 
@@ -189,6 +200,9 @@ instance ChaosSource Float where
 
 instance ChaosSource Double where
     perturb = perturb . decodeFloat
+
+instance ChaosSource Char where
+    perturb = perturb . ord
 
 instance ChaosSource Vec2 where
     perturb (Vec2 x y) = perturb (x,y)
