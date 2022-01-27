@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveFunctor   #-}
-{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MonadComprehensions #-}
 
@@ -23,7 +22,7 @@ a `mod` b | a >= 0     = a `Prelude.mod` b
 -- (up\/down), the inner layer through columns (left\/right).
 -- Like the 'Zipper', the 'Plane' has periodic boundary conditions.
 data Plane a = Plane
-    { items     :: {-# UNPACK #-} !(V.Vector (V.Vector a))
+    { items     :: {-# UNPACK #-} !(V.Vector a)
     , positionX :: {-# UNPACK #-} !Int
     , positionY :: {-# UNPACK #-} !Int
     , sizeX     :: {-# UNPACK #-} !Int
@@ -38,27 +37,23 @@ moveDown  plane@Plane{..} = plane { positionY = (positionY + 1) `mod` sizeY }
 
 
 planeToList :: Plane a -> [[a]]
-planeToList Plane{..} = V.toList <$> V.toList items
+planeToList Plane{..} =
+    [ V.toList (V.slice (i * sizeX) sizeX items)
+    | i <- [0 .. sizeY - 1]]
 
 planeFromList :: [[a]] -> Plane a
-planeFromList = \case
-    []  -> error " Cannot construct empty Plane"
-    xss -> Plane
-        { items = V.fromList (V.fromList <$> xss)
-        , positionX = 0
-        , positionY = 0
-        , sizeX = length (head xss)
-        , sizeY = length xss
-        }
-
-extract :: Plane a -> a
-extract Plane{..} = items V.! positionY V.! positionX
+planeFromList [] = error " Cannot construct empty Plane"
+planeFromList xss = Plane {..}
+  where
+    sizeX = length (head xss)
+    sizeY = length xss
+    positionX = 0
+    positionY = 0
+    items = V.concat (V.fromList . checkLength <$> xss)
+    checkLength xs = if length xs == sizeX then xs else error "Inconsistent row lengths"
 
 at :: Plane a -> Int -> Int -> a
-at Plane{..} x y = items V.! (y `mod` sizeY) V.! (x `mod` sizeX)
-
-foldNeighbours :: ((a, a, a, a, a, a, a, a, a) -> b) -> Plane a -> b
-foldNeighbours f p = foldNeighboursAt f (positionX p) (positionY p) p
+at Plane{..} x y = items V.! ((x `mod` sizeX) * sizeX + y `mod` sizeY)
 
 foldNeighboursAt :: ((a, a, a, a, a, a, a, a, a) -> b) -> Int -> Int -> Plane a -> b
 foldNeighboursAt f x y p =
@@ -68,4 +63,4 @@ foldNeighboursAt f x y p =
 
 mapNeighbours :: ((a, a, a, a, a, a, a, a, a) -> b) -> Plane a -> Plane b
 mapNeighbours f plane@Plane{..} = plane
-    { items = fmap (\y -> fmap (\x -> foldNeighboursAt f x y plane) (V.enumFromN 0 sizeX)) (V.enumFromN 0 sizeY) }
+    { items = fmap (\i -> foldNeighboursAt f (i `div` sizeX) (i `mod` sizeX) plane) (V.enumFromN 0 (sizeX * sizeY)) }
