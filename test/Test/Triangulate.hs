@@ -9,6 +9,7 @@ import qualified Graphics.Rendering.Cairo as Cairo
 import           Control.Monad.ST
 import           System.Random.MWC.Distributions
 import           System.Random.MWC
+import qualified Data.Vector as V
 import Data.Traversable
 import Control.Monad
 
@@ -59,19 +60,20 @@ testHaskellLogo = testCase "Haskell logo" test
         for_ triangulation (cairoScope . paintTriangulation)
 
     wonkyHaskellLogo :: [Polygon]
-    wonkyHaskellLogo = map (wigglePoly 3) (Geometry.transform (Geometry.scale 340) haskellLogo)
+    wonkyHaskellLogo = wigglePolys 5 (Geometry.transform (Geometry.scale 340) haskellLogo)
 
-wigglePoly :: Double -> Polygon -> Polygon
-wigglePoly sigma (Polygon corners) = runST $ do
-    gen <- initializeMwc ("perturb the rng a little", sigma, corners)
-    warmup <- replicateM 1000 (uniformM gen)
-    let _ = warmup :: [Int]
+wigglePolys :: Double -> [Polygon] -> [Polygon]
+wigglePolys sigma polys = runST $ do
+    gen <- initialize (V.fromList [1])
+    for polys (wigglePoly gen sigma)
+
+wigglePoly :: GenST s -> Double -> Polygon -> ST s Polygon
+wigglePoly gen sigma (Polygon corners) = do
     wiggled <- for corners $ \corner -> do
         x <- normal 0 sigma gen
         y <- normal 0 sigma gen
         pure (corner +. Vec2 x y)
     pure (Polygon wiggled)
-
 
 testSpiral :: TestTree
 testSpiral = testCase "Spiral" test

@@ -27,33 +27,33 @@ import           Data.Bits
 import           Data.Char
 import           Data.Foldable
 import           Data.Int
-import qualified Data.Vector         as V
-import qualified Data.Vector.Mutable as VM
 import           Data.Word
 import qualified System.Random       as R
 import qualified System.Random.MWC   as MWC
-import Control.Monad.ST
+import qualified Data.Vector as V
 
 import           Geometry
 import qualified Geometry.Coordinates.Hexagonal as Hex
 
 
 
+-- | Create a 'Word32' to initialize an MWC gen with. This is meant for simple and
+-- convenient seed creation within pure code. Note that creating a generator to
+-- produce a single value is probably much less efficient than using a worse
+-- generator that is faster to seed.
 class MwcChaosSource a where
-    mwcChaos :: a -> [Word32]
+    mwcChaos :: a -> Word32
 
 instance MwcChaosSource Integer where
-    mwcChaos n
-        | n == 0 = [0]
-        | n < 0 = 1 : mwcChaos (abs n)
-        | otherwise =
-            let (rest, chunk) = quotRem n (fromIntegral (maxBound :: Word32))
-            in fromIntegral chunk : mwcChaos rest
+    mwcChaos = go 0
+      where
+        go :: Word32 -> Integer -> Word32
+        go !acc 0 = acc
+        go acc n | n < 0 = go (Data.Bits.rotate acc 17) (abs n)
+        go acc n = let (d,m) = divMod n (fromIntegral (maxBound :: Word32))
+                   in go (acc `xor` fromIntegral m) d
 
--- | Perturb using an 'Integral' value by mapping it to an 'Int'. It’s basically
--- 'fromIntegral' and does very little the (seed!) randomness is introduced by
--- 'stir' when combining different values.
-mwcChaosIntegral :: Integral a => a -> [Word32]
+mwcChaosIntegral :: Integral a => a -> Word32
 mwcChaosIntegral x = mwcChaos (fromIntegral x :: Integer)
 
 instance MwcChaosSource Int where mwcChaos = mwcChaosIntegral
@@ -63,23 +63,23 @@ instance MwcChaosSource Int32 where mwcChaos = mwcChaosIntegral
 instance MwcChaosSource Int64 where mwcChaos = mwcChaosIntegral
 instance MwcChaosSource Word8 where mwcChaos = mwcChaosIntegral
 instance MwcChaosSource Word16 where mwcChaos = mwcChaosIntegral
-instance MwcChaosSource Word32 where mwcChaos = pure . id
+instance MwcChaosSource Word32 where mwcChaos = id
 instance MwcChaosSource Word64 where mwcChaos = mwcChaosIntegral
 
 instance MwcChaosSource () where
-    mwcChaos _ = [1]
+    mwcChaos _ = 0
 
 instance (MwcChaosSource a, MwcChaosSource b) => MwcChaosSource (a, b) where
-    mwcChaos (a,b) = concat [mwcChaos a, mwcChaos b]
+    mwcChaos (a,b) = mwcChaos [mwcChaos a, mwcChaos b]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c) => MwcChaosSource (a, b, c) where
-    mwcChaos (a, b, c) = concat [mwcChaos a, mwcChaos b, mwcChaos c]
+    mwcChaos (a, b, c) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d) => MwcChaosSource (a, b, c, d) where
-    mwcChaos (a, b, c, d) = concat [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d]
+    mwcChaos (a, b, c, d) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d]
 
 instance (MwcChaosSource a, MwcChaosSource b, MwcChaosSource c, MwcChaosSource d, MwcChaosSource e) => MwcChaosSource (a, b, c, d, e) where
-    mwcChaos (a, b, c, d, e) = concat [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d, mwcChaos e]
+    mwcChaos (a, b, c, d, e) = mwcChaos [mwcChaos a, mwcChaos b, mwcChaos c, mwcChaos d, mwcChaos e]
 
 instance MwcChaosSource Float where
     mwcChaos = mwcChaos . decodeFloat
@@ -97,7 +97,10 @@ instance MwcChaosSource Line where
     mwcChaos (Line start end) = mwcChaos (start, end)
 
 instance MwcChaosSource a => MwcChaosSource [a] where
-    mwcChaos = concatMap mwcChaos
+    mwcChaos = foldl' (\acc x -> x `xor` Data.Bits.rotate acc 23) 0 . map mwcChaos
+    -- 23 is prime so it’ll misalign a lot hence should provide decent mixing. This
+    -- is very much not something I have thought about too much, it’s maybe best
+    -- not to base anything but wiggly pictures on it.
 
 instance MwcChaosSource Polygon where
     mwcChaos (Polygon corners) = mwcChaos corners
@@ -126,15 +129,7 @@ instance MwcChaosSource Hex.Axial where
 -- @
 
 -- No type signature as to not depend explicitly on more packages than necessary…
-initializeMwc seed = do
-    let seedList = mwcChaos seed
-    vecM <- VM.replicate 256 (0 :: Word32)
-    for_ (zip [0..] seedList) $ \(i, seedElement) -> do
-        VM.modify vecM (\old -> old `xor` seedElement) (mod i 256)
-    vec <- V.unsafeFreeze vecM
-    MWC.initialize vec
-
-
+initializeMwc seed = MWC.initialize (V.singleton (mwcChaos seed))
 
 -- | Types that can be turned into a random number generator easily, to yield pure chaotic output.
 class ChaosSource a where
@@ -164,9 +159,6 @@ instance ChaosSource Integer where
             let (rest, chunk) = quotRem i (fromIntegral (maxBound :: Word))
             in go (acc `stir` fromIntegral chunk) rest
 
--- | Perturb using an 'Integral' value by mapping it to an 'Int'. It’s basically
--- 'fromIntegral' and does very little the (seed!) randomness is introduced by
--- 'stir' when combining different values.
 perturbIntegral :: Integral a => a -> Int
 perturbIntegral x = perturb (fromIntegral x :: Int)
 

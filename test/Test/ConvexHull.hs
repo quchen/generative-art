@@ -7,8 +7,10 @@ import Data.Foldable
 import Data.List
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import Control.Monad.ST
+import System.Random.MWC               as MWC
 import System.Random.MWC.Distributions as MWC
 import Control.Monad
+import qualified Data.Vector as V
 import Data.Function
 
 import Draw
@@ -35,7 +37,7 @@ tests = testGroup "Convex hull"
 visualTest :: TestTree
 visualTest = testCase "Visual" $ do
     let points = runST $ do
-            gen <- initializeMwc [1,2::Int]
+            gen <- MWC.initialize (V.fromList [])
             replicateM 128 (fix $ \loop -> do
                 v <- Vec2 <$> MWC.normal 0 30 gen <*> MWC.normal 0 30 gen
                 if norm v <= 100 then pure v else loop)
