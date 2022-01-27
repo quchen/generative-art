@@ -1,24 +1,20 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import qualified Data.Map.Strict as M
+import Control.Comonad
 import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
+import qualified Data.Vector.Storable as V
 
-import Delaunay.Internal
 import Draw
 import Geometry
 import Sampling
-import qualified Codec.Picture.Types as P
-import Control.Monad (when)
+import Zipper
 
 picWidth, picHeight :: Num a => a
 picWidth = 100
 picHeight = 100
-
-latticeConstant :: Double
-latticeConstant = 1
 
 main :: IO ()
 main = do
@@ -28,11 +24,19 @@ main = do
         k = 4
 
     seeds <- poissonDisc PoissonDisc { radius = 100, .. }
-    vertices <- poissonDisc PoissonDisc { radius = latticeConstant, .. }
-    let lattice = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) vertices
-        diffusionRate = 0.1
-        generator p = sum ((\q -> exp (- 0.005 / diffusionRate * normSquare (p -. q))) <$> seeds)
-        initialState = M.mapWithKey (\p ps -> ((1 - generator p, generator p), toList ps)) (vertexGraph lattice)
+
+    let diffusionRate = 0.1
+        initialState = planeFromList
+            [ row
+            | y <- [0..picHeight - 1]
+            , let row =
+                    [ (1 - v, v)
+                    | x <- [0..picWidth - 1]
+                    , let p = Vec2 x y
+                    , let v = sum ((\q -> exp (- 0.005 / diffusionRate * normSquare (p -. q))) <$> seeds)
+                    ]
+            ]
+
         grayScottProcess = grayScott GS
             { feedRateU = 0.029
             , killRateV = 0.057
@@ -43,31 +47,13 @@ main = do
         frames = take 500 (iterate (grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess . grayScottProcess) initialState)
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         let file = printf "out/gray_scott_%06i.png" index
-        P.writePng file =<< renderImage grid
+        P.writePng file (renderImage grid)
 
-renderImage :: Grid -> IO (P.Image P.Pixel8)
-renderImage grid = do
-    img <- P.createMutableImage picWidth picHeight 255
-    for_ (M.toList grid) $ \(p, ((_, v), _)) ->
-        for_ (antialias p v) $ \(x, y, v) ->
-            when (x >= 0 && x <= picWidth - 1 && y >= 0 && y <= picHeight - 1) $ do
-                px0 <- P.readPixel img x y
-                let v0 = fromIntegral px0 / 255 :: Double
-                    clamp = max 0 . min 1
-                    v' = clamp (v0 - v)
-                P.writePixel img x y (round (255 * v'))
-    P.freezeImage img
+renderImage :: Grid -> P.Image P.Pixel8
+renderImage grid = P.Image picWidth picHeight (V.concat (V.fromList <$> planeToList (renderPixel <$> grid)))
+  where renderPixel (u, _v) = round (u * 255)
 
-antialias :: Vec2 -> Double -> [(Int, Int, Double)]
-antialias (Vec2 x y) px =
-    [ (x', y', px * exp (- 0.5 * ((fromIntegral x' - x)^2 + (fromIntegral y' - y)^2) / latticeConstant ^ 2))
-    | let d = 2 * round latticeConstant
-    , x' <- let x0 = round x in [x0 - d .. x0 + d]
-    , y' <- let y0 = round y in [y0 - d .. y0 + d]
-    ]
-
-
-type Grid = M.Map Vec2 ((Double, Double), [Vec2])
+type Grid = Plane (Double, Double)
 
 data GrayScott = GS
     { feedRateU :: Double
@@ -79,11 +65,12 @@ data GrayScott = GS
     }
 
 grayScott :: GrayScott -> Grid -> Grid
-grayScott GS{..} grid = M.mapWithKey grayScottStep grid
+grayScott GS{..} = extend grayScottStep
   where
-    grayScottStep p (uv0@(u0, v0), neighbours) = ((u0 + deltaU, v0 + deltaV), neighbours)
+    grayScottStep grid = uv0 +. (deltaU, deltaV)
       where
+        uv0@(u0, v0) = extract grid
+        uv f = extract (f grid)
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
         deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
-        (laplaceU, laplaceV) = foldl' (\uv q -> uv +. delta q) (0, 0) neighbours /. fromIntegral (length neighbours)
-        delta q = (fst (grid M.! q) -. uv0) /. norm (q -. p)
+        (laplaceU, laplaceV) = uv moveRight +. uv moveUp +. uv moveLeft +. uv moveDown -. 4 *. uv id
