@@ -49,7 +49,7 @@ main = do
         P.writePng file (renderImage grid)
 
 renderImage :: Grid -> P.Image P.Pixel8
-renderImage grid = P.Image picWidth picHeight (V.concat (V.fromList <$> planeToList (renderPixel <$> grid)))
+renderImage grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
   where renderPixel (u, _v) = round (u * 255)
 
 type Grid = Plane (Double, Double)
