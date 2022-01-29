@@ -54,12 +54,12 @@ main = do
 
 renderImage :: Grid -> P.Image P.PixelRGB8
 renderImage grid = P.Image picWidth picHeight $ V.concatMap renderPixel $ V.convert $ items $ mapPlane snd grid
-  where renderPixel v = let (r, g, b) = gradient (2*v) in V.fromList [r, g, b]
+  where renderPixel v = let (r, g, b) = gradient (2.4*v) in V.fromList [r, g, b]
 
 gradient :: Double -> (P.Pixel8, P.Pixel8, P.Pixel8)
 gradient v
-    | v < 0.5 = pixelRGB $ interpolate (2*v) color1 color0
-    | v < 1.0 = pixelRGB $ interpolate (2*(v-0.5)) color2 color1
+    | v < 0.4 = pixelRGB $ interpolate (2.5*v) color1 color0
+    | v < 1.0 = pixelRGB $ interpolate (1.667*(v-0.4)) color2 color1
     | otherwise = pixelRGB $ interpolate (v-1) color3 color2
   where
     color0, color1, color2, color3 :: (Double, Double, Double)
