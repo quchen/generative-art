@@ -87,7 +87,7 @@ data GrayScott = GS
     }
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
-grayScott n GS{..} = repeatF n (mapNeighbours grayScottStep)
+grayScott steps GS{..} = repeatF steps (mapNeighbours grayScottStep)
   where
     grayScottStep (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = uv22 +. step *. (deltaU, deltaV)
       where
