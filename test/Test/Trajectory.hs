@@ -15,6 +15,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 
+
 tests :: TestTree
 tests = testGroup "Trajactories"
     [ simplifyPathTest
@@ -70,7 +71,7 @@ reassembleLinesTest =
         points0 = [Vec2 x 0 | x <- [0..1]]
         points1 = [Vec2 x 1 | x <- [-1..5]]
         points2 = [Vec2 x 2 | x <- [-1..10]]
-        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg (takeWhile (<360) [0, 170..])]
+        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg (takeWhile (<360) [0, 12..])]
 
         allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3])
         reassembled = reassembleLines allMangledUp
