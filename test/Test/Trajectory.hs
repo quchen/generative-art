@@ -67,7 +67,7 @@ reassembleLinesTest :: TestTree
 reassembleLinesTest =
     let pairUp xs = zipWith Line xs (tail xs)
 
-        points0 = [Vec2 x 0 | x <- [-1..0]]
+        points0 = [Vec2 x 0 | x <- [0..1]]
         splitLine0 = pairUp points0
 
         points1 = [Vec2 x 1 | x <- [-1..5]]
@@ -76,23 +76,33 @@ reassembleLinesTest =
         points2 = [Vec2 x 2 | x <- [-1..10]]
         splitLine2 = pairUp points2
 
-        points3 = [G.transform (G.rotate (deg (n*10))) (Vec2 0.5 0) | n <- [0..11]]
+        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg [0, 80 .. 359]]
         splitLine3 = pairUp points3
 
         allMangledUp = S.fromList (concat [splitLine0, splitLine1, splitLine2, splitLine3])
         reassembled = reassembleLines allMangledUp
 
-        assertion points = assertBool
-            (unlines
-                ["One result should have the points"
-                , show points
-                , "but none has!"
-                , "Reassembled:"
-                , unlines (map show reassembled)])
-            (isJust (find (\reassembledLine -> S.fromList (toList reassembledLine) == S.fromList points) reassembled))
-    in testGroup "Reassemble lines"
-        [ testCase "points0" $ assertion points0
-        , testCase "points1" $ assertion points1
-        , testCase "points2" $ assertion points2
-        , testCase "points3" $ assertion points3
+        -- Reverse the list if the first element is larger than the last.
+        -- We don’t have to care about whether a line was recognized in reverse this way.
+        canonicalize xs
+            | head xs > last xs = reverse xs
+            | otherwise = xs
+
+        assertPointsConserved points = do
+            let canonicalized = canonicalize points
+            assertBool
+                (unlines
+                    ["One result should have the points"
+                    , show points
+                    , "but none has!"
+                    , "Reassembled:"
+                    , unlines (map (show . canonicalize . toList) reassembled)])
+                (isJust (find (\reassembledLine -> canonicalize (toList reassembledLine) == canonicalized) reassembled))
+    in testGroup "Reassembling lines"
+        [ testGroup "Example trajectories are assembled correctly"
+            [ testCase "Two points on a line"        (assertPointsConserved points0)
+            , testCase "Many points on one line"     (assertPointsConserved points1)
+            , testCase "Many points on another line" (assertPointsConserved points2)
+            , testCase "Circular points"             (assertPointsConserved points3)
+            ]
         ]

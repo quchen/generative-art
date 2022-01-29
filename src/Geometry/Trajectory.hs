@@ -131,10 +131,10 @@ extractSingleTrajectory
     :: (Map Vec2 Vec2, Map Vec2 Vec2)
     -> Vec2
     -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
-extractSingleTrajectory neighbourMap start =
-    let (neighbourMapA, trajectoryA) = extractSingleTrajectoryAFirst neighbourMap start mempty
-        (neighbourMapB, trajectoryB) = extractSingleTrajectoryBFirst neighbourMapA start mempty
-    in (neighbourMapB, Seq.reverse trajectoryB <> trajectoryA)
+extractSingleTrajectory nMap start =
+    let (nMapA, trajectoryA) = extractSingleTrajectoryAFirst nMap start (Seq.singleton start)
+        (nMapB, trajectoryB) = extractSingleTrajectoryBFirst nMapA start mempty
+    in (nMapB, Seq.reverse trajectoryB <> trajectoryA)
 
 -- | Repeatedly extract a trajectory, until the neighbour map is exhausted.
 extractAllTrajectories :: (Map Vec2 Vec2, Map Vec2 Vec2) -> [Seq Vec2]
