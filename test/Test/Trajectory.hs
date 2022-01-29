@@ -67,16 +67,19 @@ reassembleLinesTest :: TestTree
 reassembleLinesTest =
     let pairUp xs = zipWith Line xs (tail xs)
 
-        points1 = [Vec2 x 0 | x <- [-1..5]]
+        points0 = [Vec2 x 0 | x <- [-1..0]]
+        splitLine0 = pairUp points0
+
+        points1 = [Vec2 x 1 | x <- [-1..5]]
         splitLine1 = pairUp points1
 
-        points2 = [Vec2 x 1 | x <- [-1..10]]
+        points2 = [Vec2 x 2 | x <- [-1..10]]
         splitLine2 = pairUp points2
 
         points3 = [G.transform (G.rotate (deg (n*10))) (Vec2 0.5 0) | n <- [0..11]]
         splitLine3 = pairUp points3
 
-        allMangledUp = S.fromList splitLine1 <> S.fromList splitLine2 <> S.fromList splitLine3
+        allMangledUp = S.fromList (concat [splitLine0, splitLine1, splitLine2, splitLine3])
         reassembled = reassembleLines allMangledUp
 
         assertion points = assertBool
@@ -88,7 +91,8 @@ reassembleLinesTest =
                 , unlines (map show reassembled)])
             (isJust (find (\reassembledLine -> S.fromList (toList reassembledLine) == S.fromList points) reassembled))
     in testGroup "Reassemble lines"
-        [ testCase "points1" $ assertion points1
+        [ testCase "points0" $ assertion points0
+        , testCase "points1" $ assertion points1
         , testCase "points2" $ assertion points2
         , testCase "points3" $ assertion points3
         ]
