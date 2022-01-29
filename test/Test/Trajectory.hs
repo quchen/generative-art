@@ -72,8 +72,9 @@ reassembleLinesTest =
         points1 = [Vec2 x 1 | x <- [-1..5]]
         points2 = [Vec2 x 2 | x <- [-1..10]]
         points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg (takeWhile (<360) [0, 12..])]
+        points4 = [polar angle radius | n <- [1..1000], let angle = deg (9*n), let radius = n]
 
-        allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3])
+        allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3, points4])
         reassembled = reassembleLines allMangledUp
 
         -- Reverse the list if the first element is larger than the last.
@@ -101,5 +102,6 @@ reassembleLinesTest =
             , testCase "Many points on one line"     (assertPointsConserved points1)
             , testCase "Many points on another line" (assertPointsConserved points2)
             , testCase "Circular points"             (assertPointsConserved points3)
+            , testCase "Archimedian spiral"          (assertPointsConserved points4)
             ]
         ]
