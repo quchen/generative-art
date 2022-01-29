@@ -98,10 +98,8 @@ reassembleLines = extractAllTrajectories . buildNeighbourMap
 -- values. This is the basis for later reconnecting the line segments to extract
 -- trajectories.
 buildNeighbourMap :: Foldable f => f Line -> (Map Vec2 Vec2, Map Vec2 Vec2)
-buildNeighbourMap = foldMap $ \(Line start end) ->
-    let a = min start end
-        b = max start end
-    in if start == end
+buildNeighbourMap = foldMap $ \(Line a b) ->
+    if a == b
         then mempty
         else (M.singleton a b, M.singleton b a)
 
