@@ -18,8 +18,8 @@ contours
     -> Vector (Vector Vec2) -- ^ Contours of the field
 contours = error "This is the goal of the whole module"
 
-sketch f is js threshold =
-    let table = buildValueTable f is js
+sketch f is js threshold grid =
+    let table = valueTable grid f
         tableThresholded = applyThreshold threshold table
         classified = classify tableThresholded
         edges = contourEdges classified
@@ -40,27 +40,31 @@ sketch f is js threshold =
 --         | isHorizontal = fx
 --         | otherwise    = fy
 
+-- | Specification of a discrete grid
+data Grid = Grid
+    { _range :: (Vec2, Vec2)  -- ^ Range of continuous coordinates
+    , _numCells :: (Int, Int) -- ^ Number of steps in x/y directions
+    }
+
 -- | Convert a function on continuous space to a function on the grid
 fToGrid
-    :: (Vec2, Vec2) -- ^ Range (= bounding box)
-    -> (Int, Int)   -- ^ Grid cells in x/y range
-    -> (Vec2 -> a)  -- ^ Scalar field on continuous coordinates
-    -> IVec2 -> a   -- ^ Scalar field on discrete coordinates
-fToGrid range steps f iVec = f (fromGrid range steps iVec)
+    :: Grid
+    -> (Vec2 -> a) -- ^ Scalar field on continuous coordinates
+    -> IVec2 -> a  -- ^ Scalar field on discrete coordinates
+fToGrid grid f iVec = f (fromGrid grid iVec)
 
 -- | Map a coordinate from the discrete grid to continuous space
 fromGrid
-    :: (Vec2, Vec2) -- ^ Range (= bounding box)
-    -> (Int, Int)   -- ^ Grid cells in x/y range
-    -> IVec2        -- ^ Discrete coordinate
-    -> Vec2         -- ^ Continuous coordinate
-fromGrid (Vec2 xMin yMin, Vec2 xMax yMax) (xSteps, ySteps) (IVec2 i j) =
+    :: Grid
+    -> IVec2 -- ^ Discrete coordinate
+    -> Vec2  -- ^ Continuous coordinate
+fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (xSteps, ySteps)) (IVec2 i j) =
     let x = linearInterpolate ((0, fromIntegral xSteps-1)) ((xMin, xMax)) (fromIntegral i)
         y = linearInterpolate ((0, fromIntegral ySteps-1)) ((yMin, yMax)) (fromIntegral j)
     in Vec2 x y
 
-buildValueTable :: (Int -> Int -> a) -> Int -> Int -> Vector (Vector a)
-buildValueTable f is js = generate is (\i -> generate js (\j -> f i j))
+valueTable :: Grid -> (Vec2 -> a) -> Vector (Vector a)
+valueTable grid@Grid{_numCells = (is, js)} f = generate is (\i -> generate js (\j -> fToGrid grid f (IVec2 i j)))
 
 data XO = X | O
     deriving (Eq, Ord, Show)
