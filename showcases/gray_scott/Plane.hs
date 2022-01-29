@@ -1,9 +1,8 @@
-{-# LANGUAGE DeriveFunctor   #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Plane where
 
-import Control.Comonad
+import Control.Parallel.Strategies
 import qualified Data.Vector.Unboxed as V
 import Prelude hiding (mod)
 import qualified Prelude (mod)
@@ -43,8 +42,9 @@ foldNeighboursAt f x y p =
       , at p (x-1) (y+1), at p x (y+1), at p (x+1) (y+1) )
 
 mapNeighbours :: (V.Unbox a, V.Unbox b) => ((a, a, a, a, a, a, a, a, a) -> b) -> Plane a -> Plane b
-mapNeighbours f plane@Plane{..} = plane
-    { items = V.map (\i -> foldNeighboursAt f (i `mod` sizeX) (i `div` sizeX) plane) (V.enumFromN 0 (sizeX * sizeY)) }
+mapNeighbours f plane@Plane{..} = plane { items = V.concat (fmap row [0..sizeY-1] `using` parList rdeepseq) }
+  where
+    row n = V.map (\i -> foldNeighboursAt f (i `mod` sizeX) (i `div` sizeX) plane) (V.enumFromN (n * sizeX) sizeX)
 
 mapPlane :: (V.Unbox a, V.Unbox b) => (a -> b) -> Plane a -> Plane b
 mapPlane f plane@Plane{..} = plane { items = V.map f items }
