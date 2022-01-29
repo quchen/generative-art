@@ -8,37 +8,50 @@ import Data.Set (Set)
 
 import Geometry.Core
 import Numerics.Interpolation
-import Numerics.ConvergentRecursion
 
 contours
-    :: (Vec2 -> Double)     -- ^ Scalar field
-    -> (Vec2, Vec2)         -- ^ Range (= bounding box)
-    -> (Int, Int)           -- ^ Grid cells in x/y range
-    -> Double               -- ^ Contour threshold
-    -> Vector (Vector Vec2) -- ^ Contours of the field
-contours = error "This is the goal of the whole module"
-
-sketch f is js threshold grid =
+    :: Grid
+    -> (Vec2 -> Double) -- ^ Scalar field
+    -> Double           -- ^ Contour threshold
+    -> Set Line         -- ^ Contours of the field
+contours grid f threshold  =
     let table = valueTable grid f
         tableThresholded = applyThreshold threshold table
         classified = classify tableThresholded
         edges = contourEdges classified
-    in undefined
 
--- optimize
---     :: ILine
---     -> (Vec2 -> Double) -- ^ Scalar field
---     -> Double -- ^ Threshold
---     -> Vec2
--- optimize (ILine (IVec2 iMin jMin) (IVec2 iMax jMax)) f threshold = recurseUntilPrecision fOptimize Double Double
---   where
---     isHorizontal = iMin == iMax
---     fx x = f (Vec2 x (fromIntegral jMin))
---     fy y = f (Vec2 (fromIntegral jMin) y)
---
---     fOptimize
---         | isHorizontal = fx
---         | otherwise    = fy
+        tolerance = 1e-2
+        contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f iEdges tolerance) edges
+    in contourLines
+
+-- | Find the root of a scalar field along a line.
+findRootOnLine :: (Vec2 -> Double) -> Line -> Double -> Vec2
+findRootOnLine f line@(Line start end) tolerance
+    | lineLength line <= tolerance = middle
+    | signum fStart /= signum fMiddle = findRootOnLine f (Line start middle) tolerance
+    | signum fMiddle /= signum fEnd = findRootOnLine f (Line middle end) tolerance
+    | otherwise = error "This shouldn’t happen if we only have lines that change sign,\
+                        \ picked by marching squares, but I’m sure we’ll be surprised.\
+                        \ Might not be worth investigating though, simply abort the alg\
+                        \ and have one wonky cell."
+  where
+    middle = (start +. end) /. 2
+    fStart  = f start
+    fMiddle = f middle
+    fEnd    = f end
+
+optimizeDiscreteLine
+    :: Grid
+    -> (Vec2 -> Double) -- ^ Scalar field
+    -> (IEdge, IEdge)   -- ^ Edges of a discrete cell the contour passes through
+    -> Double           -- ^ Tolerance
+    -> Line             -- ^ Line between points on the discrete edges, which approximates the real contour
+optimizeDiscreteLine grid f (IEdge ivec1start ivec1end, IEdge ivec2start ivec2end) tolerance =
+    let edge1 = Line (fromGrid grid ivec1start) (fromGrid grid ivec1end)
+        edge2 = Line (fromGrid grid ivec2start) (fromGrid grid ivec2end)
+        start = findRootOnLine f edge1 tolerance
+        end = findRootOnLine f edge2 tolerance
+    in Line start end
 
 -- | Specification of a discrete grid
 data Grid = Grid
@@ -73,7 +86,7 @@ data CellClassification = CellClassification !XO !XO !XO !XO
     deriving (Eq, Ord, Show)
 
 applyThreshold :: Double -> Vector (Vector Double) -> Vector (Vector XO)
-applyThreshold threshold valueTable = (fmap.fmap) xo valueTable
+applyThreshold threshold = (fmap.fmap) xo
   where
     xo v | v <= threshold = X
          | otherwise      = O
