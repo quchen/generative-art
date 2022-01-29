@@ -88,6 +88,9 @@ simplifyTrajectory epsilon  = V.toList . go . V.fromList
 
 -- | Given a collection of lines, put them back-to-front as much as we can, to
 -- extract the underlying trajectories.
+--
+-- This algorithm wasn’t tested for cases when three lines originate at one point.
+-- I have no idea what happens in that case, but certainly nothing useful.
 reassembleLines :: Foldable f => f Line -> [Seq Vec2]
 reassembleLines = extractAllTrajectories . buildNeighbourMap
 
@@ -102,38 +105,39 @@ buildNeighbourMap = foldMap $ \(Line start end) ->
         then mempty
         else (M.singleton a b, M.singleton b a)
 
--- | Follow the entries in a neighbour map, giving precedence to the first list.
--- This can be seen as following the instructions in the forward direction.
-extractSingleTrajectoryAFirst
+-- | Follow the entries in a neighbour map, starting at a point.
+-- Doing this twice will grow the trajectory in both directions.
+extractSingleTrajectoryPass
     :: (Map Vec2 Vec2, Map Vec2 Vec2)
     -> Vec2
     -> Seq Vec2
     -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
-extractSingleTrajectoryAFirst (neighboursA, neighboursB) start result =
-    case M.lookup start neighboursA of
-        Just next -> extractSingleTrajectoryAFirst (M.delete start neighboursA, M.delete next neighboursB) next (result |> next)
-        Nothing -> case M.lookup start neighboursB of
-            Just next -> extractSingleTrajectoryAFirst (M.delete next neighboursA, M.delete start neighboursB) next (result |> next)
-            Nothing -> ((neighboursA, neighboursB), result)
+extractSingleTrajectoryPass (neighboursA, neighboursB) start result
+    | Just next <- M.lookup start neighboursA
+        -- We follow the »start -> next« entry in A, so we delete the start in A,
+        -- and so we don’t take back the same way when looking at B, we also delete
+        -- the target node in B.
+        --
+        -- Whether we recurse on (A,B) doesn’t matter, since 'buildNeighbourMap'
+        -- makes sure they don’t contain duplicates, and we look in both maps
+        -- in here anyway.
+        = extractSingleTrajectoryPass (M.delete start neighboursA, M.delete next neighboursB) next (result |> next)
 
--- | Follow the entries in a neighbour map, giving precedence to the second list.
--- This can be seen as following the instructions in the backward direction.
-extractSingleTrajectoryBFirst
-    :: (Map Vec2 Vec2, Map Vec2 Vec2)
-    -> Vec2
-    -> Seq Vec2
-    -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
-extractSingleTrajectoryBFirst (neighboursA, neighboursB) = extractSingleTrajectoryAFirst (neighboursB, neighboursA)
+    | Just next <- M.lookup start neighboursB
+        -- Dito, but A⇆B.
+        = extractSingleTrajectoryPass (M.delete next neighboursA, M.delete start neighboursB) next (result |> next)
 
--- | Follow the entries in a neighbour map, first forward then backward from the start, to form a single trajectory
--- extending maximally in both directions.
+    | otherwise = ((neighboursA, neighboursB), result)
+
+-- | Follow the entries in a neighbour map from a starting point twice, to extend
+-- it backwards and forwards as much as possible.
 extractSingleTrajectory
     :: (Map Vec2 Vec2, Map Vec2 Vec2)
     -> Vec2
     -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
 extractSingleTrajectory nMap start =
-    let (nMapA, trajectoryA) = extractSingleTrajectoryAFirst nMap start mempty
-        (nMapB, trajectoryB) = extractSingleTrajectoryBFirst nMapA start mempty
+    let (nMapA, trajectoryA) = extractSingleTrajectoryPass nMap start mempty
+        (nMapB, trajectoryB) = extractSingleTrajectoryPass nMapA start mempty
     in (nMapB, Seq.reverse trajectoryB <> Seq.singleton start <> trajectoryA)
 
 -- | Repeatedly extract a trajectory, until the neighbour map is exhausted.
