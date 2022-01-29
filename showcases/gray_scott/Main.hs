@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
 import qualified Data.Vector.Storable as V
@@ -10,7 +9,6 @@ import qualified Data.Vector.Unboxed as U
 import Draw
 import Geometry hiding (Grid)
 import Plane
-import Sampling
 
 picWidth, picHeight :: Num a => a
 picWidth = 960
@@ -18,12 +16,8 @@ picHeight = 540
 
 main :: IO ()
 main = do
-    gen <- create
-    let width = picWidth
-        height = picHeight
-        k = 4
 
-    seeds <- poissonDisc PoissonDisc { radius = 300, .. }
+    let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
 
     let diffusionRate = 0.1
         params = GS
@@ -47,7 +41,7 @@ main = do
                     ]
             ]
 
-        frames = take 100 (iterate (grayScott 5 params) initialState)
+        frames = take 5000 (iterate (grayScott 5 params) initialState)
 
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
