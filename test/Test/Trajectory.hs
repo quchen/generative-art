@@ -4,6 +4,8 @@ module Test.Trajectory (tests) where
 
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import qualified Data.Set as S
+import Data.Maybe
 
 import Draw
 import Geometry as G
@@ -16,6 +18,7 @@ import Test.Tasty.HUnit
 tests :: TestTree
 tests = testGroup "Trajactories"
     [ simplifyPathTest
+    , reassembleLinesTest
     ]
 
 simplifyPathTest :: TestTree
@@ -59,3 +62,33 @@ simplifyPathTestRender = do
             setColor $ mmaColor 1 1
             plotBezier (fitToBox interpolatedAgain)
             plotPoints (fitToBox simplified)
+
+reassembleLinesTest :: TestTree
+reassembleLinesTest =
+    let pairUp xs = zipWith Line xs (tail xs)
+
+        points1 = [Vec2 x 0 | x <- [-1..5]]
+        splitLine1 = pairUp points1
+
+        points2 = [Vec2 x 1 | x <- [-1..10]]
+        splitLine2 = pairUp points2
+
+        points3 = [G.transform (G.rotate (deg (n*10))) (Vec2 0.5 0) | n <- [0..11]]
+        splitLine3 = pairUp points3
+
+        allMangledUp = S.fromList splitLine1 <> S.fromList splitLine2 <> S.fromList splitLine3
+        reassembled = reassembleLines allMangledUp
+
+        assertion points = assertBool
+            (unlines
+                ["One result should have the points"
+                , show points
+                , "but none has!"
+                , "Reassembled:"
+                , unlines (map show reassembled)])
+            (isJust (find (\reassembledLine -> S.fromList (toList reassembledLine) == S.fromList points) reassembled))
+    in testGroup "Reassemble lines"
+        [ testCase "points1" $ assertion points1
+        , testCase "points2" $ assertion points2
+        , testCase "points3" $ assertion points3
+        ]
