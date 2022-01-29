@@ -21,7 +21,7 @@ contours grid f threshold  =
         edges = contourEdges classified
 
         tolerance = 1e-2
-        contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f iEdges tolerance) edges
+        contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f threshold iEdges tolerance) edges
     in contourLines
 
 -- | Find the root of a scalar field along a line.
@@ -30,11 +30,13 @@ narrowDownToRoot f line@(Line start end) tolerance
     | lineLength line <= tolerance = middle
     | signum fStart /= signum fMiddle = narrowDownToRoot f (Line start middle) tolerance
     | signum fMiddle /= signum fEnd = narrowDownToRoot f (Line middle end) tolerance
-    | signum fStart == signum fMiddle && signum fMiddle == signum fEnd = middle
-    | otherwise = error "This shouldn’t happen if we only have lines that change sign,\
-                        \ picked by marching squares, but I’m sure we’ll be surprised.\
-                        \ Might not be worth investigating though, simply abort the alg\
-                        \ and have one wonky cell."
+
+    -- EMERGENCY UNCOMMENT IF THE ERROR BELOW COMES UP
+    -- signum fStart == signum fMiddle && signum fMiddle == signum fEnd = middle
+    | otherwise = bugError "This shouldn’t happen if we only have lines that change sign,\
+                           \ picked by marching squares, but I’m sure we’ll be surprised.\
+                           \ Might not be worth investigating though, simply abort the alg\
+                           \ and have one wonky cell."
   where
     middle = (start +. end) /. 2
     fStart  = f start
@@ -44,14 +46,15 @@ narrowDownToRoot f line@(Line start end) tolerance
 optimizeDiscreteLine
     :: Grid
     -> (Vec2 -> Double) -- ^ Scalar field
+    -> Double           -- ^ Contour threshold
     -> (IEdge, IEdge)   -- ^ Edges of a discrete cell the contour passes through
     -> Double           -- ^ Tolerance
     -> Line             -- ^ Line between points on the discrete edges, which approximates the real contour
-optimizeDiscreteLine grid f (IEdge ivec1start ivec1end, IEdge ivec2start ivec2end) tolerance =
+optimizeDiscreteLine grid f threshold (IEdge ivec1start ivec1end, IEdge ivec2start ivec2end) tolerance =
     let edge1 = Line (fromGrid grid ivec1start) (fromGrid grid ivec1end)
         edge2 = Line (fromGrid grid ivec2start) (fromGrid grid ivec2end)
-        start = narrowDownToRoot f edge1 tolerance
-        end = narrowDownToRoot f edge2 tolerance
+        start = narrowDownToRoot (\x -> f x - threshold) edge1 tolerance
+        end = narrowDownToRoot (\x -> f x - threshold) edge2 tolerance
     in Line start end
 
 -- | Specification of a discrete grid
