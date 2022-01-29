@@ -68,22 +68,17 @@ reassembleLinesTest =
     let pairUp xs = zipWith Line xs (tail xs)
 
         points0 = [Vec2 x 0 | x <- [0..1]]
-        splitLine0 = pairUp points0
-
         points1 = [Vec2 x 1 | x <- [-1..5]]
-        splitLine1 = pairUp points1
-
         points2 = [Vec2 x 2 | x <- [-1..10]]
-        splitLine2 = pairUp points2
+        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg (takeWhile (<360) [0, 170..])]
 
-        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg [0, 170 .. 359]]
-        splitLine3 = pairUp points3
-
-        allMangledUp = S.fromList (concat [splitLine0, splitLine1, splitLine2, splitLine3])
+        allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3])
         reassembled = reassembleLines allMangledUp
 
         -- Reverse the list if the first element is larger than the last.
         -- We don’t have to care about whether a line was recognized in reverse this way.
+        canonicalize [] = []
+        canonicalize [x] = [x]
         canonicalize xs
             | head xs > last xs = reverse xs
             | otherwise = xs
