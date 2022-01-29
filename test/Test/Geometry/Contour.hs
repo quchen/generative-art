@@ -18,13 +18,13 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Helpers
-import Debug.Trace
 
 
 
 tests :: TestTree
 tests = testGroup "Contour finding"
     [ findRootOnLineTests
+    , optimizeDiscreteLineTests
     , fromGridTests
     , valueTableTests
     , applyThresholdTests
@@ -55,6 +55,9 @@ findRootOnLineTests = testGroup "Narrow down root location on a line"
                 , "Actual:   " ++ show actual
                 ]
         in assertBool errMsg (expected ~== actual)
+
+optimizeDiscreteLineTests :: TestTree
+optimizeDiscreteLineTests = testGroup "Optimize discrete line" []
 
 fromGridTests :: TestTree
 fromGridTests = testGroup "Convert grid coordinates to continuous"
@@ -98,19 +101,13 @@ valueTableTests = testGroup "Value table creation"
     ]
 
 applyThresholdTests :: TestTree
-applyThresholdTests = testGroup "Apply threshold"
-    [
-    ]
+applyThresholdTests = testGroup "Apply threshold" []
 
 classifyTests :: TestTree
-classifyTests = testGroup "Classify"
-    [
-    ]
+classifyTests = testGroup "Classify" []
 
 contourEdgesTests :: TestTree
-contourEdgesTests = testGroup "Contour edges"
-    [
-    ]
+contourEdgesTests = testGroup "Contour edges" []
 
 
 visualTests :: TestTree
@@ -134,7 +131,7 @@ visualTests = testGroup "Visual"
             let geometry =
                     let circle r center = \v -> r^2 / normSquare (v -. center)
                         randomParabolas = runST $ do
-                            gen <- MWC.initialize (V.fromList [])
+                            gen <- MWC.initialize (V.fromList [1])
                             fs <- replicateM 10 $ do
                                 x <- MWC.uniformRM (0, 400) gen
                                 y <- MWC.uniformRM (0, 300) gen
@@ -145,7 +142,7 @@ visualTests = testGroup "Visual"
                     in randomParabolas
 
                 gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
-                grid = Grid gridDimension (400, 300)
+                grid = let factor = 30 in Grid gridDimension (4*factor, 3*factor)
 
             for_ (zip [0..] [1,2,3,4,5]) $ \(colorIx, threshold) -> do
                 let isoLines = contours grid geometry threshold

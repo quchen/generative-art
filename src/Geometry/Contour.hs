@@ -1,13 +1,18 @@
 module Geometry.Contour
 where
 
-import Data.Vector as V
-import Data.Foldable
-import qualified Data.Set as S
-import Data.Set (Set)
 
-import Geometry.Core
+
+import           Data.Foldable
+import           Data.Set      (Set)
+import qualified Data.Set      as S
+import           Data.Vector   (Vector, (!))
+import qualified Data.Vector   as V
+import           Geometry      as G
+
 import Numerics.Interpolation
+
+
 
 contours
     :: Grid
@@ -79,8 +84,8 @@ fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
 -- numbers and then rows in each line.
 valueTable :: Grid -> (Vec2 -> a) -> Vector (Vector a)
 valueTable grid@Grid{_numCells = (is, js)} f =
-    generate is (\i -> -- »x« direction
-        generate js (\j -> -- »y« direction
+    V.generate is (\i -> -- »x« direction
+        V.generate js (\j -> -- »y« direction
             f (fromGrid grid (IVec2 i j))))
 
 data XO = X | O
@@ -96,7 +101,7 @@ applyThreshold threshold = (fmap.fmap) xo
          | otherwise      = O
 
 ifor :: Vector a -> (Int -> a -> b) -> Vector b
-ifor = flip imap
+ifor = flip V.imap
 
 classify :: Vector (Vector XO) -> Vector (Vector CellClassification)
 classify xos =
