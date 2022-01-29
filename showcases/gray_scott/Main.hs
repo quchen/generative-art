@@ -12,8 +12,12 @@ import Plane
 import Sampling
 
 picWidth, picHeight :: Num a => a
-picWidth = 200
-picHeight = 200
+picWidth = 960
+picHeight = 540
+
+-- Needs to be fine-tuned – too large, and we run into divergences
+step :: Double
+step = 1
 
 main :: IO ()
 main = do
@@ -29,10 +33,11 @@ main = do
             [ row
             | y <- [0..picHeight - 1]
             , let row =
-                    [ (1 - v, v)
+                    [ (u, v)
                     | x <- [0..picWidth - 1]
                     , let p = Vec2 x y
-                    , let v = sum ((\q -> exp (- 0.0005 / diffusionRate * normSquare (p -. q))) <$> seeds)
+                    , let u = 1 - sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p -. q))) <$> seeds)
+                    , let v = sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p +. Vec2 0 10 -. q))) <$> seeds)
                     ]
             ]
 
@@ -66,7 +71,7 @@ data GrayScott = GS
 grayScott :: GrayScott -> Grid -> Grid
 grayScott GS{..} = mapNeighbours grayScottStep
   where
-    grayScottStep (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = uv22 +. (deltaU, deltaV)
+    grayScottStep (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = uv22 +. step *. (deltaU, deltaV)
       where
         (u0, v0) = uv22
         deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
