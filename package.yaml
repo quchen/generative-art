@@ -95,6 +95,7 @@ executables:
             - generative-art
             - parallel
             - comonad
+            - Noise
             - JuicyPixels
             - JuicyPixels-extra
 

@@ -1,16 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
+import Data.Maybe (fromMaybe)
 import qualified Data.Vector.Storable as V
 import qualified Data.Vector.Unboxed as U
+import Math.Noise
 
 import Draw
 import Geometry
 import Plane
-import Sampling
 
 picWidth, picHeight :: Num a => a
 picWidth = 960
@@ -18,39 +18,38 @@ picHeight = 540
 
 main :: IO ()
 main = do
-    gen <- create
-    let width = picWidth
-        height = picHeight
-        k = 4
 
-    seeds <- poissonDisc PoissonDisc { radius = 300, .. }
+    let step = 2
+        diffusionRate = 0.1
 
-    let diffusionRate = 0.1
         params = GS
             { feedRateU = 0.029
             , killRateV = 0.057
             , diffusionRateU = 2 * diffusionRate
             , diffusionRateV = diffusionRate
-            , step = 2
+            , step = step
             , width = picWidth
             , height = picHeight }
-        warmup = grayScott 100 params { step = 1 }
+        warmup = grayScott 200 params { step = 1 }
         initialState = warmup $ planeFromList
             [ row
             | y <- [0..picHeight - 1]
             , let row =
                     [ (u, v, 0, 0)
                     | x <- [0..picWidth - 1]
-                    , let p = Vec2 x y
-                    , let u = 1 - sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p -. q))) <$> seeds)
-                    , let v = sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p +. Vec2 0 10 -. q))) <$> seeds)
+                    , let u = 1 - noise x y 0
+                    , let v = noise x y 0
                     ]
             ]
+        addNoise t = mapPlaneCoordinates (\x y (u, v, du, dv) -> (u + 0.02 * noise x y t, v, du, dv))
 
-        frames = take 100 (iterate (grayScott 5 params) initialState)
+        frames = take 2000 (iterate (\(t, grid) -> (t + step, grayScott 5 params (addNoise t grid))) (0, initialState))
 
-    for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
+    for_ (zip [0 :: Int ..] frames) $ \(index, (_, grid)) ->
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+
+noise :: Int -> Int -> Double -> Double
+noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 } (fromIntegral x, fromIntegral y, 0.02 * t)
 
 renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
 renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))

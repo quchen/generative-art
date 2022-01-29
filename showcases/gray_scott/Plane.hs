@@ -48,3 +48,6 @@ mapNeighbours f plane@Plane{..} = plane { items = V.concat (fmap row [0..sizeY-1
 
 mapPlane :: (V.Unbox a, V.Unbox b) => (a -> b) -> Plane a -> Plane b
 mapPlane f plane@Plane{..} = plane { items = V.map f items }
+
+mapPlaneCoordinates :: (V.Unbox a, V.Unbox b) => (Int -> Int -> a -> b) -> Plane a -> Plane b
+mapPlaneCoordinates f plane@Plane{..} = plane { items = V.imap (\i -> f (i `mod` sizeX) (i `div` sizeX)) items }
