@@ -76,7 +76,7 @@ reassembleLinesTest =
         points2 = [Vec2 x 2 | x <- [-1..10]]
         splitLine2 = pairUp points2
 
-        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg [0, 80 .. 359]]
+        points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg [0, 170 .. 359]]
         splitLine3 = pairUp points3
 
         allMangledUp = S.fromList (concat [splitLine0, splitLine1, splitLine2, splitLine3])
@@ -93,7 +93,7 @@ reassembleLinesTest =
             assertBool
                 (unlines
                     ["One result should have the points"
-                    , show points
+                    , show canonicalized
                     , "but none has!"
                     , "Reassembled:"
                     , unlines (map (show . canonicalize . toList) reassembled)])
