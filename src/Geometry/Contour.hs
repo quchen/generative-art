@@ -25,11 +25,12 @@ contours grid f threshold  =
     in contourLines
 
 -- | Find the root of a scalar field along a line.
-findRootOnLine :: (Vec2 -> Double) -> Line -> Double -> Vec2
-findRootOnLine f line@(Line start end) tolerance
+narrowDownToRoot :: (Vec2 -> Double) -> Line -> Double -> Vec2
+narrowDownToRoot f line@(Line start end) tolerance
     | lineLength line <= tolerance = middle
-    | signum fStart /= signum fMiddle = findRootOnLine f (Line start middle) tolerance
-    | signum fMiddle /= signum fEnd = findRootOnLine f (Line middle end) tolerance
+    | signum fStart /= signum fMiddle = narrowDownToRoot f (Line start middle) tolerance
+    | signum fMiddle /= signum fEnd = narrowDownToRoot f (Line middle end) tolerance
+    | otherwise = middle
     | otherwise = error "This shouldn’t happen if we only have lines that change sign,\
                         \ picked by marching squares, but I’m sure we’ll be surprised.\
                         \ Might not be worth investigating though, simply abort the alg\
@@ -49,15 +50,15 @@ optimizeDiscreteLine
 optimizeDiscreteLine grid f (IEdge ivec1start ivec1end, IEdge ivec2start ivec2end) tolerance =
     let edge1 = Line (fromGrid grid ivec1start) (fromGrid grid ivec1end)
         edge2 = Line (fromGrid grid ivec2start) (fromGrid grid ivec2end)
-        start = findRootOnLine f edge1 tolerance
-        end = findRootOnLine f edge2 tolerance
+        start = narrowDownToRoot f edge1 tolerance
+        end = narrowDownToRoot f edge2 tolerance
     in Line start end
 
 -- | Specification of a discrete grid
 data Grid = Grid
     { _range :: (Vec2, Vec2)  -- ^ Range of continuous coordinates
-    , _numCells :: (Int, Int) -- ^ Number of steps in x/y directions
-    }
+    , _numCells :: (Int, Int) -- ^ Maximum of discrete coords; equivalent to the number of grid coordinates.
+    } deriving (Eq, Ord, Show)
 
 -- | Convert a function on continuous space to a function on the grid
 fToGrid
@@ -71,13 +72,16 @@ fromGrid
     :: Grid
     -> IVec2 -- ^ Discrete coordinate
     -> Vec2  -- ^ Continuous coordinate
-fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (xSteps, ySteps)) (IVec2 i j) =
-    let x = linearInterpolate ((0, fromIntegral xSteps-1)) ((xMin, xMax)) (fromIntegral i)
-        y = linearInterpolate ((0, fromIntegral ySteps-1)) ((yMin, yMax)) (fromIntegral j)
+fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
+    let x = linearInterpolate ((0, fromIntegral iMax)) ((xMin, xMax)) (fromIntegral i)
+        y = linearInterpolate ((0, fromIntegral jMax)) ((yMin, yMax)) (fromIntegral j)
     in Vec2 x y
 
 valueTable :: Grid -> (Vec2 -> a) -> Vector (Vector a)
-valueTable grid@Grid{_numCells = (is, js)} f = generate is (\i -> generate js (\j -> fToGrid grid f (IVec2 i j)))
+valueTable grid@Grid{_numCells = (is, js)} f =
+    generate js (\j -> -- »y« direction
+        generate is (\i -> -- »x« direction
+            fToGrid grid f (IVec2 i j)))
 
 data XO = X | O
     deriving (Eq, Ord, Show)
