@@ -49,8 +49,10 @@ main = do
 
         frames = take 100 (iterate (grayScott 5 params) initialState)
 
-    for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
+    for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+        P.writePng (printf "out/gray_scott_%06i_u.png" index) (renderImageGrayscale (mapPlane (\(u, _, _, _) -> u) grid))
+        P.writePng (printf "out/gray_scott_%06i_v.png" index) (renderImageGrayscale (mapPlane (\(_, v, _, _) -> v) grid))
 
 renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
 renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
