@@ -30,7 +30,7 @@ narrowDownToRoot f line@(Line start end) tolerance
     | lineLength line <= tolerance = middle
     | signum fStart /= signum fMiddle = narrowDownToRoot f (Line start middle) tolerance
     | signum fMiddle /= signum fEnd = narrowDownToRoot f (Line middle end) tolerance
-    | otherwise = middle
+    | signum fStart == signum fMiddle && signum fMiddle == signum fEnd = middle
     | otherwise = error "This shouldn’t happen if we only have lines that change sign,\
                         \ picked by marching squares, but I’m sure we’ll be surprised.\
                         \ Might not be worth investigating though, simply abort the alg\

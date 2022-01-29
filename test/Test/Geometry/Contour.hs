@@ -92,11 +92,13 @@ contourEdgesTests = testGroup "Contour edges"
 visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testCase "Circles" $ do
-        renderAllFormats 100 100 "out/test" $
-            for_ [1..10] $ \radius -> do
-                let cs = contours (Grid (Vec2 (-10) (-10), Vec2 10 10) (100, 100)) (\(Vec2 x y) -> x*x+y*y - radius) 0
+        renderAllFormats 100 100 "out/test" $ do
+            setLineWidth 1
+            for_ [1..9] $ \r -> do
+                let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
+                    cs = contours (Grid gridDimension (100, 100)) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
-                    fitToBox = G.transform (G.transformBoundingBox cs (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
+                    fitToBox = G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
                 for_ (fitToBox cs) lineSketch
                 stroke
     ]
