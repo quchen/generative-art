@@ -60,13 +60,6 @@ data Grid = Grid
     , _numCells :: (Int, Int) -- ^ Maximum of discrete coords; equivalent to the number of grid coordinates.
     } deriving (Eq, Ord, Show)
 
--- | Convert a function on continuous space to a function on the grid
-fToGrid
-    :: Grid
-    -> (Vec2 -> a) -- ^ Scalar field on continuous coordinates
-    -> IVec2 -> a  -- ^ Scalar field on discrete coordinates
-fToGrid grid f iVec = f (fromGrid grid iVec)
-
 -- | Map a coordinate from the discrete grid to continuous space
 fromGrid
     :: Grid

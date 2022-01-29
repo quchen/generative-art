@@ -49,15 +49,28 @@ findRootOnLineTests = testGroup "Narrow down root location on a line"
 
 fromGridTests :: TestTree
 fromGridTests = testGroup "Convert grid coordinates to continuous"
-    [ testCase "Start" $ do
-        let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 11)
-        assertBool "xxx" $ fromGrid grid (IVec2 0 0) ~== Vec2 0 0
-    , testCase "Middle" $ do
-        let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 11)
-        assertBool "xxx" $ fromGrid grid (IVec2 11 11) ~== Vec2 1 1
-    , testCase "End" $ do
-        let grid = Grid (Vec2 0 0, Vec2 1 1) (10, 10)
-        assertBool "xxx" $ fromGrid grid (IVec2 5 5) ~== Vec2 0.5 0.5
+    [ testGroup "Square continuous, square discrete"
+        [testCase "Start" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 11)
+            assertBool "xxx" $ fromGrid grid (IVec2 0 0) ~== Vec2 0 0
+        , testCase "Middle" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 11)
+            assertBool "xxx" $ fromGrid grid (IVec2 11 11) ~== Vec2 1 1
+        , testCase "End" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (10, 10)
+            assertBool "xxx" $ fromGrid grid (IVec2 5 5) ~== Vec2 0.5 0.5
+        ]
+    , testGroup "Square continuous, rectangular discrete"
+        [testCase "Start" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 9)
+            assertBool "xxx" $ fromGrid grid (IVec2 0 0) ~== Vec2 0 0
+        , testCase "Middle" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 9)
+            assertBool "xxx" $ fromGrid grid (IVec2 11 9) ~== Vec2 1 1
+        , testCase "End" $ do
+            let grid = Grid (Vec2 0 0, Vec2 1 1) (10, 8)
+            assertBool "xxx" $ fromGrid grid (IVec2 5 4) ~== Vec2 0.5 0.5
+        ]
     ]
 
 valueTableTests :: TestTree
@@ -70,9 +83,9 @@ valueTableTests = testGroup "Value table creation"
                 pure $ Grid gridRange (iSize, jSize)
         in forAll gen $ \grid@Grid{_numCells = (iSize, jSize)} ->
             let vt = valueTable grid (const ())
-            in all (\v -> length v == iSize) vt
+            in all (\v -> length v == jSize) vt
                &&
-               length vt == jSize
+               length vt == iSize
     ]
 
 applyThresholdTests :: TestTree
@@ -93,12 +106,16 @@ visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testCase "Circles" $ do
         renderAllFormats 100 100 "out/test" $ do
-            setLineWidth 1
-            for_ [1..9] $ \r -> do
+            for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-                    cs = contours (Grid gridDimension (100, 50)) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                    cs = contours (Grid gridDimension (300, 300)) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
-                    fitToBox = G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
-                for_ (fitToBox cs) lineSketch
-                stroke
+                    fitToBox =
+                        G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
+                        -- G.transform (G.translate (Vec2 50 50) <> G.scale 2)
+                cairoScope $ do
+                    setLineWidth 1
+                    for_ (fitToBox cs) lineSketch
+                    setColor (mmaColor colorIndex 1)
+                    stroke
     ]
