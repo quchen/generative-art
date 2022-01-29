@@ -19,8 +19,8 @@ picHeight = 540
 main :: IO ()
 main = do
 
-    let step = 2
-        diffusionRate = 0.1
+    let step = 1
+        diffusionRate = 0.2
 
         params = GS
             { feedRateU = 0.029
@@ -30,7 +30,7 @@ main = do
             , step = step
             , width = picWidth
             , height = picHeight }
-        warmup = grayScott 200 params { step = 1 }
+        warmup = grayScott 500 params { step = 0.5 }
         initialState = warmup $ planeFromList
             [ row
             | y <- [0..picHeight - 1]
@@ -43,14 +43,14 @@ main = do
             ]
         addNoise t = mapPlaneCoordinates (\x y (u, v, du, dv) -> (u + 0.02 * noise x y t, v, du, dv))
 
-        frames = take 2000 (iterate (\(t, grid) -> (t + step, grayScott 5 params (addNoise t grid))) (0, initialState))
+        frames = take 2000 (iterate (\(t, grid) -> (t + step, grayScott 10 params (addNoise t grid))) (0, initialState))
 
     for_ (zip [0 :: Int ..] frames) $ \(index, (_, grid)) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 noise :: Int -> Int -> Double -> Double
-noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 } (fromIntegral x, fromIntegral y, 0.1 * t)
+noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.05 } (fromIntegral x, fromIntegral y, 0.2 * t)
 
 renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
 renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
