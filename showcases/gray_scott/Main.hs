@@ -1,16 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
-import System.Random.MWC (create)
 import Text.Printf (printf)
 import qualified Codec.Picture as P
 import qualified Data.Vector.Storable as V
 import qualified Data.Vector.Unboxed as U
+import System.Environment (getArgs)
 
 import Draw
 import Geometry
 import Plane
-import Sampling
 
 picWidth, picHeight :: Num a => a
 picWidth = 960
@@ -18,12 +17,9 @@ picHeight = 540
 
 main :: IO ()
 main = do
-    gen <- create
-    let width = picWidth
-        height = picHeight
-        k = 4
-
-    seeds <- poissonDisc PoissonDisc { radius = 300, .. }
+    [ufile, vfile] <- getArgs
+    Right (P.ImageY8 uimg) <- P.readPng ufile
+    Right (P.ImageY8 vimg) <- P.readPng vfile
 
     let diffusionRate = 0.1
         params = GS
@@ -34,16 +30,14 @@ main = do
             , step = 2
             , width = picWidth
             , height = picHeight }
-        warmup = grayScott 100 params { step = 1 }
-        initialState = warmup $ planeFromList
+        initialState = planeFromList
             [ row
             | y <- [0..picHeight - 1]
             , let row =
                     [ (u, v, 0, 0)
                     | x <- [0..picWidth - 1]
-                    , let p = Vec2 x y
-                    , let u = 1 - sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p -. q))) <$> seeds)
-                    , let v = sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p +. Vec2 0 10 -. q))) <$> seeds)
+                    , let u = fromIntegral (P.pixelAt uimg x y) / 255
+                    , let v = fromIntegral (P.pixelAt vimg x y) / 255
                     ]
             ]
 
