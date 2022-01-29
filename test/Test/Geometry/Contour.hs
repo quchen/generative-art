@@ -96,7 +96,7 @@ visualTests = testGroup "Visual"
             setLineWidth 1
             for_ [1..9] $ \r -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-                    cs = contours (Grid gridDimension (100, 100)) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                    cs = contours (Grid gridDimension (100, 50)) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                     fitToBox = G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
                 for_ (fitToBox cs) lineSketch
