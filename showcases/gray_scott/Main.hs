@@ -10,6 +10,8 @@ import Draw
 import Geometry hiding (Grid)
 import Plane
 import Sampling
+import Data.Colour.RGBSpace (uncurryRGB)
+import Data.Colour.SRGB (toSRGB)
 
 picWidth, picHeight :: Num a => a
 picWidth = 960
@@ -51,9 +53,25 @@ main = do
         let file = printf "out/gray_scott_%06i.png" index
         P.writePng file (renderImage grid)
 
-renderImage :: Grid -> P.Image P.Pixel8
-renderImage grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
-  where renderPixel (u, _v) = round $ max 0 $ min 255 $ u * 255
+renderImage :: Grid -> P.Image P.PixelRGB8
+renderImage grid = P.Image picWidth picHeight $ V.concatMap renderPixel $ V.convert $ items $ mapPlane snd grid
+  where renderPixel v = let P.PixelRGB8 r g b = gradient v in V.fromList [r, g, b]
+
+gradient :: Double -> P.PixelRGB8
+gradient v
+    | v < 0.25 = toPixel $ blend (4*v) color1 color0
+    | v < 0.5 = toPixel $ blend (4*(v-0.25)) color2 color1
+    | otherwise = toPixel $ blend (2*(v-0.5)) color3 color2
+  where
+    color0 = hsv 240 0.9 0.1
+    color1 = hsv 210 0.8 0.5
+    color2 = hsv 120 0.8 0.9
+    color3 = hsv 0 0.8 0.9
+    toPixel = uncurryRGB (\r g b -> P.PixelRGB8 (pixel8 r) (pixel8 g) (pixel8 b)) . toSRGB
+    pixel8 = round . clamp 0 255 . (* 255)
+
+clamp :: (Ord a, Num a) => a -> a -> a -> a
+clamp lower upper = max lower . min upper
 
 type Grid = Plane (Double, Double)
 
