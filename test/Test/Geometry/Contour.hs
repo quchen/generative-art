@@ -144,8 +144,10 @@ visualTests = testGroup "Visual"
                 gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
                 grid = let factor = 30 in Grid gridDimension (4*factor, 3*factor)
 
+                contourAtThreshold = contours grid geometry
+
             for_ (zip [0..] [1,2,3,4,5]) $ \(colorIx, threshold) -> do
-                let isoLines = contours grid geometry threshold
+                let isoLines = contourAtThreshold threshold
                 cairoScope $ do
                     setLineWidth 1
                     setColor (mmaColor colorIx threshold )

@@ -19,15 +19,16 @@ contours
     -> (Vec2 -> Double) -- ^ Scalar field
     -> Double           -- ^ Contour threshold
     -> Set Line         -- ^ Contours of the field
-contours grid f threshold  =
+contours grid f  =
     let table = valueTable grid f
-        tableThresholded = applyThreshold threshold table
-        classified = classify tableThresholded
-        edges = contourEdges classified
+    in \threshold ->
+        let tableThresholded = applyThreshold threshold table
+            classified = classify tableThresholded
+            edges = contourEdges classified
 
-        tolerance = 1e-2
-        contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f threshold iEdges tolerance) edges
-    in contourLines
+            tolerance = 1e-2
+            contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f threshold iEdges tolerance) edges
+        in contourLines
 
 -- | Find the root of a scalar field along a line.
 narrowDownToRoot :: (Vec2 -> Double) -> Line -> Double -> Vec2
