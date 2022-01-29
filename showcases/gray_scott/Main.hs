@@ -50,7 +50,7 @@ main = do
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 noise :: Int -> Int -> Double -> Double
-noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 } (fromIntegral x, fromIntegral y, 0.02 * t)
+noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 } (fromIntegral x, fromIntegral y, 0.1 * t)
 
 renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
 renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
