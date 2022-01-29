@@ -1,7 +1,13 @@
 module Test.Geometry.Contour (tests) where
 
+
+
 import Data.Foldable
 import Graphics.Rendering.Cairo as C
+import qualified System.Random.MWC as MWC
+import Control.Monad.ST
+import Control.Monad
+import qualified Data.Vector as V
 
 import Draw
 import Geometry as G
@@ -14,6 +20,8 @@ import Test.Tasty.QuickCheck
 import Test.Helpers
 import Debug.Trace
 
+
+
 tests :: TestTree
 tests = testGroup "Contour finding"
     [ findRootOnLineTests
@@ -21,6 +29,7 @@ tests = testGroup "Contour finding"
     , valueTableTests
     , applyThresholdTests
     , classifyTests
+    , contourEdgesTests
     , visualTests
     ]
 
@@ -98,13 +107,15 @@ classifyTests = testGroup "Classify"
     [
     ]
 
-contourEdgesTests :: [TestTree] -> TestTree
+contourEdgesTests :: TestTree
 contourEdgesTests = testGroup "Contour edges"
+    [
+    ]
 
 
 visualTests :: TestTree
 visualTests = testGroup "Visual"
-    [ testCase "Circles" $ do
+    [ testCase "Concentric circles" $ do
         renderAllFormats 100 100 "out/test" $ do
             for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
@@ -112,10 +123,35 @@ visualTests = testGroup "Visual"
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                     fitToBox =
                         G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
-                        -- G.transform (G.translate (Vec2 50 50) <> G.scale 2)
                 cairoScope $ do
                     setLineWidth 1
                     for_ (fitToBox cs) lineSketch
                     setColor (mmaColor colorIndex 1)
+                    stroke
+
+    , testCase "Bubble iso lines" $ do
+        renderAllFormats 400 300 "out/test2" $ do
+            let geometry =
+                    let circle r center = \v -> r^2 / normSquare (v -. center)
+                        randomParabolas = runST $ do
+                            gen <- MWC.initialize (V.fromList [])
+                            fs <- replicateM 10 $ do
+                                x <- MWC.uniformRM (0, 400) gen
+                                y <- MWC.uniformRM (0, 300) gen
+                                let r = 50
+                                    center = Vec2 x y
+                                pure (circle r center)
+                            pure (\v -> sum (map ($ v) fs))
+                    in randomParabolas
+
+                gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
+                grid = Grid gridDimension (400, 300)
+
+            for_ (zip [0..] [1,2,3,4,5]) $ \(colorIx, threshold) -> do
+                let isoLines = contours grid geometry threshold
+                cairoScope $ do
+                    setLineWidth 1
+                    setColor (mmaColor colorIx threshold )
+                    for_ isoLines lineSketch
                     stroke
     ]
