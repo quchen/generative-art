@@ -90,13 +90,14 @@ reassembleLinesTest =
 
         assertPointsConserved points = do
             let canonicalized = canonicalize points
+                indent = ("    " ++)
             assertBool
                 (unlines
                     ["One result should have the points"
-                    , show canonicalized
+                    , indent (show canonicalized)
                     , "but none has!"
                     , "Reassembled:"
-                    , unlines (map (show . canonicalize . toList) reassembled)])
+                    , unlines (map (indent . show . canonicalize . toList) reassembled)])
                 (isJust (find (\reassembledLine -> canonicalize (toList reassembledLine) == canonicalized) reassembled))
     in testGroup "Reassembling lines"
         [ testGroup "Example trajectories are assembled correctly"
