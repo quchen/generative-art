@@ -2,13 +2,23 @@ module Geometry.Trajectory (
       pointOnTrajectory
     , domain
     , simplifyTrajectory
+    , reassembleLines
 ) where
 
+
+
+import           Data.Map      (Map)
+import qualified Data.Map      as M
 import           Data.Ord
+import           Data.Sequence (Seq, (|>))
+import qualified Data.Sequence as Seq
 import           Data.Vector   (Vector)
 import qualified Data.Vector   as V
 import           Geometry.Core
 import           Geometry.LUT
+import           Prelude       hiding (lines)
+
+
 
 -- | Build a lookup table from arc length to the line that we’re on at that arc
 -- length.
@@ -75,3 +85,66 @@ simplifyTrajectory epsilon  = V.toList . go . V.fromList
             else let before = V.take (iMax+1) points -- +1 so this includes the iMax point
                      after = V.drop iMax points
                  in go before <> V.drop 1 (go after) -- Don’t add the middle twice
+
+-- | Given a collection of lines, put them back-to-front as much as we can, to
+-- extract the underlying trajectories.
+--
+-- This algorithm wasn’t tested for cases when three lines originate at one point.
+-- I have no idea what happens in that case, but certainly nothing useful.
+reassembleLines :: Foldable f => f Line -> [Seq Vec2]
+reassembleLines = extractAllTrajectories . buildNeighbourMap
+
+-- | Split a collection of line segments into a Map of ascending and descending
+-- values. This is the basis for later reconnecting the line segments to extract
+-- trajectories.
+buildNeighbourMap :: Foldable f => f Line -> (Map Vec2 Vec2, Map Vec2 Vec2)
+buildNeighbourMap = foldMap $ \(Line a b) ->
+    if a == b
+        then mempty
+        else (M.singleton a b, M.singleton b a)
+
+-- | Follow the entries in a neighbour map, starting at a point.
+-- Doing this twice will grow the trajectory in both directions.
+extractSingleTrajectoryPass
+    :: (Map Vec2 Vec2, Map Vec2 Vec2)
+    -> Vec2
+    -> Seq Vec2
+    -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
+extractSingleTrajectoryPass (neighboursA, neighboursB) start result
+    | Just next <- M.lookup start neighboursA
+        -- We follow the »start -> next« entry in A, so we delete the start in A,
+        -- and so we don’t take back the same way when looking at B, we also delete
+        -- the target node in B.
+        --
+        -- Whether we recurse on (A,B) doesn’t matter, since 'buildNeighbourMap'
+        -- makes sure they don’t contain duplicates, and we look in both maps
+        -- in here anyway.
+        = extractSingleTrajectoryPass (M.delete start neighboursA, M.delete next neighboursB) next (result |> next)
+
+    | Just next <- M.lookup start neighboursB
+        -- Dito, but A⇆B.
+        = extractSingleTrajectoryPass (M.delete next neighboursA, M.delete start neighboursB) next (result |> next)
+
+    | otherwise = ((neighboursA, neighboursB), result)
+
+-- | Follow the entries in a neighbour map from a starting point twice, to extend
+-- it backwards and forwards as much as possible.
+extractSingleTrajectory
+    :: (Map Vec2 Vec2, Map Vec2 Vec2)
+    -> Vec2
+    -> ((Map Vec2 Vec2, Map Vec2 Vec2), Seq Vec2)
+extractSingleTrajectory nMap start =
+    let (nMapA, trajectoryPass1) = extractSingleTrajectoryPass nMap start mempty
+        (nMapB, trajectoryPass2) = extractSingleTrajectoryPass nMapA start mempty
+    in (nMapB, Seq.reverse trajectoryPass2 <> Seq.singleton start <> trajectoryPass1)
+
+-- | Repeatedly extract a trajectory, until the neighbour map is exhausted.
+extractAllTrajectories :: (Map Vec2 Vec2, Map Vec2 Vec2) -> [Seq Vec2]
+extractAllTrajectories (nMapA, nMapB)
+    | Just (start, nMapA') <- M.minView nMapA =
+        let (nMap', trajectory) = extractSingleTrajectory (nMapA', nMapB) start
+        in trajectory : extractAllTrajectories nMap'
+    | Just (start, nMapB') <- M.minView nMapB =
+        let (nMap', trajectory) = extractSingleTrajectory (nMapA, nMapB') start
+        in trajectory : extractAllTrajectories nMap'
+    | otherwise = []
