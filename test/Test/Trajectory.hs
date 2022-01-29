@@ -5,10 +5,14 @@ module Test.Trajectory (tests) where
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import qualified Data.Set as S
+import Control.Monad.ST
+import qualified System.Random.MWC as MWC
 import Data.Maybe
+import qualified Data.Vector as V
 
 import Draw
 import Geometry as G
+import Why
 
 import Test.Common
 import Test.Tasty
@@ -64,6 +68,11 @@ simplifyPathTestRender = do
             plotBezier (fitToBox interpolatedAgain)
             plotPoints (fitToBox simplified)
 
+fisherYatesList :: [a] -> [a]
+fisherYatesList xs = runST $ do
+    gen <- MWC.initialize (V.fromList [])
+    fmap V.toList (fisherYatesShuffle gen (V.fromList xs))
+
 reassembleLinesTest :: TestTree
 reassembleLinesTest =
     let pairUp xs = zipWith Line xs (tail xs)
@@ -73,8 +82,9 @@ reassembleLinesTest =
         points2 = [Vec2 x 2 | x <- [-1..10]]
         points3 = [G.transform (G.rotate angle) (Vec2 0.5 0) | angle <- map deg (takeWhile (<360) [0, 12..])]
         points4 = [polar angle radius | n <- [1..1000], let angle = deg (9*n), let radius = n]
+        points5 = fisherYatesList [polar angle radius | n <- [1..1000], let angle = deg (9*n), let radius = 1.1*n]
 
-        allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3, points4])
+        allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3, points4, points5])
         reassembled = reassembleLines allMangledUp
 
         -- Reverse the list if the first element is larger than the last.
@@ -98,10 +108,11 @@ reassembleLinesTest =
                 (isJust (find (\reassembledLine -> canonicalize (toList reassembledLine) == canonicalized) reassembled))
     in testGroup "Reassembling lines"
         [ testGroup "Example trajectories are assembled correctly"
-            [ testCase "Two points on a line"        (assertPointsConserved points0)
-            , testCase "Many points on one line"     (assertPointsConserved points1)
-            , testCase "Many points on another line" (assertPointsConserved points2)
-            , testCase "Circular points"             (assertPointsConserved points3)
-            , testCase "Archimedian spiral"          (assertPointsConserved points4)
+            [ testCase "Two points on a line"                  (assertPointsConserved points0)
+            , testCase "Many points on one line"               (assertPointsConserved points1)
+            , testCase "Many points on another line"           (assertPointsConserved points2)
+            , testCase "Circular points"                       (assertPointsConserved points3)
+            , testCase "Archimedian spiral"                    (assertPointsConserved points4)
+            , testCase "Archimedian spiral, randomly permuted" (assertPointsConserved points5)
             ]
         ]
