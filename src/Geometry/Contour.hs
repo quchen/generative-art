@@ -70,11 +70,15 @@ fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
         y = linearInterpolate ((0, fromIntegral jMax)) ((yMin, yMax)) (fromIntegral j)
     in Vec2 x y
 
+-- | We first index by i and then j, so that vec!i!j has the intuitive meaning of »go in i/x direction and then in j/y.
+-- The drawback is that this makes the table look like downward columns of y
+-- values, indexed by x. The more common picture for at least me is to have line
+-- numbers and then rows in each line.
 valueTable :: Grid -> (Vec2 -> a) -> Vector (Vector a)
 valueTable grid@Grid{_numCells = (is, js)} f =
-    generate js (\j -> -- »y« direction
-        generate is (\i -> -- »x« direction
-            fToGrid grid f (IVec2 i j)))
+    generate is (\i -> -- »x« direction
+        generate js (\j -> -- »y« direction
+            f (fromGrid grid (IVec2 i j))))
 
 data XO = X | O
     deriving (Eq, Ord, Show)
