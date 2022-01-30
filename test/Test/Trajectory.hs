@@ -95,7 +95,7 @@ reassembleLinesTest =
         points5 = fisherYatesList [polar angle radius | n <- [1..1000], let angle = deg (9*n), let radius = 1.1*n]
 
         allMangledUp = S.fromList (concatMap pairUp [points0, points1, points2, points3, points4, points5])
-        reassembled = reassembleLines allMangledUp
+        reassembled = reassembleLines (\(Line a b) -> (a,b)) allMangledUp
 
         -- Reverse the list if the first element is larger than the last.
         -- We don’t have to care about whether a line was recognized in reverse this way.
