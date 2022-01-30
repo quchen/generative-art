@@ -1,4 +1,4 @@
-module Geometry.Contour
+module Geometry.Algorithms.Contour
 where
 
 
@@ -14,7 +14,6 @@ import           Prelude       hiding (lines)
 import Geometry.Core
 import Numerics.Interpolation
 import Geometry.Trajectory
-
 
 
 

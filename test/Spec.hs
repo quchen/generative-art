@@ -15,7 +15,7 @@ import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
-import qualified Test.Geometry.Contour
+import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.IntersectionLL
@@ -54,7 +54,7 @@ tests = testGroup "Test suite"
         , Test.Cut.tests
         , Test.Delaunay.tests
         , Test.DifferentialEquation.tests
-        , Test.Geometry.Contour.tests
+        , Test.Geometry.Algorithms.Contour.tests
         , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Geometry.Processes.Billard.tests
         , Test.IntersectionLL.tests

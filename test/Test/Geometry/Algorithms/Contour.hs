@@ -1,4 +1,4 @@
-module Test.Geometry.Contour (tests) where
+module Test.Geometry.Algorithms.Contour (tests) where
 
 
 
@@ -10,8 +10,7 @@ import           Graphics.Rendering.Cairo as C
 import qualified System.Random.MWC        as MWC
 
 import Draw
-import Geometry         as G
-import Geometry.Contour
+import Geometry as G
 
 import Test.Common
 import Test.Helpers
