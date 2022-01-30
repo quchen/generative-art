@@ -105,6 +105,12 @@ over quickly.
 
 ![Missing image!](../../docs/interpolation/4_bezier_subdivide.svg)
 
+![Missing image!](../../docs/iso_lines/circles.svg)
+
+![Missing image!](../../docs/iso_lines/parabola.svg)
+
+![Missing image!](../../docs/iso_lines/potentials.svg)
+
 ![Missing image!](../../docs/penrose/1_base_configurations.svg)
 
 ![Missing image!](../../docs/penrose/2_subdivision.svg)
