@@ -76,8 +76,13 @@ simplifyTrajectory epsilon  = V.toList . go . V.fromList
     go points
       = let start = V.head points
             end = V.last points
-            line = Line start end
-            (dMax, iMax) = V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine p line, i)) points)
+            isCyclic = start == end
+
+            (dMax, iMax)
+                | isCyclic = V.maximumBy (comparing fst) (V.imap (\i p -> (norm (p -. start), i)) points)
+                | otherwise =
+                    let connectingLine = Line start end
+                    in V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine p connectingLine, i)) points)
         in if dMax <= epsilon
             -- Points are all too close: remove them
             then V.fromList [start, end]
