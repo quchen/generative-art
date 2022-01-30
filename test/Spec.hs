@@ -16,6 +16,7 @@ import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
+import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.IntersectionLL
@@ -26,7 +27,6 @@ import qualified Test.Reflection
 import qualified Test.Sampling
 import qualified Test.SimpleOperations
 import qualified Test.Trajectory
-import qualified Test.Triangulate
 import qualified Test.Voronoi
 
 import           Test.Tasty
@@ -55,6 +55,7 @@ tests = testGroup "Test suite"
         , Test.DifferentialEquation.tests
         , Test.Geometry.Algorithms.Contour.tests
         , Test.Geometry.Algorithms.Cut.tests
+        , Test.Geometry.Algorithms.Triangulate.tests
         , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Geometry.Processes.Billard.tests
         , Test.IntersectionLL.tests
@@ -64,7 +65,6 @@ tests = testGroup "Test suite"
         , Test.Sampling.tests
         , Test.SimpleOperations.tests
         , Test.Trajectory.tests
-        , Test.Triangulate.tests
         , Test.Voronoi.tests
         ]
     ]

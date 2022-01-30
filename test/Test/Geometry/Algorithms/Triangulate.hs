@@ -1,4 +1,4 @@
-module Test.Triangulate (tests) where
+module Test.Geometry.Algorithms.Triangulate (tests) where
 
 
 

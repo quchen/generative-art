@@ -1,4 +1,4 @@
-module Geometry.Triangulate (
+module Geometry.Algorithms.Triangulate (
     triangulate
 ) where
 
