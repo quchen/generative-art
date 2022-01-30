@@ -114,7 +114,6 @@ visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testCase "Single parabola" $ do
         renderAllFormats 100 100 "out/test_diagonal" $ do
-            cairoScope $ grouped (paintWithAlpha 0.3) $ cartesianCoordinateSystem
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 isos = isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
                 fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
@@ -130,7 +129,8 @@ visualTests = testGroup "Visual"
         renderAllFormats 100 100 "out/test" $ do
             for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-                    isos = isoLines (Grid gridDimension (30, 30)) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                    gridResolution = (32, 32)
+                    isos = isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                     fitToBox =
                         G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
@@ -156,7 +156,9 @@ visualTests = testGroup "Visual"
                     in randomParabolas
 
                 gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
-                grid = let factor = 10 in Grid gridDimension (4*factor, 3*factor)
+                resolutionFactor = 50
+                gridResolution = (4*resolutionFactor, 3*resolutionFactor)
+                grid = Grid gridDimension gridResolution
 
                 isoLinesAtThreshold = isoLines grid geometry
 
@@ -165,6 +167,6 @@ visualTests = testGroup "Visual"
                 cairoScope $ do
                     setLineWidth 1
                     setColor (mmaColor colorIx threshold)
-                    for_ isos (\path -> pathSketch path)
+                    for_ isos pathSketch
                     stroke
     ]
