@@ -15,6 +15,8 @@ import qualified Test.ConvexHull
 import qualified Test.Cut
 import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
+import qualified Test.Geometry.Algorithms.Contour
+import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
@@ -26,7 +28,6 @@ import qualified Test.SimpleOperations
 import qualified Test.Trajectory
 import qualified Test.Triangulate
 import qualified Test.Voronoi
-import qualified Test.Geometry.Coordinates.Hexagonal
 
 import           Test.Tasty
 import qualified VisualOutput.FileSystem         as FileSystem
@@ -48,21 +49,22 @@ tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
         [ Test.Bezier.tests
-        , Test.ConvexHull.tests
         , Test.Color.tests
+        , Test.ConvexHull.tests
         , Test.Cut.tests
+        , Test.Delaunay.tests
         , Test.DifferentialEquation.tests
+        , Test.Geometry.Algorithms.Contour.tests
+        , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Geometry.Processes.Billard.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
         , Test.Penrose.tests
-        , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Reflection.tests
         , Test.Sampling.tests
         , Test.SimpleOperations.tests
         , Test.Trajectory.tests
         , Test.Triangulate.tests
-        , Test.Delaunay.tests
         , Test.Voronoi.tests
         ]
     ]

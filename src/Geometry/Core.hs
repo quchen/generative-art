@@ -102,6 +102,7 @@ import Data.List
 import Text.Printf
 import Control.DeepSeq
 import qualified System.Random.MWC as MWC
+import qualified Data.Set as S
 
 import Util
 
@@ -257,6 +258,9 @@ instance Transform Transformation where
 
 instance Transform a => Transform [a] where
     transform t = map (transform t)
+
+instance (Ord a, Transform a) => Transform (S.Set a) where
+    transform t = S.map (transform t)
 
 instance (Transform a, Transform b) => Transform (a,b) where
     transform t (a,b) = (transform t a, transform t b)
@@ -415,6 +419,9 @@ instance HasBoundingBox a => HasBoundingBox (Maybe a) where
     boundingBox = foldMap boundingBox
 
 instance HasBoundingBox a => HasBoundingBox [a] where
+    boundingBox = foldMap boundingBox
+
+instance HasBoundingBox a => HasBoundingBox (S.Set a) where
     boundingBox = foldMap boundingBox
 
 instance HasBoundingBox Line where
