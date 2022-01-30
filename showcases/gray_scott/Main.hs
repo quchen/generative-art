@@ -45,8 +45,9 @@ main = do
 
         frames = take 2000 (iterate (\(t, grid) -> (t + step, grayScott 5 params (addNoise t grid))) (0, initialState))
 
-    for_ (zip [0 :: Int ..] frames) $ \(index, (_, grid)) ->
+    for_ (zip [0 :: Int ..] frames) $ \(index, (_, grid)) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+        P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 noise :: Int -> Int -> Double -> Double
 noise x y t = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 } (fromIntegral x, fromIntegral y, 0.02 * t)
