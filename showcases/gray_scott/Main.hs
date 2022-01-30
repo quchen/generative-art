@@ -10,28 +10,31 @@ import Draw
 import Geometry hiding (Grid)
 import Plane
 
-picWidth, picHeight :: Num a => a
-picWidth = 192 * scaleFactor
-picHeight = 108 * scaleFactor
+spatialResolution :: Num a => a
+spatialResolution = 5
 
-scaleFactor :: Num a => a
-scaleFactor = 5
+temporalResolution, temporalResolutionWarmup :: Num a => a
+temporalResolution = 5
+temporalResolutionWarmup = 10
 
 main :: IO ()
 main = do
 
+    let picWidth = 192 * spatialResolution
+        picHeight = 120 * spatialResolution
+
     let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
 
-    let diffusionRate = 0.02 * scaleFactor
+    let diffusionRate = 0.02
         params = GS
             { feedRateU = 0.029
             , killRateV = 0.057
-            , diffusionRateU = 2 * diffusionRate
-            , diffusionRateV = diffusionRate
-            , step = 10 / scaleFactor
+            , diffusionRateU = 2 * diffusionRate * spatialResolution
+            , diffusionRateV = diffusionRate * spatialResolution
+            , step = 10 / temporalResolution
             , width = picWidth
             , height = picHeight }
-        warmup = grayScott (100 `div` scaleFactor) params { step = 1 }
+        warmup = grayScott (10*temporalResolutionWarmup) params { step = 10/temporalResolutionWarmup }
         initialState = warmup $ planeFromList
             [ row
             | y <- [0..picHeight - 1]
@@ -39,12 +42,12 @@ main = do
                     [ (u, v, 0, 0)
                     | x <- [0..picWidth - 1]
                     , let p = Vec2 x y
-                    , let u = 1 - sum ((\q -> exp (- 0.125 / scaleFactor^2 * normSquare (p -. q))) <$> seeds)
-                    , let v = sum ((\q -> exp (- 0.125 / scaleFactor^2 * normSquare (p +. Vec2 0 (2*scaleFactor) -. q))) <$> seeds)
+                    , let u = 1 - sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p -. q))) <$> seeds)
+                    , let v = sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p +. Vec2 0 (2*spatialResolution) -. q))) <$> seeds)
                     ]
             ]
 
-        frames = take 5000 (iterate (grayScott scaleFactor params) initialState)
+        frames = take 5000 (iterate (grayScott temporalResolution params) initialState)
 
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
