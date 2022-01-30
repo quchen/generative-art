@@ -11,24 +11,27 @@ import Geometry hiding (Grid)
 import Plane
 
 picWidth, picHeight :: Num a => a
-picWidth = 960
-picHeight = 540
+picWidth = 192 * scaleFactor
+picHeight = 108 * scaleFactor
+
+scaleFactor :: Num a => a
+scaleFactor = 5
 
 main :: IO ()
 main = do
 
     let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
 
-    let diffusionRate = 0.1
+    let diffusionRate = 0.02 * scaleFactor
         params = GS
             { feedRateU = 0.029
             , killRateV = 0.057
             , diffusionRateU = 2 * diffusionRate
             , diffusionRateV = diffusionRate
-            , step = 2
+            , step = 10 / scaleFactor
             , width = picWidth
             , height = picHeight }
-        warmup = grayScott 100 params { step = 1 }
+        warmup = grayScott (100 `div` scaleFactor) params { step = 1 }
         initialState = warmup $ planeFromList
             [ row
             | y <- [0..picHeight - 1]
@@ -36,28 +39,24 @@ main = do
                     [ (u, v, 0, 0)
                     | x <- [0..picWidth - 1]
                     , let p = Vec2 x y
-                    , let u = 1 - sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p -. q))) <$> seeds)
-                    , let v = sum ((\q -> exp (- 0.05 * diffusionRate * normSquare (p +. Vec2 0 10 -. q))) <$> seeds)
+                    , let u = 1 - sum ((\q -> exp (- 0.125 / scaleFactor^2 * normSquare (p -. q))) <$> seeds)
+                    , let v = sum ((\q -> exp (- 0.125 / scaleFactor^2 * normSquare (p +. Vec2 0 (2*scaleFactor) -. q))) <$> seeds)
                     ]
             ]
 
-        frames = take 5000 (iterate (grayScott 5 params) initialState)
+        frames = take 5000 (iterate (grayScott scaleFactor params) initialState)
 
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
 
-renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
-renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
-  where renderPixel = round . max 0 . min 255 . (* 255)
-
 renderImageColor :: ((Double, Double, Double, Double) -> (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
-renderImageColor f grid = P.Image picWidth picHeight (V.convert $ U.concatMap renderPixel (items grid))
+renderImageColor f Plane{..} = P.Image sizeX sizeY (V.convert $ U.concatMap renderPixel items)
   where
     renderPixel uv = let (r, g, b) = f uv in U.fromList [pixel8 r, pixel8 g, pixel8 b]
     pixel8 = round . clamp 0 255 . (* 255)
 
 colorFront :: (Double, Double, Double, Double) -> (Double, Double, Double)
-colorFront (_, _, _, dv)= tanh (400 * max 0 dv) *. (0.4, 0.1, 0)
+colorFront (_, _, _, dv) = tanh (400 * max 0 dv) *. (0.4, 0.1, 0)
 
 colorTrail :: (Double, Double, Double, Double) -> (Double, Double, Double)
 colorTrail (_, _, du, dv) = tanh (400 * max 0 du) *. (0, 0, 0.5) +. tanh (-400 * min 0 dv) *. (0.7, 0, -0.1)
