@@ -10,27 +10,29 @@ import Draw
 import Geometry hiding (Grid)
 import Plane
 
-spatialResolution :: Num a => a
-spatialResolution = 5
-
-temporalResolution, temporalResolutionWarmup :: Num a => a
-temporalResolution = 5
-temporalResolutionWarmup = 10
+-- | Settings that work well:
+-- * 1080p rendering:   spatialResolution = 10, temporalResolution = 9, temporalResolutionWarmup = 10
+-- * 540p rendering:    spatialResolution = 5,  temporalResolution = 3 (better quality with 5), temporalResolutionWarmup = 10
+-- * Rapid prototyping: spatialResolution = 3,  temporalResolution = 2, temporalResolutionWarmup = 6
+spatialResolution, temporalResolution, temporalResolutionWarmup :: Num a => a
+spatialResolution = 3
+temporalResolution = 2
+temporalResolutionWarmup = 6
 
 main :: IO ()
 main = do
 
     let picWidth = 192 * spatialResolution
-        picHeight = 120 * spatialResolution
+        picHeight = 108 * spatialResolution
 
     let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
 
-    let diffusionRate = 0.02
+    let diffusionRate = 0.004
         params = GS
             { feedRateU = 0.029
             , killRateV = 0.057
-            , diffusionRateU = 2 * diffusionRate * spatialResolution
-            , diffusionRateV = diffusionRate * spatialResolution
+            , diffusionRateU = 2 * diffusionRate * spatialResolution^2
+            , diffusionRateV = diffusionRate * spatialResolution^2
             , step = 10 / temporalResolution
             , width = picWidth
             , height = picHeight }
