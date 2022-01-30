@@ -95,14 +95,64 @@ simplifyTrajectory epsilon  = V.toList . go . V.fromList
 -- | Contains at most two neighbours of a point. Can be seen as representing the
 -- locations we can travel to on a line – one neighbour this way, or one neighbour
 -- the other way.
-data LinearNeighbourMap a = LinearNeighbourMap !(Map a a) !(Map a a)
+data LinearNeighbourMap a = LinearNeighbourMap !(Map a (OneTwo a))
     deriving (Eq, Ord, Show)
 
+data OneTwo a = One !a | Two !a !a
+    deriving (Eq, Ord, Show)
+
+-- | This instance crashes when
 instance Ord a => Semigroup (LinearNeighbourMap a) where
-    LinearNeighbourMap a b <> LinearNeighbourMap x y = LinearNeighbourMap (a<>x) (b<>y)
+    LinearNeighbourMap x <> LinearNeighbourMap y = LinearNeighbourMap $
+        M.unionWith
+            (\a b -> case (a,b) of
+                (One a', One b') -> Two a' b'
+                _otherwise -> error
+                    "Insertion of more than two neighbours in a LinearNeighbourMap.\
+                    \ Are you sure all your points have at most two neighbours?"
+            )
+            x
+            y
 
 instance Ord a => Monoid (LinearNeighbourMap a) where
-    mempty = LinearNeighbourMap mempty mempty
+    mempty = LinearNeighbourMap mempty
+
+-- | Yield of the points the neighbour map points to, and take it out of the map
+-- so we don’t follow this direction again.
+--
+-- Unlike when we walk in the backwards direction, we can simply pick an arbitrary
+-- target to go to if we have two neighbours.
+lnmLookupDeleteForward :: Ord a => a -> LinearNeighbourMap a -> Maybe (a, LinearNeighbourMap a)
+lnmLookupDeleteForward x (LinearNeighbourMap m) = case M.lookup x m of
+    Nothing        -> Nothing
+    Just (One a)   -> Just (a, LinearNeighbourMap (M.delete x m))
+    Just (Two a b) -> Just (a, LinearNeighbourMap (M.insert x (One b) m))
+
+-- | Like 'lnmLookupDeleteForward', but when deleting the backwards direction, we
+-- have to make sure we don’t arbitrarily delete a point we might have come from,
+-- but the very point we did.
+lnmLookupDeleteBackward :: Ord a => a -> a -> LinearNeighbourMap a -> Maybe (a, LinearNeighbourMap a)
+lnmLookupDeleteBackward from x (LinearNeighbourMap m) = case M.lookup x m of
+    Nothing        -> Nothing
+    Just (One a)   -> Just (a, LinearNeighbourMap (M.delete x m))
+    Just (Two a b) ->
+        let (extract, keep)
+                | from == a = (a,b)
+                | otherwise = (b,a)
+        in Just (extract, LinearNeighbourMap (M.insert x (One keep) m))
+
+-- | Delete what the current point points to, and Afterwards, take out the reverse
+-- direction so we don’t walk in cycles.
+lnmLookupDelete :: Ord a => a -> LinearNeighbourMap a -> Maybe (a, LinearNeighbourMap a)
+lnmLookupDelete start lnm = case lnmLookupDeleteForward start lnm of
+    Nothing -> Nothing
+    Just (target, lnm') -> case lnmLookupDeleteBackward start target lnm' of
+        Nothing -> Just (target, lnm')
+        Just (_xPointedToByNeighbour, lnm'') -> Just (target, lnm'')
+
+-- lnmArbitraryElement :: LinearNeighbourMap a -> Maybe a
+lnmArbitraryElement :: LinearNeighbourMap a -> Maybe a
+lnmArbitraryElement (LinearNeighbourMap m) = fmap fst (M.lookupMin m)
 
 -- | Given a collection of lines, put them back-to-front as much as we can, to
 -- extract the underlying trajectories.
@@ -124,11 +174,9 @@ reassembleLines neighbour = fmap toList . extractAllTrajectories . buildLinearNe
 -- values. This is the basis for later reconnecting the line segments to extract
 -- trajectories.
 buildLinearNeighbourMap :: (Foldable f, Ord point) => (line -> (point, point)) -> f line -> LinearNeighbourMap point
-buildLinearNeighbourMap neighbour = foldMap $ \point ->
-    let (a,b) = neighbour point
-    in if a == b
-        then mempty
-        else LinearNeighbourMap (M.singleton a b) (M.singleton b a)
+buildLinearNeighbourMap neighbours = foldMap $ \line ->
+    let (a,b) = neighbours line
+    in LinearNeighbourMap (M.fromList [(a, (One b)), (b, One a)])
 
 -- | Follow the entries in a neighbour map, starting at a point.
 -- Doing this twice will grow the trajectory in both directions.
@@ -138,22 +186,9 @@ extractSingleTrajectoryPass
     -> a
     -> Seq a
     -> (LinearNeighbourMap a, Seq a)
-extractSingleTrajectoryPass (LinearNeighbourMap neighboursA neighboursB) start result
-    | Just next <- M.lookup start neighboursA
-        -- We follow the »start -> next« entry in A, so we delete the start in A,
-        -- and so we don’t take back the same way when looking at B, we also delete
-        -- the target node in B.
-        --
-        -- Whether we recurse on (A,B) doesn’t matter, since 'buildNeighbourMap'
-        -- makes sure they don’t contain duplicates, and we look in both maps
-        -- in here anyway.
-        = extractSingleTrajectoryPass (LinearNeighbourMap  (M.delete start neighboursA) (M.delete next neighboursB)) next (result |> next)
-
-    | Just next <- M.lookup start neighboursB
-        -- Dito, but A⇆B.
-        = extractSingleTrajectoryPass (LinearNeighbourMap (M.delete next neighboursA) (M.delete start neighboursB)) next (result |> next)
-
-    | otherwise = (LinearNeighbourMap neighboursA neighboursB, result)
+extractSingleTrajectoryPass lnm start result
+    | Just (next, lnm') <- lnmLookupDelete start lnm = extractSingleTrajectoryPass lnm' next (result |> next)
+    | otherwise = (lnm, result)
 
 -- | Follow the entries in a neighbour map from a starting point twice, to extend
 -- it backwards and forwards as much as possible.
@@ -169,11 +204,8 @@ extractSingleTrajectory nMap start =
 
 -- | Repeatedly extract a trajectory, until the neighbour map is exhausted.
 extractAllTrajectories :: Ord a => LinearNeighbourMap a -> [Seq a]
-extractAllTrajectories (LinearNeighbourMap nMapA nMapB)
-    | Just (start, nMapA') <- M.minView nMapA =
-        let (nMap', trajectory) = extractSingleTrajectory (LinearNeighbourMap nMapA' nMapB) start
-        in trajectory : extractAllTrajectories nMap'
-    | Just (start, nMapB') <- M.minView nMapB =
-        let (nMap', trajectory) = extractSingleTrajectory (LinearNeighbourMap nMapA nMapB') start
-        in trajectory : extractAllTrajectories nMap'
+extractAllTrajectories lnm
+    | Just start <- lnmArbitraryElement lnm =
+        let (lnm', trajectory) = extractSingleTrajectory lnm start
+        in trajectory : extractAllTrajectories lnm'
     | otherwise = []
