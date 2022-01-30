@@ -110,7 +110,7 @@ parseRGBHex str = error ("parseRGBHex: cannot parse " ++ str)
 mmaColor :: Int -> Double -> AlphaColor Double
 mmaColor n alpha = rgba r g b alpha
   where
-    (r,g,b) = case rem n 15 of
+    (r,g,b) = case mod n 15 of
         0 ->  (0.368417, 0.506779, 0.709798)
         1 ->  (0.880722, 0.611041, 0.142051)
         2 ->  (0.560181, 0.691569, 0.194885)
