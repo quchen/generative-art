@@ -56,7 +56,7 @@ main = do
             [ P.below
                 [ fromGrayscale $ renderImageGrayscale (mapPlane (\(u, _, _, _) -> 1-u) grid)
                 , fromGrayscale $ renderImageGrayscale (mapPlane (\(_, v, _, _) -> v) grid)
-                , fromGrayscale $ renderImageGrayscale (mapPlane (\(u, v, _, _) -> v-u) grid)
+                , renderImageGradient' (\(_, _, du, dv) -> tanh (200*(du+dv)) *. (-1, 0, 1)) grid
                 ]
             , P.below
                 [ renderImageGradient' (\(_, _, du, _) -> tanh (400*du) *. (-1, 0, 1)) grid
@@ -65,7 +65,7 @@ main = do
                 ]
             , P.below
                 [ fromGrayscale $ renderImageGrayscale (mapPlane (\(u, v, _, _) -> 10*u*v*v) grid)
-                , renderImageGradient' (\(u, v, du, dv) -> tanh (400 * max 0 du) *. (0.1, 0, 0.6) +. tanh (-400 * min 0 dv) *. (0.8, 0, 0) +. tanh (400 * max 0 dv) *. (0.4, 0, 0) +. gradient (22*u*v*v)) grid
+                , renderImageGradient' (\(u, v, du, dv) -> tanh (400 * max 0 du) *. (0, 0, 0.5) +. tanh (-400 * min 0 dv) *. (0.7, 0, -0.1) +. tanh (400 * max 0 dv) *. (0.4, 0.1, 0) +. gradient (22*u*v*v)) grid
                 , renderImageGradient' (\(u, v, du, dv) -> tanh (200 * du) *. (0.75, 0, 0.5) -. tanh (200 * dv) *. (1, 0, 0) +. gradient (22*u*v*v)) grid
                 ]
             ]
