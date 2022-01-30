@@ -11,6 +11,7 @@ import qualified System.Random.MWC        as MWC
 
 import Draw
 import Geometry as G
+import Geometry.Algorithms.Contour.Internal
 
 import Test.Common
 import Test.Helpers
