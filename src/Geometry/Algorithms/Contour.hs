@@ -17,6 +17,26 @@ import Geometry.Trajectory
 
 
 
+-- | Find the iso lines of a function (= where the function has the same height,
+-- like e.g. height lines on a map) within a certain 'Grid' (which unifies size and
+-- resolution).
+--
+-- This function can be partially applied to cache the function values when drawing
+-- iso lines, which is especially useful if repeatedly sampling the function is
+-- expensive:
+--
+-- @
+-- -- BAD! Recalculates the values of f across the grid for each invocation
+-- 'isosBad' = ['isoLines' grid f isoHeight | isoHeight <- [1..10]]
+--
+-- -- Good: Calculates the value table only once
+-- 'isosGood' = let iso = 'isoLines' grid f
+--              in [iso isoHeight | isoHeight [1..10]]
+-- @
+--
+-- This is also the reason why the contour threshold is not simply zero, and
+-- calculating iso lines at height \(h\) is done with \(f_h(x) = f(x)-h\): we would
+-- have to recreate the value table for each invocation.
 isoLines
     :: Grid
     -> (Vec2 -> Double) -- ^ Scalar field
