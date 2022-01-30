@@ -106,16 +106,14 @@ colorTrail :: (Double, Double, Double, Double) -> (Double, Double, Double)
 colorTrail (_, _, du, dv) = tanh (400 * max 0 du) *. (0, 0, 0.5) +. tanh (-400 * min 0 dv) *. (0.7, 0, -0.1)
 
 colorReaction :: (Double, Double, Double, Double) -> (Double, Double, Double)
-colorReaction (u, v, _, _) = case 25 * u * v * v of
+colorReaction (u, v, _, _) = case tanh (30 * u * v * v) of
     x | x < 0.5   -> interpolate (2*x) color1 color0
-      | x < 1.0   -> interpolate (2*(x-0.5)) color2 color1
-      | otherwise -> interpolate (x-1) color3 color2
+      | otherwise -> interpolate (2*(x-0.5)) color2 color1
   where
-    color0, color1, color2, color3 :: (Double, Double, Double)
+    color0, color1, color2 :: (Double, Double, Double)
     color0 = (0, 0, 0.1)
-    color1 = 0.7 *. (0.1, 0.25, 0.5)
+    color1 = (0.1, 0.25, 0.5)
     color2 = (0.1, 0.9, 0.1)
-    color3 = (255, 0, 0)
     interpolate a c1 c2 = a *. c1 +. (1-a) *. c2
 
 clamp :: (Ord a, Num a) => a -> a -> a -> a
