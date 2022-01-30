@@ -2,22 +2,22 @@ module Test.Geometry.Contour (tests) where
 
 
 
-import Data.Foldable
-import Graphics.Rendering.Cairo as C
-import qualified System.Random.MWC as MWC
-import Control.Monad.ST
-import Control.Monad
-import qualified Data.Vector as V
+import           Control.Monad
+import           Control.Monad.ST
+import           Data.Foldable
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as C
+import qualified System.Random.MWC        as MWC
 
 import Draw
-import Geometry as G
+import Geometry         as G
 import Geometry.Contour
 
 import Test.Common
+import Test.Helpers
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Test.Helpers
 
 
 
@@ -38,13 +38,13 @@ findRootOnLineTests = testGroup "Narrow down root location on a line"
     [ testCase "Linear function along x axis" $ do
         let line = Line (Vec2 (-1) 0) (Vec2 1 0)
             f (Vec2 x _) = x
-            actual = narrowDownToRoot f line 1e-10
+            actual = binarySearchRoot f line 1e-10
             expected = Vec2 0 0
         assertApproxEqual expected actual
     , testCase "Polynomial function along diagonal" $ do
         let line = Line (Vec2 (-1) (-1)) (Vec2 1 1)
             f (Vec2 x y) = (x+1)*y^2
-            actual = narrowDownToRoot f line 1e-10
+            actual = binarySearchRoot f line 1e-10
             expected = Vec2 0 0
         assertApproxEqual expected actual
     ]
@@ -112,17 +112,31 @@ contourEdgesTests = testGroup "Contour edges" []
 
 visualTests :: TestTree
 visualTests = testGroup "Visual"
-    [ testCase "Concentric circles" $ do
+    [ testCase "Single parabola" $ do
+        renderAllFormats 100 100 "out/test_diagonal" $ do
+            cairoScope $ grouped (paintWithAlpha 0.3) $ cartesianCoordinateSystem
+            let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
+                isos = isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
+                fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
+                fitToBox =
+                    G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
+            cairoScope $ do
+                setLineWidth 1
+                for_ (fitToBox isos) pathSketch
+                setColor (mmaColor 0 1)
+                stroke
+
+    ,  testCase "Concentric circles" $ do
         renderAllFormats 100 100 "out/test" $ do
             for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-                    cs = contours (Grid gridDimension (300, 300)) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                    isos = isoLines (Grid gridDimension (30, 30)) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                     fitToBox =
                         G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
                 cairoScope $ do
                     setLineWidth 1
-                    for_ (fitToBox cs) lineSketch
+                    for_ (fitToBox isos) pathSketch
                     setColor (mmaColor colorIndex 1)
                     stroke
 
@@ -138,19 +152,19 @@ visualTests = testGroup "Visual"
                                 let r = 50
                                     center = Vec2 x y
                                 pure (circle r center)
-                            pure (\v -> sum (map ($ v) fs))
+                            pure (\v -> sum [f v | f <- fs])
                     in randomParabolas
 
                 gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
-                grid = let factor = 30 in Grid gridDimension (4*factor, 3*factor)
+                grid = let factor = 10 in Grid gridDimension (4*factor, 3*factor)
 
-                contourAtThreshold = contours grid geometry
+                isoLinesAtThreshold = isoLines grid geometry
 
             for_ (zip [0..] [1,2,3,4,5]) $ \(colorIx, threshold) -> do
-                let isoLines = contourAtThreshold threshold
+                let isos = isoLinesAtThreshold threshold
                 cairoScope $ do
                     setLineWidth 1
-                    setColor (mmaColor colorIx threshold )
-                    for_ isoLines lineSketch
+                    setColor (mmaColor colorIx threshold)
+                    for_ isos (\path -> pathSketch path)
                     stroke
     ]

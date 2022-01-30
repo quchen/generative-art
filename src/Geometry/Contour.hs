@@ -8,37 +8,42 @@ import           Data.Set      (Set)
 import qualified Data.Set      as S
 import           Data.Vector   (Vector, (!))
 import qualified Data.Vector   as V
-import           Geometry      as G
+import           Data.Ord
+import           Prelude       hiding (lines)
 
+import Geometry.Core
 import Numerics.Interpolation
+import Geometry.Trajectory
 
 
 
-contours
+
+isoLines
     :: Grid
     -> (Vec2 -> Double) -- ^ Scalar field
     -> Double           -- ^ Contour threshold
-    -> Set Line         -- ^ Contours of the field
-contours grid f  =
+    -> [[Vec2]]         -- ^ Contours of the field
+isoLines grid f  =
     let table = valueTable grid f
     in \threshold ->
         let tableThresholded = applyThreshold threshold table
-            classified = classify tableThresholded
-            edges = contourEdges classified
+            classified = classifySquares tableThresholded
+            edgeSemengts = classificationsToContourEdgeSegments classified
 
-            tolerance = 1e-2
-            contourLines = S.map (\iEdges -> optimizeDiscreteLine grid f threshold iEdges tolerance) edges
-        in contourLines
+            reassembled = reassembleLines (\(LineBetweenEdges e1 e2) -> (e1, e2)) edgeSemengts
+            tolerance = 1e-3
+            sandedDown = (map.map) (\iEdge -> optimizeDiscreteLine grid f threshold iEdge tolerance) reassembled
+        in sandedDown
 
 -- | Find the root of a scalar field along a line.
-narrowDownToRoot :: (Vec2 -> Double) -> Line -> Double -> Vec2
-narrowDownToRoot f line@(Line start end) tolerance
+binarySearchRoot :: (Vec2 -> Double) -> Line -> Double -> Vec2
+binarySearchRoot f line@(Line start end) tolerance
     | lineLength line <= tolerance = middle
-    | signum fStart /= signum fMiddle = narrowDownToRoot f (Line start middle) tolerance
-    | signum fMiddle /= signum fEnd = narrowDownToRoot f (Line middle end) tolerance
+    | signum fStart /= signum fMiddle = binarySearchRoot f (Line start middle) tolerance
+    | signum fMiddle /= signum fEnd = binarySearchRoot f (Line middle end) tolerance
 
     -- EMERGENCY UNCOMMENT IF THE ERROR BELOW COMES UP
-    -- signum fStart == signum fMiddle && signum fMiddle == signum fEnd = middle
+    -- otherwise = middle
     | otherwise = bugError "This shouldn’t happen if we only have lines that change sign,\
                            \ picked by marching squares, but I’m sure we’ll be surprised.\
                            \ Might not be worth investigating though, simply abort the alg\
@@ -49,19 +54,23 @@ narrowDownToRoot f line@(Line start end) tolerance
     fMiddle = f middle
     fEnd    = f end
 
-optimizeDiscreteLine
+optimizeIsoIntersections
     :: Grid
-    -> (Vec2 -> Double) -- ^ Scalar field
-    -> Double           -- ^ Contour threshold
-    -> (IEdge, IEdge)   -- ^ Edges of a discrete cell the contour passes through
-    -> Double           -- ^ Tolerance
-    -> Line             -- ^ Line between points on the discrete edges, which approximates the real contour
-optimizeDiscreteLine grid f threshold (IEdge ivec1start ivec1end, IEdge ivec2start ivec2end) tolerance =
-    let edge1 = Line (fromGrid grid ivec1start) (fromGrid grid ivec1end)
-        edge2 = Line (fromGrid grid ivec2start) (fromGrid grid ivec2end)
-        start = narrowDownToRoot (\x -> f x - threshold) edge1 tolerance
-        end = narrowDownToRoot (\x -> f x - threshold) edge2 tolerance
+    -> (Vec2 -> Double)    -- ^ Scalar field
+    -> Double              -- ^ Contour threshold
+    -> LineBetweenEdges -- ^ Edges of a discrete cell the contour passes through
+    -> Double              -- ^ Tolerance
+    -> Line                -- ^ Line between points on the discrete edges, which approximates the real contour
+optimizeIsoIntersections grid f threshold (LineBetweenEdges iEdge1 iEdge2) tolerance =
+    let start = optimizeDiscreteLine grid f threshold iEdge1 tolerance
+        end   = optimizeDiscreteLine grid f threshold iEdge2 tolerance
     in Line start end
+
+optimizeDiscreteLine :: Grid -> (Vec2 -> Double) -> Double -> IEdge -> Double -> Vec2
+optimizeDiscreteLine grid f threshold (IEdge iStart iEnd) tolerance =
+    let line = Line (fromGrid grid iStart) (fromGrid grid iEnd)
+    in binarySearchRoot (\x -> f x - threshold) line tolerance
+    -- in (fromGrid grid iStart +. fromGrid grid iEnd) /. 2
 
 -- | Specification of a discrete grid
 data Grid = Grid
@@ -75,8 +84,8 @@ fromGrid
     -> IVec2 -- ^ Discrete coordinate
     -> Vec2  -- ^ Continuous coordinate
 fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
-    let x = linearInterpolate ((0, fromIntegral iMax)) ((xMin, xMax)) (fromIntegral i)
-        y = linearInterpolate ((0, fromIntegral jMax)) ((yMin, yMax)) (fromIntegral j)
+    let x = linearInterpolate (0, fromIntegral iMax) (xMin, xMax) (fromIntegral i)
+        y = linearInterpolate (0, fromIntegral jMax) (yMin, yMax) (fromIntegral j)
     in Vec2 x y
 
 -- | We first index by i and then j, so that vec!i!j has the intuitive meaning of »go in i/x direction and then in j/y.
@@ -104,8 +113,8 @@ applyThreshold threshold = (fmap.fmap) xo
 ifor :: Vector a -> (Int -> a -> b) -> Vector b
 ifor = flip V.imap
 
-classify :: Vector (Vector XO) -> Vector (Vector CellClassification)
-classify xos =
+classifySquares :: Vector (Vector XO) -> Vector (Vector CellClassification)
+classifySquares xos =
     -- Our squares extend from the top left to the bottom right, so we drop
     -- the last element or the bottom-right would run out of bounds of the Vec.
     ifor (V.init xos) $
@@ -119,15 +128,24 @@ classify xos =
 
 data IVec2 = IVec2 !Int !Int
     deriving (Eq, Ord, Show)
+
 data IEdge = IEdge !IVec2 !IVec2
     deriving (Eq, Ord, Show)
 
-contourEdges :: Vector (Vector CellClassification) -> Set (IEdge, IEdge)
-contourEdges classifiedCells = fold.fold $ ifor classifiedCells $ \i cy -> ifor cy $ \j classification ->
-    let top    = IEdge (IVec2     i     j) (IVec2 (i+1)     j)
-        right  = IEdge (IVec2 (i+1)     j) (IVec2 (i+1) (j+1))
-        left   = IEdge (IVec2     i     j) (IVec2     i (j+1))
-        bottom = IEdge (IVec2     i (j+1)) (IVec2 (i+1) (j+1))
+data LineBetweenEdges = LineBetweenEdges !IEdge !IEdge
+    deriving (Eq, Ord, Show)
+
+classificationsToContourEdgeSegments :: Vector (Vector CellClassification) -> Set LineBetweenEdges
+classificationsToContourEdgeSegments classifiedCells = fold.fold $ ifor classifiedCells $ \i cy -> ifor cy $ \j classification ->
+    let topLeft     = IVec2 i      j
+        topRight    = IVec2 (i+1)  j
+        bottomLeft  = IVec2 i      (j+1)
+        bottomRight = IVec2 (i+1)  (j+1)
+
+        top    = IEdge topLeft topRight
+        right  = IEdge topRight bottomRight
+        left   = IEdge topLeft bottomLeft
+        bottom = IEdge bottomLeft bottomRight
 
         -- TODO: do this right: check which kind of saddle point we have. For
         -- now, we pick one of the choices arbitrarily.
@@ -138,50 +156,50 @@ contourEdges classifiedCells = fold.fold $ ifor classifiedCells $ \i cy -> ifor 
                            X X -> S.empty
 
         CellClassification X X
-                           X O -> S.singleton (bottom, right)
+                           X O -> S.singleton (LineBetweenEdges bottom right)
 
         CellClassification X X
-                           O X -> S.singleton (bottom, left)
+                           O X -> S.singleton (LineBetweenEdges bottom left)
 
         CellClassification X X
-                           O O -> S.singleton (left, right)
+                           O O -> S.singleton (LineBetweenEdges left right)
 
         CellClassification X O
-                           X X -> S.singleton (top, right)
+                           X X -> S.singleton (LineBetweenEdges top right)
 
         CellClassification X O
-                           X O -> S.singleton (top, bottom)
+                           X O -> S.singleton (LineBetweenEdges top bottom)
 
         CellClassification X O
                            O X -> S.fromList $ disambiguateSaddle
-                                    [(left, top), (bottom, right)]
-                                    [(left, bottom), (top, right)]
+                                    [(LineBetweenEdges left top), (LineBetweenEdges bottom right)]
+                                    [(LineBetweenEdges left bottom), (LineBetweenEdges top right)]
 
         CellClassification X O
-                           O O -> S.singleton (left, top)
+                           O O -> S.singleton (LineBetweenEdges left top)
 
         CellClassification O X
-                           X X -> S.singleton (left, top)
+                           X X -> S.singleton (LineBetweenEdges left top)
 
         CellClassification O X
                            X O -> S.fromList $ disambiguateSaddle
-                                    [(left, top), (bottom, right)]
-                                    [(left, bottom), (top, right)]
+                                    [(LineBetweenEdges left top), (LineBetweenEdges bottom right)]
+                                    [(LineBetweenEdges left bottom), (LineBetweenEdges top right)]
 
         CellClassification O X
-                           O X -> S.singleton (top, bottom)
+                           O X -> S.singleton (LineBetweenEdges top bottom)
 
         CellClassification O X
-                           O O -> S.singleton (top, right)
+                           O O -> S.singleton (LineBetweenEdges top right)
 
         CellClassification O O
-                           X X -> S.singleton (left, right)
+                           X X -> S.singleton (LineBetweenEdges left right)
 
         CellClassification O O
-                           X O -> S.singleton (left, bottom)
+                           X O -> S.singleton (LineBetweenEdges left bottom)
 
         CellClassification O O
-                           O X -> S.singleton (right, bottom)
+                           O X -> S.singleton (LineBetweenEdges right bottom)
 
         CellClassification O O
                            O O -> S.empty
