@@ -96,6 +96,7 @@ executables:
             - parallel
             - comonad
             - JuicyPixels
+            - JuicyPixels-extra
 
 tests:
     testsuite:
