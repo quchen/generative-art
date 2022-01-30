@@ -51,8 +51,9 @@ main = do
 
         frames = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t) params) state)) (0 :: Int, initialState))
 
-    for_ frames $ \(index, grid) ->
+    for_ frames $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+        P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott -> GrayScott
 scene t baseParams =
