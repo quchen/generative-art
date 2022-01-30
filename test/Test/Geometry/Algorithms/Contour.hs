@@ -113,7 +113,7 @@ contourEdgesTests = testGroup "Contour edges" []
 visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testCase "Single parabola" $ do
-        renderAllFormats 100 100 "out/test_diagonal" $ do
+        renderAllFormats 100 100 "docs/iso_lines/parabola" $ do
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 isos = isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
                 fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
@@ -126,7 +126,7 @@ visualTests = testGroup "Visual"
                 stroke
 
     ,  testCase "Concentric circles" $ do
-        renderAllFormats 100 100 "out/test" $ do
+        renderAllFormats 100 100 "docs/iso_lines/circles" $ do
             for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                     gridResolution = (32, 32)
@@ -141,28 +141,29 @@ visualTests = testGroup "Visual"
                     stroke
 
     , testCase "Bubble iso lines" $ do
-        renderAllFormats 400 300 "out/test2" $ do
+        renderAllFormats 320 220 "docs/iso_lines/potentials" $ do
             let geometry =
-                    let circle r center = \v -> r^2 / normSquare (v -. center)
-                        randomParabolas = runST $ do
-                            gen <- MWC.initialize (V.fromList [1])
-                            fs <- replicateM 10 $ do
-                                x <- MWC.uniformRM (0, 400) gen
-                                y <- MWC.uniformRM (0, 300) gen
-                                let r = 50
+                    let coulombPotential q center = \v -> q / (0.001 + normSquare (v -. center))
+                        randomCharges = runST $ do
+                            gen <- MWC.initialize (V.fromList [2])
+                            fs <- replicateM 16 $ do
+                                x <- MWC.uniformRM (70, 330) gen
+                                y <- MWC.uniformRM (70, 230) gen
+                                let q = 1000
                                     center = Vec2 x y
-                                pure (circle r center)
+                                pure (coulombPotential q center)
                             pure (\v -> sum [f v | f <- fs])
-                    in randomParabolas
+                    in randomCharges
 
                 gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
-                resolutionFactor = 50
+                resolutionFactor = 80
                 gridResolution = (4*resolutionFactor, 3*resolutionFactor)
                 grid = Grid gridDimension gridResolution
 
                 isoLinesAtThreshold = isoLines grid geometry
 
-            for_ (zip [0..] [1,2,3,4,5]) $ \(colorIx, threshold) -> do
+            C.translate (-20) (-50)
+            for_ (zip [0..] [2**fromIntegral n | n <- [1..7]]) $ \(colorIx, threshold) -> do
                 let isos = isoLinesAtThreshold threshold
                 cairoScope $ do
                     setLineWidth 1
