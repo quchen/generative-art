@@ -14,6 +14,7 @@ module Geometry.Bezier
 
     -- * Interpolation
     , bezierSmoothen
+    , bezierSmoothenLoop
 
     -- * References
     -- $references
@@ -261,3 +262,12 @@ target n vertices = V.generate n $ \i -> case () of
     _ | i == 0    ->      vertices ! 0     +. 2 *. vertices ! 1
       | i == n-1  -> 8 *. vertices ! (n-1) +.      vertices ! n
       | otherwise -> 4 *. vertices ! i     +. 2 *. vertices ! (i+1)
+
+-- | Like 'bezierSmoothen', but will smoothly connect the start and the end of the
+-- given trajectory as well. (Simply using 'bezierSmoothen' will yield a sharp bend
+-- at the line’s origin.)
+bezierSmoothenLoop :: [Vec2] -> [Bezier]
+bezierSmoothenLoop points = (drop 1 . dropFromEnd 1 . bezierSmoothen) (points ++ take 3 points)
+
+dropFromEnd :: Int -> [b] -> [b]
+dropFromEnd n xs = zipWith const xs (drop n xs)

@@ -3,7 +3,7 @@ module Test.Bezier (tests) where
 
 
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
 import Geometry as G
@@ -23,6 +23,7 @@ tests = testGroup "Bezier curves"
             [ somePoints
             , picassoSquirrel
             , subdivideBezierCurveTest
+            , bezierLoop
             ]
         ]
     ]
@@ -248,3 +249,17 @@ interpolateSingleCurveRender _w _h = do
         cairoScope (setColor (mmaColor 0 1) >> circle e)
         cairoScope (setColor (mmaColor 3 1) >> circle u)
         cairoScope (setSourceRGBA 0 0 0 0.1 >> connect e u)
+
+bezierLoop :: TestTree
+bezierLoop = testCase "Loop interpolation" $ renderAllFormats 60 100 "docs/interpolation/bezier_loop_interpolation" $ do
+    let geometry =
+            let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1)]
+                smoothened = bezierSmoothenLoop points
+                fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (60-10) (100-10)) FitAllMaintainAspect)
+            in fitToBox smoothened
+
+    for_ geometry $ \bezier -> cairoScope $ do
+        bezierCurveSketch [bezier]
+        setColor (mmaColor 0 0.5)
+        setLineWidth 2
+        stroke

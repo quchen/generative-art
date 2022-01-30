@@ -13,6 +13,15 @@ points.
 
 ![](2_picasso_squirrel.svg)
 
+We can also do this for closed trajectories with a trick: each Bezier curve is
+only influenced by its left and right neighbouring point. We can take the three
+first points of the loop and duplicate it at its end, and we’ll get a smooth
+interpolation with some elements overlapping, because we took part of the curve
+twice. We can then remove the bezier curves that correspond to these overlaps
+and get a perfectly smooth result. Can you see where the loop’s start is in this
+picture? I can’t.
+
+![](bezier_loop_interpolation.svg)
 
 ## Output compression
 

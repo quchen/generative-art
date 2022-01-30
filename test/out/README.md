@@ -105,6 +105,8 @@ over quickly.
 
 ![Missing image!](../../docs/interpolation/4_bezier_subdivide.svg)
 
+![Missing image!](../../docs/interpolation/bezier_loop_interpolation.svg)
+
 ![Missing image!](../../docs/iso_lines/circles.svg)
 
 ![Missing image!](../../docs/iso_lines/parabola.svg)
