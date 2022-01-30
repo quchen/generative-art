@@ -3,19 +3,12 @@ module Algebra.VectorSpace where
 import Data.Foldable (foldl')
 
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
--- space, but also concepts like 'Angle's or 'Distance's – anything that can be
--- added, inverted, and multiplied with a scalar.
+-- space, but also concepts like 'Angle's – anything that can be added, inverted,
+-- and multiplied with a scalar.
 --
--- Vector space laws:
---
---     (1) Associativity of addition: @a +. (b +. c) = (a +. b) +. c@
---     (2) Neutral ('zero'): @a +. 'zero' = a = 'zero' +. a@
---     (3) Inverse ('negateV'): @a +. 'negateV' a = 'zero' = 'negateV' a +. a@. '(-.)' is a shorthand for the inverse: @a -. b = a +. negate b@.
---     (4) Commutativity of addition: @a +. b = b +. a@
---     (5) Distributivity of scalar multiplication 1: @a *. (b +. c) = a *. b +. a *. c@
---     (6) Distributivity of scalar multiplication 2: @(a + b) *. c = a *. c +. b *. c@
---     (7) Compatibility of scalar multiplication: @(a * b) *. c = a *. (b *. c)@
---     (8) Scalar identity: @1 *. a = a@
+-- Vector spaces come with a number of laws that you can look up on Wikipedia. The
+-- short version is: each operation behaves like addition/multiplication on normal
+-- numbers.
 class VectorSpace v where
     {-# MINIMAL (+.), (*.), ((-.) | negateV), zero #-}
     -- | Vector addition

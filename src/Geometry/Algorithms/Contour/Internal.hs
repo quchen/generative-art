@@ -33,9 +33,39 @@ import Geometry.Trajectory
 --              in [iso isoHeight | isoHeight [1..10]]
 -- @
 --
--- This is also the reason why the contour threshold is not simply zero, and
--- calculating iso lines at height \(h\) is done with \(f_h(x) = f(x)-h\): we would
--- have to recreate the value table for each invocation.
+-- This is also the reason why the contour threshold is not implitly zero but an
+-- explicit parameter: if we used the family of functions \(f_h(x) = f(x)-h\) to
+-- calculate the iso lines at height \(h\), we would have to recreate the value
+-- table for each invocation.
+--
+-- === __Concrete example__
+--
+-- Let’s draw some circles! The equation of a circle of radius \(r\) at point \(p\) is
+--
+-- \[
+-- \left\{ x \; \big| \; \| x-p\| = r,  \, x\in\mathbb R^2 \right\}
+-- \]
+--
+-- We can translate this directly into code like so (squaring the equation to save us a costly call to 'sqrt'),
+--
+-- @
+-- circle p = \\x -> 'normSquare' (x '-.' p)
+-- @
+--
+-- and finding the contour lines at height \(r^2\) gives us our circles!
+--
+-- @
+-- grid :: 'Grid'
+-- grid = 'Grid' ('Vec2' (-10) (-10), 'Vec2' 10 10) (100, 100)
+--
+-- circleTrajectory :: 'Double' -> ['Vec2']
+-- circleTrajectory =
+--     let iso = 'isoLines' grid (circle 'zero')
+--     in \\r -> head (iso (r'^'2)) -- NB head is safe here because each of our functions has exactly one iso line at a certain height
+--
+-- manyCircles :: [['Vec2']]
+-- manyCircles = 'map' circleTrajectory [1..9]
+-- @
 isoLines
     :: Grid
     -> (Vec2 -> Double) -- ^ Scalar field
@@ -93,8 +123,9 @@ optimizeDiscreteLine grid f threshold (IEdge iStart iEnd) tolerance =
 -- | Specification of a discrete grid, used for sampling contour lines.
 --
 -- Subdivide the unit square with 50 steps in x direction, and 30 in y direction:
+--
 -- @
--- Grid (Vec2 0 0, Vec2 1 1) (50, 30)
+-- 'Grid' ('Vec2' 0 0, 'Vec2' 1 1) (50, 30)
 -- @
 data Grid = Grid
     { _range :: (Vec2, Vec2)  -- ^ Range of continuous coordinates

@@ -154,15 +154,20 @@ lnmLookupDelete start lnm = case lnmLookupDeleteForward start lnm of
 lnmArbitraryElement :: LinearNeighbourMap a -> Maybe a
 lnmArbitraryElement (LinearNeighbourMap m) = fmap fst (M.lookupMin m)
 
--- | Given a collection of lines, put them back-to-front as much as we can, to
--- extract the underlying trajectories.
+-- | Given a collection of lines that fit together back-to-back (as in '=='),
+-- reassemble them to extract the underlying points in order. This works even for
+-- collections of multiple cut-up trajectories, as long as they do not share
+-- any points.
+--
+-- In a way, this can be seen as the inverse of pairing up points to line segments,
 --
 -- @
 -- 'reassembleLines' ('zipWith' 'Line' xs ('tail' xs)) '==' xs
 -- @
 --
--- This algorithm wasn’t tested for cases when three lines originate at one point.
--- I have no idea what happens in that case, but certainly nothing useful.
+-- __Unsafety warning:__ This algorithm wasn’t tested for cases when multiple
+-- trajectories sahre points. I have no idea what happens in that case, but
+-- certainly nothing useful.
 reassembleLines
     :: (Ord point, Foldable f)
     => (line -> (point, point)) -- ^ How to extract two neighbouring points from the data given
