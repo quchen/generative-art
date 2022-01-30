@@ -30,6 +30,7 @@ tests = testGroup "Contour finding"
     , applyThresholdTests
     , classifyTests
     , contourEdgesTests
+    , closedIsoIsClosedTest
     , visualTests
     ]
 
@@ -109,6 +110,10 @@ classifyTests = testGroup "Classify" []
 contourEdgesTests :: TestTree
 contourEdgesTests = testGroup "Contour edges" []
 
+closedIsoIsClosedTest :: TestTree
+closedIsoIsClosedTest = testCase "Closed iso line results in closed trajectory" $ do
+    let iso = head (isoLines (Grid (Vec2 (-2) (-2), Vec2 2 2) (10, 10)) normSquare 1)
+    assertBool "First and last entries are not the same" (head iso == last iso)
 
 visualTests :: TestTree
 visualTests = testGroup "Visual"
