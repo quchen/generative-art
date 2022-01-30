@@ -17,9 +17,8 @@ picHeight = 540
 
 main :: IO ()
 main = do
-    [ufile, vfile] <- getArgs
-    Right (P.ImageY8 uimg) <- P.readPng ufile
-    Right (P.ImageY8 vimg) <- P.readPng vfile
+    [uvfile] <- getArgs
+    Right (P.ImageRGB8 uvimg) <- P.readPng uvfile
 
     let diffusionRate = 0.1
         params = GS
@@ -36,8 +35,9 @@ main = do
             , let row =
                     [ (u, v, 0, 0)
                     | x <- [0..picWidth - 1]
-                    , let u = fromIntegral (P.pixelAt uimg x y) / 255
-                    , let v = fromIntegral (P.pixelAt vimg x y) / 255
+                    , let P.PixelRGB8 _ pv pu = P.pixelAt uvimg x y
+                    , let u = fromIntegral pu / 255
+                    , let v = fromIntegral pv / 255
                     ]
             ]
 
@@ -45,12 +45,7 @@ main = do
 
     for_ (zip [0 :: Int ..] frames) $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
-        P.writePng (printf "out/gray_scott_%06i_u.png" index) (renderImageGrayscale (mapPlane (\(u, _, _, _) -> u) grid))
-        P.writePng (printf "out/gray_scott_%06i_v.png" index) (renderImageGrayscale (mapPlane (\(_, v, _, _) -> v) grid))
-
-renderImageGrayscale :: Plane Double -> P.Image P.Pixel8
-renderImageGrayscale grid = P.Image picWidth picHeight (V.convert (items (mapPlane renderPixel grid)))
-  where renderPixel = round . max 0 . min 255 . (* 255)
+        P.writePng (printf "out/gray_scott_%06i_uv.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 renderImageColor :: ((Double, Double, Double, Double) -> (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
 renderImageColor f grid = P.Image picWidth picHeight (V.convert $ U.concatMap renderPixel (items grid))
