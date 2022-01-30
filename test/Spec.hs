@@ -12,10 +12,10 @@ import System.FilePath
 import qualified Test.Bezier
 import qualified Test.Color
 import qualified Test.ConvexHull
-import qualified Test.Cut
 import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
 import qualified Test.Geometry.Algorithms.Contour
+import qualified Test.Geometry.Algorithms.Cut
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.IntersectionLL
@@ -51,10 +51,10 @@ tests = testGroup "Test suite"
         [ Test.Bezier.tests
         , Test.Color.tests
         , Test.ConvexHull.tests
-        , Test.Cut.tests
         , Test.Delaunay.tests
         , Test.DifferentialEquation.tests
         , Test.Geometry.Algorithms.Contour.tests
+        , Test.Geometry.Algorithms.Cut.tests
         , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Geometry.Processes.Billard.tests
         , Test.IntersectionLL.tests

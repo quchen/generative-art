@@ -1,6 +1,6 @@
 -- | __INTERNAL MODULE__, contents may change arbitrarily
 
-module Geometry.Cut.Internal where
+module Geometry.Algorithms.Cut.Internal where
 
 
 

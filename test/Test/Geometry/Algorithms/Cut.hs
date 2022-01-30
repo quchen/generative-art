@@ -1,4 +1,4 @@
-module Test.Cut (tests) where
+module Test.Geometry.Algorithms.Cut (tests) where
 
 
 
@@ -10,7 +10,7 @@ import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry
-import Geometry.Cut.Internal
+import Geometry.Algorithms.Cut.Internal
 import Geometry.Shapes
 
 import Test.Common
