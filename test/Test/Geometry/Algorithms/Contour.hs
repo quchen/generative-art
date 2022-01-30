@@ -167,6 +167,6 @@ visualTests = testGroup "Visual"
                 cairoScope $ do
                     setLineWidth 1
                     setColor (mmaColor colorIx threshold)
-                    for_ isos pathSketch
+                    for_ isos $ \path -> pathSketch (simplifyTrajectory 0.4 path)
                     stroke
     ]
