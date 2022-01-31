@@ -65,7 +65,7 @@ initialStateFromScratch = warmup $ planeFromList
     warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
 simulation :: Int -> Grid -> [(Int, Grid)]
-simulation t0 initialState = takeWhile ((< 3000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
+simulation t0 initialState = takeWhile ((< 4000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = for_ frames $ \(index, grid) -> do
@@ -85,17 +85,21 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
         }
     noise (Vec2 x y) z = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.5 } (x / spatialResolution, y / spatialResolution, z)
     scene1 = baseParams
-    t1 = transition 580 50 t
+    t1 = transition 980 50 t
     scene2 = baseParams { step = 2 / temporalResolution }
-    t2 = transition 600 10 t
+    t2 = transition 1000 10 t
     scene3 = baseParams { killRateV = const 0.060, step = 2 / temporalResolution }
-    t3 = transition 650 100 t
+    t3 = transition 1050 100 t
     scene4 = baseParams { killRateV = const 0.062, step = 2 / temporalResolution }
-    t4 = transition 700 50 t
+    t4 = transition 1100 50 t
     scene5 = baseParams { killRateV = const 0.062, step = 5 / temporalResolution }
-    t5 = transition 1200 50 t
+    t5 = transition 1600 50 t
     scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
-    t6 = linearTransition 1200 2200 t
+    t6 = linearTransition 1600 1700 t
+    scene7 = baseParams { killRateV = const 0.060, feedRateU = \p -> 0.040 + 0.015 * noise p (t/30) }
+    t7 = linearTransition 1700 2200 t
+
+    
     scene7 = baseParams
     t7 = transition 2200 50 t
     scene8 = baseParams { killRateV = const 0.065 }
@@ -107,6 +111,7 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     scene11 = baseParams { killRateV = const 0.060, feedRateU = \p -> 0.030 + 0.015 * noise p (t/30) }
     t11 = transition 3000 50 t
     end = baseParams { killRateV = const 0.62 }
+    t12
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration t a b
