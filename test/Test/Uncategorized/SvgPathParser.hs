@@ -46,6 +46,10 @@ tests = testGroup "SVG path parser"
                   , Left (Line (Vec2 12 10) (Vec2 12  1)) ]
                 ]
         assertParsesToPath path expected
+    , testCase "Bezier; M, C" $ do
+        let path = "M 1 1 C 1 2 1 3 1 4"
+            expected = [Right (Bezier (Vec2 1 1) (Vec2 1 2) (Vec2 1 3) (Vec2 1 4))]
+        assertParsesToPath path (S.singleton expected)
     ]
 
 assertParsesToPath :: Text -> Set [Either Line Bezier] -> Assertion
