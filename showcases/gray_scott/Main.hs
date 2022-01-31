@@ -3,13 +3,15 @@ module Main where
 
 import Text.Printf (printf)
 import qualified Codec.Picture as P
+import Data.Maybe (fromMaybe)
 import qualified Data.Vector.Storable as V
 import qualified Data.Vector.Unboxed as U
+import Math.Noise
+import System.Environment (getArgs)
 
 import Draw
 import Geometry hiding (Grid)
 import Plane
-import System.Environment (getArgs)
 
 -- | Settings that work well:
 -- * 1080p rendering:   spatialResolution = 10, temporalResolution = 9, temporalResolutionWarmup = 10
@@ -73,7 +75,7 @@ simulation t0 initialState = do
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -83,6 +85,7 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
         , diffusionRateV = const (diffusionRate * spatialResolution^2)
         , step = 10 / temporalResolution
         }
+    noise (Vec2 x y) z = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 / spatialResolution } (x, y, z)
     scene1 = baseParams
     t1 = transition 380 50 t
     scene2 = baseParams { step = 2 / temporalResolution }
@@ -96,6 +99,10 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
     t6 = linearTransition 1000 2000 t
     scene7 = baseParams
+    t7 = transition 2000 50 t
+    scene8 = baseParams { feedRateU = \p -> noise p 0 }
+    t8 = transition 2200 100 t
+    scene9 = baseParams { feedRateU = \p -> noise p (t-2200) }
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration = \t a b -> interpolate (sigmoid (t0-t)) a b
@@ -131,14 +138,14 @@ colorTrail (_, _, du, dv) = tanh (400 * max 0 du) *. (0, 0, 0.5) +. tanh (-400 *
 
 colorReaction :: (Double, Double, Double, Double) -> (Double, Double, Double)
 colorReaction (u, v, _, _) = case tanh (30 * u * v * v) of
-    x | x < 0.5   -> interpolate (2*x) color1 color0
-      | otherwise -> interpolate (2*(x-0.5)) color2 color1
+    x | x < 0.5   -> interpolateColor (2*x) color1 color0
+      | otherwise -> interpolateColor (2*(x-0.5)) color2 color1
   where
     color0, color1, color2 :: (Double, Double, Double)
     color0 = (0, 0, 0.1)
     color1 = (0.1, 0.25, 0.5)
     color2 = (0.1, 0.9, 0.1)
-    interpolate a c1 c2 = a *. c1 +. (1-a) *. c2
+    interpolateColor a c1 c2 = a *. c1 +. (1-a) *. c2
 
 clamp :: (Ord a, Num a) => a -> a -> a -> a
 clamp lower upper = max lower . min upper

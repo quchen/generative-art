@@ -114,6 +114,7 @@ executables:
             - comonad
             - JuicyPixels
             - JuicyPixels-extra
+            - Noise
 
 tests:
     testsuite:
