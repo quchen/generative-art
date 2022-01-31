@@ -9,6 +9,7 @@ import qualified Data.Vector.Unboxed as U
 import Draw
 import Geometry hiding (Grid)
 import Plane
+import System.Environment (getArgs)
 
 -- | Settings that work well:
 -- * 1080p rendering:   spatialResolution = 10, temporalResolution = 9, temporalResolutionWarmup = 10
@@ -20,22 +21,35 @@ temporalResolution = 2
 temporalResolutionWarmup = 6
 
 main :: IO ()
-main = do
+main = mainFromScratch
+
+mainFromFile :: IO ()
+mainFromFile = do
+    [index, uvfile] <- getArgs
+    Right (P.ImageRGB8 uvimg@(P.Image picWidth picHeight _)) <- P.readPng uvfile
+    
+    let initialState = planeFromList
+            [ row
+            | y <- [0..picHeight - 1]
+            , let row =
+                    [ (fromIntegral u / 255, fromIntegral v / 255, 0, 0)
+                    | x <- [0..picWidth - 1]
+                    , let P.PixelRGB8 _ v u = P.pixelAt uvimg x y
+                    ]
+            ]
+        t0 = read index :: Int
+    
+    simulation t0 initialState
+    
+
+mainFromScratch :: IO ()
+mainFromScratch = do
 
     let picWidth = 192 * spatialResolution
         picHeight = 108 * spatialResolution
 
     let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
-
-    let diffusionRate = 0.004
-        params = GS
-            { feedRateU = const 0.029
-            , killRateV = const 0.057
-            , diffusionRateU = const (2 * diffusionRate * spatialResolution^2)
-            , diffusionRateV = const (diffusionRate * spatialResolution^2)
-            , step = 10 / temporalResolution
-            }
-        warmup = grayScott (10*temporalResolutionWarmup) params { step = 10/temporalResolutionWarmup }
+        warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
         initialState = warmup $ planeFromList
             [ row
             | y <- [0..picHeight - 1]
@@ -47,28 +61,41 @@ main = do
                     , let v = sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p +. Vec2 0 (2*spatialResolution) -. q))) <$> seeds)
                     ]
             ]
+    simulation 0 initialState
 
-        frames = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t) params) state)) (0 :: Int, initialState))
+simulation :: Int -> Grid -> IO ()
+simulation t0 initialState = do
+
+    let frames = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
     for_ frames $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
-scene :: Double -> GrayScott -> GrayScott
-scene t baseParams =
-    let scene1 = baseParams
-        t1 = transition 380 50 t
-        scene2 = baseParams { step = 2 / temporalResolution }
-        t2 = transition 400 10 t
-        scene3 = baseParams { killRateV = const 0.060, step = 2 / temporalResolution }
-        t3 = transition 450 100 t
-        scene4 = baseParams { killRateV = const 0.062, step = 2 / temporalResolution }
-        t4 = transition 600 50 t
-        scene5 = baseParams { killRateV = const 0.062, step = 5 / temporalResolution }
-        t5 = transition 1000 50 t
-        scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
-        t6 = linearTransition 1000 2000 t
-    in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
+scene :: Double -> GrayScott
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
+  where
+    diffusionRate = 0.004
+    baseParams = GS
+        { feedRateU = const 0.029
+        , killRateV = const 0.057
+        , diffusionRateU = const (2 * diffusionRate * spatialResolution^2)
+        , diffusionRateV = const (diffusionRate * spatialResolution^2)
+        , step = 10 / temporalResolution
+        }
+    scene1 = baseParams
+    t1 = transition 380 50 t
+    scene2 = baseParams { step = 2 / temporalResolution }
+    t2 = transition 400 10 t
+    scene3 = baseParams { killRateV = const 0.060, step = 2 / temporalResolution }
+    t3 = transition 450 100 t
+    scene4 = baseParams { killRateV = const 0.062, step = 2 / temporalResolution }
+    t4 = transition 600 50 t
+    scene5 = baseParams { killRateV = const 0.062, step = 5 / temporalResolution }
+    t5 = transition 1000 50 t
+    scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
+    t6 = linearTransition 1000 2000 t
+
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration = \t a b -> GS
