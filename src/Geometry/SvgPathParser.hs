@@ -20,10 +20,10 @@ import Geometry.Core
 
 
 lexeme :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text a
-lexeme  = MPCLex.lexeme MPC.space
+lexeme  = MP.label "" . MPCLex.lexeme MPC.space
 
 double :: Ord err => MP.Parsec err Text Double
-double = lexeme $ MPCLex.signed (pure ()) $
+double = MP.label "number" $ lexeme $ MPCLex.signed (pure ()) $
     MP.try MPCLex.float <|> fmap fromIntegral MPCLex.decimal
 
 char_ :: Ord err => Char -> MP.Parsec err Text ()
@@ -36,7 +36,7 @@ data AbsRel = Absolute | Relative
     deriving (Eq, Ord, Show)
 
 move :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) ())
-move = do
+move = MP.label "move (mM)" $ do
     absRel <- Absolute <$ char_ 'M' <|> Relative <$ char_ 'm'
     p <- vec2
     pure $ do
@@ -46,8 +46,8 @@ move = do
                 Relative -> current +. p
         put (new, new)
 
-line :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
-line = do
+lineXY :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
+lineXY = do
     absRel <- Absolute <$ char_ 'L' <|> Relative <$ char_ 'l'
     p <- vec2
     pure $ do
@@ -82,8 +82,11 @@ lineV = do
         put (start, new)
         pure (Line current new)
 
+line :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
+line = MP.label "line (lLhHvV)" $ lineXY <|> lineH <|> lineV
+
 bezier :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Bezier)
-bezier = do
+bezier = MP.label "cubical bezier (cC)" $ do
     absRel <- Absolute <$ char_ 'C' <|> Relative <$ char_ 'c'
     helper1 <- vec2
     helper2 <- vec2
@@ -96,8 +99,8 @@ bezier = do
         put (start, end')
         pure (Bezier current h1' h2' end')
 
-endOfPath :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) (Maybe Line))
-endOfPath = do
+closePath :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) (Maybe Line))
+closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
     pure $ do
         (start, current) <- get
@@ -108,19 +111,14 @@ endOfPath = do
 singlePath :: MP.Parsec Text Text [Either Line Bezier]
 singlePath = do
     start <- move
-    states <- (MP.many . asum)
-        [ do l <- line <|> lineH <|> lineV
-             pure (fmap Left l)
-        , do b <- bezier
-             pure (fmap Right b)
-        ]
-    maybeClosePath <- optional endOfPath
+    states <- MP.many $ (fmap.fmap) Left line <|> (fmap.fmap) Right bezier
+    maybeClosePath <- optional closePath
 
     let (finished, _finalState) = flip runState (zero, zero) $ do
             start
-            segments <-sequence states
+            segments <- sequence states
             case maybeClosePath of
-                Just closePath -> closePath >>= \case
+                Just drawClosingLine -> drawClosingLine >>= \case
                     Just closing -> pure (segments ++ [Left closing])
                     Nothing -> pure segments
                 Nothing -> pure segments
@@ -130,7 +128,7 @@ instance MP.ShowErrorComponent Text where
     showErrorComponent = show
 
 parse :: Text -> Either Text [[Either Line Bezier]]
-parse input = case MP.parse (many singlePath) sourceFile input of
+parse input = case MP.parse (many singlePath <* MP.eof) sourceFile input of
     Left errBundle -> Left (T.pack (MP.errorBundlePretty errBundle))
     Right path -> Right path
   where

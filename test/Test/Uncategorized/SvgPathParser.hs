@@ -22,7 +22,7 @@ pairUpLines xs = zipWith (\a b -> Left (Line a b)) xs (tail xs)
 
 tests :: TestTree
 tests = testGroup "SVG path parser"
-    [ testCase "Absolute lines: M, L" $ do
+    [ testCase "Absolute lines; M, L" $ do
         let path = "M 1 1 L 1 10 L 10 10 L 10 1"
             expected = pairUpLines [Vec2 1 1, Vec2 1 10, Vec2 10 10, Vec2 10 1]
         assertParsesToPath path (S.singleton expected)
