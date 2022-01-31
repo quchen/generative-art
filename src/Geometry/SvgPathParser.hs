@@ -128,7 +128,7 @@ instance MP.ShowErrorComponent Text where
     showErrorComponent = show
 
 parse :: Text -> Either Text [[Either Line Bezier]]
-parse input = case MP.parse (many singlePath <* MP.eof) sourceFile input of
+parse input = case MP.parse (MPC.space *> many singlePath <* MP.eof) sourceFile input of
     Left errBundle -> Left (T.pack (MP.errorBundlePretty errBundle))
     Right path -> Right path
   where
