@@ -28,53 +28,49 @@ main = do
     case args of
         [index, uvfile] -> do
             Right (P.ImageRGB8 uvimg) <- P.readPng uvfile
-            mainFromFile (read index) uvimg
-        _otherwise -> mainFromScratch
+            let initialState = initialStateFromFile uvimg
+                frames = simulation (read index) initialState
+            writeOutput (tail frames)
 
-mainFromFile :: Int -> P.Image P.PixelRGB8 -> IO ()
-mainFromFile t0 uvimg@(P.Image picWidth picHeight _)= do
+        _otherwise ->
+            writeOutput (simulation 0 initialStateFromScratch)
     
-    let initialState = planeFromList
-            [ row
-            | y <- [0..picHeight - 1]
-            , let row =
-                    [ (fromIntegral u / 255, fromIntegral v / 255, 0, 0)
-                    | x <- [0..picWidth - 1]
-                    , let P.PixelRGB8 _ v u = P.pixelAt uvimg x y
-                    ]
+initialStateFromFile :: P.Image P.PixelRGB8 -> Grid
+initialStateFromFile uvimg@(P.Image picWidth picHeight _) = planeFromList
+    [ row
+    | y <- [0..picHeight - 1]
+    , let row =
+            [ (fromIntegral u / 255, fromIntegral v / 255, 0, 0)
+            | x <- [0..picWidth - 1]
+            , let P.PixelRGB8 _ v u = P.pixelAt uvimg x y
             ]
-    
-    simulation t0 initialState
+    ]
 
-mainFromScratch :: IO ()
-mainFromScratch = do
-
-    let picWidth = 192 * spatialResolution
-        picHeight = 108 * spatialResolution
-
-    let seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
-        warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
-        initialState = warmup $ planeFromList
-            [ row
-            | y <- [0..picHeight - 1]
-            , let row =
-                    [ (u, v, 0, 0)
-                    | x <- [0..picWidth - 1]
-                    , let p = Vec2 x y
-                    , let u = 1 - sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p -. q))) <$> seeds)
-                    , let v = sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p +. Vec2 0 (2*spatialResolution) -. q))) <$> seeds)
-                    ]
+initialStateFromScratch :: Grid
+initialStateFromScratch = warmup $ planeFromList
+    [ row
+    | y <- [0..picHeight - 1]
+    , let row =
+            [ (u, v, 0, 0)
+            | x <- [0..picWidth - 1]
+            , let p = Vec2 x y
+            , let u = 1 - sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p -. q))) <$> seeds)
+            , let v = sum ((\q -> exp (- 0.125 / spatialResolution^2 * normSquare (p +. Vec2 0 (2*spatialResolution) -. q))) <$> seeds)
             ]
-    simulation 0 initialState
+    ]
+  where
+    picWidth = 192 * spatialResolution
+    picHeight = 108 * spatialResolution
+    seeds = [ Vec2 (picWidth/2) (picHeight/2) ]
+    warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
-simulation :: Int -> Grid -> IO ()
-simulation t0 initialState = do
+simulation :: Int -> Grid -> [(Int, Grid)]
+simulation t0 initialState = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
-    let frames = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
-
-    for_ frames $ \(index, grid) -> do
-        P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
-        P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
+writeOutput :: [(Int, Grid)] -> IO ()
+writeOutput frames = for_ frames $ \(index, grid) -> do
+    P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+    P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott
 scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9
