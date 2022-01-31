@@ -58,17 +58,18 @@ main = do
 scene :: Double -> GrayScott -> GrayScott
 scene t baseParams =
     let scene1 = baseParams
-        t1 :: GrayScott -> GrayScott -> GrayScott
-        t1 = transition 400 10 t
-        scene2 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
-        t2 = transition 450 100 t
-        scene3 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
-        t3 = transition 600 50 t
-        scene4 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
-        t4 = transition 1000 50 t
-        scene5 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
-        t5 = linearTransition 1000 2000 t
-    in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene1
+        t1 = transition 380 50 t
+        scene2 = baseParams { step = 2 / temporalResolution }
+        t2 = transition 400 10 t
+        scene3 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
+        t3 = transition 450 100 t
+        scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
+        t4 = transition 600 50 t
+        scene5 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
+        t5 = transition 1000 50 t
+        scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+        t6 = linearTransition 1000 2000 t
+    in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration = \t a b -> a
