@@ -73,7 +73,7 @@ writeOutput frames = for_ frames $ \(index, grid) -> do
     P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10 `t10` end
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10 `t10` scene11 `t11` end
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -103,8 +103,10 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     scene9 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
     t9 = linearTransition 2400 2500 t
     scene10 = baseParams { killRateV = const 0.060, feedRateU = \p -> 0.040 + 0.015 * noise p (t/30) }
-    t10 = transition 2950 50 t
-    end = baseParams { killRateV = const 1 }
+    t10 = linearTransition 2500 3000 t
+    scene11 = baseParams { killRateV = const 0.060, feedRateU = \p -> 0.030 + 0.015 * noise p (t/30) }
+    t11 = transition 3000 50 t
+    end = baseParams { killRateV = const 0.62 }
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration t a b
