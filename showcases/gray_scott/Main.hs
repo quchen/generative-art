@@ -34,8 +34,7 @@ main = do
             , diffusionRateU = const (2 * diffusionRate * spatialResolution^2)
             , diffusionRateV = const (diffusionRate * spatialResolution^2)
             , step = 10 / temporalResolution
-            , width = picWidth
-            , height = picHeight }
+            }
         warmup = grayScott (10*temporalResolutionWarmup) params { step = 10/temporalResolutionWarmup }
         initialState = warmup $ planeFromList
             [ row
@@ -72,7 +71,7 @@ scene t baseParams =
     in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
-transition t0 duration = \t a b -> a
+transition t0 duration = \t a b -> GS
     { feedRateU      = sigmoid (t0-t) *. feedRateU a      +. sigmoid (t-t0) *. feedRateU b
     , killRateV      = sigmoid (t0-t) *. killRateV a      +. sigmoid (t-t0) *. killRateV b
     , diffusionRateU = sigmoid (t0-t) *. diffusionRateU a +. sigmoid (t-t0) *. diffusionRateU b
@@ -84,7 +83,7 @@ transition t0 duration = \t a b -> a
 linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 linearTransition t0 t1 t a b
     | t < t0 = a
-    | t < t1 = a
+    | t < t1 = GS
         { feedRateU      = (t1-t) /. deltaT *. feedRateU a      +. (t-t0) /. deltaT *. feedRateU b
         , killRateV      = (t1-t) /. deltaT *. killRateV a      +. (t-t0) /. deltaT *. killRateV b
         , diffusionRateU = (t1-t) /. deltaT *. diffusionRateU a +. (t-t0) /. deltaT *. diffusionRateU b
@@ -128,8 +127,6 @@ data GrayScott = GS
     , diffusionRateU :: Vec2 -> Double
     , diffusionRateV :: Vec2 -> Double
     , step :: Double
-    , width :: Double
-    , height :: Double
     }
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
