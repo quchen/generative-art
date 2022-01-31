@@ -35,31 +35,33 @@ vec2 = Vec2 <$> double <*> double
 data AbsRel = Absolute | Relative
     deriving (Eq, Ord, Show)
 
-move :: Ord err => MP.Parsec err Text (Vec2 -> Vec2)
+move :: Ord err => MP.Parsec err Text (Vec2 -> Start Vec2)
 move = MP.label "move (mM)" $ do
     absRel <- Absolute <$ char_ 'M' <|> Relative <$ char_ 'm'
     v <- vec2
     pure $ case absRel of
-        Absolute -> const v
-        Relative -> (+. v)
+        Absolute -> Start . const v
+        Relative -> Start . (+. v)
 
 data DrawState = DrawState
-    { _startOfTrajectory :: Vec2
-    , _currentPoint :: Vec2
+    { _startOfTrajectory :: Start Vec2
+    , _currentPoint :: Current Vec2
     } deriving (Eq, Ord, Show)
 
-
+-- Safety wrappers so I don’t mix them up
+newtype Start a = Start a deriving (Eq, Ord, Show)
+newtype Current a = Current a deriving (Eq, Ord, Show)
 
 lineXY :: Ord err => MP.Parsec err Text (State DrawState Line)
 lineXY = do
     absRel <- Absolute <$ char_ 'L' <|> Relative <$ char_ 'l'
     p <- vec2
     pure $ do
-        DrawState start current <- get
+        DrawState start (Current current) <- get
         let new = case absRel of
                 Absolute -> p
                 Relative -> current +. p
-        put (DrawState start new)
+        put (DrawState start (Current new))
         pure (Line current new)
 
 lineH :: Ord err => MP.Parsec err Text (State DrawState Line)
@@ -67,11 +69,11 @@ lineH = do
     absRel <- Absolute <$ char_ 'H' <|> Relative <$ char_ 'h'
     x' <- double
     pure $ do
-        DrawState start current@(Vec2 x y) <- get
+        DrawState start (Current current@(Vec2 x y)) <- get
         let new = case absRel of
                 Absolute -> Vec2 x' y
                 Relative -> Vec2 (x+x') y
-        put (DrawState start new)
+        put (DrawState start (Current new))
         pure (Line current new)
 
 lineV :: Ord err => MP.Parsec err Text (State DrawState Line)
@@ -79,11 +81,11 @@ lineV = do
     absRel <- Absolute <$ char_ 'V' <|> Relative <$ char_ 'v'
     y' <- double
     pure $ do
-        DrawState start current@(Vec2 x y) <- get
+        DrawState start (Current current@(Vec2 x y)) <- get
         let new = case absRel of
                 Absolute -> Vec2 x y'
                 Relative -> Vec2 x (y+y')
-        put (DrawState start new)
+        put (DrawState start (Current new))
         pure (Line current new)
 
 line :: Ord err => MP.Parsec err Text (State DrawState Line)
@@ -96,11 +98,11 @@ bezier = MP.label "cubical bezier (cC)" $ do
     helper2 <- vec2
     end <- vec2
     pure $ do
-        DrawState start current <- get
+        DrawState start (Current current) <- get
         let [h1', h2', end'] = case absRel of
                 Absolute -> [helper1, helper2, end]
-                Relative -> map (+. start) [helper1, helper2, end]
-        put (DrawState start end')
+                Relative -> map (+. current) [helper1, helper2, end]
+        put (DrawState start (Current end'))
 
         pure (Bezier current h1' h2' end')
 
@@ -118,8 +120,8 @@ closePath :: Ord err => MP.Parsec err Text (State DrawState Line)
 closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
     pure $ do
-        DrawState start current <- get
-        put (DrawState start start) *> pure (Line current start)
+        DrawState (Start start) (Current current) <- get
+        put (DrawState (Start start) (Current start)) *> pure (Line current start)
 
 instance MP.ShowErrorComponent Text where
     showErrorComponent = show
@@ -127,13 +129,13 @@ instance MP.ShowErrorComponent Text where
 parse :: Text -> Either Text [[Either Line Bezier]]
 parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.eof) sourceFile input of
     Left errBundle -> Left (T.pack (MP.errorBundlePretty errBundle))
-    Right pathInstructions -> Right $ interpretAllDrawingInstructions pathInstructions
+    Right pathInstructions -> Right (interpretAllDrawingInstructions pathInstructions)
   where
     sourceFile = ""
 
 parseSinglePathInstruction :: MP.Parsec Text Text
     (
-        Vec2 -> Vec2,                          -- Move to beginning
+        Vec2 -> Start Vec2,                    -- Move to beginning, given the point the last drawing stopped (~M instruction)
         [State DrawState (Either Line Bezier)] -- Draw path
     )
 parseSinglePathInstruction = do
@@ -155,14 +157,14 @@ parseSinglePathInstruction = do
 interpretSingleDrawingInstruction
     :: Traversable t
     => Vec2
-    -> (Vec2 -> Vec2, t (State DrawState pathSegment))
+    -> (Vec2 -> Start Vec2, t (State DrawState pathSegment))
     -> (t pathSegment, DrawState)
-interpretSingleDrawingInstruction origin (moveToStart, steps) = runState (sequence steps) (DrawState (moveToStart origin) (moveToStart origin))
+interpretSingleDrawingInstruction origin (moveToStart, steps) = runState (sequence steps) (DrawState (moveToStart origin) (let Start s = moveToStart origin in Current s))
 
-interpretAllDrawingInstructions :: [(Vec2 -> Vec2, [State DrawState pathSegment])] -> [[pathSegment]]
-interpretAllDrawingInstructions = go (DrawState zero zero)
+interpretAllDrawingInstructions :: [(Vec2 -> Start Vec2, [State DrawState pathSegment])] -> [[pathSegment]]
+interpretAllDrawingInstructions = go (DrawState (Start zero) (Current zero))
   where
     go _ [] = []
-    go (DrawState _ startPoint) (i:is) =
+    go (DrawState (Start startPoint) _) (i:is) =
         let (path, state') = interpretSingleDrawingInstruction startPoint i
         in path : go state' is
