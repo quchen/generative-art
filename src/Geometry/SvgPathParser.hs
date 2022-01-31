@@ -99,6 +99,16 @@ bezier = MP.label "cubical bezier (cC)" $ do
         put (start, end')
         pure (Bezier current h1' h2' end')
 
+bezierCubic :: MP.Parsec Text Text a
+bezierCubic = MP.label "" $ do
+    _cubicChar <- asum (map char_ "qQtT")
+    MP.customFailure ("Quadratic bezier curves are not supported by the parser")
+
+ellipticalArc :: MP.Parsec Text Text a
+ellipticalArc = MP.label "" $ do
+    _cubicChar <- asum (map char_ "aA")
+    MP.customFailure ("Elliptical arc curves are not supported by the parser")
+
 closePath :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) (Maybe Line))
 closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
@@ -111,7 +121,12 @@ closePath = MP.label "close path (zZ)" $ do
 singlePath :: MP.Parsec Text Text [Either Line Bezier]
 singlePath = do
     start <- move
-    states <- MP.many $ (fmap.fmap) Left line <|> (fmap.fmap) Right bezier
+    states <- MP.many $ asum
+        [ (fmap.fmap) Left line
+        , (fmap.fmap) Right bezier
+        , bezierCubic
+        , ellipticalArc
+        ]
     maybeClosePath <- optional closePath
 
     let (finished, _finalState) = flip runState (zero, zero) $ do
