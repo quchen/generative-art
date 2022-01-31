@@ -17,6 +17,7 @@ import qualified Text.Megaparsec.Char.Lexer as MPCLex
 import Geometry.Bezier
 import Geometry.Core
 
+import Debug.Trace
 
 
 lexeme :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text a
@@ -41,10 +42,10 @@ move = MP.label "move (mM)" $ do
     p <- vec2
     pure $ do
         (_oldStart, current) <- get
-        let new = case absRel of
+        let newStart = case traceShow ("current", current, "p", p, absRel) absRel of
                 Absolute -> p
                 Relative -> current +. p
-        put (new, new)
+        put (newStart, newStart)
 
 lineXY :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
 lineXY = do

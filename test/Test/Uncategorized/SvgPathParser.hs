@@ -23,27 +23,35 @@ pairUpLines xs = zipWith (\a b -> Left (Line a b)) xs (tail xs)
 tests :: TestTree
 tests = testGroup "SVG path parser"
     [ testCase "Absolute lines; M, L" $ do
-        let path = "M 1 1 L 1 10 L 10 10 L 10 1"
-            expected = pairUpLines [Vec2 1 1, Vec2 1 10, Vec2 10 10, Vec2 10 1]
-        assertParsesToPath path (S.singleton expected)
-    , testCase "Absolute lines, closed: M, L, Z" $ do
-        let path = "M 1 1 L 1 10 L 10 10 L 10 1 Z"
-            expected = pairUpLines [Vec2 1 1, Vec2 1 10, Vec2 10 10, Vec2 10 1, Vec2 1 1]
-        assertParsesToPath path (S.singleton expected)
-    , testCase "Multiple paths at the same time; M, L, Z" $ do
+        let path = "M 1 1 L 10 10"
+            expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 10 10])
+        assertParsesToPath path expected
+    , testCase "Relative lines; M, l" $ do
+        let path = "M 1 1 l 1 1"
+            expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 2 2])
+        assertParsesToPath path expected
+    , testCase "Relative movement; m, l" $ do
+        let path = "m 1 1 l 1 1"
+            expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 2 2])
+        assertParsesToPath path expected
+    , testCase "Two movements; M, m, l" $ do
+        let path = "M 10 10 m 0 1 l 1 0"
+            expected = S.fromList [[], pairUpLines [Vec2 10 11, Vec2 11 11]]
+        assertParsesToPath path expected
+    , testCase "Absolute lines, closed; M, L, Z" $ do
+        let path = "M 1 1 L 5 5 Z"
+            expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 5 5, Vec2 1 1])
+        assertParsesToPath path expected
+    , testCase "Multiple paths at the same time; mM, lL, Z" $ do
         let path = T.unlines
-                [ "M 1 1 L 1 10 L 10 10 L 10 1 Z"
-                , "M 2 1 L 2 10 L 12 10 L 12 1 "
+                [ "M 1 1 L 10 1 Z"
+                , "m 0 1 l 10 1 "
                 ]
             expected = S.fromList
-                [ [ Left (Line (Vec2 1   1) (Vec2  1 10))
-                  , Left (Line (Vec2 1  10) (Vec2 10 10))
-                  , Left (Line (Vec2 10 10) (Vec2 10  1))
-                  , Left (Line (Vec2 10  1) (Vec2  1  1)) ]
+                [ [ Left (Line (Vec2 1  1) (Vec2 10 1))
+                  , Left (Line (Vec2 10 1) (Vec2 1  1)) ]
 
-                , [ Left (Line (Vec2  2  1) (Vec2  2 10))
-                  , Left (Line (Vec2  2 10) (Vec2 12 10))
-                  , Left (Line (Vec2 12 10) (Vec2 12  1)) ]
+                , [ Left (Line (Vec2 1  2) (Vec2 11 3)) ]
                 ]
         assertParsesToPath path expected
     , testCase "Bezier; M, C" $ do
