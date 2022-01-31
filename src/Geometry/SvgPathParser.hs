@@ -35,16 +35,13 @@ vec2 = Vec2 <$> double <*> double
 data AbsRel = Absolute | Relative
     deriving (Eq, Ord, Show)
 
-move :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) ())
+move :: Ord err => MP.Parsec err Text (Vec2 -> Vec2)
 move = MP.label "move (mM)" $ do
     absRel <- Absolute <$ char_ 'M' <|> Relative <$ char_ 'm'
-    p <- vec2
-    pure $ do
-        (_oldStart, current) <- get
-        let newStart = case absRel of
-                Absolute -> p
-                Relative -> current +. p
-        put (newStart, newStart)
+    v <- vec2
+    pure $ case absRel of
+        Absolute -> const v
+        Relative -> (+. v)
 
 lineXY :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
 lineXY = do
@@ -128,11 +125,11 @@ parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.
 
 parseSinglePathInstruction :: MP.Parsec Text Text
     (
-        State (Vec2, Vec2) (),                    -- Move to beginning
+        Vec2 -> Vec2,                    -- Move to beginning
         [State (Vec2, Vec2) (Either Line Bezier)] -- Draw path
     )
 parseSinglePathInstruction = do
-    start <- move
+    modifyStart <- move
     states <- MP.many $ asum
         [ (fmap.fmap) Left line
         , (fmap.fmap) Right bezier
@@ -145,16 +142,16 @@ parseSinglePathInstruction = do
             Nothing -> states
             Just closingLine -> states ++ [fmap Left closingLine]
 
-    pure (start, states')
+    pure (modifyStart, states')
 
 interpretSingleDrawingInstruction
     :: Traversable t
-    => vec2
-    -> (State (vec2, vec2) a, t (State (vec2, vec2) pathSegment))
-    -> (t pathSegment, (vec2, vec2))
-interpretSingleDrawingInstruction start (firstMove, steps) = runState (firstMove *> sequence steps) (start, start)
+    => Vec2
+    -> (Vec2 -> Vec2, t (State (Vec2, Vec2) pathSegment))
+    -> (t pathSegment, (Vec2, Vec2))
+interpretSingleDrawingInstruction origin (moveToStart, steps) = runState (sequence steps) (moveToStart origin, moveToStart origin)
 
-interpretAllDrawingInstructions :: [(State (Vec2, Vec2) x, [State (Vec2, Vec2) pathSegment])] -> [[pathSegment]]
+interpretAllDrawingInstructions :: [(Vec2 -> Vec2, [State (Vec2, Vec2) pathSegment])] -> [[pathSegment]]
 interpretAllDrawingInstructions = go (zero, zero)
   where
     go _ [] = []
