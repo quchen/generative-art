@@ -49,10 +49,48 @@ main = do
                     ]
             ]
 
-        frames = take 5000 (iterate (grayScott temporalResolution params) initialState)
+        frames = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t) params) state)) (0 :: Int, initialState))
 
-    for_ (zip [0 :: Int ..] frames) $ \(index, grid) ->
+    for_ frames $ \(index, grid) ->
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (colorFront +. colorTrail +. colorReaction) grid)
+
+scene :: Double -> GrayScott -> GrayScott
+scene t baseParams =
+    let scene1 = baseParams
+        t1 :: GrayScott -> GrayScott -> GrayScott
+        t1 = transition 400 10 t
+        scene2 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
+        t2 = transition 450 100 t
+        scene3 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
+        t3 = transition 600 50 t
+        scene4 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
+        t4 = transition 1000 50 t
+        scene5 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+        t5 = linearTransition 1000 2000 t
+    in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene1
+
+transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
+transition t0 duration = \t a b -> a
+    { feedRateU = sigmoid (t0-t) * feedRateU a + sigmoid (t-t0) * feedRateU b
+    , killRateV = sigmoid (t0-t) * killRateV a + sigmoid (t-t0) * killRateV b
+    , diffusionRateU = sigmoid (t0-t) * diffusionRateU a + sigmoid (t-t0) * diffusionRateU b
+    , diffusionRateV = sigmoid (t0-t) * diffusionRateV a + sigmoid (t-t0) * diffusionRateV b
+    , step = sigmoid (t0-t) * step a + sigmoid (t-t0) * step b
+    }
+  where sigmoid t = 0.5 * (1 + tanh (2*pi*t/duration))
+
+linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
+linearTransition t0 t1 t a b
+    | t < t0 = a
+    | t < t1 = a
+        { feedRateU      = (t1-t) / deltaT * feedRateU a      + (t-t0) / deltaT * feedRateU b
+        , killRateV      = (t1-t) / deltaT * killRateV a      + (t-t0) / deltaT * killRateV b
+        , diffusionRateU = (t1-t) / deltaT * diffusionRateU a + (t-t0) / deltaT * diffusionRateU b
+        , diffusionRateV = (t1-t) / deltaT * diffusionRateV a + (t-t0) / deltaT * diffusionRateV b
+        , step           = (t1-t) / deltaT * step a           + (t-t0) / deltaT * step b
+        }
+    | otherwise = b
+  where deltaT = t1 - t0
 
 renderImageColor :: ((Double, Double, Double, Double) -> (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
 renderImageColor f Plane{..} = P.Image sizeX sizeY (V.convert $ U.concatMap renderPixel items)
@@ -92,7 +130,7 @@ data GrayScott = GS
     , step :: Double
     , width :: Double
     , height :: Double
-    }
+    } deriving (Show)
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
 grayScott steps GS{..} = repeatF steps (mapNeighbours grayScottStep)
