@@ -23,12 +23,16 @@ temporalResolution = 2
 temporalResolutionWarmup = 6
 
 main :: IO ()
-main = mainFromScratch
+main = do
+    args <- getArgs
+    case args of
+        [index, uvfile] -> do
+            Right (P.ImageRGB8 uvimg) <- P.readPng uvfile
+            mainFromFile (read index) uvimg
+        _otherwise -> mainFromScratch
 
-mainFromFile :: IO ()
-mainFromFile = do
-    [index, uvfile] <- getArgs
-    Right (P.ImageRGB8 uvimg@(P.Image picWidth picHeight _)) <- P.readPng uvfile
+mainFromFile :: Int -> P.Image P.PixelRGB8 -> IO ()
+mainFromFile t0 uvimg@(P.Image picWidth picHeight _)= do
     
     let initialState = planeFromList
             [ row
@@ -39,10 +43,8 @@ mainFromFile = do
                     , let P.PixelRGB8 _ v u = P.pixelAt uvimg x y
                     ]
             ]
-        t0 = read index :: Int
     
     simulation t0 initialState
-    
 
 mainFromScratch :: IO ()
 mainFromScratch = do
