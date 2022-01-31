@@ -113,7 +113,7 @@ transition t0 duration t a b
     | t-t0 < (-duration/2) = a
     | t-t0 < duration/2    = interpolate (sigmoid (t0-t)) a b
     | otherwise            = b
-  where sigmoid t' = 0.5 * (1 + tanh (2*pi*t'/duration))
+  where sigmoid t' = 0.5 * (1 + tanh (pi*t'/duration))
 
 linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 linearTransition t0 t1 t a b
