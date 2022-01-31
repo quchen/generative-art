@@ -17,7 +17,6 @@ import qualified Text.Megaparsec.Char.Lexer as MPCLex
 import Geometry.Bezier
 import Geometry.Core
 
-import Debug.Trace
 
 
 lexeme :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text a
@@ -42,7 +41,7 @@ move = MP.label "move (mM)" $ do
     p <- vec2
     pure $ do
         (_oldStart, current) <- get
-        let newStart = case traceShow ("current", current, "p", p, absRel) absRel of
+        let newStart = case absRel of
                 Absolute -> p
                 Relative -> current +. p
         put (newStart, newStart)
@@ -110,17 +109,29 @@ ellipticalArc = MP.label "" $ do
     _cubicChar <- asum (map char_ "aA")
     MP.customFailure ("Elliptical arc curves are not supported by the parser")
 
-closePath :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) (Maybe Line))
+closePath :: Ord err => MP.Parsec err Text (State (Vec2, Vec2) Line)
 closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
     pure $ do
         (start, current) <- get
-        if start /= current
-            then put (start, start) *> pure (Just (Line current start))
-            else pure Nothing
+        put (start, start) *> pure (Line current start)
 
-singlePath :: MP.Parsec Text Text [Either Line Bezier]
-singlePath = do
+instance MP.ShowErrorComponent Text where
+    showErrorComponent = show
+
+parse :: Text -> Either Text [[Either Line Bezier]]
+parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.eof) sourceFile input of
+    Left errBundle -> Left (T.pack (MP.errorBundlePretty errBundle))
+    Right pathInstructions -> Right $ interpretAllDrawingInstructions pathInstructions
+  where
+    sourceFile = ""
+
+parseSinglePathInstruction :: MP.Parsec Text Text
+    (
+        State (Vec2, Vec2) (),                    -- Move to beginning
+        [State (Vec2, Vec2) (Either Line Bezier)] -- Draw path
+    )
+parseSinglePathInstruction = do
     start <- move
     states <- MP.many $ asum
         [ (fmap.fmap) Left line
@@ -130,22 +141,23 @@ singlePath = do
         ]
     maybeClosePath <- optional closePath
 
-    let (finished, _finalState) = flip runState (zero, zero) $ do
-            start
-            segments <- sequence states
-            case maybeClosePath of
-                Just drawClosingLine -> drawClosingLine >>= \case
-                    Just closing -> pure (segments ++ [Left closing])
-                    Nothing -> pure segments
-                Nothing -> pure segments
-    pure finished
+    let states' = case maybeClosePath of
+            Nothing -> states
+            Just closingLine -> states ++ [fmap Left closingLine]
 
-instance MP.ShowErrorComponent Text where
-    showErrorComponent = show
+    pure (start, states')
 
-parse :: Text -> Either Text [[Either Line Bezier]]
-parse input = case MP.parse (MPC.space *> many singlePath <* MP.eof) sourceFile input of
-    Left errBundle -> Left (T.pack (MP.errorBundlePretty errBundle))
-    Right path -> Right path
+interpretSingleDrawingInstruction
+    :: Traversable t
+    => vec2
+    -> (State (vec2, vec2) a, t (State (vec2, vec2) pathSegment))
+    -> (t pathSegment, (vec2, vec2))
+interpretSingleDrawingInstruction start (firstMove, steps) = runState (firstMove *> sequence steps) (start, start)
+
+interpretAllDrawingInstructions :: [(State (Vec2, Vec2) x, [State (Vec2, Vec2) pathSegment])] -> [[pathSegment]]
+interpretAllDrawingInstructions = go (zero, zero)
   where
-    sourceFile = ""
+    go _ [] = []
+    go (_, startPoint) (i:is) =
+        let (path, state') = interpretSingleDrawingInstruction startPoint i
+        in path : go state' is
