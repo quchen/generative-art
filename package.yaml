@@ -29,6 +29,7 @@ dependencies:
     - vector
     - deepseq
     - heaps
+    - megaparsec
 
 default-extensions:
     - BangPatterns
