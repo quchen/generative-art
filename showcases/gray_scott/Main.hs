@@ -73,7 +73,7 @@ simulation t0 initialState = do
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -95,30 +95,27 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     t5 = transition 1000 50 t
     scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
     t6 = linearTransition 1000 2000 t
-
+    scene7 = baseParams
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
-transition t0 duration = \t a b -> GS
-    { feedRateU      = sigmoid (t0-t) *. feedRateU a      +. sigmoid (t-t0) *. feedRateU b
-    , killRateV      = sigmoid (t0-t) *. killRateV a      +. sigmoid (t-t0) *. killRateV b
-    , diffusionRateU = sigmoid (t0-t) *. diffusionRateU a +. sigmoid (t-t0) *. diffusionRateU b
-    , diffusionRateV = sigmoid (t0-t) *. diffusionRateV a +. sigmoid (t-t0) *. diffusionRateV b
-    , step           = sigmoid (t0-t) *. step a           +. sigmoid (t-t0) *. step b
-    }
+transition t0 duration = \t a b -> interpolate (sigmoid (t0-t)) a b
   where sigmoid t = 0.5 * (1 + tanh (2*pi*t/duration))
 
 linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 linearTransition t0 t1 t a b
     | t < t0 = a
-    | t < t1 = GS
-        { feedRateU      = (t1-t) /. deltaT *. feedRateU a      +. (t-t0) /. deltaT *. feedRateU b
-        , killRateV      = (t1-t) /. deltaT *. killRateV a      +. (t-t0) /. deltaT *. killRateV b
-        , diffusionRateU = (t1-t) /. deltaT *. diffusionRateU a +. (t-t0) /. deltaT *. diffusionRateU b
-        , diffusionRateV = (t1-t) /. deltaT *. diffusionRateV a +. (t-t0) /. deltaT *. diffusionRateV b
-        , step           = (t1-t) /. deltaT *. step a           +. (t-t0) /. deltaT *. step b
-        }
+    | t < t1 = interpolate ((t1-t) / deltaT) a b
     | otherwise = b
   where deltaT = t1 - t0
+
+interpolate :: Double -> GrayScott -> GrayScott -> GrayScott
+interpolate x a b = GS
+    { feedRateU      = x *. feedRateU a      +. (1-x) *. feedRateU b
+    , killRateV      = x *. killRateV a      +. (1-x) *. killRateV b
+    , diffusionRateU = x *. diffusionRateU a +. (1-x) *. diffusionRateU b
+    , diffusionRateV = x *. diffusionRateV a +. (1-x) *. diffusionRateV b
+    , step           = x *. step a           +. (1-x) *. step b
+    }
 
 renderImageColor :: ((Double, Double, Double, Double) -> (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
 renderImageColor f Plane{..} = P.Image sizeX sizeY (V.convert $ U.concatMap renderPixel items)
