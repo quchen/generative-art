@@ -29,10 +29,10 @@ main = do
 
     let diffusionRate = 0.004
         params = GS
-            { feedRateU = 0.029
-            , killRateV = 0.057
-            , diffusionRateU = 2 * diffusionRate * spatialResolution^2
-            , diffusionRateV = diffusionRate * spatialResolution^2
+            { feedRateU = const 0.029
+            , killRateV = const 0.057
+            , diffusionRateU = const (2 * diffusionRate * spatialResolution^2)
+            , diffusionRateV = const (diffusionRate * spatialResolution^2)
             , step = 10 / temporalResolution
             , width = picWidth
             , height = picHeight }
@@ -61,23 +61,23 @@ scene t baseParams =
         t1 = transition 380 50 t
         scene2 = baseParams { step = 2 / temporalResolution }
         t2 = transition 400 10 t
-        scene3 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
+        scene3 = baseParams { killRateV = const 0.060, step = 2 / temporalResolution }
         t3 = transition 450 100 t
-        scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
+        scene4 = baseParams { killRateV = const 0.062, step = 2 / temporalResolution }
         t4 = transition 600 50 t
-        scene5 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
+        scene5 = baseParams { killRateV = const 0.062, step = 5 / temporalResolution }
         t5 = transition 1000 50 t
-        scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+        scene6 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
         t6 = linearTransition 1000 2000 t
     in  scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene1
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration = \t a b -> a
-    { feedRateU = sigmoid (t0-t) * feedRateU a + sigmoid (t-t0) * feedRateU b
-    , killRateV = sigmoid (t0-t) * killRateV a + sigmoid (t-t0) * killRateV b
-    , diffusionRateU = sigmoid (t0-t) * diffusionRateU a + sigmoid (t-t0) * diffusionRateU b
-    , diffusionRateV = sigmoid (t0-t) * diffusionRateV a + sigmoid (t-t0) * diffusionRateV b
-    , step = sigmoid (t0-t) * step a + sigmoid (t-t0) * step b
+    { feedRateU      = sigmoid (t0-t) *. feedRateU a      +. sigmoid (t-t0) *. feedRateU b
+    , killRateV      = sigmoid (t0-t) *. killRateV a      +. sigmoid (t-t0) *. killRateV b
+    , diffusionRateU = sigmoid (t0-t) *. diffusionRateU a +. sigmoid (t-t0) *. diffusionRateU b
+    , diffusionRateV = sigmoid (t0-t) *. diffusionRateV a +. sigmoid (t-t0) *. diffusionRateV b
+    , step           = sigmoid (t0-t) *. step a           +. sigmoid (t-t0) *. step b
     }
   where sigmoid t = 0.5 * (1 + tanh (2*pi*t/duration))
 
@@ -85,11 +85,11 @@ linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> Gray
 linearTransition t0 t1 t a b
     | t < t0 = a
     | t < t1 = a
-        { feedRateU      = (t1-t) / deltaT * feedRateU a      + (t-t0) / deltaT * feedRateU b
-        , killRateV      = (t1-t) / deltaT * killRateV a      + (t-t0) / deltaT * killRateV b
-        , diffusionRateU = (t1-t) / deltaT * diffusionRateU a + (t-t0) / deltaT * diffusionRateU b
-        , diffusionRateV = (t1-t) / deltaT * diffusionRateV a + (t-t0) / deltaT * diffusionRateV b
-        , step           = (t1-t) / deltaT * step a           + (t-t0) / deltaT * step b
+        { feedRateU      = (t1-t) /. deltaT *. feedRateU a      +. (t-t0) /. deltaT *. feedRateU b
+        , killRateV      = (t1-t) /. deltaT *. killRateV a      +. (t-t0) /. deltaT *. killRateV b
+        , diffusionRateU = (t1-t) /. deltaT *. diffusionRateU a +. (t-t0) /. deltaT *. diffusionRateU b
+        , diffusionRateV = (t1-t) /. deltaT *. diffusionRateV a +. (t-t0) /. deltaT *. diffusionRateV b
+        , step           = (t1-t) /. deltaT *. step a           +. (t-t0) /. deltaT *. step b
         }
     | otherwise = b
   where deltaT = t1 - t0
@@ -123,23 +123,24 @@ clamp lower upper = max lower . min upper
 type Grid = Plane (Double, Double, Double, Double)
 
 data GrayScott = GS
-    { feedRateU :: Double
-    , killRateV :: Double
-    , diffusionRateU :: Double
-    , diffusionRateV :: Double
+    { feedRateU :: Vec2 -> Double
+    , killRateV :: Vec2 -> Double
+    , diffusionRateU :: Vec2 -> Double
+    , diffusionRateV :: Vec2 -> Double
     , step :: Double
     , width :: Double
     , height :: Double
-    } deriving (Show)
+    }
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
 grayScott steps GS{..} = repeatF steps (mapNeighbours grayScottStep)
   where
-    grayScottStep (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = (u0, v0, deltaU, deltaV) +. step *. (deltaU, deltaV, 0, 0)
+    grayScottStep x y (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = (u0, v0, deltaU, deltaV) +. step *. (deltaU, deltaV, 0, 0)
       where
+        p = Vec2 (fromIntegral x) (fromIntegral y)
         (u0, v0, _, _) = uv22
-        deltaU = diffusionRateU * laplaceU - u0 * v0^2 + feedRateU * (1 - u0)
-        deltaV = diffusionRateV * laplaceV + u0 * v0^2 - (feedRateU + killRateV) * v0
+        deltaU = diffusionRateU p * laplaceU - u0 * v0^2 + feedRateU p * (1 - u0)
+        deltaV = diffusionRateV p * laplaceV + u0 * v0^2 - (feedRateU p + killRateV p) * v0
         (laplaceU, laplaceV, _, _) = (uv11 +. 2*.uv12 +. uv13 +. 2*.uv21 -. 12*.uv22 +. 2*. uv23 +. uv31 +. 2*.uv32 +. uv33) /. 4
 
     repeatF :: Int -> (a -> a) -> a -> a
