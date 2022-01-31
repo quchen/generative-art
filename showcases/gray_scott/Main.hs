@@ -65,7 +65,7 @@ initialStateFromScratch = warmup $ planeFromList
     warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
 simulation :: Int -> Grid -> [(Int, Grid)]
-simulation t0 initialState = takeWhile ((< 2000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
+simulation t0 initialState = takeWhile ((< 2600) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = for_ frames $ \(index, grid) -> do
@@ -73,7 +73,7 @@ writeOutput frames = for_ frames $ \(index, grid) -> do
     P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(u, v, _, _) -> (1-u-v, v, u)) grid)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -83,7 +83,7 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
         , diffusionRateV = const (diffusionRate * spatialResolution^2)
         , step = 10 / temporalResolution
         }
-    noise (Vec2 x y) z = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.1 / spatialResolution } (x, y, z)
+    noise (Vec2 x y) z = fromMaybe 0 $ getValue perlin { perlinFrequency = 0.5 } (x / spatialResolution, y / spatialResolution, z)
     scene1 = baseParams
     t1 = transition 380 50 t
     scene2 = baseParams { step = 2 / temporalResolution }
@@ -98,13 +98,18 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     t6 = linearTransition 1000 2000 t
     scene7 = baseParams
     t7 = transition 2000 50 t
-    scene8 = baseParams { feedRateU = \p -> noise p 0 }
-    t8 = transition 2200 100 t
-    scene9 = baseParams { feedRateU = \p -> noise p (t-2200) }
+    scene8 = baseParams { killRateV = const 0.065 }
+    t8 = transition 2100 50 t
+    scene9 = baseParams { killRateV = const 0.062, feedRateU = const 0.045 }
+    t9 = linearTransition 2300 2400 t
+    scene10 = baseParams { killRateV = const 0.060, feedRateU = \p -> 0.040 + 0.015 * noise p (t/30) }
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
-transition t0 duration = \t a b -> interpolate (sigmoid (t0-t)) a b
-  where sigmoid t = 0.5 * (1 + tanh (2*pi*t/duration))
+transition t0 duration t a b
+    | t-t0 < (-duration/2) = a
+    | t-t0 < duration/2    = interpolate (sigmoid (t0-t)) a b
+    | otherwise            = b
+  where sigmoid t' = 0.5 * (1 + tanh (2*pi*t'/duration))
 
 linearTransition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 linearTransition t0 t1 t a b
