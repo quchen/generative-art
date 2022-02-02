@@ -15,23 +15,25 @@ import Test.Common            (renderAllFormats)
 
 
 tests :: TestTree
-tests = testGroup "Color operations"
-    [ testBrightness
-    , testValue
-    , testHue
-    , testSaturation
-    , testBlending
-    , testGroup "Color schemes"
+tests = testGroup "Colors"
+    [ testGroup "Operations"
+        [ testBrightness
+        , testValue
+        , testHue
+        , testSaturation
+        , testBlending
+        ]
+    , testGroup "Schemes"
         [ testGroup "Continuous"
             [ testGroup "Visually uniform"
-                [ testCase "inferno"         $ renderContinuous "docs/colors/schemes/inferno"         inferno         (0,1)
-                , testCase "plasma"          $ renderContinuous "docs/colors/schemes/plasma"          plasma          (0,1)
-                , testCase "viridis"         $ renderContinuous "docs/colors/schemes/viridis"         viridis         (0,1)
-                , testCase "cividis"         $ renderContinuous "docs/colors/schemes/cividis"         cividis         (0,1)
-                , testCase "turbo"           $ renderContinuous "docs/colors/schemes/turbo"           turbo           (0,1)
-                , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,2)
-                , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,2)
+                [ testCase "inferno" $ renderContinuous "docs/colors/schemes/inferno"         inferno         (0,1)
+                , testCase "plasma"  $ renderContinuous "docs/colors/schemes/plasma"          plasma          (0,1)
+                , testCase "viridis" $ renderContinuous "docs/colors/schemes/viridis"         viridis         (0,1)
+                , testCase "cividis" $ renderContinuous "docs/colors/schemes/cividis"         cividis         (0,1)
                 ]
+            , testCase "turbo"           $ renderContinuous "docs/colors/schemes/turbo"           turbo           (0,1)
+            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,2)
+            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,2)
             ]
         ]
     ]
@@ -94,7 +96,7 @@ renderColorTable file table = renderAllFormats width height file $ do
 
 renderContinuous :: FilePath -> (Double -> Color Double) -> (Double, Double) -> IO ()
 renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
-    for_ [0..width-1] $ \x -> do
+    for_ [-10..width+10] $ \x -> do
         C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral height-1)
         setColor (colorF (linearInterpolate (0,fromIntegral width-1) (lo,hi) (fromIntegral x)))
         fill

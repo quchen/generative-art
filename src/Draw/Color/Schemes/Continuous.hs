@@ -32,7 +32,7 @@ clamp a b x =
     in min hi (max x lo)
 
 clamped :: Raw.Continuous Raw.Clamped (Vector Raw.RGB) -> Double -> Raw.RGB
-clamped (Raw.Continuous vec) = pickColor (\nColors ix -> clamp 0 nColors ix) vec
+clamped (Raw.Continuous vec) = pickColor (\nColors ix -> clamp 0 (nColors-1) ix) vec
 
 cyclic :: Raw.Continuous Raw.Cyclic (Vector Raw.RGB) -> Double -> Raw.RGB
 cyclic (Raw.Continuous vec) = pickColor (\nColors ix -> mod ix nColors) vec
@@ -53,9 +53,14 @@ pickColor picker xs = \query ->
         Raw.RGB rLo gLo bLo = xs ! picker nColors indexLo
         Raw.RGB rHi gHi bHi = xs ! picker nColors indexHi
 
-        r = linearInterpolate (fromIntegral indexLo, fromIntegral indexHi) (rLo, rHi) indexContinuous
-        g = linearInterpolate (fromIntegral indexLo, fromIntegral indexHi) (gLo, gHi) indexContinuous
-        b = linearInterpolate (fromIntegral indexLo, fromIntegral indexHi) (bLo, bHi) indexContinuous
+        [r,g,b] = do
+            (channelLo, channelHi) <- [(rLo, rHi), (gLo, gHi), (bLo, bHi)]
+            pure $ case compare channelLo channelHi of
+                EQ -> channelLo
+                _  -> linearInterpolate
+                    (fromIntegral indexLo, fromIntegral indexHi)
+                    (channelLo, channelHi)
+                    indexContinuous
     in Raw.RGB r g b
 
 -- | Python’s Matplotlib’s magma color scheme.
