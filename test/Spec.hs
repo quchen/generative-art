@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main (main) where
+module Main (main, test) where
 
 
 
@@ -31,7 +31,7 @@ import qualified Test.Trajectory
 import qualified Test.Voronoi
 
 import           Test.Tasty
--- import           Test.Tasty.Runners
+import           Test.Tasty.Runners
 import qualified VisualOutput.FileSystem         as FileSystem
 import qualified VisualOutput.NormalizeSvg       as Normalize
 import qualified VisualOutput.TestsuiteGenerator as Visual
@@ -39,14 +39,14 @@ import qualified VisualOutput.TestsuiteGenerator as Visual
 
 
 main :: IO ()
-main = finally (defaultMain (defaultOptions tests))
+main = finally (defaultMain (localOption (Timeout (10^7) "10s") tests))
                runPostTestScripts
 
-defaultOptions :: TestTree -> TestTree
-defaultOptions = foldr (.) id
-    [ localOption (Timeout (10^7) "10s")
-    -- , localOption (TestPattern (parseExpr "/test-pattern-goes-here/"))
-    ]
+-- Useful in GHCi: no timeout, no output sanitization
+test :: String -> IO ()
+test pattern = case parseTestPattern pattern of
+    Nothing -> error "Pattern parse error"
+    Just testPattern -> defaultMain (localOption testPattern tests)
 
 tests :: TestTree
 tests = testGroup "Test suite"
