@@ -31,6 +31,7 @@ import qualified Test.Trajectory
 import qualified Test.Voronoi
 
 import           Test.Tasty
+import           Test.Tasty.Runners
 import qualified VisualOutput.FileSystem         as FileSystem
 import qualified VisualOutput.NormalizeSvg       as Normalize
 import qualified VisualOutput.TestsuiteGenerator as Visual
@@ -43,7 +44,9 @@ main = finally (defaultMain (defaultOptions tests))
 
 defaultOptions :: TestTree -> TestTree
 defaultOptions = foldr (.) id
-    [ localOption (Timeout (10^7) "10s") ]
+    [ localOption (Timeout (10^7) "10s")
+    -- , localOption (TestPattern (parseExpr "/test-pattern-goes-here/"))
+    ]
 
 tests :: TestTree
 tests = testGroup "Test suite"
