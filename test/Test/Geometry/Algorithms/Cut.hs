@@ -86,14 +86,14 @@ lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
     setDash [] 0
 
     setLineWidth 3
-    setColor $ mmaColor 0 1
+    setColor $ mathematica97 0
     lineSketch (Line paperStart p)
     stroke
-    setColor $ mmaColor 3 1
+    setColor $ mathematica97 3
     lineSketch (Line p paperEnd)
     stroke
 
-    setColor $ mmaColor 1 1
+    setColor $ mathematica97 1
     setFontSize 12
     moveTo 60 10
     showText "Cut my line in two pieces"
@@ -115,7 +115,7 @@ polyCutDraw initialPolygon scissors cutResults = do
         arrowSketch scissors def{arrowheadSize = 5, arrowDrawBody = False}
         stroke
     drawPolygon i polygon = grouped paint $ do
-        setColor $ mmaColor i 1
+        setColor $ mathematica97 i
         for_ (polygonEdges polygon) $ \edge -> do
             arrowSketch edge def
                 { arrowheadRelPos   = 0.45
@@ -125,7 +125,7 @@ polyCutDraw initialPolygon scissors cutResults = do
             stroke
         polygonSketch polygon
         strokePreserve
-        setColor $ mmaColor i 0.1
+        setColor $ mathematica97 i `withOpacity` 0.1
         fill
 
 cutSquareTest :: IO ()
@@ -140,7 +140,7 @@ cutSquareTest = do
             (Geometry.transform (Geometry.translate (Vec2 90 10)) scissors)
             (Geometry.transform (Geometry.translate (Vec2 90 10)) cutResult)
 
-        setColor $ mmaColor 1 1
+        setColor $ mathematica97 1
         setFontSize 12
         moveTo 90 80
         showText (show (length cutResult) ++ " polygons")
@@ -160,7 +160,7 @@ complicatedPolygonTest = do
             (Geometry.transform (Geometry.translate (Vec2 290 100)) scissors)
             (Geometry.transform (Geometry.translate (Vec2 290 100)) cutResult)
 
-        setColor $ mmaColor 1 1
+        setColor $ mathematica97 1
         setFontSize 12
         moveTo 250 15
         showText (show (length cutResult) ++ " polygons")
@@ -237,7 +237,7 @@ pathologicalCornerCutsTests = do
                 (placeOriginal polygon)
                 (placeOriginal scissors)
                 (placeCut cutResult)
-            setColor $ mmaColor 0 1
+            setColor $ mathematica97 0
             for_ (let Polygon corners = polygon in corners) $ \corner -> do
                 circleSketch (placeOriginal corner) 2.5
                 stroke
@@ -246,7 +246,7 @@ pathologicalCornerCutsTests = do
                     circleSketch (placeCut corner) 2.5
                     stroke
         let renderDescription = do
-                setColor $ mmaColor 1 1
+                setColor $ mathematica97 1
                 let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0
                 setFontSize 12
                 extents <- textExtents name
@@ -324,23 +324,23 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
         let reconstructedPolygons = reconstructPolygons orientation ceg
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
-            setColor $ mmaColor 0 1
+            setColor $ mathematica97 0
             circleSketch start 3
             strokePreserve
-            setColor $ mmaColor 0 0.3
+            setColor $ mathematica97 0 `withOpacity` 0.3
             fill
 
-            setColor $ mmaColor i 1
+            setColor $ mathematica97 i
             for_ ends $ \end -> do
                 arrowSketch (nudge (Line start end)) arrowSpec
                 stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
-            setColor $ mmaColor i 1
+            setColor $ mathematica97 i
             cairoScope $ do
                 polygonSketch polygon
                 setDash [2,2] 0
                 strokePreserve
-                setColor $ mmaColor i 0.1
+                setColor $ mathematica97 i `withOpacity` 0.1
                 fill
 
             let Vec2 midX midY = polygonAverage polygon

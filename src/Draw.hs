@@ -9,6 +9,8 @@ module Draw (
 
     -- * Colors
     , module Draw.Color
+    , module Draw.Color.Schemes.Discrete
+    , module Draw.Color.Schemes.Continuous
 
     -- * Drawing presets
     , moveToVec
@@ -58,6 +60,7 @@ import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw.Color
 import Draw.Color.Schemes.Discrete
+import Draw.Color.Schemes.Continuous
 import Geometry
 
 -- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.

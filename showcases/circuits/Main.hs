@@ -29,8 +29,8 @@ main = do
             C.translate (fromIntegral picWidth/2) (fromIntegral picHeight/2)
             -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
             --     setLineWidth 1
-            --     renderProcessGeometry (mmaColor 0 1) (mmaColor 1 1) cellSize lambdaGeometry
-            --     renderProcessGeometry (mmaColor 2 1) (mmaColor 3 1) cellSize surroundingGeometry
+            --     renderProcessGeometry (mathematica97 0) (mathematica97 1) cellSize lambdaGeometry
+            --     renderProcessGeometry (mathematica97 2) (mathematica97 3) cellSize surroundingGeometry
             cairoScope $ do
                 setLineWidth 1
                 renderCircuits purple  cellSize lambdaCircuits

@@ -59,7 +59,7 @@ simplifyFunctionGraphTest = testCase "Simplify function graph" $
             epsilons = [ 2**(-e) | e <- [10,9..1]]
 
         cairoScope $ do
-            setColor $ mmaColor 0 1
+            setColor $ mathematica97 0
             plotPath (fitToBox graph)
             plotPoints (fitToBox graph)
 
@@ -68,7 +68,7 @@ simplifyFunctionGraphTest = testCase "Simplify function graph" $
                 Cairo.translate 0 20
                 let simplified = simplifyTrajectory epsilon graph
                     interpolatedAgain = bezierSmoothen simplified
-                setColor $ mmaColor 1 1
+                setColor $ mathematica97 1
                 plotBezier (fitToBox interpolatedAgain)
                 plotPoints (fitToBox simplified)
 

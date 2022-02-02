@@ -81,12 +81,12 @@ testDraw line1@(Line start _) line2 = do
     setLineWidth 1
 
     cairoScope $ do
-        setColor $ mmaColor 0 1
+        setColor $ mathematica97 0
         arrowSketch line1 def{arrowheadSize = 8}
         stroke
 
     cairoScope $ do
-        setColor $ mmaColor 1 1
+        setColor $ mathematica97 1
         arrowSketch line2 def{arrowheadSize = 8}
         stroke
 
@@ -106,12 +106,12 @@ testDraw line1@(Line start _) line2 = do
         Just point -> do
 
             cairoScope $ do
-                setColor $ mmaColor 3 1
+                setColor $ mathematica97 3
                 circleSketch point 3
                 fill
 
             cairoScope $ do
-                setColor $ mmaColor 3 1
+                setColor $ mathematica97 3
                 angleSketch point (angleOfLine line1) (angleOfLine line2)
                 stroke
 
