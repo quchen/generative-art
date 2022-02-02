@@ -10,8 +10,8 @@ Continuous
 
 
 
-Visually uniform
-----------------
+Visually uniform (matplotlib)
+--------------------------------
 
 ### Cividis
 
@@ -31,18 +31,18 @@ Visually uniform
 
 
 
-Other
-----------------
+Other (matplotlib)
+--------------------------------
 
 
 ### Turbo
 
 ![Missing image!](turbo.png)
 
-### Twilight
+### Twilight (cyclic)
 
 ![Missing image!](twilight.png)
 
-### Twilight, shifted
+### Twilight (cyclic), shifted
 
 ![Missing image!](twilightShifted.png)

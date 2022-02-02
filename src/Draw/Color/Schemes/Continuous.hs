@@ -64,6 +64,8 @@ pickColor picker xs = \query ->
     in Raw.RGB r g b
 
 -- | Python’s Matplotlib’s magma color scheme.
+--
+-- <<file:///docs/colors/schemes/cividis.png>>
 magma :: Double -> Color Double
 magma = Raw.toColor . clamped Raw.magma
 

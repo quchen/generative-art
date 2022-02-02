@@ -35,8 +35,8 @@ tests = testGroup "Colors"
                 , testCase "cividis" $ renderContinuous "docs/colors/schemes/cividis"         cividis         (0,1)
                 ]
             , testCase "turbo"           $ renderContinuous "docs/colors/schemes/turbo"           turbo           (0,1)
-            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,2)
-            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,2)
+            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,1)
+            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,1)
             ]
         ]
     ]
