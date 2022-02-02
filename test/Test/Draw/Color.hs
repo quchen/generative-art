@@ -1,13 +1,18 @@
-module Test.Color (tests) where
+module Test.Draw.Color (tests) where
+
+
 
 import Data.Colour.Names
-import Data.List (transpose)
-import qualified Graphics.Rendering.Cairo as Cairo
+import Data.List                (transpose)
+import Graphics.Rendering.Cairo as C
 import Test.Tasty
 import Test.Tasty.HUnit
 
 import Draw
-import Test.Common (renderAllFormats)
+import Numerics.Interpolation
+import Test.Common            (renderAllFormats)
+
+
 
 tests :: TestTree
 tests = testGroup "Color operations"
@@ -16,6 +21,19 @@ tests = testGroup "Color operations"
     , testHue
     , testSaturation
     , testBlending
+    , testGroup "Color schemes"
+        [ testGroup "Continuous"
+            [ testGroup "Visually uniform"
+                [ testCase "inferno"         $ renderContinuous "docs/colors/schemes/inferno"         inferno         (0,1)
+                , testCase "plasma"          $ renderContinuous "docs/colors/schemes/plasma"          plasma          (0,1)
+                , testCase "viridis"         $ renderContinuous "docs/colors/schemes/viridis"         viridis         (0,1)
+                , testCase "cividis"         $ renderContinuous "docs/colors/schemes/cividis"         cividis         (0,1)
+                , testCase "turbo"           $ renderContinuous "docs/colors/schemes/turbo"           turbo           (0,1)
+                , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,2)
+                , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,2)
+                ]
+            ]
+        ]
     ]
 
 testBrightness :: TestTree
@@ -57,19 +75,30 @@ colorTable colors generator =
 
 renderColorTable :: FilePath -> [[Color Double]] -> IO ()
 renderColorTable file table = renderAllFormats width height file $ do
-    Cairo.setLineWidth 0.2
-    Cairo.translate 0 2
+    C.setLineWidth 0.2
+    C.translate 0 2
     for_ table $ \row -> do
         cairoScope $ do
-            Cairo.translate 2 0
+            C.translate 2 0
             for_ row $ \cell -> do
-                Cairo.rectangle 0 0 16 16
+                C.rectangle 0 0 16 16
                 setColor cell
-                Cairo.fillPreserve
+                C.fillPreserve
                 setColor black
-                Cairo.stroke
-                Cairo.translate 20 0
-        Cairo.translate 0 20
+                C.stroke
+                C.translate 20 0
+        C.translate 0 20
   where
     width = 20 * length (transpose table)
     height = 20 * length table
+
+renderContinuous :: FilePath -> (Double -> Color Double) -> (Double, Double) -> IO ()
+renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
+    for_ [0..width-1] $ \x -> do
+        C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral height-1)
+        setColor (colorF (linearInterpolate (0,fromIntegral width-1) (lo,hi) (fromIntegral x)))
+        fill
+
+  where
+    width = 300
+    height = 32

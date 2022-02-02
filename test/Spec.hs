@@ -10,10 +10,10 @@ import Data.Foldable
 import System.FilePath
 
 import qualified Test.Bezier
-import qualified Test.Color
 import qualified Test.ConvexHull
 import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
+import qualified Test.Draw.Color
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
 import qualified Test.Geometry.Algorithms.Triangulate
@@ -49,10 +49,10 @@ tests = testGroup "Test suite"
     [ Test.Properties.tests
     , testGroup "Visual tests"
         [ Test.Bezier.tests
-        , Test.Color.tests
         , Test.ConvexHull.tests
         , Test.Delaunay.tests
         , Test.DifferentialEquation.tests
+        , Test.Draw.Color.tests
         , Test.Geometry.Algorithms.Contour.tests
         , Test.Geometry.Algorithms.Cut.tests
         , Test.Geometry.Algorithms.Triangulate.tests

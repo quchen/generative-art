@@ -59,26 +59,26 @@ pickColor picker xs = \query ->
     in Raw.RGB r g b
 
 -- | Python’s Matplotlib’s magma color scheme.
-magma  :: Double -> Color Double
+magma :: Double -> Color Double
 magma = Raw.toColor . clamped Raw.magma
 
 -- | Python’s Matplotlib’s inferno color scheme.
-inferno  :: Double -> Color Double
+inferno :: Double -> Color Double
 inferno = Raw.toColor . clamped Raw.inferno
 
 -- | Python’s Matplotlib’s plasma color scheme.
-plasma  :: Double -> Color Double
+plasma :: Double -> Color Double
 plasma = Raw.toColor . clamped Raw.plasma
 
 -- | Python’s Matplotlib’s viridis color scheme.
-viridis  :: Double -> Color Double
+viridis :: Double -> Color Double
 viridis = Raw.toColor . clamped Raw.viridis
 
 -- | Python’s Matplotlib’s cividis color scheme.
-cividis  :: Double -> Color Double
+cividis :: Double -> Color Double
 cividis = Raw.toColor . clamped Raw.cividis
 
-turbo  :: Double -> Color Double
+turbo :: Double -> Color Double
 turbo = Raw.toColor . clamped Raw.turbo
 
 
