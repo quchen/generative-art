@@ -1,12 +1,8 @@
 -- | Raw color vectors.
 module Draw.Color.Schemes.RawColorLists (
-    -- * Discrete
-      mma97_constantBeginning
-    , mma97_interpolating
-
     -- * Continuous
     -- ** Clamped
-    , magma
+      magma
     , inferno
     , plasma
     , viridis
@@ -2105,35 +2101,3 @@ turbo = V.fromList
     , RGB 0.50664 0.02354 0.00863
     , RGB 0.49321 0.01963 0.00955
     , RGB 0.47960 0.01583 0.01055 ]
-
--- | The first 10 color values are hardcoded and not interpolated
-mma97_constantBeginning :: Vector RGB
-mma97_constantBeginning = V.fromList
-    [ RGB 0.368417 0.506779 0.709798
-    , RGB 0.880722 0.611041 0.142051
-    , RGB 0.560181 0.691569 0.194885
-    , RGB 0.922526 0.385626 0.209179
-    , RGB 0.528488 0.470624 0.701351
-    , RGB 0.772079 0.431554 0.102387
-    , RGB 0.363898 0.618501 0.782349
-    , RGB 1        0.75     0
-    , RGB 0.647624 0.37816  0.614037
-    , RGB 0.571589 0.586483 0
-    ]
-
--- Starting at the 11th value, Mathematica starts picking intermediate colors
--- between a short lookup table
-mma97_interpolating :: Vector RGB
-mma97_interpolating = V.fromList
-    [ RGB 0.915  0.3325 0.2125
-    , RGB 0.83   0.46   0
-    , RGB 0.9575 0.545  0.11475
-    , RGB 1      0.7575 0
-    , RGB 0.6175 0.715  0
-    , RGB 0.15   0.715  0.595
-    , RGB 0.3625 0.545  0.85
-    , RGB 0.575  0.4175 0.85
-    , RGB 0.677  0.358  0.595
-    , RGB 0.7875 0.358  0.425
-    , RGB 0.915  0.3325 0.2125
-    ]

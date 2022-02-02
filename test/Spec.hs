@@ -31,7 +31,7 @@ import qualified Test.Trajectory
 import qualified Test.Voronoi
 
 import           Test.Tasty
-import           Test.Tasty.Runners
+-- import           Test.Tasty.Runners
 import qualified VisualOutput.FileSystem         as FileSystem
 import qualified VisualOutput.NormalizeSvg       as Normalize
 import qualified VisualOutput.TestsuiteGenerator as Visual

@@ -11,8 +11,10 @@ import Test.Tasty.HUnit
 
 import Draw
 import Numerics.Interpolation
-import Test.Common
 import Draw.Color.Schemes.Common
+
+import Test.Helpers
+import Test.Common
 
 
 
@@ -124,16 +126,15 @@ renderDiscrete file colorF n = renderAllFormats (width*n) height file $ do
     height = 32
 
 checkMma97 :: Assertion
-checkMma97 = for_ [1..10] $ \i -> do
+checkMma97 = sequence_ $ flip V.imap mma97reference $ \i expected -> do
     let err = unlines
             [ "ColorData[97][" ++ show i ++ "] is " ++ show expected
             , "but our function yields " ++ show actual
             ]
-
-        expected = mma97reference V.! i
         actual = mathematica97 i
-    assertEqual err expected actual
+    assertBool err (expected ~== actual)
 
+mma97reference :: V.Vector (Color Double)
 mma97reference = fmap toColor $ V.fromList
     [ RGB 0.368417            0.506779            0.709798
     , RGB 0.880722            0.611041            0.142051
