@@ -28,11 +28,8 @@ tests = testGroup "Properties"
     , dotProductTest
     , polygonInstancesTest
     , transformationTest
-    , testGroup "Distance from line + regression"
-        [ distanceFromLineTest
-        , localOption (QuickCheckReplay (Just 858343)) distanceFromLineTest
-        ]
-     ]
+    , distanceFromLineTest
+    ]
 
 angleBetweenTest :: TestTree
 angleBetweenTest = testProperty "Angle between two lines"
@@ -219,7 +216,7 @@ transformationTest = testGroup "Affine transformations"
 
 distanceFromLineTest :: TestTree
 distanceFromLineTest = testProperty "Distance from point to line" $
-    forAll gen $ \(d, (point, line)) -> approxEqualTolerance (Tolerance 1e-10) (distanceFromLine point line) d
+    forAll gen $ \(d, (point, line)) -> approxEqualTolerance (Tolerance 1e-5) (distanceFromLine point line) d
   where
     -- Generate a simple geometry where the distance is known
     gen = do
