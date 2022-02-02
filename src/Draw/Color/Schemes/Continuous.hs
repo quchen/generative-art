@@ -1,14 +1,68 @@
-module Draw.Color.ColorMaps where
+module Draw.Color.Schemes.Continuous
+(
+    -- * Linear, clamped on [0..1]
+      magma
+    , inferno
+    , plasma
+    , cividis
+    , turbo
+
+    -- * Cyclic on [0..1]
+    , twilight
+    , twilightShifted
+)
+where
 
 
 
 import qualified Data.Vector as V
-import Data.Vector (Vector)
+import Data.Vector (Vector, (!))
+
+import Numerics.Interpolation
+import Draw.Color
 
 
 
 data RGB = RGB !Double !Double !Double
     deriving (Eq, Ord, Show)
+
+toColor :: RGB -> Color Double
+toColor (RGB r g b) = rgb r g b
+
+clamp :: Ord a => a -> a -> a -> a
+clamp a b x =
+    let lo = min a b
+        hi = max a b
+    in min hi (max x lo)
+
+clampedColorFunction :: Vector RGB -> Double -> RGB
+clampedColorFunction = pickColor (\nColors ix -> clamp 0 nColors ix)
+
+cyclicColorFunction :: Vector RGB -> Double -> RGB
+cyclicColorFunction = pickColor (\nColors ix -> mod nColors ix)
+
+pickColor
+    :: (Int -> Int -> Int) -- ^ Given an index and the number of colors, which actual
+                           -- vector index should be used? See e.g. 'clampedColorFunction'.
+    -> Vector RGB          -- ^ Color data
+    -> Double              -- ^ Value to pick color for
+    -> RGB
+pickColor picker xs = \v ->
+    let nColors = V.length xs
+        index = round (linearInterpolate (0,1) (0, fromIntegral nColors - 1) v)
+    in xs ! picker nColors index
+
+
+magma, inferno, plasma, cividis, turbo :: Double -> Color Double
+magma = toColor . clampedColorFunction magmaData
+inferno = toColor . clampedColorFunction infernoData
+plasma = toColor . clampedColorFunction plasmaData
+cividis = toColor . clampedColorFunction cividisData
+turbo = toColor . clampedColorFunction turboData
+
+twilight, twilightShifted :: Double -> Color Double
+twilight = toColor . cyclicColorFunction twilightData
+twilightShifted = toColor . cyclicColorFunction twilightShiftedData
 
 magmaData :: Vector RGB
 magmaData = V.fromList
@@ -268,6 +322,7 @@ magmaData = V.fromList
     , RGB 0.987691 0.977154 0.734536
     , RGB 0.987387 0.984288 0.742002
     , RGB 0.987053 0.991438 0.749504 ]
+
 
 infernoData :: Vector RGB
 infernoData = V.fromList
