@@ -28,7 +28,10 @@ tests = testGroup "Properties"
     , dotProductTest
     , polygonInstancesTest
     , transformationTest
-    , distanceFromLineTest
+    , testGroup "Distance from line + regression"
+        [ distanceFromLineTest
+        , localOption (QuickCheckReplay (Just 858343)) distanceFromLineTest
+        ]
      ]
 
 angleBetweenTest :: TestTree
