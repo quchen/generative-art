@@ -9,6 +9,8 @@ module Draw (
 
     -- * Colors
     , module Draw.Color
+    , module Draw.Color.Schemes.Discrete
+    , module Draw.Color.Schemes.Continuous
 
     -- * Drawing presets
     , moveToVec
@@ -57,6 +59,8 @@ import           Data.List
 import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw.Color
+import Draw.Color.Schemes.Discrete
+import Draw.Color.Schemes.Continuous
 import Geometry
 
 -- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.
@@ -253,7 +257,7 @@ cartesianCoordinateSystem = cairoScope $ do
             moveTo (fromIntegral x) (fromIntegral y)
             showTextAligned HCenter VTop str
     setFontSize 8
-    setColor (mmaColor 0 1)
+    setColor (mathematica97 0)
     sequence_ [ centeredText x y (show x ++ "," ++ show y)
               | x <- [minX, minX+100 .. maxX]
               , y <- [minY, minY+100 .. maxY] ]

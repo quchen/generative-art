@@ -31,14 +31,14 @@ drawing sideLength w h = do
 
     for_ (Hex.line (Cube (-1) 0 1) (Cube 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
         Draw.polygonSketch (hexagonPoly sideLength hexLineSegment)
-        setColor (mmaColor 0 0.3)
+        setColor (mathematica97 0 `withOpacity` 0.3)
         fillPreserve
-        setColor (mmaColor 0 0.5)
+        setColor (mathematica97 0 `withOpacity` 0.5)
         stroke
 
     for_ (ring 2 (Axial (-1) 1)) $ \hex -> cairoScope $ do
         Draw.polygonSketch (hexagonPoly sideLength hex)
-        setColor (mmaColor 1 0.3)
+        setColor (mathematica97 1 `withOpacity` 0.3)
         fillPreserve
-        setColor (mmaColor 1 0.5)
+        setColor (mathematica97 1 `withOpacity` 0.5)
         stroke

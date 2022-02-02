@@ -100,9 +100,9 @@ drawTile Tile{..} = cairoScope $ do
     lineToVec tileP1
     lineToVec tileP2
     clipPreserve
-    setColor $ mmaColor color 1
+    setColor $ mathematica97 color
     strokePreserve
-    setColor $ mmaColor color 0.5
+    setColor $ mathematica97 color `withOpacity` 0.5
     fill
 
 drawConnectors :: Tile -> Render ()

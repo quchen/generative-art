@@ -33,11 +33,11 @@ rotateLineTest = testCase "Rotate line" $ renderAllFormats 300 90 "docs/geometry
 
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do
-        setColor $ mmaColor i 1
+        setColor $ mathematica97 i
         lineSketch line
         stroke )
 
-    setColor $ mmaColor 1 1
+    setColor $ mathematica97 1
     setFontSize 12
     moveTo 90 20
     showText "Rotate line in 20° increments"
@@ -49,10 +49,10 @@ perpendicularBisectorTest = testCase "Perpendicular bisector" $ renderAllFormats
         bisector = perpendicularBisector line
 
     setLineWidth 1
-    setColor $ mmaColor 0 1
+    setColor $ mathematica97 0
     lineSketch line
     stroke
-    setColor $ mmaColor 1 1
+    setColor $ mathematica97 1
     lineSketch bisector
     stroke
 
@@ -68,12 +68,12 @@ perpendicularLineThroughTest = testCase "Perpendicular line through point" $ ren
         line' = perpendicularLineThrough point line
 
     setLineWidth 1
-    setColor $ mmaColor 0 1
+    setColor $ mathematica97 0
     lineSketch line
     stroke
     circleSketch point 3
     stroke
-    setColor $ mmaColor 1 1
+    setColor $ mathematica97 1
     lineSketch line'
     stroke
 
@@ -89,12 +89,12 @@ pointInPolygonTest = testCase "Point in polygon" $ renderAllFormats 200 70 "docs
 
     setLineWidth 1
     polygonSketch square
-    setColor $ mmaColor 0 1
+    setColor $ mathematica97 0
     strokePreserve
-    setColor $ mmaColor 0 0.1
+    setColor $ mathematica97 0 `withOpacity` 0.1
     fill
 
-    setColor $ mmaColor 1 1
+    setColor $ mathematica97 1
     for_ points (\point -> do
         circleSketch point 3
         if pointInPolygon point square

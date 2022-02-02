@@ -18,8 +18,8 @@ tests :: TestTree
 tests = testCase "Mirror along an axis" mirrorPointsTest
 
 originalC, mirroredC :: Double -> Render ()
-originalC = setColor . mmaColor 0
-mirroredC = setColor . mmaColor 1
+originalC o = setColor (withOpacity (mathematica97 0) o)
+mirroredC o = setColor (withOpacity (mathematica97 1) o)
 
 setMirrorStyle :: Render ()
 setMirrorStyle = setColor (black `withOpacity` 0.5) >> setDash [5,5] 0 >> setLineWidth 1

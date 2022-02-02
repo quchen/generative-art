@@ -17,7 +17,7 @@ tests = testGroup "Voronoi Patterns"
     , testVoronoi
     ]
 
-type MmaColor = Int
+type MathematicaColor = Int
 
 testPolygonCutting :: TestTree
 testPolygonCutting = testGroup "Adding polygons"
@@ -92,16 +92,16 @@ testVoronoi = testCase "Full Voronoi pattern" test
         Cairo.translate 10 10
         drawVoronoi (cells voronoiPattern)
 
-drawVoronoi :: [VoronoiCell MmaColor] -> Render ()
+drawVoronoi :: [VoronoiCell MathematicaColor] -> Render ()
 drawVoronoi voronoiCells = cairoScope $ do
     setLineWidth 1
     for_ voronoiCells $ \(Cell point polygon i) -> do
         cairoScope $ do
             newPath
             polygonSketch polygon
-            setColor $ mmaColor i 1
+            setColor $ mathematica97 i
             strokePreserve
-            setColor $ mmaColor i 0.1
+            setColor $ mathematica97 i `withOpacity` 0.1
             fill
         cairoScope $ do
             moveToVec (polygonAverage polygon)
@@ -109,12 +109,12 @@ drawVoronoi voronoiCells = cairoScope $ do
             showTextAligned HCenter VCenter (show i)
         drawPoint point i
 
-drawSeed :: VoronoiCell MmaColor -> Render ()
+drawSeed :: VoronoiCell MathematicaColor -> Render ()
 drawSeed cell = drawPoint (seed cell) (props cell)
 
-drawPoint :: Vec2 -> MmaColor -> Render ()
+drawPoint :: Vec2 -> MathematicaColor -> Render ()
 drawPoint point color = cairoScope $ do
     newPath
-    setColor $ mmaColor color 1
+    setColor $ mathematica97 color
     circleSketch point 3
     fill

@@ -127,7 +127,7 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 for_ (fitToBox isos) pathSketch
-                setColor (mmaColor 0 1)
+                setColor (mathematica97 0)
                 stroke
 
     ,  testCase "Concentric circles" $ do
@@ -142,7 +142,7 @@ visualTests = testGroup "Visual"
                 cairoScope $ do
                     setLineWidth 1
                     for_ (fitToBox isos) pathSketch
-                    setColor (mmaColor colorIndex 1)
+                    setColor (mathematica97 colorIndex)
                     stroke
 
     , testCase "Bubble iso lines" $ do
@@ -172,7 +172,7 @@ visualTests = testGroup "Visual"
                 let isos = isoLinesAtThreshold threshold
                 cairoScope $ do
                     setLineWidth 1
-                    setColor (mmaColor colorIx threshold)
+                    setColor (mathematica97 colorIx `withOpacity` threshold)
                     for_ isos $ \path -> pathSketch (simplifyTrajectory 0.4 path)
                     stroke
     ]

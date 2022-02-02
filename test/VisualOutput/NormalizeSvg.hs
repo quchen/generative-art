@@ -1,11 +1,13 @@
 module VisualOutput.NormalizeSvg (normalizeSvgFile) where
 
+import           Control.Monad
 import           Data.Foldable
 import           Data.List
 import           Data.Ord
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import qualified Data.Text.IO    as T
+import           System.FilePath
 import           System.IO
 import           Text.Regex.TDFA
 
@@ -15,7 +17,7 @@ import Util
 -- This remedies that by renumbering all offending fields by time of occurrence in
 -- the file.
 normalizeSvgFile :: FilePath -> IO ()
-normalizeSvgFile filename = modifyFileContent filename sanitizeSvgContent
+normalizeSvgFile filename = when (takeExtension filename == ".svg") (modifyFileContent filename sanitizeSvgContent)
 
 findAllMatches :: Text -> Text -> [Text]
 findAllMatches input regex = getAllTextMatches (input =~ regex)

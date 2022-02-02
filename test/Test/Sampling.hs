@@ -28,7 +28,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 10 10
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            setColor $ mmaColor 1 1
+            setColor $ mathematica97 1
             Cairo.stroke
             let radius = 16
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -40,7 +40,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            setColor $ mmaColor 1 1
+            setColor $ mathematica97 1
             Cairo.stroke
             let radius = 8
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -52,7 +52,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            setColor $ mmaColor 1 1
+            setColor $ mathematica97 1
             Cairo.stroke
             let radius = 4
             points <- liftIO $ poissonDisc PoissonDisc { k = 4, ..  }
@@ -64,7 +64,7 @@ tests = testCase "Poisson disc sampling" test
         Cairo.translate 100 0
         cairoScope $ do
             Cairo.rectangle 0 0 width height
-            setColor $ mmaColor 1 1
+            setColor $ mathematica97 1
             Cairo.stroke
             points <- liftIO $ uniformlyDistributedPoints gen width height 300
             drawPoints points
@@ -75,7 +75,7 @@ tests = testCase "Poisson disc sampling" test
 
 drawPoints :: [Vec2] -> Cairo.Render ()
 drawPoints points = cairoScope $ do
-    setColor $ mmaColor 0 1
+    setColor $ mathematica97 0
     for_ points $ \point -> do
         circleSketch point 2
         Cairo.fill

@@ -13,8 +13,11 @@ module Test.Helpers (
 
 import Data.List
 import System.Random
+import Data.Colour.RGBSpace as Colour
+import Data.Colour.SRGB as Colour
 
 import Geometry
+import Draw.Color
 
 import Test.Tasty.QuickCheck
 
@@ -79,6 +82,32 @@ infix 4 ~==
 (~==) :: EqApprox a => a -> a -> Bool
 (~==) = approxEqualTolerance (Tolerance 1e-10)
 
+instance (EqApprox a, EqApprox b) => EqApprox (a,b) where
+    approxEqualTolerance (Tolerance tol) (a1, b1) (a2, b2) = and
+        [ approxEqualTolerance (Tolerance tol) a1 a2
+        , approxEqualTolerance (Tolerance tol) b1 b2 ]
+
+instance (EqApprox a, EqApprox b, EqApprox c) => EqApprox (a,b,c) where
+    approxEqualTolerance (Tolerance tol) (a1, b1, c1) (a2, b2, c2) = and
+        [ approxEqualTolerance (Tolerance tol) a1 a2
+        , approxEqualTolerance (Tolerance tol) b1 b2
+        , approxEqualTolerance (Tolerance tol) c1 c2 ]
+
+instance (EqApprox a, EqApprox b, EqApprox c, EqApprox d) => EqApprox (a,b,c,d) where
+    approxEqualTolerance (Tolerance tol) (a1, b1, c1, d1) (a2, b2, c2, d2) = and
+        [ approxEqualTolerance (Tolerance tol) a1 a2
+        , approxEqualTolerance (Tolerance tol) b1 b2
+        , approxEqualTolerance (Tolerance tol) c1 c2
+        , approxEqualTolerance (Tolerance tol) d1 d2 ]
+
+instance (EqApprox a, EqApprox b, EqApprox c, EqApprox d, EqApprox e) => EqApprox (a,b,c,d,e) where
+    approxEqualTolerance (Tolerance tol) (a1, b1, c1, d1, e1) (a2, b2, c2, d2, e2) = and
+        [ approxEqualTolerance (Tolerance tol) a1 a2
+        , approxEqualTolerance (Tolerance tol) b1 b2
+        , approxEqualTolerance (Tolerance tol) c1 c2
+        , approxEqualTolerance (Tolerance tol) d1 d2
+        , approxEqualTolerance (Tolerance tol) e1 e2 ]
+
 instance EqApprox Double where
     approxEqualTolerance (Tolerance tol) reference value
       = abs (reference - value) <= tol
@@ -109,3 +138,17 @@ instance EqApprox Transformation where
             , (d1, d2)
             , (e1, e2)
             , (f1, f2) ]
+
+instance (Real a, EqApprox a) => EqApprox (Colour a) where
+    approxEqualTolerance tol s t =
+        let toTuple = uncurryRGB (\r g b -> (r,g,b::Double)) . toSRGB . colourConvert
+        in approxEqualTolerance tol (toTuple s) (toTuple t)
+
+
+instance (Real a, Floating a, EqApprox a) => EqApprox (AlphaColour a) where
+    approxEqualTolerance tol s t =
+        let toTuple :: (Real a, Floating a) => AlphaColor a -> (a,a,a,a)
+            toTuple color =
+                let alpha = alphaChannel color
+                in uncurryRGB (\r g b -> (r,g,b, realToFrac alpha)) (toSRGB (colourConvert (dissolve (1/alpha) color `over` black)))
+        in approxEqualTolerance tol (toTuple s) (toTuple t)

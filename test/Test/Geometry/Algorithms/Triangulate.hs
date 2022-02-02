@@ -88,11 +88,11 @@ nubLines = nubOrd . map normalize
 
 paintTriangulation :: [Polygon] -> Render ()
 paintTriangulation triangulation = do
-    let colors = map mmaColor [0..]
+    let colors = map mathematica97 [0..]
     for_ (zip3 [1::Int ..] colors triangulation) $ \(i, color, polygon) -> do
         cairoScope $ do
             polygonSketch polygon
-            setColor (color 0.5)
+            setColor (color `withOpacity` 0.5)
             fill
         cairoScope $ do
             moveToVec (polygonAverage polygon)
