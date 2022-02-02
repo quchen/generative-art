@@ -1,11 +1,11 @@
 module Draw.Color.ColorMaps where
 
+
+
 import qualified Data.Vector as V
 import Data.Vector (Vector)
 
-todo =
-    "_twilight_shifted_data = (_twilight_data[len(_twilight_data)//2:] + _twilight_data[:len(_twilight_data)//2])"
-    ++ "_twilight_shifted_data.reverse()"
+
 
 data RGB = RGB !Double !Double !Double
     deriving (Eq, Ord, Show)
@@ -1303,6 +1303,11 @@ cividisData = V.fromList
     , RGB 0.995249 0.898384 0.207561
     , RGB 0.995503 0.903866 0.212370
     , RGB 0.995737 0.909344 0.217772 ]
+
+twilightShiftedData :: Vector RGB
+twilightShiftedData =
+    let (firstHalf, secondHalf) = V.splitAt (V.length twilightData `div` 2) twilightData
+    in V.reverse (secondHalf <> firstHalf)
 
 twilightData :: Vector RGB
 twilightData = V.fromList
