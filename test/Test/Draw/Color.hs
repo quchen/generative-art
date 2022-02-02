@@ -24,7 +24,10 @@ tests = testGroup "Colors"
         , testBlending
         ]
     , testGroup "Schemes"
-        [ testGroup "Continuous"
+        [ testGroup "Discrete"
+            [ testCase "Mathematica ColorData[97]" $ renderDiscrete "docs/colors/schemes/mathematica_ColorData97" mathematica97 10
+            ]
+        , testGroup "Continuous"
             [ testGroup "Visually uniform"
                 [ testCase "inferno" $ renderContinuous "docs/colors/schemes/inferno"         inferno         (0,1)
                 , testCase "plasma"  $ renderContinuous "docs/colors/schemes/plasma"          plasma          (0,1)
@@ -100,7 +103,17 @@ renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
         C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral height-1)
         setColor (colorF (linearInterpolate (0,fromIntegral width-1) (lo,hi) (fromIntegral x)))
         fill
-
   where
     width = 300
+    height = 32
+
+renderDiscrete :: FilePath -> (Int -> Color Double) -> Int -> IO ()
+renderDiscrete file colorF n = renderAllFormats (width*n) height file $ do
+    for_ [0 .. n] $ \i -> do
+        C.rectangle (fromIntegral i*width) 0 (fromIntegral (i+1)*width) (height-1)
+        setColor (colorF i)
+        fill
+  where
+    width, height :: Num a => a
+    width = 32
     height = 32

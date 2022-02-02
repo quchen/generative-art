@@ -1,3 +1,10 @@
+Discrete
+==================
+
+### Mathematica’s ColorData[97]
+
+![Missing image!](mathematica_ColorData97.png)
+
 Continuous
 ==================
 
@@ -8,19 +15,19 @@ Visually uniform
 
 ### Cividis
 
-![](cividis.png)
+![Missing image!](cividis.png)
 
 ### Inferno
 
-![](inferno.png)
+![Missing image!](inferno.png)
 
 ### Plasma
 
-![](plasma.png)
+![Missing image!](plasma.png)
 
 ### Viridis
 
-![](viridis.png)
+![Missing image!](viridis.png)
 
 
 
@@ -30,12 +37,12 @@ Other
 
 ### Turbo
 
-![](turbo.png)
+![Missing image!](turbo.png)
 
 ### Twilight
 
-![](twilight.png)
+![Missing image!](twilight.png)
 
 ### Twilight, shifted
 
-![](twilightShifted.png)
+![Missing image!](twilightShifted.png)
