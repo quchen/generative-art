@@ -39,7 +39,7 @@ clampedColorFunction :: Vector RGB -> Double -> RGB
 clampedColorFunction = pickColor (\nColors ix -> clamp 0 nColors ix)
 
 cyclicColorFunction :: Vector RGB -> Double -> RGB
-cyclicColorFunction = pickColor (\nColors ix -> mod nColors ix)
+cyclicColorFunction = pickColor (\nColors ix -> mod ix nColors)
 
 pickColor
     :: (Int -> Int -> Int) -- ^ Given an index and the number of colors, which actual
