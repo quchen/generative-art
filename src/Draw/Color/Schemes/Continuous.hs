@@ -48,7 +48,7 @@ pickColor picker xs = \query ->
 
         indexContinuous = linearInterpolate (0,1) (0, fromIntegral nColors - 1) query
         indexLo = floor indexContinuous
-        indexHi = indexLo+1
+        indexHi = ceiling indexContinuous
 
         Raw.RGB rLo gLo bLo = xs ! picker nColors indexLo
         Raw.RGB rHi gHi bHi = xs ! picker nColors indexHi
