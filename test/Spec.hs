@@ -79,10 +79,14 @@ runPostTestScripts :: IO ()
 runPostTestScripts = do
     files <- do
         paths <- FileSystem.listAllFiles "docs"
-        let p path = or [ takeExtension path == ".svg" && not (isSubstring "schemes" path)
-                        , takeExtension path == ".png" &&      isSubstring "schemes" path
-                        ]
+        let p path
+                | or [isSubstring ("colors/schemes/" ++ allowedPng) path
+                        | allowedPng <- ["cividis", "inferno", "plasma", "viridis", "turbo", "twilight", "twilightShifted"]]
+                            = takeExtension path == ".png"
+                | otherwise = takeExtension path == ".svg"
         pure (filter p paths)
+
+
 
     normalizeAsyncs <- do
         putStrLn "Normalize SVG files for reproducible test output"

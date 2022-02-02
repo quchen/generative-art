@@ -1,2 +1,15 @@
-!*.png
-*.svg
+!cividis.png
+!inferno.png
+!plasma.png
+!viridis.png
+!turbo.png
+!twilight.png
+!twilightShifted.png
+
+cividis.svg
+inferno.svg
+plasma.svg
+viridis.svg
+turbo.svg
+twilight.svg
+twilightShifted.svg
