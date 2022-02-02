@@ -26,7 +26,7 @@ instance Arbitrary Vec2 where
                      ++ [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
 
 instance Arbitrary Angle where
-    arbitrary = fmap deg (choose (0, 360))
+    arbitrary = fmap deg (choose (-360, 720))
 
 newtype GaussianVec = GaussianVec Vec2
     deriving (Eq, Ord, Show)
