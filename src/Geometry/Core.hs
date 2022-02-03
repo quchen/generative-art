@@ -79,6 +79,7 @@ module Geometry.Core (
     -- * Bounding Box
     , HasBoundingBox(..)
     , BoundingBox(..)
+    , NoBoundingBox(..)
     , overlappingBoundingBoxes
     , transformBoundingBox
     , ScalingBehavior(..)
@@ -103,6 +104,8 @@ import Text.Printf
 import Control.DeepSeq
 import qualified System.Random.MWC as MWC
 import qualified Data.Set as S
+import qualified Data.Map as M
+import qualified Data.Vector as V
 
 import Util
 
@@ -373,6 +376,23 @@ instance Monoid BoundingBox where
     mempty = BoundingBox (Vec2 inf inf) (Vec2 (-inf) (-inf))
       where inf = 1/0
 
+-- | This type simply wraps its contents, but reports its bounding box as 'mempty'.
+-- It’s a very useful type when you want to e.g. resize the whole geometry given to
+-- your rendering function, but it contains some non-geometrical render data, like
+-- a timestamp for each shape.
+newtype NoBoundingBox a = NoBoundingBox a
+    deriving (Eq, Ord, Show, Read, Bounded)
+
+instance NFData a => NFData (NoBoundingBox a) where rnf (NoBoundingBox x) = rnf x
+instance Enum a => Enum (NoBoundingBox a) where
+    toEnum = NoBoundingBox . toEnum
+    fromEnum (NoBoundingBox x) = fromEnum x
+-- | The key instance: whatever is in a 'NoBoundingBox' has, well, no bounding box.
+instance HasBoundingBox (NoBoundingBox a) where boundingBox = mempty
+instance Semigroup a => Semigroup (NoBoundingBox a) where NoBoundingBox x <> NoBoundingBox y = NoBoundingBox (x <> y)
+instance Monoid a => Monoid (NoBoundingBox a) where mempty = NoBoundingBox mempty
+instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundingBox x) = NoBoundingBox (transform t x)
+
 boundingBoxPolygon :: BoundingBox -> Polygon
 boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bb
@@ -421,8 +441,16 @@ instance HasBoundingBox a => HasBoundingBox (Maybe a) where
 instance HasBoundingBox a => HasBoundingBox [a] where
     boundingBox = foldMap boundingBox
 
+instance HasBoundingBox a => HasBoundingBox (V.Vector a) where
+    boundingBox = foldMap boundingBox
+
 instance HasBoundingBox a => HasBoundingBox (S.Set a) where
     boundingBox = foldMap boundingBox
+
+-- | The bounding box takes both keys and values into account. To ignore one or the
+-- other, use 'NoBoundingBox'.
+instance (HasBoundingBox k, HasBoundingBox a) => HasBoundingBox (M.Map k a) where
+    boundingBox = M.foldMapWithKey (\k v -> boundingBox k <> boundingBox v)
 
 instance HasBoundingBox Line where
     boundingBox (Line start end) = boundingBox (start, end)
