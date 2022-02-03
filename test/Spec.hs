@@ -8,6 +8,7 @@ import Control.Concurrent.Async
 import Control.Exception
 import Data.Foldable
 import System.FilePath
+import System.FilePath.Glob
 import Data.List
 
 import qualified Test.Bezier
@@ -73,23 +74,14 @@ tests = testGroup "Test suite"
         ]
     ]
 
-isSubstring :: Eq char => [char] -> [char] -> Bool
-isSubstring search str = case findIndex (isPrefixOf search) (tails str) of
-                Just _ -> True
-                Nothing -> False
-
 runPostTestScripts :: IO ()
 runPostTestScripts = do
     files <- do
         paths <- FileSystem.listAllFiles "docs"
         let p path
-                | or [isSubstring ("colors/schemes/" ++ allowedPng) path
-                        | allowedPng <- ["cividis", "inferno", "plasma", "viridis", "turbo", "twilight", "twilightShifted"]]
-                            = takeExtension path == ".png"
+                | match "colors/schemes/continuous/*.*" path = takeExtension path == ".png"
                 | otherwise = takeExtension path == ".svg"
         pure (filter p paths)
-
-
 
     normalizeAsyncs <- do
         putStrLn "Normalize SVG files for reproducible test output"

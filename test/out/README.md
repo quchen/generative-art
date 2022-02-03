@@ -15,37 +15,37 @@ over quickly.
 
 ![Missing image!](../../docs/billard/4_broken.svg)
 
-![Missing image!](../../docs/colors/blending_black.svg)
+![Missing image!](../../docs/colors/operations/blending_black.svg)
 
-![Missing image!](../../docs/colors/blending_blue.svg)
+![Missing image!](../../docs/colors/operations/blending_blue.svg)
 
-![Missing image!](../../docs/colors/blending_white.svg)
+![Missing image!](../../docs/colors/operations/blending_white.svg)
 
-![Missing image!](../../docs/colors/brightness.svg)
+![Missing image!](../../docs/colors/operations/brightness.svg)
 
-![Missing image!](../../docs/colors/hue.svg)
+![Missing image!](../../docs/colors/operations/hue.svg)
 
-![Missing image!](../../docs/colors/lightness.svg)
+![Missing image!](../../docs/colors/operations/lightness.svg)
 
-![Missing image!](../../docs/colors/saturation_hsl.svg)
+![Missing image!](../../docs/colors/operations/saturation_hsl.svg)
 
-![Missing image!](../../docs/colors/saturation_hsv.svg)
+![Missing image!](../../docs/colors/operations/saturation_hsv.svg)
 
-![Missing image!](../../docs/colors/schemes/cividis.png)
+![Missing image!](../../docs/colors/schemes/continuous/cividis.svg)
 
-![Missing image!](../../docs/colors/schemes/inferno.png)
+![Missing image!](../../docs/colors/schemes/continuous/inferno.svg)
 
-![Missing image!](../../docs/colors/schemes/mathematica_ColorData97.svg)
+![Missing image!](../../docs/colors/schemes/continuous/plasma.svg)
 
-![Missing image!](../../docs/colors/schemes/plasma.png)
+![Missing image!](../../docs/colors/schemes/continuous/turbo.svg)
 
-![Missing image!](../../docs/colors/schemes/turbo.png)
+![Missing image!](../../docs/colors/schemes/continuous/twilight.svg)
 
-![Missing image!](../../docs/colors/schemes/twilight.png)
+![Missing image!](../../docs/colors/schemes/continuous/twilightShifted.svg)
 
-![Missing image!](../../docs/colors/schemes/twilightShifted.png)
+![Missing image!](../../docs/colors/schemes/continuous/viridis.svg)
 
-![Missing image!](../../docs/colors/schemes/viridis.png)
+![Missing image!](../../docs/colors/schemes/discrete/mathematica_ColorData97.svg)
 
 ![Missing image!](../../docs/differential_equations/1_two_body_problem.svg)
 

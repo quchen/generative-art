@@ -3,7 +3,7 @@ Discrete
 
 ### Mathematica’s ColorData[97]
 
-![Missing image!](mathematica_ColorData97.png)
+![Missing image!](discrete/mathematica_ColorData97.svg)
 
 Continuous
 ==================
@@ -15,19 +15,19 @@ Visually uniform (matplotlib)
 
 ### Cividis
 
-![Missing image!](cividis.png)
+![Missing image!](continuous/cividis.png)
 
 ### Inferno
 
-![Missing image!](inferno.png)
+![Missing image!](continuous/inferno.png)
 
 ### Plasma
 
-![Missing image!](plasma.png)
+![Missing image!](continuous/plasma.png)
 
 ### Viridis
 
-![Missing image!](viridis.png)
+![Missing image!](continuous/viridis.png)
 
 
 
@@ -37,12 +37,12 @@ Other (matplotlib)
 
 ### Turbo
 
-![Missing image!](turbo.png)
+![Missing image!](continuous/turbo.png)
 
 ### Twilight (cyclic)
 
-![Missing image!](twilight.png)
+![Missing image!](continuous/twilight.png)
 
 ### Twilight (cyclic), shifted
 
-![Missing image!](twilightShifted.png)
+![Missing image!](continuous/twilightShifted.png)

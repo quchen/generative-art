@@ -30,50 +30,50 @@ tests = testGroup "Colors"
     , testGroup "Schemes"
         [ testGroup "Discrete"
             [ testGroup "Mathematica ColorData[97]"
-                [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/mathematica_ColorData97" mathematica97 16
+                [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica_ColorData97" mathematica97 16
                 , testCase "Check against Mathematica output" checkMma97
                 ]
             ]
         , testGroup "Continuous"
             [ testGroup "Visually uniform"
-                [ testCase "inferno" $ renderContinuous "docs/colors/schemes/inferno" inferno (0,1)
-                , testCase "plasma"  $ renderContinuous "docs/colors/schemes/plasma"  plasma  (0,1)
-                , testCase "viridis" $ renderContinuous "docs/colors/schemes/viridis" viridis (0,1)
-                , testCase "cividis" $ renderContinuous "docs/colors/schemes/cividis" cividis (0,1)
+                [ testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/inferno" inferno (0,1)
+                , testCase "plasma"  $ renderContinuous "docs/colors/schemes/continuous/plasma"  plasma  (0,1)
+                , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/viridis" viridis (0,1)
+                , testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/cividis" cividis (0,1)
                 ]
-            , testCase "turbo"           $ renderContinuous "docs/colors/schemes/turbo"           turbo           (0,1)
-            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/twilight"        twilight        (0,1)
-            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/twilightShifted" twilightShifted (0,1)
+            , testCase "turbo"           $ renderContinuous "docs/colors/schemes/continuous/turbo"           turbo           (0,1)
+            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/continuous/twilight"        twilight        (0,1)
+            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/continuous/twilightShifted" twilightShifted (0,1)
             ]
         ]
     ]
 
 testBrightness :: TestTree
-testBrightness = testCase "lightness" $ renderColorTable "docs/colors/lightness" $
+testBrightness = testCase "lightness" $ renderColorTable "docs/colors/operations/lightness" $
     colorTable baseColors (\lightness -> adjustHsl id id (const lightness))
 
 testValue :: TestTree
-testValue = testCase "brightness" $ renderColorTable "docs/colors/brightness" $
+testValue = testCase "brightness" $ renderColorTable "docs/colors/operations/brightness" $
     colorTable baseColors (\value -> adjustHsv id id (const value))
 
 testHue :: TestTree
-testHue = testCase "hue" $ renderColorTable "docs/colors/hue" $
+testHue = testCase "hue" $ renderColorTable "docs/colors/operations/hue" $
     colorTable baseColors (\hue -> adjustHsv (+ 60*hue) id id)
 
 testSaturation :: TestTree
 testSaturation = testCase "saturation" $ do
-    renderColorTable "docs/colors/saturation_hsv" $
+    renderColorTable "docs/colors/operations/saturation_hsv" $
         colorTable (drop 1 baseColors) (\saturation -> adjustHsv id (const saturation) id)
-    renderColorTable "docs/colors/saturation_hsl" $
+    renderColorTable "docs/colors/operations/saturation_hsl" $
         colorTable (drop 1 baseColors) (\saturation -> adjustHsl id (const saturation) id)
 
 testBlending :: TestTree
 testBlending = testCase "value" $ do
-    renderColorTable "docs/colors/blending_white" $
+    renderColorTable "docs/colors/operations/blending_white" $
         colorTable baseColors (\factor -> blend factor white)
-    renderColorTable "docs/colors/blending_black" $
+    renderColorTable "docs/colors/operations/blending_black" $
         colorTable baseColors (\factor -> blend factor black)
-    renderColorTable "docs/colors/blending_blue"  $
+    renderColorTable "docs/colors/operations/blending_blue"  $
         colorTable baseColors (\factor -> blend factor blue)
 
 

@@ -109,3 +109,4 @@ tests:
             - text
             - filepath
             - regex-tdfa
+            - Glob
