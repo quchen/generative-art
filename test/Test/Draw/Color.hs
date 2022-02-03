@@ -112,7 +112,7 @@ renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
         setColor (colorF (linearInterpolate (0,fromIntegral width-1) (lo,hi) (fromIntegral x)))
         fill
   where
-    width = 300
+    width = 480
     height = 32
 
 renderDiscrete :: FilePath -> (Int -> Color Double) -> Int -> IO ()
