@@ -24,6 +24,11 @@ rungeKutta4Step f y t dt
     in (t + dt, y +. dy)
 
 -- | Solve a system of first-order differential equations with RK4 (»the standard Runge-Kutta«).
+--
+-- Solution of a planetary model (with adjusted gravity and small friction for a
+-- prettier non-elliptic trajectory):
+--
+-- <<docs/differential_equations/1_two_body_problem.svg>>
 rungeKuttaConstantStep
     :: VectorSpace vec
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
@@ -76,6 +81,10 @@ rkf45step f y t dt toleranceNorm tolerance
 -- For the adaptive part of RKF, we need some norm to check how good or bad the
 -- approximation is. This tolerance class implements the maximum norm for tuples,
 -- and Euclidean norm for R^n.
+--
+-- Solution for a double pendulum:
+--
+-- <<docs/differential_equations/2_double_pendulum.svg>>
 rungeKuttaAdaptiveStep
     :: (VectorSpace vec)
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)

@@ -147,6 +147,10 @@ bezierSubdivideT n bz = map (bezierT bz) points
 -- | Trace a 'Bezier' curve with a number of evenly spaced points by arc length.
 -- This is much more expensive than 'bezierSubdivideT', but may be desirable for
 -- aesthetic purposes.
+--
+-- Here it is alongside 'bezierSubdivideT':
+--
+-- <<docs/bezier/1_single_curve.svg>>
 bezierSubdivideS :: Int -> Bezier -> [Vec2]
 bezierSubdivideS n bz = map bezier distances
   where
@@ -227,6 +231,8 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 -- solution to a differential equation.
 --
 -- For an input of n+1 points, this will yield n Bezier curves.
+--
+-- <<docs/interpolation/1_bezier_open.svg>>
 bezierSmoothen :: [Vec2] -> [Bezier]
 bezierSmoothen points = V.toList (V.zipWith4 Bezier pointsV controlPointsStart controlPointsEnd (V.tail pointsV))
   where

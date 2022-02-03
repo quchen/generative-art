@@ -754,6 +754,8 @@ polygonAngles polygon@(Polygon corners)
 -- The result is oriented in mathematically positive direction. (Note that Cairo
 -- uses a left-handed coordinate system, so mathematically positive is drawn as
 -- clockwise.)
+--
+-- <<docs/geometry/convex_hull.svg>>
 convexHull :: [Vec2] -> Polygon
 -- Andrew’s algorithm
 convexHull points
@@ -809,6 +811,7 @@ countEdgeTraversals p edges = length intersections
             _other -> False)
         edges
 
+-- <<docs/geometry/point_in_polygon.svg>>
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 

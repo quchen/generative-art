@@ -10,8 +10,7 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import Draw
-import Draw.Color.Schemes.Common
-import qualified Draw.Color.Schemes.RawColorLists.ColorBrewer2 as ColorBrewer2Raw
+import Draw.Color.Schemes.Internal.Common
 import Numerics.Interpolation
 
 import Test.Common
@@ -36,14 +35,14 @@ tests = testGroup "Colors"
                     , testCase "Check against Mathematica output" checkMma97
                     ]
                 , testGroup "Color Brewer 2"
-                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set2"    set2    (V.length ColorBrewer2Raw.qualitative_Set2)
-                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Accent"  accent  (V.length ColorBrewer2Raw.qualitative_Accent)
-                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set1"    set1    (V.length ColorBrewer2Raw.qualitative_Set1)
-                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set3"    set3    (V.length ColorBrewer2Raw.qualitative_Set3)
-                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Dark2"   dark2   (V.length ColorBrewer2Raw.qualitative_Dark2)
-                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Paired"  paired  (V.length ColorBrewer2Raw.qualitative_Paired)
-                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Pastel2" pastel2 (V.length ColorBrewer2Raw.qualitative_Pastel2)
-                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Pastel1" pastel1 (V.length ColorBrewer2Raw.qualitative_Pastel1)
+                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    16
+                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/accent"  accent  16
+                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set1"    set1    16
+                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set3"    set3    16
+                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/dark2"   dark2   16
+                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/paired"  paired  16
+                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel2" pastel2 16
+                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel1" pastel1 16
                     ]
                 ]
             ]
@@ -64,24 +63,24 @@ tests = testGroup "Colors"
                 ]
             , testGroup "Color Brewer 2"
                 [ testGroup "Sequential"
-                    [ testCase "orRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)
-                    , testCase "puBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBu"    puBu    (0,1)
-                    , testCase "buPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buPu"    buPu    (0,1)
-                    , testCase "oranges" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/oranges" oranges (0,1)
-                    , testCase "buGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buGn"    buGn    (0,1)
-                    , testCase "ylOrBr"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrBr"  ylOrBr  (0,1)
-                    , testCase "ylGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGn"    ylGn    (0,1)
-                    , testCase "reds"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/reds"    reds    (0,1)
-                    , testCase "rdPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdPu"    rdPu    (0,1)
-                    , testCase "greens"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greens"  greens  (0,1)
-                    , testCase "ylGnBu"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGnBu"  ylGnBu  (0,1)
-                    , testCase "purples" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/purples" purples (0,1)
-                    , testCase "gnBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/gnBu"    gnBu    (0,1)
-                    , testCase "greys"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greys"   greys   (0,1)
-                    , testCase "ylOrRd"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrRd"  ylOrRd  (0,1)
-                    , testCase "puRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puRd"    puRd    (0,1)
-                    , testCase "blues"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/blues"   blues   (0,1)
-                    , testCase "puBuGn"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBuGn"  puBuGn  (0,1)
+                    [ testCase "OrRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)
+                    , testCase "PuBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBu"    puBu    (0,1)
+                    , testCase "BuPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buPu"    buPu    (0,1)
+                    , testCase "Oranges" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/oranges" oranges (0,1)
+                    , testCase "BuGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buGn"    buGn    (0,1)
+                    , testCase "YlOrBr"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrBr"  ylOrBr  (0,1)
+                    , testCase "YlGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGn"    ylGn    (0,1)
+                    , testCase "Reds"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/reds"    reds    (0,1)
+                    , testCase "RdPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdPu"    rdPu    (0,1)
+                    , testCase "Greens"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greens"  greens  (0,1)
+                    , testCase "YlGnBu"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGnBu"  ylGnBu  (0,1)
+                    , testCase "Purples" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/purples" purples (0,1)
+                    , testCase "GnBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/gnBu"    gnBu    (0,1)
+                    , testCase "Greys"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greys"   greys   (0,1)
+                    , testCase "YlOrRd"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrRd"  ylOrRd  (0,1)
+                    , testCase "PuRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puRd"    puRd    (0,1)
+                    , testCase "Blues"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/blues"   blues   (0,1)
+                    , testCase "PuBuGn"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBuGn"  puBuGn  (0,1)
                     ]
                 , testGroup "Divisive"
                     [ testCase "Spectral" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/spectral" spectral (0,1)
@@ -166,12 +165,20 @@ renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
     width = 480
     height = 32
 
-renderDiscrete :: FilePath -> (Int -> Color Double) -> Int -> IO ()
-renderDiscrete file colorF n = renderAllFormats (width*n) height file $ do
-    for_ [0 .. n-1] $ \i -> do
-        C.rectangle (fromIntegral i*width) 0 (fromIntegral (i+1)*width) height
-        setColor (colorF i)
-        fill
+-- | Render discrete swatches until a color repeats, or until a maximum number is reached.
+renderDiscrete
+    :: FilePath
+    -> (Int -> Color Double)
+    -> Int -- ^ Maximum number of swatches
+    -> IO ()
+renderDiscrete file colorF maxSwatches = do
+    let colors = take maxSwatches (colorF 0 : takeWhile (/= colorF 0) (map colorF [1..]))
+        numColors = length colors
+    renderAllFormats (width*numColors) height file $ do
+        for_ (zip [0..] colors) $ \(i, color) -> do
+            C.rectangle (fromIntegral i*width) (-1) (fromIntegral (i+1)*width) height
+            setColor color
+            fill
   where
     width, height :: Num a => a
     width = 32

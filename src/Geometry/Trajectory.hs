@@ -69,6 +69,8 @@ pointOnTrajectory points
 --
 -- This implements the Ramer-Douglas-Peucker algorithm,
 -- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+--
+-- <<docs/interpolation/3_simplify_path.svg>>
 simplifyTrajectory :: Double -> [Vec2] -> [Vec2]
 simplifyTrajectory epsilon  = V.toList . go . V.fromList
   where

@@ -1,11 +1,11 @@
-module Draw.Color.Schemes.RawColorLists.ColorBrewer2 where
+module Draw.Color.Schemes.Internal.ColorBrewer2 where
 
 
 
 import           Data.Vector (Vector)
 import qualified Data.Vector as V
 
-import Draw.Color.Schemes.Common
+import Draw.Color.Schemes.Internal.Common
 
 
 

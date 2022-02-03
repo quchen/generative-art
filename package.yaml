@@ -33,6 +33,22 @@ default-extensions:
     - LambdaCase
     - RecordWildCards
 
+extra-doc-files:
+    - docs/bezier/1_single_curve.svg
+    - docs/colors/schemes/continuous/**/*.png
+    - docs/colors/schemes/discrete/**/*.svg
+    - docs/geometry/cut/3_complicated.svg
+    - docs/interpolation/3_simplify_path.svg
+    - docs/geometry/convex_hull.svg
+    - docs/geometry/point_in_polygon.svg
+    - docs/interpolation/1_bezier_open.svg
+    - docs/iso_lines/potentials.svg
+    - docs/triangulation/3_haskell_logo.svg
+    - docs/sampling/poisson-disc.svg
+    - docs/billard/3_lambda.svg
+    - docs/differential_equations/2_double_pendulum.svg
+    - docs/differential_equations/1_two_body_problem.svg
+
 ghc-options: [-Wall, -Wno-type-defaults]
 
 library:

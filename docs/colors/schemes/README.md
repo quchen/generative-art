@@ -11,28 +11,28 @@ Color Brewer 2
 --------------------------------
 
 ### Accent
-![Missing image!](discrete/colorbrewer2/qualitative_Accent.svg)
+![Missing image!](discrete/colorbrewer2/accent.svg)
 
 ### Dark2
-![Missing image!](discrete/colorbrewer2/qualitative_Dark2.svg)
+![Missing image!](discrete/colorbrewer2/dark2.svg)
 
 ### Paired
-![Missing image!](discrete/colorbrewer2/qualitative_Paired.svg)
+![Missing image!](discrete/colorbrewer2/paired.svg)
 
 ### Pastel1
-![Missing image!](discrete/colorbrewer2/qualitative_Pastel1.svg)
+![Missing image!](discrete/colorbrewer2/pastel1.svg)
 
 ### Pastel2
-![Missing image!](discrete/colorbrewer2/qualitative_Pastel2.svg)
+![Missing image!](discrete/colorbrewer2/pastel2.svg)
 
 ### Set1
-![Missing image!](discrete/colorbrewer2/qualitative_Set1.svg)
+![Missing image!](discrete/colorbrewer2/set1.svg)
 
 ### Set2
-![Missing image!](discrete/colorbrewer2/qualitative_Set2.svg)
+![Missing image!](discrete/colorbrewer2/set2.svg)
 
 ### Set3
-![Missing image!](discrete/colorbrewer2/qualitative_Set3.svg)
+![Missing image!](discrete/colorbrewer2/set3.svg)
 
 
 

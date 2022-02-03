@@ -38,6 +38,8 @@ import Geometry.Trajectory
 -- calculate the iso lines at height \(h\), we would have to recreate the value
 -- table for each invocation.
 --
+-- <<docs/iso_lines/potentials.svg>>
+--
 -- === __Concrete example__
 --
 -- Let’s draw some circles! The equation of a circle of radius \(r\) at point \(p\) is

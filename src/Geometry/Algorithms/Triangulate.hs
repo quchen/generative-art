@@ -12,6 +12,8 @@ import Geometry.Core
 
 
 -- | Split a polygon into a number of triangles.
+--
+-- <<docs/triangulation/3_haskell_logo.svg>>
 triangulate :: Polygon -> [Polygon]
 triangulate polygon = case clipEar polygon of
     (ear, Nothing) -> [ear]

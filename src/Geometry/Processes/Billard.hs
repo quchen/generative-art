@@ -15,6 +15,8 @@ import Geometry.Core
 
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.
+--
+-- <<docs/billard/3_lambda.svg>>
 billard
     :: [Line] -- ^ Geometry; typically involves the edges of a bounding polygon.
     -> Line   -- ^ Initial velocity vector of the ball. Only start and direction,
