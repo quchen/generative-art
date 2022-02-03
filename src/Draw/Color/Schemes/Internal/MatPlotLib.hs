@@ -1310,12 +1310,6 @@ cividis = V.fromList
     , RGB 0.995503 0.903866 0.212370
     , RGB 0.995737 0.909344 0.217772 ]
 
--- | Matplotlib’s shifted twilight color scheme.
-twilightShifted :: Vector RGB
-twilightShifted =
-    let (firstHalf, secondHalf) = V.splitAt (V.length twilight `div` 2) twilight
-    in V.reverse (secondHalf <> firstHalf)
-
 -- | Matplotlib’s twilight color scheme.
 twilight :: Vector RGB
 twilight = V.fromList

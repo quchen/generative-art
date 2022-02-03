@@ -147,7 +147,6 @@ module Draw.Color.Schemes.Continuous
 
     -- * Cyclic on [0..1]
     , twilight
-    , twilightShifted
 )
 where
 
@@ -189,10 +188,6 @@ turbo = toColor . clamped MatPlotLib.turbo
 -- | <<docs/colors/schemes/continuous/matplotlib/twilight.png>>
 twilight :: Double -> Color Double
 twilight = toColor . cyclic MatPlotLib.twilight
-
--- | <<docs/colors/schemes/continuous/matplotlib/twilightShifted.png>>
-twilightShifted :: Double -> Color Double
-twilightShifted = toColor . cyclic MatPlotLib.twilightShifted
 
 -- | <<docs/colors/schemes/continuous/seaborn/rocket.png>>
 rocket :: Double -> Color Double

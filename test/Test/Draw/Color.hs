@@ -58,9 +58,8 @@ tests = testGroup "Colors"
                     , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/viridis" viridis (0,1)
                     ]
                 , testGroup "Other"
-                    [ testCase "turbo"           $ renderContinuous "docs/colors/schemes/continuous/matplotlib/turbo"           turbo           (0,1)
-                    , testCase "twilight"        $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilight"        twilight        (0,1)
-                    , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilightShifted" twilightShifted (0,1)
+                    [ testCase "turbo"    $ renderContinuous "docs/colors/schemes/continuous/matplotlib/turbo"    turbo    (0,1)
+                    , testCase "twilight" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilight" twilight (0,1)
                     ]
                 ]
             , testGroup "Seaborn"

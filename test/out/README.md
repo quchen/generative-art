@@ -97,8 +97,6 @@ over quickly.
 
 ![Missing image!](../../docs/colors/schemes/continuous/matplotlib/twilight.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/matplotlib/twilightShifted.png)
-
 ![Missing image!](../../docs/colors/schemes/continuous/matplotlib/viridis.png)
 
 ![Missing image!](../../docs/colors/schemes/continuous/seaborn/crest.png)
