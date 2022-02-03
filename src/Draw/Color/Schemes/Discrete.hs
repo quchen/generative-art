@@ -1,19 +1,42 @@
+-- | Beautiful and practical color schemes, taken from
+--
+--  * Mathematica: https://www.wolfram.com/mathematica/
+--  * Color Brewer 2: https://colorbrewer2.org/
+--
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | Name            |                                                              | Domain  |
+-- +=================+==============================================================+=========+
+-- | 'mathematica97' | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'accent'        | <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>     | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'dark2'         | <<docs/colors/schemes/discrete/colorbrewer2/dark2.svg>>      | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'paired'        | <<docs/colors/schemes/discrete/colorbrewer2/paired.svg>>     | [0..11] |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'pastel1'       | <<docs/colors/schemes/discrete/colorbrewer2/pastel1.svg>>    | [0..8]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'pastel2'       | <<docs/colors/schemes/discrete/colorbrewer2/pastel2.svg>>    | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set1'          | <<docs/colors/schemes/discrete/colorbrewer2/set1.svg>>       | [0..8]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set2'          | <<docs/colors/schemes/discrete/colorbrewer2/set2.svg>>       | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set3'          | <<docs/colors/schemes/discrete/colorbrewer2/set3.svg>>       | [0..11] |
+-- +-----------------+--------------------------------------------------------------+---------+
 module Draw.Color.Schemes.Discrete (
     -- * Mathematica
     mathematica97
 
     -- * Color Brewer 2
-    --
-    -- $colorbrewerLink
-
-    , set2
     , accent
-    , set1
-    , set3
     , dark2
     , paired
-    , pastel2
     , pastel1
+    , pastel2
+    , set1
+    , set2
+    , set3
 ) where
 
 
@@ -25,10 +48,6 @@ import Draw.Color
 import Draw.Color.Schemes.Internal.Common
 
 import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
-
--- $colorbrewerLink
---
--- https://colorbrewer2.org/
 
 
 
@@ -95,50 +114,34 @@ mma97_interpolating = V.fromList
     , RGB 0.915  0.3325 0.2125
     ]
 
--- | Color Brewer 2’s qualitative Set2 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/set2.svg>>
-set2 :: Int -> Color Double
-set2 = toColor . discreteCyclic ColorBrewer2.qualitative_Set2
-
--- | Color Brewer 2’s qualitative Accent palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>
 accent :: Int -> Color Double
 accent = toColor . discreteCyclic ColorBrewer2.qualitative_Accent
 
--- | Color Brewer 2’s qualitative Set1 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/set1.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/set1.svg>>
 set1 :: Int -> Color Double
 set1 = toColor . discreteCyclic ColorBrewer2.qualitative_Set1
 
--- | Color Brewer 2’s qualitative Set3 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/set3.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/set2.svg>>
+set2 :: Int -> Color Double
+set2 = toColor . discreteCyclic ColorBrewer2.qualitative_Set2
+
+-- | <<docs/colors/schemes/discrete/colorbrewer2/set3.svg>>
 set3 :: Int -> Color Double
 set3 = toColor . discreteCyclic ColorBrewer2.qualitative_Set3
 
--- | Color Brewer 2’s qualitative Dark2 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/dark2.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/dark2.svg>>
 dark2 :: Int -> Color Double
 dark2 = toColor . discreteCyclic ColorBrewer2.qualitative_Dark2
 
--- | Color Brewer 2’s qualitative Paired palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/paired.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/paired.svg>>
 paired :: Int -> Color Double
 paired = toColor . discreteCyclic ColorBrewer2.qualitative_Paired
 
--- | Color Brewer 2’s qualitative Pastel2 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/pastel2.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/pastel2.svg>>
 pastel2 :: Int -> Color Double
 pastel2 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel2
 
--- | Color Brewer 2’s qualitative Pastel1 palette
---
--- <<docs/colors/schemes/discrete/colorbrewer2/pastel1.svg>>
+-- | <<docs/colors/schemes/discrete/colorbrewer2/pastel1.svg>>
 pastel1 :: Int -> Color Double
 pastel1 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel1
