@@ -30,8 +30,8 @@ import Geometry.Coordinates.Hexagonal as Hex
 
 renderSingleWire
     :: Double
-    -> Map Cube CellState
-    -> Cube
+    -> Map Hex CellState
+    -> Hex
     -> Render ()
 renderSingleWire cellSize allKnownCells start = do
     moveToVec (toVec2 cellSize start)

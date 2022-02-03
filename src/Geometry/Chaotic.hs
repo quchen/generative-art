@@ -114,8 +114,8 @@ instance MwcChaosSource BoundingBox where
 instance MwcChaosSource Angle where
     mwcChaos = mwcChaos . getRad
 
-instance MwcChaosSource Hex.Cube where
-    mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
+instance MwcChaosSource Hex.Hex where
+    mwcChaos (Hex.Hex q r s) = mwcChaos (q,r,s)
 
 -- | Initialize an 'MWC.Gen' with anything 'MwcChaosSource'.
 --
@@ -214,8 +214,8 @@ instance ChaosSource BoundingBox where
 instance ChaosSource Angle where
     perturb = perturb . getRad
 
-instance ChaosSource Hex.Cube where
-    perturb (Hex.Cube q r s) = perturb (q,r,s)
+instance ChaosSource Hex.Hex where
+    perturb (Hex.Hex q r s) = perturb (q,r,s)
 
 -- | Infinite list of normally distributed values.
 normals :: ChaosSource seed => seed -> [Double]

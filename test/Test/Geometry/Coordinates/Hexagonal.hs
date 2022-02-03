@@ -38,14 +38,14 @@ drawing sideLength w h = do
         setFontSize 8
         hexagonalCoordinateSystem sideLength 3
 
-    for_ (Hex.line (Cube (-1) 0 1) (Cube 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
+    for_ (Hex.line (Hex (-1) 0 1) (Hex 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
         Draw.polygonSketch (hexagonPoly sideLength hexLineSegment)
         setColor (mathematica97 0 `withOpacity` 0.3)
         fillPreserve
         setColor (mathematica97 0 `withOpacity` 0.5)
         stroke
 
-    for_ (ring 2 (Cube (-1) 1 0)) $ \hex -> cairoScope $ do
+    for_ (ring 2 (Hex (-1) 1 0)) $ \hex -> cairoScope $ do
         Draw.polygonSketch (hexagonPoly sideLength hex)
         setColor (mathematica97 1 `withOpacity` 0.3)
         fillPreserve
@@ -61,7 +61,7 @@ gaussianHexagons = testCase "Gaussian hexagons" $ renderAllFormats width height 
                 y <- normal 0 50 gen
                 pure (Hex.fromVec2 cellSize (Vec2 x y))
             pure $ foldl' (\acc hex -> M.insertWith (+) hex (1::Int) acc) mempty hexs
-    let _ = hexagons :: M.Map Cube Int
+    let _ = hexagons :: M.Map Hex Int
 
 
     let polys = M.mapKeys (hexagonPoly cellSize) hexagons
