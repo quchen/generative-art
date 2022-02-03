@@ -1,6 +1,8 @@
 -- | Hexagonal coordinate systems.
 --
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
+--
+-- <<docs/hexagonal/gaussian_hexagons.svg>>
 module Geometry.Coordinates.Hexagonal where
 
 import Geometry.Core as G hiding (Polygon, pointInPolygon)

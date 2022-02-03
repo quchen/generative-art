@@ -48,6 +48,7 @@ extra-doc-files:
     - docs/billard/3_lambda.svg
     - docs/differential_equations/2_double_pendulum.svg
     - docs/differential_equations/1_two_body_problem.svg
+    - docs/hexagonal/gaussian_hexagons.svg
 
 ghc-options: [-Wall, -Wno-type-defaults]
 

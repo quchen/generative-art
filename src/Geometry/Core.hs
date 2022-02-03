@@ -103,6 +103,7 @@ import Text.Printf
 import Control.DeepSeq
 import qualified System.Random.MWC as MWC
 import qualified Data.Set as S
+import qualified Data.Map as M
 
 import Util
 
