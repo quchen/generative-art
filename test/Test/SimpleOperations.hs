@@ -33,11 +33,11 @@ rotateLineTest = testCase "Rotate line" $ renderAllFormats 300 90 "docs/geometry
 
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do
-        setColor $ mathematica97 i
+        setColor $ flare (i/8)
         lineSketch line
         stroke )
 
-    setColor $ mathematica97 1
+    setColor $ flare 0.5
     setFontSize 12
     moveTo 90 20
     showText "Rotate line in 20° increments"
