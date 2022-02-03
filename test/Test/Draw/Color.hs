@@ -2,6 +2,7 @@ module Test.Draw.Color (tests) where
 
 
 
+import           Control.Monad
 import           Data.Colour.Names
 import           Data.List                (transpose)
 import qualified Data.Vector              as V
@@ -10,6 +11,7 @@ import           Test.Tasty
 import           Test.Tasty.HUnit
 
 import Draw
+import Geometry as G
 import Draw.Color.Schemes.Internal.Common
 import Numerics.Interpolation
 
@@ -172,17 +174,35 @@ renderDiscrete
     -> Int -- ^ Maximum number of swatches
     -> IO ()
 renderDiscrete file colorF maxSwatches = do
-    let colors = take maxSwatches (colorF 0 : takeWhile (/= colorF 0) (map colorF [1..]))
+    let allColors = colorF 0 : takeWhile (/= colorF 0) (map colorF [1..])
+        colors = take maxSwatches allColors
         numColors = length colors
     renderAllFormats (width*numColors) height file $ do
-        for_ (zip [0..] colors) $ \(i, color) -> do
+        for_ (zip [0..] colors) $ \(i, color) -> cairoScope $ do
             C.rectangle (fromIntegral i*width) (-1) (fromIntegral (i+1)*width) height
             setColor color
             fill
+
+        -- »dot dot dot« when cutting off early
+        when (allColors `isLongerThan` colors) $ cairoScope $ do
+            setColor black
+            setLineWidth 1
+            let lastCellCenter = Vec2 (fromIntegral numColors*width - width/2) (height/2)
+            arrowSketch (angledLine (lastCellCenter +. Vec2 2 0) (deg 0) 10)
+                def {arrowheadSize = 5 }
+            stroke
+            for_ [-10, -6, -2] $ \offset -> do
+                circleSketch (lastCellCenter +. Vec2 offset 0) 1
+                fill
   where
     width, height :: Num a => a
     width = 32
     height = 32
+
+    isLongerThan (_:xs) (_:ys) = isLongerThan xs ys
+    isLongerThan []     []     = False
+    isLongerThan (_:_)  []     = True
+    isLongerThan []     (_:_)  = True
 
 checkMma97 :: Assertion
 checkMma97 = sequence_ $ flip V.imap mma97reference $ \i expected -> do
