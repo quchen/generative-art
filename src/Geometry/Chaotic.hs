@@ -117,9 +117,6 @@ instance MwcChaosSource Angle where
 instance MwcChaosSource Hex.Cube where
     mwcChaos (Hex.Cube q r s) = mwcChaos (q,r,s)
 
-instance MwcChaosSource Hex.Axial where
-    mwcChaos (Hex.Axial q r) = mwcChaos (q,r)
-
 -- | Initialize an 'MWC.Gen' with anything 'MwcChaosSource'.
 --
 -- @
@@ -219,9 +216,6 @@ instance ChaosSource Angle where
 
 instance ChaosSource Hex.Cube where
     perturb (Hex.Cube q r s) = perturb (q,r,s)
-
-instance ChaosSource Hex.Axial where
-    perturb (Hex.Axial q r) = perturb (q,r)
 
 -- | Infinite list of normally distributed values.
 normals :: ChaosSource seed => seed -> [Double]

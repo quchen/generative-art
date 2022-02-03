@@ -20,20 +20,8 @@ import Control.DeepSeq
 data Cube = Cube !Int !Int !Int
     deriving (Eq, Ord, Show)
 
-data Axial = Axial !Int !Int
-    deriving (Eq, Ord, Show)
-
 instance NFData Cube where
     rnf _ = () -- Constructors are already strict
-
-instance NFData Axial where
-    rnf _ = () -- Constructors are already strict
-
-cubicalToAxial :: Cube -> Axial
-cubicalToAxial (Cube q r _s) = Axial q r
-
-axialToCubical :: Axial -> Cube
-axialToCubical (Axial q r) = Cube q r (-q-r)
 
 data Direction
     = R  -- ^ Right
@@ -92,7 +80,12 @@ instance HexagonalCoordinate Cube where
     rotateCw (Cube q r s) = Cube (-r) (-s) (-q)
     rotateCcw (Cube q r s) = Cube (-s) (-q) (-r)
 
-    toVec2 size = toVec2 size . cubicalToAxial
+    toVec2 size (Cube q r _) =
+        let q' = fromIntegral q
+            r' = fromIntegral r
+            x = size * (sqrt(3)*q' + sqrt(3)/2*r')
+            y = size * (                   3/2*r')
+        in Vec2 x y
 
     fromVec2 size (Vec2 x y) =
         let q', r', s' :: Double
@@ -129,40 +122,6 @@ cubeRound q' r' s' =
         | rDiff > sDiff                  -> Cube q (-q-s) s
         -- s is the only one left
         | otherwise                      -> Cube q r (-q-r)
-
-instance HexagonalCoordinate Axial where
-    move dir x (Axial q r) = case dir of
-        R  -> Axial (q+x) (r  )
-        UR -> Axial (q+x) (r-x)
-        UL -> Axial (q  ) (r-x)
-        L  -> Axial (q-x) (r  )
-        DL -> Axial (q-x) (r+x)
-        DR -> Axial (q  ) (r+x)
-
-    Axial q1 r1 `hexAdd` Axial q2 r2 = Axial (q1+q2) (r1+r2)
-    Axial q1 r1 `hexSubtract` Axial q2 r2 = Axial (q1-q2) (r1-r2)
-    n `hexTimes` Axial q r = Axial (n*q) (n*r)
-    hexZero = Axial 0 0
-
-    distance a b = distance (axialToCubical a) (axialToCubical b)
-
-    rotateCw = cubicalToAxial . rotateCw . axialToCubical
-    rotateCcw = cubicalToAxial . rotateCcw . axialToCubical
-
-    toVec2 size (Axial q r) =
-        let q' = fromIntegral q
-            r' = fromIntegral r
-            x = size * (sqrt(3)*q' + sqrt(3)/2*r')
-            y = size * (                   3/2*r')
-        in Vec2 x y
-
-    fromVec2 size vec = cubicalToAxial (fromVec2 size vec)
-
-instance Semigroup Axial where
-    (<>) = hexAdd
-
-instance Monoid Axial where
-    mempty = hexZero
 
 rotateAround :: HexagonalCoordinate hex => hex -> Int -> hex -> hex
 rotateAround center n hex =

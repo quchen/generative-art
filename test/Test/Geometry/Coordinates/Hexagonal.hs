@@ -45,7 +45,7 @@ drawing sideLength w h = do
         setColor (mathematica97 0 `withOpacity` 0.5)
         stroke
 
-    for_ (ring 2 (Axial (-1) 1)) $ \hex -> cairoScope $ do
+    for_ (ring 2 (Cube (-1) 1 0)) $ \hex -> cairoScope $ do
         Draw.polygonSketch (hexagonPoly sideLength hex)
         setColor (mathematica97 1 `withOpacity` 0.3)
         fillPreserve
