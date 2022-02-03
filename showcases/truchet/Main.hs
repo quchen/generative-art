@@ -1,9 +1,10 @@
 module Main where
 
 import Data.Traversable (for)
-import Data.List (permutations, inits, nub)
+import Data.List (permutations, inits, nub, partition)
 import Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create, uniformRM, GenIO)
+import qualified Data.Map.Strict as M
 
 import Draw
 import Geometry
@@ -28,13 +29,12 @@ main = do
         scaledHeight = round (scaleFactor * picHeight)
 
     gen <- create
+    tiling <- randomTiling gen plane
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor white >> Cairo.paint)
-        for_ plane $ \hex -> do
-            tile <- Cairo.liftIO (randomTile gen)
-            drawTile hex tile
+        for_ (strands tiling) drawStrand
 
 
 
@@ -54,30 +54,62 @@ tiles = nub
     ]
   where allDirections = [R, UR, UL, L, DL, DR]
 
+type Tiling = M.Map Hex Tile
+
+randomTiling :: GenIO -> [Hex] -> IO Tiling
+randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
+    tile <- randomTile gen
+    pure (hex, tile)
+
 randomTile :: GenIO -> IO Tile
 randomTile = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
     pure (tiles !! rnd)
   where countTiles = length tiles
 
-drawTile :: Hex -> Tile -> Cairo.Render ()
-drawTile hex (Tile ds) = for_ ds $ \(d1, d2) -> drawArc d1 d2
+strands :: Tiling -> [[(Hex, (Direction, Direction))]]
+strands tiling = case M.lookupMin tiling of
+    Nothing -> []
+    Just (startHex, tile) -> case tile of
+        Tile [] -> strands (M.delete startHex tiling)
+        Tile ((d, d'):ts) ->
+            let (s, tiling') = strand tiling startHex d
+                (s', tiling'') = strand tiling' startHex d'
+            in (reverse s ++ [(startHex, (d, d'))] ++ s') : strands (M.insert startHex (Tile ts) tiling'')
+
+strand :: Tiling -> Hex -> Direction -> ([(Hex, (Direction, Direction))], Tiling)
+strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
+    Nothing -> ([], tiling)
+    Just (Tile ds)
+        | ([(_, d')], ds') <- partition ((== d) . fst) ds ->
+            let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
+            in  ((hex', (d, d')) : s', tiling')
+        | ([(d', _)], ds') <- partition ((== d) . snd) ds ->
+            let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
+            in  ((hex', (d, d')) : s', tiling')
+        | otherwise -> ([], tiling)
+
+drawStrand :: [(Hex, (Direction, Direction))] -> Render ()
+drawStrand [] = pure ()
+drawStrand ((hex, (d0, d1)) : rest) = drawArc hex (d0, d1) >> drawStrand rest
+
+drawArc :: Hex -> (Direction, Direction) -> Cairo.Render ()
+drawArc hex (d1, d2) = cairoScope $ do
+    sketchArc d1 d2
+    Cairo.setLineWidth (cellSize / 2)
+    setColor white
+    Cairo.stroke
+    sketchArc d1 d2
+    Cairo.setLineWidth (3/8 * cellSize)
+    Cairo.setLineCap Cairo.LineCapRound
+    setColor black
+    Cairo.stroke
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
     nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
 
-    drawArc d d' = cairoScope $ do
-        sketchArc d d'
-        Cairo.setLineWidth (cellSize / 2)
-        setColor white
-        Cairo.stroke
-        sketchArc d d'
-        Cairo.setLineWidth (3/8 * cellSize)
-        Cairo.setLineCap Cairo.LineCapRound
-        setColor black
-        Cairo.stroke
 
     sketchArc L  R  = moveToVec (side L)  >> lineToVec (side R)
     sketchArc UL DR = moveToVec (side UL) >> lineToVec (side DR)
