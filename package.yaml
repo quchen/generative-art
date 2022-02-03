@@ -82,6 +82,7 @@ executables:
         dependencies:
             - generative-art
             - Noise
+            - optparse-applicative
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive

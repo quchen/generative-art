@@ -7,8 +7,8 @@ import Data.Maybe         (fromMaybe)
 import Data.Vector        (fromList)
 import Math.Noise         (Perlin (..), getValue, perlin)
 import Prelude            hiding ((**))
-import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
+import Options.Applicative
 
 import Geometry.Algorithms.Delaunay
 import Draw
@@ -26,17 +26,41 @@ picHeight = 720
 main :: IO ()
 main = mainHaskellLogo
 
+
+data Options = Options
+    { _count :: Int
+    , _file :: FilePath
+    } deriving (Eq, Ord, Show)
+
+commandLineOptions :: IO Options
+commandLineOptions = execParser parserOpts
+  where
+    progOpts = Options
+        <$> option auto (
+               long "count"
+            <> short 'c'
+            <> metavar "INT"
+            <> value 1000
+            <> help "Number of cells"
+            <> showDefault)
+        <*> strOption (
+               long "file"
+            <> short 'f'
+            <> metavar "FILE"
+            <> value "out/haskell_logo_voronoi.png"
+            <> help "Output filename"
+            <> showDefault)
+    parserOpts = info (progOpts <**> helper)
+      ( fullDesc
+     <> progDesc "Voronoi Haskell Logo"
+     <> header "A Haskell logo made out of Voronoi cells" )
+
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
-    let defaultFile = "out/haskell_logo_voronoi.png"
-    (count, file) <- getArgs >>= \case
-        [] -> pure (1000, defaultFile)
-        [count] -> pure (read count, defaultFile)
-        [count, file] -> pure (read count, file)
-        _ -> error "Usage: haskell-logo-voronoi [COUNT [FILE]]"
+    Options {_count=count, _file=file} <- commandLineOptions
     gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
     let -- constructed so that we have roughly `count` points
-        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / count)
+        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = adaptiveRadius, k = 4, ..}
     points <- poissonDisc samplingProps
     ditheringPoints <- RT.fromList <$> poissonDisc samplingProps { radius = adaptiveRadius / 4 }
