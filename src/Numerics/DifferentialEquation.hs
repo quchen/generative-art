@@ -26,7 +26,21 @@ rungeKutta4Step f y t dt
 -- | Solve a system of first-order differential equations with RK4 (»the standard Runge-Kutta«).
 --
 -- Solution of a planetary model (with adjusted gravity and small friction for a
--- prettier non-elliptic trajectory):
+-- prettier non-elliptic trajectory),
+--
+-- \[
+--     \begin{align}
+--         \mathbf {\ddot x} &=
+--             - \underbrace{ g \frac {\mathbf x} {\|\mathbf x\|^{3-\varepsilon}}}_{\text{Gravity} }
+--             - \underbrace{ \mu \|\mathbf{\dot x}\| \mathbf{\dot x}}_{\text{Friction} }
+--         \\
+--         \mathbf{x}(0)      &= \begin{pmatrix}100\\0\end{pmatrix} \\
+--         \mathbf{\dot x}(0) &= \begin{pmatrix}4\\4\end{pmatrix} \\
+--         \varepsilon        &= 0.06 \\
+--         g                  &= 2200 \\
+--         \mu                &= 0.0001
+--     \end{align}
+-- \]
 --
 -- <<docs/differential_equations/1_two_body_problem.svg>>
 rungeKuttaConstantStep
