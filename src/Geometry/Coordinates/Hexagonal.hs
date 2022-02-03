@@ -5,17 +5,20 @@
 -- <<docs/hexagonal/gaussian_hexagons.svg>>
 module Geometry.Coordinates.Hexagonal where
 
-import Geometry.Core as G hiding (Polygon, pointInPolygon)
-import qualified Geometry.Core as G
-import Graphics.Rendering.Cairo as C hiding (x,y)
-import Data.Foldable
-import Draw hiding (polygonSketch)
-import qualified Draw as D
-import Data.Maybe
-import Control.Monad
-import qualified Data.Set as S
-import Data.Set (Set)
-import Control.DeepSeq
+
+
+import           Control.DeepSeq
+import           Control.Monad
+import           Data.Foldable
+import           Data.Maybe
+import           Data.Set                 (Set)
+import qualified Data.Set                 as S
+import           Draw                     hiding (polygonSketch)
+import qualified Draw                     as D
+import           Geometry.Core            as G hiding (Polygon, pointInPolygon)
+import qualified Geometry.Core            as G
+import           Graphics.Rendering.Cairo as C hiding (x, y)
+
 
 data Hex = Hex !Int !Int !Int
     -- This is really just a ℝ^3 with rounding occurring in every calculation,
@@ -225,15 +228,15 @@ ring n center = do
     let start = move startDir n center
     [ move walkDir i start | i <- [0..n-1]]
 
-data Polygon hex = Polygon [hex]
+newtype Polygon = Polygon [Hex]
     deriving (Eq, Ord, Show)
 
-isOnEdge :: Hex -> Polygon Hex -> Bool
+isOnEdge :: Hex -> Polygon -> Bool
 isOnEdge hex (Polygon corners) =
     let edges = concat (zipWith line corners (tail (cycle corners)))
     in isJust (find (== hex) edges)
 
-pointInPolygon :: Hex -> Polygon Hex -> Bool
+pointInPolygon :: Hex -> Polygon -> Bool
 pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
   where
     -- | This elimintes numerical instabilities
@@ -242,10 +245,10 @@ pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
     -- This feels like cheating
     inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
 
-edgePoints :: Polygon Hex -> S.Set Hex
+edgePoints :: Polygon -> S.Set Hex
 edgePoints (Polygon corners) = S.fromList (concat (zipWith line corners (tail (cycle corners))))
 
-polygonSketch :: Double -> Polygon Hex -> Render ()
+polygonSketch :: Double -> Polygon -> Render ()
 polygonSketch cellSize polygon =
     for_ (edgePoints polygon) $ \hex -> do
         D.polygonSketch (hexagonPoly cellSize hex)
