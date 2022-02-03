@@ -1,6 +1,7 @@
 module Main where
 
-import Data.List (permutations)
+import Data.Traversable (for)
+import Data.List (permutations, inits, nub)
 import Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create, uniformRM, GenIO)
 
@@ -42,12 +43,14 @@ plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-data Tile = Tile Direction Direction Direction Direction Direction Direction
+newtype Tile = Tile [(Direction, Direction)] deriving (Eq)
 
 tiles :: [Tile]
-tiles =
-    [ Tile d1 d2 d3 d4 d5 d6
+tiles = nub
+    [ Tile partialTile
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
+    , let fullTile = [(d1, d2), (d3, d4), (d5, d6)]
+    , partialTile <- inits fullTile
     ]
   where allDirections = [R, UR, UL, L, DL, DR]
 
@@ -58,23 +61,21 @@ randomTile = \gen -> do
   where countTiles = length tiles
 
 drawTile :: Hex -> Tile -> Cairo.Render ()
-drawTile hex (Tile d1 d2 d3 d4 d5 d6) = do
-    drawArc d1 d2
-    drawArc d3 d4
-    drawArc d5 d6
+drawTile hex (Tile ds) = for_ ds $ \(d1, d2) -> drawArc d1 d2
   where
     center = toVec2 cellSize hex
-    side direction = 0.5 *. (center +. nextCenter direction)
-    nextCenter direction = toVec2 cellSize (move direction 1 hex)
+    side d = 0.5 *. (center +. nextCenter d)
+    nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
 
-    drawArc d d' = do
+    drawArc d d' = cairoScope $ do
         sketchArc d d'
         Cairo.setLineWidth (cellSize / 2)
         setColor white
         Cairo.stroke
         sketchArc d d'
         Cairo.setLineWidth (3/8 * cellSize)
+        Cairo.setLineCap Cairo.LineCapRound
         setColor black
         Cairo.stroke
 
