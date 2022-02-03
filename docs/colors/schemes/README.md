@@ -75,6 +75,29 @@ Other (matplotlib)
 
 
 
+Seaborn (sequential)
+--------------------------------
+
+### rocket
+![Missing image!](continuous/seaborn/rocket.png)
+### mako
+![Missing image!](continuous/seaborn/mako.png)
+### flare
+![Missing image!](continuous/seaborn/flare.png)
+### crest
+![Missing image!](continuous/seaborn/crest.png)
+
+
+Seaborn (divisive)
+--------------------------------
+
+### vlag
+![Missing image!](continuous/seaborn/vlag.png)
+### icefire
+![Missing image!](continuous/seaborn/icefire.png)
+
+
+
 Color Brewer 2 (sequential)
 --------------------------------
 

@@ -63,6 +63,20 @@ tests = testGroup "Colors"
                     , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilightShifted" twilightShifted (0,1)
                     ]
                 ]
+            , testGroup "Seaborn"
+                [ testGroup "Visually uniform"
+                    [ testGroup "Sequential"
+                        [ testCase "rocket"  $ renderContinuous "docs/colors/schemes/continuous/seaborn/rocket"  rocket  (0,1)
+                        , testCase "mako"    $ renderContinuous "docs/colors/schemes/continuous/seaborn/mako"    mako    (0,1)
+                        , testCase "flare"   $ renderContinuous "docs/colors/schemes/continuous/seaborn/flare"   flare   (0,1)
+                        , testCase "crest"   $ renderContinuous "docs/colors/schemes/continuous/seaborn/crest"   crest   (0,1)
+                        ]
+                    , testGroup "Divisive"
+                        [ testCase "vlag"    $ renderContinuous "docs/colors/schemes/continuous/seaborn/vlag"    vlag    (0,1)
+                        , testCase "icefire" $ renderContinuous "docs/colors/schemes/continuous/seaborn/icefire" icefire (0,1)
+                        ]
+                    ]
+                ]
             , testGroup "Color Brewer 2"
                 [ testGroup "Sequential"
                     [ testCase "OrRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)

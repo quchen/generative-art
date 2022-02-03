@@ -1,11 +1,13 @@
+-- | Beautiful and practical color schemes, taken from
+--
+--  * Color Brewer 2: https://colorbrewer2.org/
+--  * Matplotlib: https://matplotlib.org/
+--  * Seaborn: https://seaborn.pydata.org/
 module Draw.Color.Schemes.Continuous
 (
     -- * Linear, clamped on [0..1]
 
     -- ** Matplotlib
-    --
-    -- $matplotlibLink
-
       magma
     , inferno
     , plasma
@@ -13,12 +15,20 @@ module Draw.Color.Schemes.Continuous
     , cividis
     , turbo
 
+    -- ** Seaborn sequential
+    , rocket
+    , mako
+    , flare
+    , crest
+
+
+    -- ** Seaborn diverging
+    , vlag
+    , icefire
+
 
 
     -- ** ColorBrewer2 sequential
-    --
-    -- $colorbrewerLink
-
     , orRd
     , puBu
     , buPu
@@ -41,9 +51,6 @@ module Draw.Color.Schemes.Continuous
 
 
     -- ** ColorBrewer2 divisive
-    --
-    -- $colorbrewerLink
-
     , spectral
     , rdYlGn
     , rdBu
@@ -55,8 +62,6 @@ module Draw.Color.Schemes.Continuous
     , puOr
 
     -- * Cyclic on [0..1]
-    --
-    -- $matplotlibLink
     , twilight
     , twilightShifted
 )
@@ -69,14 +74,7 @@ import Draw.Color.Schemes.Internal.Common
 
 import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
 import qualified Draw.Color.Schemes.Internal.MatPlotLib   as MatPlotLib
-
--- $colorbrewerLink
---
--- https://colorbrewer2.org/
-
--- $matplotlibLink
---
--- https://matplotlib.org/
+import qualified Draw.Color.Schemes.Internal.Seaborn      as Seaborn
 
 
 
@@ -128,7 +126,40 @@ twilight = toColor . cyclic MatPlotLib.twilight
 twilightShifted :: Double -> Color Double
 twilightShifted = toColor . cyclic MatPlotLib.twilightShifted
 
+-- | Seaborn’s rocket color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/rocket.png>>
+rocket :: Double -> Color Double
+rocket = toColor . clamped Seaborn.rocket
 
+-- | Seaborn’s mako color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/mako.png>>
+mako :: Double -> Color Double
+mako = toColor . clamped Seaborn.mako
+
+-- | Seaborn’s flare color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/flare.png>>
+flare :: Double -> Color Double
+flare = toColor . clamped Seaborn.flare
+
+-- | Seaborn’s crest color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/crest.png>>
+crest :: Double -> Color Double
+crest = toColor . clamped Seaborn.crest
+
+-- | Seaborn’s vlag color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/vlag.png>>
+vlag :: Double -> Color Double
+vlag = toColor . clamped Seaborn.vlag
+-- | Seaborn’s icefire color scheme.
+--
+-- <<docs/colors/schemes/continuous/seaborn/icefire.png>>
+icefire :: Double -> Color Double
+icefire = toColor . clamped Seaborn.icefire
 
 -- | Color Brewer 2’s sequential OrRd scheme
 --
