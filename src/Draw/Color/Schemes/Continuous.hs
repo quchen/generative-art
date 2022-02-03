@@ -1,10 +1,13 @@
+-- | Beautiful and practical color schemes, taken from
+--
+--  * Color Brewer 2: https://colorbrewer2.org/
+--  * Matplotlib: https://matplotlib.org/
+--  * Seaborn: https://seaborn.pydata.org/
 module Draw.Color.Schemes.Continuous
 (
     -- * Linear, clamped on [0..1]
 
     -- ** Matplotlib
-    --
-    -- $matplotlibLink
       magma
     , inferno
     , plasma
@@ -13,8 +16,6 @@ module Draw.Color.Schemes.Continuous
     , turbo
 
     -- ** Seaborn sequential
-    --
-    -- $seabornLink
     , rocket
     , mako
     , flare
@@ -22,16 +23,12 @@ module Draw.Color.Schemes.Continuous
 
 
     -- ** Seaborn diverging
-    --
-    -- $seabornLink
     , vlag
     , icefire
 
 
 
     -- ** ColorBrewer2 sequential
-    --
-    -- $colorbrewerLink
     , orRd
     , puBu
     , buPu
@@ -54,8 +51,6 @@ module Draw.Color.Schemes.Continuous
 
 
     -- ** ColorBrewer2 divisive
-    --
-    -- $colorbrewerLink
     , spectral
     , rdYlGn
     , rdBu
@@ -67,8 +62,6 @@ module Draw.Color.Schemes.Continuous
     , puOr
 
     -- * Cyclic on [0..1]
-    --
-    -- $matplotlibLink
     , twilight
     , twilightShifted
 )
@@ -82,18 +75,6 @@ import Draw.Color.Schemes.Internal.Common
 import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
 import qualified Draw.Color.Schemes.Internal.MatPlotLib   as MatPlotLib
 import qualified Draw.Color.Schemes.Internal.Seaborn      as Seaborn
-
--- $colorbrewerLink
---
--- https://colorbrewer2.org/
-
--- $matplotlibLink
---
--- https://matplotlib.org/
-
--- $seabornLink
---
--- https://seaborn.pydata.org/
 
 
 
