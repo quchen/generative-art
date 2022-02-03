@@ -101,6 +101,18 @@ over quickly.
 
 ![Missing image!](../../docs/colors/schemes/continuous/matplotlib/viridis.png)
 
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/crest.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/flare.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/icefire.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/mako.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/rocket.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/seaborn/vlag.png)
+
 ![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/accent.svg)
 
 ![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/dark2.svg)
