@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Sampling (
+module Geometry.Algorithms.Sampling (
 -- * Poisson-Disc sampling
 PoissonDiscProperties(..)
 , poissonDisc

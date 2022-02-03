@@ -11,7 +11,7 @@ import Draw
 import Geometry
 import Graphics.Rendering.Cairo      (Render, liftIO)
 import Numerics.DifferentialEquation
-import Sampling
+import Geometry.Algorithms.Sampling
 
 
 picWidth, picHeight :: Num a => a

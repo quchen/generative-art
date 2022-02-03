@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Test.Delaunay (tests) where
+module Test.Geometry.Algorithms.Delaunay (tests) where
 
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.List (scanl')
@@ -9,12 +9,12 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase)
 import Test.Common (renderAllFormats)
 
-import Delaunay
-import Delaunay.Internal
+import Geometry.Algorithms.Delaunay
+import Geometry.Algorithms.Delaunay.Internal
 import Draw
 import Geometry
-import Sampling
-import Voronoi
+import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.Voronoi
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"

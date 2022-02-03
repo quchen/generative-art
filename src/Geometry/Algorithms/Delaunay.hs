@@ -1,4 +1,4 @@
-module Delaunay (
+module Geometry.Algorithms.Delaunay (
   DelaunayTriangulation()
 , getPolygons
 , bowyerWatson
@@ -8,4 +8,4 @@ module Delaunay (
 , lloydRelaxation
 ) where
 
-import Delaunay.Internal
+import Geometry.Algorithms.Delaunay.Internal

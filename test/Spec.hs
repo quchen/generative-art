@@ -12,23 +12,23 @@ import System.FilePath.Glob
 
 import qualified Test.Bezier
 import qualified Test.ConvexHull
-import qualified Test.Delaunay
 import qualified Test.DifferentialEquation
 import qualified Test.Draw.Color
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
+import qualified Test.Geometry.Algorithms.Delaunay
+import qualified Test.Geometry.Algorithms.Sampling
 import qualified Test.Geometry.Algorithms.Triangulate
+import qualified Test.Geometry.Algorithms.Voronoi
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
+import qualified Test.Geometry.Processes.Penrose
 import qualified Test.IntersectionLL
 import qualified Test.Mirror
-import qualified Test.Penrose
 import qualified Test.Properties
 import qualified Test.Reflection
-import qualified Test.Sampling
 import qualified Test.SimpleOperations
 import qualified Test.Trajectory
-import qualified Test.Voronoi
 
 import           Test.Tasty
 import           Test.Tasty.Runners
@@ -54,22 +54,22 @@ tests = testGroup "Test suite"
     , testGroup "Visual tests"
         [ Test.Bezier.tests
         , Test.ConvexHull.tests
-        , Test.Delaunay.tests
         , Test.DifferentialEquation.tests
         , Test.Draw.Color.tests
         , Test.Geometry.Algorithms.Contour.tests
         , Test.Geometry.Algorithms.Cut.tests
+        , Test.Geometry.Algorithms.Delaunay.tests
+        , Test.Geometry.Algorithms.Sampling.tests
         , Test.Geometry.Algorithms.Triangulate.tests
+        , Test.Geometry.Algorithms.Voronoi.tests
         , Test.Geometry.Coordinates.Hexagonal.tests
         , Test.Geometry.Processes.Billard.tests
+        , Test.Geometry.Processes.Penrose.tests
         , Test.IntersectionLL.tests
         , Test.Mirror.tests
-        , Test.Penrose.tests
         , Test.Reflection.tests
-        , Test.Sampling.tests
         , Test.SimpleOperations.tests
         , Test.Trajectory.tests
-        , Test.Voronoi.tests
         ]
     ]
 

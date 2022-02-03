@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Delaunay.Internal where
+module Geometry.Algorithms.Delaunay.Internal where
 
 import Data.List (foldl', intersect, sortOn)
 import qualified Data.Map.Strict as M
@@ -8,7 +8,7 @@ import qualified Data.Set as S
 import qualified Util.RTree as RT
 
 import Geometry
-import Voronoi
+import Geometry.Algorithms.Voronoi
 
 
 

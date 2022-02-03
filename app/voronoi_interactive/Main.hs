@@ -11,11 +11,11 @@ import qualified Graphics.Rendering.Cairo    as Cairo
 import qualified Graphics.UI.Threepenny      as UI
 import           Graphics.UI.Threepenny.Core
 
-import Delaunay
+import Geometry.Algorithms.Delaunay
 import Draw
 import Geometry
-import Sampling
-import Voronoi
+import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.Voronoi
 
 main :: IO ()
 main = withSystemTempDirectory "voronoi-interactive" $ \tmpDir -> UI.startGUI UI.defaultConfig (setup tmpDir)

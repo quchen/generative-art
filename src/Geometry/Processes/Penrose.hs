@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Penrose
+module Geometry.Processes.Penrose
 (
 -- * Types
   Tile(..)

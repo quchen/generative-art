@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Voronoi
+module Geometry.Algorithms.Voronoi
 (
 -- * Types
 --

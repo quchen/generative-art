@@ -1,13 +1,12 @@
-
 {-# LANGUAGE RecordWildCards #-}
-module Test.Penrose (tests) where
+module Test.Geometry.Processes.Penrose (tests) where
 
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (scale, transform, x, y)
 
 import Draw
 import Geometry
-import Penrose
+import Geometry.Processes.Penrose
 
 import Test.Common
 import Test.Tasty

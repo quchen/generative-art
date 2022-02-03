@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Test.Sampling (tests) where
+module Test.Geometry.Algorithms.Sampling (tests) where
 
 
 import Control.Monad.IO.Class (liftIO)
@@ -11,7 +11,7 @@ import Test.Tasty.HUnit (testCase)
 
 import Draw
 import Geometry
-import Sampling
+import Geometry.Algorithms.Sampling
 import Test.Common
 
 

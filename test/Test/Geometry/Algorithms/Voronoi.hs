@@ -1,11 +1,11 @@
-module Test.Voronoi (tests) where
+module Test.Geometry.Algorithms.Voronoi (tests) where
 
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
 import Geometry
-import Voronoi
+import Geometry.Algorithms.Voronoi
 
 import Test.Common
 import Test.Tasty

@@ -10,14 +10,14 @@ import Prelude            hiding ((**))
 import System.Environment (getArgs)
 import System.Random.MWC  (initialize)
 
-import Delaunay
+import Geometry.Algorithms.Delaunay
 import Draw
 import Geometry
 import Geometry.Shapes          (haskellLogo)
 import Graphics.Rendering.Cairo hiding (transform)
-import Sampling
+import Geometry.Algorithms.Sampling
 import qualified Util.RTree as RT
-import Voronoi
+import Geometry.Algorithms.Voronoi
 
 picWidth, picHeight :: Num a => a
 picWidth = 1000
