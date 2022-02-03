@@ -185,6 +185,8 @@ over quickly.
 
 ![Missing image!](../../docs/hexagonal/1_line_and_circle.svg)
 
+![Missing image!](../../docs/hexagonal/gaussian_hexagons.svg)
+
 ![Missing image!](../../docs/interpolation/1_bezier_open.svg)
 
 ![Missing image!](../../docs/interpolation/2_picasso_squirrel.svg)

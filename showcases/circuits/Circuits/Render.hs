@@ -29,10 +29,9 @@ import Geometry.Coordinates.Hexagonal as Hex
 
 
 renderSingleWire
-    :: (HexagonalCoordinate hex, Ord hex)
-    => Double
-    -> Map hex (CellState hex)
-    -> hex
+    :: Double
+    -> Map Hex CellState
+    -> Hex
     -> Render ()
 renderSingleWire cellSize allKnownCells start = do
     moveToVec (toVec2 cellSize start)
@@ -61,10 +60,9 @@ renderSingleWire cellSize allKnownCells start = do
         start
 
 renderCircuits
-    :: (HexagonalCoordinate hex, Ord hex)
-    => ColorScheme
+    :: ColorScheme
     -> Double
-    -> Circuits hex
+    -> Circuits
     -> Render ()
 renderCircuits scheme cellSize allCircuits = do
     gen <- liftIO $ MWC.initialize (V.fromList [fromIntegral (perturb cellSize), fromIntegral $ perturb (S.size (_starts allCircuits))])
@@ -109,11 +107,11 @@ randomColor gen (ColorScheme scheme) = do
 --     -> ProcessGeometry hex
 --     -> Render ()
 renderProcessGeometry
-    :: (HexagonalCoordinate hex, CairoColor filling, CairoColor edges)
+    :: (CairoColor filling, CairoColor edges)
     => filling
     -> edges
     -> Double
-    -> ProcessGeometry hex
+    -> ProcessGeometry
     -> Render ()
 renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do

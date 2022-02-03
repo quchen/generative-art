@@ -22,49 +22,49 @@ import Geometry.Coordinates.Hexagonal as Hex
 import Why                            (fisherYatesShuffle)
 
 
-data ProcessGeometry hex = ProcessGeometry
-    { _inside :: Set hex
-    , _edge :: Set hex
+data ProcessGeometry = ProcessGeometry
+    { _inside :: Set Hex
+    , _edge :: Set Hex
     } deriving (Eq, Ord, Show)
 
-data CellState hex
-    = WireTo hex
+data CellState
+    = WireTo Hex
     | WireEnd
     deriving (Eq, Ord, Show)
 
-instance NFData hex => NFData (CellState hex) where
+instance NFData CellState where
     rnf (WireTo target) = rnf target
     rnf WireEnd = ()
 
-data MoveConstraints hex = MoveConstraints
-    { _isInBounds :: hex -> Bool
-    , _acceptStep :: CellState hex -> Circuits hex -> Maybe (CellState hex)
+data MoveConstraints = MoveConstraints
+    { _isInBounds :: Hex -> Bool
+    , _acceptStep :: CellState -> Circuits -> Maybe CellState
     }
 
-data Circuits hex = Circuits
-    { _starts :: Set hex
-    , _nodes :: Map hex (CellState hex)
+data Circuits = Circuits
+    { _starts :: Set Hex
+    , _nodes :: Map Hex CellState
     } deriving (Eq, Ord, Show)
 
-instance NFData hex => NFData (Circuits hex) where
+instance NFData Circuits where
     rnf Circuits{_starts=starts, _nodes=nodes}
         = rnf starts `seq` rnf nodes
 
-emptyCircuits :: Circuits hex
+emptyCircuits :: Circuits
 emptyCircuits = Circuits
     { _starts = S.empty
     , _nodes = M.empty
     }
 
-insertNode :: Ord hex => hex -> CellState hex -> Circuits hex -> Circuits hex
+insertNode :: Hex -> CellState -> Circuits -> Circuits
 insertNode cellPos cellState circuits = circuits { _nodes = M.insert cellPos cellState (_nodes circuits) }
 
-insertStart :: Ord hex => hex -> Circuits hex -> Circuits hex
+insertStart :: Hex -> Circuits -> Circuits
 insertStart start circuits = circuits { _starts = S.insert start (_starts circuits) }
 
 circuitProcess
-    :: ProcessGeometry Cube
-    -> Circuits Cube
+    :: ProcessGeometry
+    -> Circuits
 circuitProcess processGeometry = runST $ do
     gen <- MWC.initialize (V.fromList [252,231233,2333,233,1])
     k <- replicateM 1000 (MWC.uniformM gen) -- Warm up MWC gen
@@ -103,9 +103,9 @@ iterateUntilNothingM f = go
 
 growSingleCircuit
     :: MWC.Gen s
-    -> MoveConstraints Cube
-    -> (Set Cube, Circuits Cube)
-    -> ST s (Maybe (Set Cube, Circuits Cube))
+    -> MoveConstraints
+    -> (Set Hex, Circuits)
+    -> ST s (Maybe (Set Hex, Circuits))
 growSingleCircuit gen constraints (startingCandidates, knownCircuits) =
     pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) >>= \case
         NoFirstStepPossible -> pure Nothing
@@ -113,19 +113,18 @@ growSingleCircuit gen constraints (startingCandidates, knownCircuits) =
             grownCircuit <- growCircuit gen start firstStep constraints knownCircuits
             pure (Just (thinnedOutSCs, grownCircuit))
 
-data FirstStep hex
+data FirstStep
     = NoFirstStepPossible
-    | FirstStepIs (Set hex) hex hex
+    | FirstStepIs (Set Hex) Hex Hex
     deriving (Eq, Ord, Show)
 
 -- | Pick a starting point and a first step. If a listed point is an impossible
 -- start, remove it from the list of possible starts.
 pickStartAndFirstStep
-    :: (HexagonalCoordinate hex, Ord hex)
-    => MWC.GenST s
-    -> MoveConstraints hex
-    -> (Set hex, Circuits hex) -- ^ Possible starting points, existing circuits
-    -> ST s (FirstStep hex)
+    :: MWC.GenST s
+    -> MoveConstraints
+    -> (Set Hex, Circuits) -- ^ Possible starting points, existing circuits
+    -> ST s FirstStep
 pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) =
     let allowedSCs = S.filter (\start -> fieldIsAllowed start knownCircuits constraints) startingCandidates
         loop thinnedOutSCs = randomEntry gen thinnedOutSCs >>= \case
@@ -145,31 +144,29 @@ randomEntry gen xs = do
             pure (Just (S.elemAt i xs))
 
 randomFirstStep
-    :: (HexagonalCoordinate hex, Ord hex)
-    => MWC.Gen s
-    -> hex
-    -> Circuits hex
-    -> MoveConstraints hex
-    -> ST s (Maybe hex)
+    :: MWC.Gen s
+    -> Hex
+    -> Circuits
+    -> MoveConstraints
+    -> ST s (Maybe Hex)
 randomFirstStep gen start knownCircuits constraints = do
     let neighbours = V.fromList (ring 1 start)
     scrambledNeighbours <- fisherYatesShuffle gen neighbours
     pure (V.find (\firstStep -> fieldIsAllowed firstStep knownCircuits constraints) scrambledNeighbours)
 
-fieldIsAllowed :: Ord hex => hex -> Circuits hex -> MoveConstraints hex -> Bool
+fieldIsAllowed :: Hex -> Circuits -> MoveConstraints -> Bool
 fieldIsAllowed hex circuits constraints = not inAnyCircuit && inBounds
   where
     inAnyCircuit = hex `M.member` _nodes circuits
     inBounds = _isInBounds constraints hex
 
 growCircuit
-    :: (HexagonalCoordinate hex, Ord hex)
-    => MWC.Gen s
-    -> hex
-    -> hex
-    -> MoveConstraints hex
-    -> Circuits hex
-    -> ST s (Circuits hex)
+    :: MWC.Gen s
+    -> Hex
+    -> Hex
+    -> MoveConstraints
+    -> Circuits
+    -> ST s (Circuits)
 growCircuit gen start firstStep constraints knownCircuits = do
     let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
         loop newKnownCircuits lastPos currentPos = do
@@ -180,13 +177,12 @@ growCircuit gen start firstStep constraints knownCircuits = do
     loop knownCircuitsBeforeProcess start firstStep
 
 randomPossibleAction
-    :: HexagonalCoordinate hex
-    => MWC.GenST s
-    -> MoveConstraints hex
-    -> Circuits hex
-    -> hex
-    -> hex
-    -> ST s (CellState hex)
+    :: MWC.GenST s
+    -> MoveConstraints
+    -> Circuits
+    -> Hex
+    -> Hex
+    -> ST s CellState
 randomPossibleAction gen constraints knownCircuits lastPos currentPos = weightedRandom gen possibleActions
   where
     actions =
