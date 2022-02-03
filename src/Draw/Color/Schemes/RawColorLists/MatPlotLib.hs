@@ -1,5 +1,5 @@
 -- | Raw color vectors.
-module Draw.Color.Schemes.RawColorLists (
+module Draw.Color.Schemes.RawColorLists.MatPlotLib (
     -- * Continuous
     -- ** Clamped
       magma
