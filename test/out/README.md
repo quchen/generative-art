@@ -35,6 +35,8 @@ over quickly.
 
 ![Missing image!](../../docs/colors/schemes/continuous/inferno.svg)
 
+![Missing image!](../../docs/colors/schemes/continuous/magma.svg)
+
 ![Missing image!](../../docs/colors/schemes/continuous/plasma.svg)
 
 ![Missing image!](../../docs/colors/schemes/continuous/turbo.svg)

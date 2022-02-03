@@ -36,10 +36,11 @@ tests = testGroup "Colors"
             ]
         , testGroup "Continuous"
             [ testGroup "Visually uniform"
-                [ testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/inferno" inferno (0,1)
+                [ testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/cividis" cividis (0,1)
+                , testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/inferno" inferno (0,1)
+                , testCase "magma" $ renderContinuous "docs/colors/schemes/continuous/magma"     magma   (0,1)
                 , testCase "plasma"  $ renderContinuous "docs/colors/schemes/continuous/plasma"  plasma  (0,1)
                 , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/viridis" viridis (0,1)
-                , testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/cividis" cividis (0,1)
                 ]
             , testCase "turbo"           $ renderContinuous "docs/colors/schemes/continuous/turbo"           turbo           (0,1)
             , testCase "twilight"        $ renderContinuous "docs/colors/schemes/continuous/twilight"        twilight        (0,1)

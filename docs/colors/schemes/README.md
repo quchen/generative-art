@@ -13,27 +13,30 @@ Continuous
 Visually uniform (matplotlib)
 --------------------------------
 
-### Cividis
+### Viridis
 
-![Missing image!](continuous/cividis.png)
-
-### Inferno
-
-![Missing image!](continuous/inferno.png)
+![Missing image!](continuous/viridis.png)
 
 ### Plasma
 
 ![Missing image!](continuous/plasma.png)
 
-### Viridis
+### Inferno
 
-![Missing image!](continuous/viridis.png)
+![Missing image!](continuous/inferno.png)
+
+### Magma
+
+![Missing image!](continuous/magma.png)
+
+### Cividis
+
+![Missing image!](continuous/cividis.png)
 
 
 
 Other (matplotlib)
 --------------------------------
-
 
 ### Turbo
 
