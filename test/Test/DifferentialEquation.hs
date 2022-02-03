@@ -148,7 +148,7 @@ renderDoublePendulum _w _h = do
         moveToVec start
         setLineWidth 1
         for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
-            setColor $ mathematica97 1 `withOpacity` exp (-t / 500)
+            setColor $ rocket (1-exp (-t / 500)) `withOpacity` exp (-t / 500)
             bezierSegmentSketch bezier
             stroke
 
