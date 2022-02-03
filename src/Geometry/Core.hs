@@ -427,13 +427,13 @@ instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
     boundingBox (a,b) = boundingBox a <> boundingBox b
 
 instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
-    boundingBox (a,b,c) = boundingBox (a,b) <> boundingBox c
+    boundingBox (a,b,c) = boundingBox a <> boundingBox b <> boundingBox c
 
 instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
-    boundingBox (a,b,c,d) = boundingBox (a,b) <> boundingBox (c,d)
+    boundingBox (a,b,c,d) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d
 
 instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
-    boundingBox (a,b,c,d,e) = boundingBox (a,b) <> boundingBox (c,d,e)
+    boundingBox (a,b,c,d,e) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d <> boundingBox e
 
 instance HasBoundingBox a => HasBoundingBox (Maybe a) where
     boundingBox = foldMap boundingBox
