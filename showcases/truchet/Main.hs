@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveFunctor #-}
 module Main where
 
 import Data.Traversable (for)
@@ -29,15 +30,15 @@ main = do
         scaledHeight = round (scaleFactor * picHeight)
 
     gen <- create
-    tiling <- randomTiling gen plane
+    tiling <- indexStrands <$> randomTiling gen plane
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor backgroundColor >> Cairo.paint)
-        for_ (zip [0..] (strands tiling)) $ \(i, s) -> drawStrand colorScheme i s
+        for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
 
-colorScheme :: Double -> Color Double
-colorScheme = twilight . (/pi)
+colorScheme :: Int -> Color Double
+colorScheme = twilight . (*1.21) . fromIntegral
 
 backgroundColor :: Color Double
 backgroundColor = blend 0.5 (colorScheme 0) white
@@ -47,61 +48,75 @@ plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-newtype Tile = Tile [(Direction, Direction)] deriving (Eq, Show)
+newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Show, Functor)
 
-tiles :: [Tile]
+tiles :: [Tile ()]
 tiles = nub
     [ Tile partialTile
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
-    , let fullTile = [(d1, d2), (d3, d4), (d5, d6)]
+    , let fullTile = [((d1, d2), ()), ((d3, d4), ()), ((d5, d6), ())]
     , partialTile <- inits fullTile
     ]
   where allDirections = [R, UR, UL, L, DL, DR]
 
-type Tiling = M.Map Hex Tile
+type Tiling a = M.Map Hex (Tile a)
 
-randomTiling :: GenIO -> [Hex] -> IO Tiling
+randomTiling :: GenIO -> [Hex] -> IO (Tiling ())
 randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
     tile <- randomTile gen
     pure (hex, tile)
 
-randomTile :: GenIO -> IO Tile
+randomTile :: GenIO -> IO (Tile ())
 randomTile = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
     pure (tiles !! rnd)
   where countTiles = length tiles
 
-strands :: Tiling -> [[(Hex, (Direction, Direction))]]
+indexStrands :: Tiling () -> Tiling Int
+indexStrands = \tiling -> goStrands 0 (strands tiling) (fmap (fmap (const 0)) tiling)
+  where
+    goStrands _ [] t = t
+    goStrands n (s:ss) t = goStrand n s (goStrands (n+1) ss t)
+
+    goStrand _ [] t = t
+    goStrand n ((hex, (directions, _)) : xs) t = M.adjust (updateIndex n directions) hex (goStrand n xs t)
+
+    updateIndex n (d1, d2) (Tile xs) = Tile $ flip fmap xs $ \(directions', n') -> if
+        | (d1, d2) == directions' -> (directions', n)
+        | (d2, d1) == directions' -> (directions', n)
+        | otherwise -> (directions', n')
+
+
+strands :: Tiling a -> [[(Hex, ((Direction, Direction), a))]]
 strands tiling = case M.lookupMin tiling of
     Nothing -> []
     Just (startHex, tile) -> case tile of
         Tile [] -> strands (M.delete startHex tiling)
-        Tile ((d, d'):ts) ->
+        Tile (((d, d'), a):ts) ->
             let (s, tiling') = strand tiling startHex d
                 (s', tiling'') = strand tiling' startHex d'
-            in (reverse s ++ [(startHex, (d, d'))] ++ s') : strands (M.insert startHex (Tile ts) tiling'')
+            in (reverse s ++ [(startHex, ((d, d'), a))] ++ s') : strands (M.insert startHex (Tile ts) tiling'')
 
-strand :: Tiling -> Hex -> Direction -> ([(Hex, (Direction, Direction))], Tiling)
+strand :: Tiling a -> Hex -> Direction -> ([(Hex, ((Direction, Direction), a))], Tiling a)
 strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
     Nothing -> ([], tiling)
     Just (Tile ds)
-        | ([(_, d')], ds') <- partition ((== reverseDirection d) . fst) ds ->
+        | ([((_, d'), a)], ds') <- partition ((== reverseDirection d) . fst . fst) ds ->
             let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', (reverseDirection d, d')) : s', tiling')
-        | ([(d', _)], ds') <- partition ((== reverseDirection d) . snd) ds ->
+            in  ((hex', ((reverseDirection d, d'), a)) : s', tiling')
+        | ([((d', _), a)], ds') <- partition ((== reverseDirection d) . snd . fst) ds ->
             let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', (reverseDirection d, d')) : s', tiling')
+            in  ((hex', ((reverseDirection d, d'), a)) : s', tiling')
         | otherwise -> ([], tiling)
 
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawStrand :: (Double -> Color Double) -> Double -> [(Hex, (Direction, Direction))] -> Render ()
-drawStrand _ _ [] = pure ()
-drawStrand colors x ((hex, (d0, d1)) : rest) = drawArc (colors x) hex (d0, d1) >> drawStrand colors (x+0.1) rest
+drawTile :: (Int -> Color Double) -> Hex -> Tile Int -> Cairo.Render ()
+drawTile colors hex (Tile as) = for_ as $ drawArc colors hex
 
-drawArc :: Color Double -> Hex -> (Direction, Direction) -> Cairo.Render ()
-drawArc color hex (d1, d2) = cairoScope $ do
+drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> Cairo.Render ()
+drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (cellSize / 2)
     setColor backgroundColor
@@ -109,7 +124,7 @@ drawArc color hex (d1, d2) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (3/8 * cellSize)
     Cairo.setLineCap Cairo.LineCapRound
-    setColor color
+    setColor (colors i)
     Cairo.stroke
   where
     center = toVec2 cellSize hex
