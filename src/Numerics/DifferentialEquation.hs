@@ -9,7 +9,7 @@ import Algebra.VectorSpace
 rungeKutta4Step
     :: VectorSpace vec
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
-    -> vec                    -- ^ current y
+    -> vec                    -- ^ Current y
     -> Double                 -- ^ Time
     -> Double                 -- ^ Step size
     -> (Double, vec)          -- ^ time, y
@@ -56,12 +56,12 @@ rungeKuttaConstantStep f y0 t0 dt
 rkf45step
     :: (VectorSpace vec)
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
-    -> vec                    -- ^ current y
-    -> Double                 -- ^ current time
-    -> Double                 -- ^ step size
+    -> vec                    -- ^ Current y
+    -> Double                 -- ^ Current time
+    -> Double                 -- ^ Step size
     -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
-    -> (Double, vec, Double)  -- ^ new time, new y, new step size
+    -> (Double, vec, Double)  -- ^ New time, new y, new step size
 rkf45step f y t dt toleranceNorm tolerance
   = let k1 = dt *. f t y
         k2 = dt *. f (t + 1/4*dt)   (y +. (1/4)       *.k1)
@@ -92,19 +92,15 @@ rkf45step f y t dt toleranceNorm tolerance
 -- | Solve a system of first-order differential equations with RKF45
 -- (Runge-Kutta-Feinberg, adaptive step size using 4th-and-5th-order Runge-Kutta).
 --
--- For the adaptive part of RKF, we need some norm to check how good or bad the
--- approximation is. This tolerance class implements the maximum norm for tuples,
--- and Euclidean norm for R^n.
---
 -- Solution for a double pendulum:
 --
 -- <<docs/differential_equations/2_double_pendulum.svg>>
 rungeKuttaAdaptiveStep
     :: (VectorSpace vec)
     => (Double -> vec -> vec) -- ^ \= dy/dt = f(t, y)
-    -> vec                    -- ^ current y
-    -> Double                 -- ^ current time
-    -> Double                 -- ^ initial step size
+    -> vec                    -- ^ Current y
+    -> Double                 -- ^ Current time
+    -> Double                 -- ^ Initial step size
     -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
     -> [(Double, vec)]
