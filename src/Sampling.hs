@@ -31,6 +31,7 @@ data PoissonDiscProperties = PoissonDisc
     , k :: Int
     }
 
+-- | <<docs/sampling/poisson-disc.svg>>
 poissonDisc :: PoissonDiscProperties -> IO [Vec2]
 poissonDisc properties = result <$> execStateT poissonDiscInternal initialState
   where

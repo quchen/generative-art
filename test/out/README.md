@@ -31,23 +31,93 @@ over quickly.
 
 ![Missing image!](../../docs/colors/operations/saturation_hsv.svg)
 
-![Missing image!](../../docs/colors/schemes/continuous/cividis.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/blues.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/inferno.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/brBG.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/magma.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/buGn.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/plasma.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/buPu.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/turbo.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/gnBu.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/twilight.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/greens.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/twilightShifted.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/greys.png)
 
-![Missing image!](../../docs/colors/schemes/continuous/viridis.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/orRd.png)
 
-![Missing image!](../../docs/colors/schemes/discrete/mathematica_ColorData97.svg)
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/oranges.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/pRGn.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/piYG.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/puBu.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/puBuGn.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/puOr.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/puRd.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/purples.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/rdBu.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/rdGy.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/rdPu.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/rdYlBu.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/rdYlGn.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/reds.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/spectral.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/ylGn.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/ylGnBu.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/ylOrBr.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/ylOrRd.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/cividis.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/inferno.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/magma.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/plasma.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/turbo.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/twilight.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/twilightShifted.png)
+
+![Missing image!](../../docs/colors/schemes/continuous/matplotlib/viridis.png)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/accent.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/dark2.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/paired.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/pastel1.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/pastel2.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/set1.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/set2.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/colorbrewer2/set3.svg)
+
+![Missing image!](../../docs/colors/schemes/discrete/mathematica/ColorData97.svg)
 
 ![Missing image!](../../docs/differential_equations/1_two_body_problem.svg)
 

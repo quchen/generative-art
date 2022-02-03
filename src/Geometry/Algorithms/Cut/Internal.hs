@@ -30,6 +30,8 @@ cutLine scissors paper = case intersectionLL scissors paper of
 -- For convex polygons, the result is either just the polygon (if the line
 -- misses) or two pieces. Concave polygons can in general be divided in
 -- arbitrarily many pieces.
+--
+-- <<docs/geometry/cut/3_complicated.svg>>
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon scissors polygon =
     -- The idea here is as follows:

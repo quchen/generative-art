@@ -78,7 +78,7 @@ runPostTestScripts = do
     files <- do
         paths <- FileSystem.listAllFiles "docs"
         let p path
-                | match "colors/schemes/continuous/*.*" path = takeExtension path == ".png"
+                | match "**/colors/schemes/continuous/**/*" path = takeExtension path == ".png"
                 | otherwise = takeExtension path == ".svg"
         pure (filter p paths)
 

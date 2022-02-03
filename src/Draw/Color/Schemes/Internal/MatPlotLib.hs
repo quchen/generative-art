@@ -1,28 +1,16 @@
 -- | Raw color vectors.
-module Draw.Color.Schemes.RawColorLists (
-    -- * Continuous
-    -- ** Clamped
-      magma
-    , inferno
-    , plasma
-    , viridis
-    , cividis
-    , turbo
-    -- ** Cyclic
-    , twilightShifted
-    , twilight
-) where
+module Draw.Color.Schemes.Internal.MatPlotLib where
 
 
 
+import           Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Vector (Vector)
 
-import Draw.Color.Schemes.Common
-
+import Draw.Color.Schemes.Internal.Common
 
 
--- | Python’s Matplotlib’s magma color scheme.
+
+-- | Matplotlib’s magma color scheme.
 magma :: Vector RGB
 magma = V.fromList
     [ RGB 0.001462 0.000466 0.013866
@@ -282,7 +270,7 @@ magma = V.fromList
     , RGB 0.987387 0.984288 0.742002
     , RGB 0.987053 0.991438 0.749504 ]
 
--- | Python’s Matplotlib’s inferno color scheme.
+-- | Matplotlib’s inferno color scheme.
 inferno :: Vector RGB
 inferno = V.fromList
     [ RGB 0.001462 0.000466 0.013866
@@ -542,7 +530,7 @@ inferno = V.fromList
     , RGB 0.982257 0.994109 0.631017
     , RGB 0.988362 0.998364 0.644924 ]
 
--- | Python’s Matplotlib’s plasma color scheme.
+-- | Matplotlib’s plasma color scheme.
 plasma :: Vector RGB
 plasma = V.fromList
     [ RGB 0.050383 0.029803 0.527975
@@ -802,7 +790,7 @@ plasma = V.fromList
     , RGB 0.941896 0.968590 0.140956
     , RGB 0.940015 0.975158 0.131326 ]
 
--- | Python’s Matplotlib’s viridis color scheme.
+-- | Matplotlib’s viridis color scheme.
 viridis :: Vector RGB
 viridis = V.fromList
     [ RGB 0.267004 0.004874 0.329415
@@ -1062,7 +1050,7 @@ viridis = V.fromList
     , RGB 0.983868 0.904867 0.136897
     , RGB 0.993248 0.906157 0.143936 ]
 
--- | Python’s Matplotlib’s cividis color scheme.
+-- | Matplotlib’s cividis color scheme.
 cividis :: Vector RGB
 cividis = V.fromList
     [ RGB 0.000000 0.135112 0.304751
@@ -1322,13 +1310,13 @@ cividis = V.fromList
     , RGB 0.995503 0.903866 0.212370
     , RGB 0.995737 0.909344 0.217772 ]
 
--- | Python’s Matplotlib’s shifted twilight color scheme.
+-- | Matplotlib’s shifted twilight color scheme.
 twilightShifted :: Vector RGB
 twilightShifted =
     let (firstHalf, secondHalf) = V.splitAt (V.length twilight `div` 2) twilight
     in V.reverse (secondHalf <> firstHalf)
 
--- | Python’s Matplotlib’s twilight color scheme.
+-- | Matplotlib’s twilight color scheme.
 twilight :: Vector RGB
 twilight = V.fromList
     [ RGB 0.88575015840754434 0.85000924943067835  0.8879736506427196
@@ -1842,7 +1830,7 @@ twilight = V.fromList
     , RGB 0.88554714811952384 0.84987174283631584  0.88336206121170946
     , RGB 0.88571155122845646 0.85002186115856315  0.88572538990087124 ]
 
--- | Python’s Matplotlib’s viridis color scheme.
+-- | Matplotlib’s viridis color scheme.
 turbo :: Vector RGB
 turbo = V.fromList
     [ RGB 0.18995 0.07176 0.23217

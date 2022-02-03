@@ -1,4 +1,10 @@
-module Draw.Color.Schemes.Common where
+module Draw.Color.Schemes.Internal.Common (
+      RGB(..)
+    , toColor
+    , clamped
+    , cyclic
+    , discreteCyclic
+) where
 
 
 
@@ -22,11 +28,21 @@ clamp a b x =
         hi = max a b
     in min hi (max x lo)
 
+-- | Pick a color from a continuous set, stopping at the beginning or end when the
+-- query is out of bounds. When picking colors between the scheme’s values,
+-- interpolate between them.
 clamped :: Vector RGB -> Double -> RGB
 clamped = linearColorInterpolation (\nColors ix -> clamp 0 (nColors-1) ix)
 
+-- | Pick a color from a continuous set, starting from the beginning again once
+-- reaching the end. When picking colors between the scheme’s values, interpolate
+-- between them.
 cyclic :: Vector RGB -> Double -> RGB
 cyclic = linearColorInterpolation (\nColors ix -> mod ix nColors)
+
+-- | Pick a color from a discrete set, starting from the beginning again once reaching the end.
+discreteCyclic :: Vector RGB -> Int -> RGB
+discreteCyclic xs i = xs ! mod i (V.length xs)
 
 -- | Pick a color from a list of colors, interpolating linearly between neighbours
 -- of we hit the color between two others.

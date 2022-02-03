@@ -1,5 +1,19 @@
 module Draw.Color.Schemes.Discrete (
+    -- * Mathematica
     mathematica97
+
+    -- * Color Brewer 2
+    --
+    -- $colorbrewerLink
+
+    , set2
+    , accent
+    , set1
+    , set3
+    , dark2
+    , paired
+    , pastel2
+    , pastel1
 ) where
 
 
@@ -8,12 +22,20 @@ import qualified Data.Vector as V
 import Data.Vector (Vector, (!), (!?))
 
 import Draw.Color
-import Draw.Color.Schemes.Common
+import Draw.Color.Schemes.Internal.Common
+
+import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
+
+-- $colorbrewerLink
+--
+-- https://colorbrewer2.org/
 
 
 
 -- | Mathematica’s ColorData[97] scheme, which I find really nice. Please don’t sue
 -- me Steven o:-)
+--
+-- <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>>
 mathematica97 :: Int -> Color Double
 mathematica97 i = case mma97cache !? i of
     Just cached -> cached
@@ -72,3 +94,51 @@ mma97_interpolating = V.fromList
     , RGB 0.7875 0.358  0.425
     , RGB 0.915  0.3325 0.2125
     ]
+
+-- | Color Brewer 2’s qualitative Set2 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/set2.svg>>
+set2 :: Int -> Color Double
+set2 = toColor . discreteCyclic ColorBrewer2.qualitative_Set2
+
+-- | Color Brewer 2’s qualitative Accent palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>
+accent :: Int -> Color Double
+accent = toColor . discreteCyclic ColorBrewer2.qualitative_Accent
+
+-- | Color Brewer 2’s qualitative Set1 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/set1.svg>>
+set1 :: Int -> Color Double
+set1 = toColor . discreteCyclic ColorBrewer2.qualitative_Set1
+
+-- | Color Brewer 2’s qualitative Set3 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/set3.svg>>
+set3 :: Int -> Color Double
+set3 = toColor . discreteCyclic ColorBrewer2.qualitative_Set3
+
+-- | Color Brewer 2’s qualitative Dark2 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/dark2.svg>>
+dark2 :: Int -> Color Double
+dark2 = toColor . discreteCyclic ColorBrewer2.qualitative_Dark2
+
+-- | Color Brewer 2’s qualitative Paired palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/paired.svg>>
+paired :: Int -> Color Double
+paired = toColor . discreteCyclic ColorBrewer2.qualitative_Paired
+
+-- | Color Brewer 2’s qualitative Pastel2 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/pastel2.svg>>
+pastel2 :: Int -> Color Double
+pastel2 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel2
+
+-- | Color Brewer 2’s qualitative Pastel1 palette
+--
+-- <<docs/colors/schemes/discrete/colorbrewer2/pastel1.svg>>
+pastel1 :: Int -> Color Double
+pastel1 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel1
