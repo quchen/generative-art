@@ -168,7 +168,7 @@ lnmArbitraryElement (LinearNeighbourMap m) = fmap fst (M.lookupMin m)
 -- @
 --
 -- __Unsafety warning:__ This algorithm wasn’t tested for cases when multiple
--- trajectories sahre points. I have no idea what happens in that case, but
+-- trajectories share points. I have no idea what happens in that case, but
 -- certainly nothing useful.
 reassembleLines
     :: (Ord point, Foldable f)
