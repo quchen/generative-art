@@ -34,7 +34,7 @@ main = do
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor backgroundColor >> Cairo.paint)
-        for_ (zip [0..] (strands tiling)) $ \(i, s) -> drawStrand (colorScheme i) s
+        for_ (zip [0..] (strands tiling)) $ \(i, s) -> drawStrand colorScheme i s
 
 colorScheme :: Double -> Color Double
 colorScheme = twilight . (/pi)
@@ -96,9 +96,9 @@ strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawStrand :: Color Double -> [(Hex, (Direction, Direction))] -> Render ()
-drawStrand _ [] = pure ()
-drawStrand color ((hex, (d0, d1)) : rest) = drawArc color hex (d0, d1) >> drawStrand color rest
+drawStrand :: (Double -> Color Double) -> Double -> [(Hex, (Direction, Direction))] -> Render ()
+drawStrand _ _ [] = pure ()
+drawStrand colors x ((hex, (d0, d1)) : rest) = drawArc (colors x) hex (d0, d1) >> drawStrand colors (x+0.1) rest
 
 drawArc :: Color Double -> Hex -> (Direction, Direction) -> Cairo.Render ()
 drawArc color hex (d1, d2) = cairoScope $ do
