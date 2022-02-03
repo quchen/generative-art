@@ -7,8 +7,6 @@ import System.Random.MWC (create, uniformRM, GenIO)
 import qualified Data.Map.Strict as M
 
 import Draw
-import Draw.Color
-import Draw.Color.Schemes.Discrete
 import Geometry
 import Geometry.Coordinates.Hexagonal
 
@@ -35,17 +33,21 @@ main = do
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
-        cairoScope (setColor white >> Cairo.paint)
-        for_ (zip [0..] (strands tiling)) $ \(i, strand) -> drawStrand (mathematica97 i) strand
+        cairoScope (setColor backgroundColor >> Cairo.paint)
+        for_ (zip [0..] (strands tiling)) $ \(i, s) -> drawStrand (colorScheme i) s
 
+colorScheme :: Double -> Color Double
+colorScheme = twilight . (/pi)
 
+backgroundColor :: Color Double
+backgroundColor = blend 0.5 (colorScheme 0) white
 
 plane :: [Hex]
 plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-newtype Tile = Tile [(Direction, Direction)] deriving (Eq)
+newtype Tile = Tile [(Direction, Direction)] deriving (Eq, Show)
 
 tiles :: [Tile]
 tiles = nub
@@ -83,13 +85,16 @@ strand :: Tiling -> Hex -> Direction -> ([(Hex, (Direction, Direction))], Tiling
 strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
     Nothing -> ([], tiling)
     Just (Tile ds)
-        | ([(_, d')], ds') <- partition ((== d) . fst) ds ->
+        | ([(_, d')], ds') <- partition ((== reverseDirection d) . fst) ds ->
             let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', (d, d')) : s', tiling')
-        | ([(d', _)], ds') <- partition ((== d) . snd) ds ->
+            in  ((hex', (reverseDirection d, d')) : s', tiling')
+        | ([(d', _)], ds') <- partition ((== reverseDirection d) . snd) ds ->
             let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', (d, d')) : s', tiling')
+            in  ((hex', (reverseDirection d, d')) : s', tiling')
         | otherwise -> ([], tiling)
+
+reverseDirection :: Direction -> Direction
+reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
 drawStrand :: Color Double -> [(Hex, (Direction, Direction))] -> Render ()
 drawStrand _ [] = pure ()
@@ -99,7 +104,7 @@ drawArc :: Color Double -> Hex -> (Direction, Direction) -> Cairo.Render ()
 drawArc color hex (d1, d2) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (cellSize / 2)
-    setColor white
+    setColor backgroundColor
     Cairo.stroke
     sketchArc d1 d2
     Cairo.setLineWidth (3/8 * cellSize)
