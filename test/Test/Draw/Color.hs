@@ -2,19 +2,20 @@ module Test.Draw.Color (tests) where
 
 
 
-import Data.Colour.Names
-import Data.List                (transpose)
-import Graphics.Rendering.Cairo as C
-import qualified Data.Vector as V
-import Test.Tasty
-import Test.Tasty.HUnit
+import           Data.Colour.Names
+import           Data.List                (transpose)
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as C
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
 import Draw
-import Numerics.Interpolation
 import Draw.Color.Schemes.Common
+import qualified Draw.Color.Schemes.RawColorLists.ColorBrewer2 as ColorBrewer2Raw
+import Numerics.Interpolation
 
-import Test.Helpers
 import Test.Common
+import Test.Helpers
 
 
 
@@ -29,22 +30,71 @@ tests = testGroup "Colors"
         ]
     , testGroup "Schemes"
         [ testGroup "Discrete"
-            [ testGroup "Mathematica ColorData[97]"
-                [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica_ColorData97" mathematica97 16
-                , testCase "Check against Mathematica output" checkMma97
+            [ testGroup "Mathematica"
+                [ testGroup "ColorData[97]"
+                    [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 16
+                    , testCase "Check against Mathematica output" checkMma97
+                    ]
+                , testGroup "Color Brewer 2"
+                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set2"    set2    (V.length ColorBrewer2Raw.qualitative_Set2)
+                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Accent"  accent  (V.length ColorBrewer2Raw.qualitative_Accent)
+                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set1"    set1    (V.length ColorBrewer2Raw.qualitative_Set1)
+                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Set3"    set3    (V.length ColorBrewer2Raw.qualitative_Set3)
+                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Dark2"   dark2   (V.length ColorBrewer2Raw.qualitative_Dark2)
+                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Paired"  paired  (V.length ColorBrewer2Raw.qualitative_Paired)
+                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Pastel2" pastel2 (V.length ColorBrewer2Raw.qualitative_Pastel2)
+                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/qualitative_Pastel1" pastel1 (V.length ColorBrewer2Raw.qualitative_Pastel1)
+                    ]
                 ]
             ]
         , testGroup "Continuous"
-            [ testGroup "Visually uniform"
-                [ testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/cividis" cividis (0,1)
-                , testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/inferno" inferno (0,1)
-                , testCase "magma" $ renderContinuous "docs/colors/schemes/continuous/magma"     magma   (0,1)
-                , testCase "plasma"  $ renderContinuous "docs/colors/schemes/continuous/plasma"  plasma  (0,1)
-                , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/viridis" viridis (0,1)
+            [ testGroup "Matplotlib"
+                [ testGroup "Visually uniform"
+                    [ testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/cividis" cividis (0,1)
+                    , testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/inferno" inferno (0,1)
+                    , testCase "magma"   $ renderContinuous "docs/colors/schemes/continuous/matplotlib/magma"   magma   (0,1)
+                    , testCase "plasma"  $ renderContinuous "docs/colors/schemes/continuous/matplotlib/plasma"  plasma  (0,1)
+                    , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/viridis" viridis (0,1)
+                    ]
+                , testGroup "Other"
+                    [ testCase "turbo"           $ renderContinuous "docs/colors/schemes/continuous/matplotlib/turbo"           turbo           (0,1)
+                    , testCase "twilight"        $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilight"        twilight        (0,1)
+                    , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilightShifted" twilightShifted (0,1)
+                    ]
                 ]
-            , testCase "turbo"           $ renderContinuous "docs/colors/schemes/continuous/turbo"           turbo           (0,1)
-            , testCase "twilight"        $ renderContinuous "docs/colors/schemes/continuous/twilight"        twilight        (0,1)
-            , testCase "twilightShifted" $ renderContinuous "docs/colors/schemes/continuous/twilightShifted" twilightShifted (0,1)
+            , testGroup "Color Brewer 2"
+                [ testGroup "Sequential"
+                    [ testCase "orRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)
+                    , testCase "puBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBu"    puBu    (0,1)
+                    , testCase "buPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buPu"    buPu    (0,1)
+                    , testCase "oranges" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/oranges" oranges (0,1)
+                    , testCase "buGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buGn"    buGn    (0,1)
+                    , testCase "ylOrBr"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrBr"  ylOrBr  (0,1)
+                    , testCase "ylGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGn"    ylGn    (0,1)
+                    , testCase "reds"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/reds"    reds    (0,1)
+                    , testCase "rdPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdPu"    rdPu    (0,1)
+                    , testCase "greens"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greens"  greens  (0,1)
+                    , testCase "ylGnBu"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGnBu"  ylGnBu  (0,1)
+                    , testCase "purples" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/purples" purples (0,1)
+                    , testCase "gnBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/gnBu"    gnBu    (0,1)
+                    , testCase "greys"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greys"   greys   (0,1)
+                    , testCase "ylOrRd"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrRd"  ylOrRd  (0,1)
+                    , testCase "puRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puRd"    puRd    (0,1)
+                    , testCase "blues"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/blues"   blues   (0,1)
+                    , testCase "puBuGn"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBuGn"  puBuGn  (0,1)
+                    ]
+                , testGroup "Divisive"
+                    [ testCase "Spectral" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/spectral" spectral (0,1)
+                    , testCase "RdYlGn"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdYlGn"   rdYlGn   (0,1)
+                    , testCase "RdBu"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdBu"     rdBu     (0,1)
+                    , testCase "PiYG"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/piYG"     piYG     (0,1)
+                    , testCase "PRGn"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/pRGn"     pRGn     (0,1)
+                    , testCase "RdYlBu"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdYlBu"   rdYlBu   (0,1)
+                    , testCase "BrBG"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/brBG"     brBG     (0,1)
+                    , testCase "RdGy"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdGy"     rdGy     (0,1)
+                    , testCase "PuOr"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puOr"     puOr     (0,1)
+                    ]
+                ]
             ]
         ]
     ]
@@ -108,17 +158,18 @@ renderColorTable file table = renderAllFormats width height file $ do
 renderContinuous :: FilePath -> (Double -> Color Double) -> (Double, Double) -> IO ()
 renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
     for_ [-10..width+10] $ \x -> do
-        C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral height-1)
-        setColor (colorF (linearInterpolate (0,fromIntegral width-1) (lo,hi) (fromIntegral x)))
+        C.rectangle (fromIntegral x) 0 (fromIntegral x+1) height
+        setColor (colorF (linearInterpolate (0,width-1) (lo,hi) (fromIntegral x)))
         fill
   where
+    width, height :: Num a => a
     width = 480
     height = 32
 
 renderDiscrete :: FilePath -> (Int -> Color Double) -> Int -> IO ()
 renderDiscrete file colorF n = renderAllFormats (width*n) height file $ do
-    for_ [0 .. n] $ \i -> do
-        C.rectangle (fromIntegral i*width) 0 (fromIntegral (i+1)*width) (height-1)
+    for_ [0 .. n-1] $ \i -> do
+        C.rectangle (fromIntegral i*width) 0 (fromIntegral (i+1)*width) height
         setColor (colorF i)
         fill
   where

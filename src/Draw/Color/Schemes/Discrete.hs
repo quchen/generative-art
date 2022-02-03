@@ -1,5 +1,16 @@
 module Draw.Color.Schemes.Discrete (
+    -- * Mathematica
     mathematica97
+
+    -- * Color Brewer 2
+    , set2
+    , accent
+    , set1
+    , set3
+    , dark2
+    , paired
+    , pastel2
+    , pastel1
 ) where
 
 
@@ -9,6 +20,8 @@ import Data.Vector (Vector, (!), (!?))
 
 import Draw.Color
 import Draw.Color.Schemes.Common
+
+import qualified Draw.Color.Schemes.RawColorLists.ColorBrewer2 as ColorBrewer2
 
 
 
@@ -72,3 +85,35 @@ mma97_interpolating = V.fromList
     , RGB 0.7875 0.358  0.425
     , RGB 0.915  0.3325 0.2125
     ]
+
+-- | Color Brewer 2’s qualitative Set2 palette
+set2 :: Int -> Color Double
+set2 = toColor . discreteCyclic ColorBrewer2.qualitative_Set2
+
+-- | Color Brewer 2’s qualitative Accent palette
+accent :: Int -> Color Double
+accent = toColor . discreteCyclic ColorBrewer2.qualitative_Accent
+
+-- | Color Brewer 2’s qualitative Set1 palette
+set1 :: Int -> Color Double
+set1 = toColor . discreteCyclic ColorBrewer2.qualitative_Set1
+
+-- | Color Brewer 2’s qualitative Set3 palette
+set3 :: Int -> Color Double
+set3 = toColor . discreteCyclic ColorBrewer2.qualitative_Set3
+
+-- | Color Brewer 2’s qualitative Dark2 palette
+dark2 :: Int -> Color Double
+dark2 = toColor . discreteCyclic ColorBrewer2.qualitative_Dark2
+
+-- | Color Brewer 2’s qualitative Paired palette
+paired :: Int -> Color Double
+paired = toColor . discreteCyclic ColorBrewer2.qualitative_Paired
+
+-- | Color Brewer 2’s qualitative Pastel2 palette
+pastel2 :: Int -> Color Double
+pastel2 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel2
+
+-- | Color Brewer 2’s qualitative Pastel1 palette
+pastel1 :: Int -> Color Double
+pastel1 = toColor . discreteCyclic ColorBrewer2.qualitative_Pastel1

@@ -15,8 +15,8 @@ module Draw.Color.Schemes.RawColorLists.MatPlotLib (
 
 
 
+import           Data.Vector (Vector)
 import qualified Data.Vector as V
-import Data.Vector (Vector)
 
 import Draw.Color.Schemes.Common
 

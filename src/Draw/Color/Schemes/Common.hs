@@ -28,6 +28,9 @@ clamped = linearColorInterpolation (\nColors ix -> clamp 0 (nColors-1) ix)
 cyclic :: Vector RGB -> Double -> RGB
 cyclic = linearColorInterpolation (\nColors ix -> mod ix nColors)
 
+discreteCyclic :: Vector RGB -> Int -> RGB
+discreteCyclic xs i = xs ! mod i (V.length xs)
+
 -- | Pick a color from a list of colors, interpolating linearly between neighbours
 -- of we hit the color between two others.
 linearColorInterpolation
