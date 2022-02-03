@@ -4,6 +4,7 @@ module Plane where
 
 import Control.Parallel.Strategies
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 import Prelude hiding (mod)
 import qualified Prelude (mod)
 
@@ -52,3 +53,7 @@ mapNeighbours f plane@Plane{..} = plane { items = V.concat (fmap row [0..sizeY-1
 
 mapPlane :: (V.Unbox a, V.Unbox b) => (a -> b) -> Plane a -> Plane b
 mapPlane f plane@Plane{..} = plane { items = V.map f items }
+
+modifyPlaneAt :: V.Unbox a => Int -> Int -> (a -> a) -> Plane a -> Plane a
+modifyPlaneAt x y f plane@Plane{..} = plane { items = V.modify updateItem items }
+  where updateItem v = MV.modify v f (x `mod` sizeX + (y `mod` sizeY) * sizeX)

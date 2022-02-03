@@ -6,12 +6,15 @@ import qualified Codec.Picture as P
 import Data.Maybe (fromMaybe)
 import qualified Data.Vector.Storable as V
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as MU
 import Math.Noise
 import System.Environment (getArgs)
 
 import Draw
 import Geometry hiding (Grid)
 import Plane
+import Debug.Trace (trace)
+import Data.List (nub)
 
 -- | Settings that work well:
 -- * 1080p rendering:   spatialResolution = 10, temporalResolution = 9, temporalResolutionWarmup = 10
@@ -19,8 +22,8 @@ import Plane
 -- * Rapid prototyping: spatialResolution = 3,  temporalResolution = 2, temporalResolutionWarmup = 6
 spatialResolution, temporalResolution, temporalResolutionWarmup :: Num a => a
 spatialResolution = 3
-temporalResolution = 2
-temporalResolutionWarmup = 6
+temporalResolution = 1
+temporalResolutionWarmup = 3
 
 main :: IO ()
 main = do
@@ -34,7 +37,7 @@ main = do
 
         _otherwise ->
             writeOutput (simulation 0 initialStateFromScratch)
-    
+
 initialStateFromFile :: P.Image P.PixelRGB8 -> Grid
 initialStateFromFile uvimg@(P.Image picWidth picHeight _) = planeFromList
     [ row
@@ -65,7 +68,7 @@ initialStateFromScratch = warmup $ planeFromList
     warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
 simulation :: Int -> Grid -> [(Int, Grid)]
-simulation t0 initialState = takeWhile ((< 3000) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
+simulation t0 initialState = takeWhile ((< 50) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = for_ frames $ \(index, grid) -> do
@@ -168,9 +171,20 @@ data GrayScott = GS
     }
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
-grayScott steps GS{..} = repeatF steps (mapNeighbours grayScottStep)
+grayScott steps GS{..} = repeatF steps $ \grid ->
+      let grid' = mapNeighbours grayScottStep grid
+          divergences = findDivergences grid'
+          pixelsToBeRecalculated = nub $ divergences >>= neighbourCoordinates
+          grid'' = recalculateDivergences pixelsToBeRecalculated grid'
+          divergences' = findDivergences grid''
+      in  trace ("Diverging pixels before " ++ show (length divergences) ++ ", after: " ++ show (length divergences')) (mapPlane (\(u, v, du, dv) -> (u + step * du, v + step * dv, du, dv)) grid'')
   where
-    grayScottStep x y (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = (u0, v0, deltaU, deltaV) +. step *. (deltaU, deltaV, 0, 0)
+    grayScottStep x y uvs@(_, _, _, _, uv22, _, _, _, _) =
+        let (deltaU, deltaV) = grayScottDelta x y uvs
+            (u0, v0, _, _) = uv22
+        in  (u0, v0, deltaU, deltaV)
+
+    grayScottDelta x y (uv11, uv12, uv13, uv21, uv22, uv23, uv31, uv32, uv33) = (deltaU, deltaV)
       where
         p = Vec2 (fromIntegral x) (fromIntegral y)
         (u0, v0, _, _) = uv22
@@ -181,3 +195,27 @@ grayScott steps GS{..} = repeatF steps (mapNeighbours grayScottStep)
     repeatF :: Int -> (a -> a) -> a -> a
     repeatF 0 _ = id
     repeatF n f = f . repeatF (n-1) f
+
+    findDivergences :: Grid -> [(Int, Int)]
+    findDivergences grid =
+        [ (x, y)
+        | x <- [0..sizeX grid - 1]
+        , y <- [0..sizeY grid - 1]
+        , let (_u, _v, du, dv) = at grid x y
+          in du >= threshold || dv >= threshold
+        ] where threshold = 0.001 / step
+
+    -- originalGrid: Grid with the original (u, v) values, but already with the updated (du, dv) values.
+    recalculateDivergences :: [(Int, Int)] -> Grid -> Grid
+    recalculateDivergences divergences originalGrid@Plane{..} = originalGrid
+        { items = U.modify recalculateDivergences' items }
+      where
+        recalculateDivergences' vector = for_ divergences $ \(x, y) -> do
+            let (du', dv') = foldNeighboursAt (grayScottDelta x y) x y halfStepGrid
+            MU.modify vector (\(u, v, du, dv) -> (u, v, (du+du')/2, (dv+dv')/2)) (x `Plane.mod` sizeX + (y `Plane.mod` sizeY) * sizeX)
+
+        halfStepGrid = mapPlane (\(u, v, du, dv) -> (u + step/2*du, v + step/2*dv, du, dv)) originalGrid
+
+    neighbourCoordinates :: (Int, Int) -> [(Int, Int)]
+    neighbourCoordinates (x0, y0) = [ (x, y) | x <- [x0-1 .. x0+1], y <- [y0-1 .. y0+1] ]
+
