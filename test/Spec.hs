@@ -9,7 +9,6 @@ import Control.Exception
 import Data.Foldable
 import System.FilePath
 import System.FilePath.Glob
-import Data.List
 
 import qualified Test.Bezier
 import qualified Test.ConvexHull
