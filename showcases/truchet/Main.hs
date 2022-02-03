@@ -7,6 +7,8 @@ import System.Random.MWC (create, uniformRM, GenIO)
 import qualified Data.Map.Strict as M
 
 import Draw
+import Draw.Color
+import Draw.Color.Schemes.Discrete
 import Geometry
 import Geometry.Coordinates.Hexagonal
 
@@ -34,7 +36,7 @@ main = do
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor white >> Cairo.paint)
-        for_ (strands tiling) drawStrand
+        for_ (zip [0..] (strands tiling)) $ \(i, strand) -> drawStrand (mathematica97 i) strand
 
 
 
@@ -89,12 +91,12 @@ strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
             in  ((hex', (d, d')) : s', tiling')
         | otherwise -> ([], tiling)
 
-drawStrand :: [(Hex, (Direction, Direction))] -> Render ()
-drawStrand [] = pure ()
-drawStrand ((hex, (d0, d1)) : rest) = drawArc hex (d0, d1) >> drawStrand rest
+drawStrand :: Color Double -> [(Hex, (Direction, Direction))] -> Render ()
+drawStrand _ [] = pure ()
+drawStrand color ((hex, (d0, d1)) : rest) = drawArc color hex (d0, d1) >> drawStrand color rest
 
-drawArc :: Hex -> (Direction, Direction) -> Cairo.Render ()
-drawArc hex (d1, d2) = cairoScope $ do
+drawArc :: Color Double -> Hex -> (Direction, Direction) -> Cairo.Render ()
+drawArc color hex (d1, d2) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (cellSize / 2)
     setColor white
@@ -102,7 +104,7 @@ drawArc hex (d1, d2) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (3/8 * cellSize)
     Cairo.setLineCap Cairo.LineCapRound
-    setColor black
+    setColor color
     Cairo.stroke
   where
     center = toVec2 cellSize hex
