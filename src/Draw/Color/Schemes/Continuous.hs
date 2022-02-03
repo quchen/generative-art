@@ -110,7 +110,7 @@ viridis = toColor . clamped MatPlotLib.viridis
 cividis :: Double -> Color Double
 cividis = toColor . clamped MatPlotLib.cividis
 
--- | Matplotlib’s cividis color scheme.
+-- | Matplotlib’s turbo color scheme.
 --
 -- <<docs/colors/schemes/continuous/matplotlib/turbo.png>>
 turbo :: Double -> Color Double
