@@ -18,6 +18,8 @@ import Data.Set (Set)
 import Control.DeepSeq
 
 data Cube = Cube !Int !Int !Int
+    -- This is really just a ℝ^3 with rounding occurring in every calculation,
+    -- but alas, ℤ is not a field, so it isn’t a vector space.
     deriving (Eq, Ord, Show)
 
 instance NFData Cube where
@@ -32,67 +34,61 @@ data Direction
     | DR -- ^ Down+right
     deriving (Eq, Ord, Show, Bounded, Enum)
 
-class HexagonalCoordinate hex where
-    -- ^ Move x steps in a direction
-    move :: Direction -> Int -> hex -> hex
+-- | Move x steps in a direction
+move :: Direction -> Int -> Cube -> Cube
+move dir x (Cube q r s) = case dir of
+    R  -> Cube (q+x) (r  )  (s-x)
+    UR -> Cube (q+x) (r-x)  (s  )
+    UL -> Cube (q  ) (r-x)  (s+x)
+    L  -> Cube (q-x) (r  )  (s+x)
+    DL -> Cube (q-x) (r+x)  (s  )
+    DR -> Cube (q  ) (r+x)  (s-x)
 
-    -- | This is really just a ℝ^3 with rounding occurring in every calculation,
-    -- but alas, ℤ is not a field, so it isn’t a vector space.
-    hexAdd      :: hex -> hex -> hex
-    hexSubtract :: hex -> hex -> hex
-    hexTimes    :: Int -> hex -> hex
-    hexZero     :: hex
+hexAdd :: Cube -> Cube -> Cube
+Cube q1 r1 s1 `hexAdd` Cube q2 r2 s2 = Cube (q1+q2) (r1+r2) (s1+s2)
 
-    -- ^ How many steps are between two coordinates?
-    distance :: hex -> hex -> Int
+hexSubtract :: Cube -> Cube -> Cube
+Cube q1 r1 s1 `hexSubtract` Cube q2 r2 s2 = Cube (q1-q2) (r1-r2) (s1-s2)
 
-    rotateCw :: hex -> hex
-    rotateCcw :: hex -> hex
+hexTimes :: Int -> Cube -> Cube
+n `hexTimes` Cube q r s = Cube (n*q) (n*r) (n*s)
 
-    -- ^ Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
-    toVec2
-        :: Double -- ^ Size of a hex cell (radius, side length)
-        -> hex
-        -> Vec2
+hexZero :: Cube
+hexZero = Cube 0 0 0
 
-    -- ^ Convert a Euclidean 'Vec2' to the coordiante of the hexagon it is in.
-    fromVec2
-        :: Double -- ^ Size of a hex cell (radius, side length)
-        -> Vec2
-        -> hex
+-- ^ How many steps are between two coordinates?
+distance :: Cube -> Cube -> Int
+distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
 
-instance HexagonalCoordinate Cube where
-    move dir x (Cube q r s) = case dir of
-        R  -> Cube (q+x) (r  )  (s-x)
-        UR -> Cube (q+x) (r-x)  (s  )
-        UL -> Cube (q  ) (r-x)  (s+x)
-        L  -> Cube (q-x) (r  )  (s+x)
-        DL -> Cube (q-x) (r+x)  (s  )
-        DR -> Cube (q  ) (r+x)  (s-x)
+rotateCw :: Cube -> Cube
+rotateCw (Cube q r s) = Cube (-r) (-s) (-q)
 
-    Cube q1 r1 s1 `hexAdd` Cube q2 r2 s2 = Cube (q1+q2) (r1+r2) (s1+s2)
-    Cube q1 r1 s1 `hexSubtract` Cube q2 r2 s2 = Cube (q1-q2) (r1-r2) (s1-s2)
-    n `hexTimes` Cube q r s = Cube (n*q) (n*r) (n*s)
-    hexZero = Cube 0 0 0
+rotateCcw :: Cube -> Cube
+rotateCcw (Cube q r s) = Cube (-s) (-q) (-r)
 
-    distance (Cube q1 r1 s1) (Cube q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
+-- ^ Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
+toVec2
+    :: Double -- ^ Size of a hex cell (radius, side length)
+    -> Cube
+    -> Vec2
+toVec2 size (Cube q r _) =
+    let q' = fromIntegral q
+        r' = fromIntegral r
+        x = size * (sqrt(3)*q' + sqrt(3)/2*r')
+        y = size * (                   3/2*r')
+    in Vec2 x y
 
-    rotateCw (Cube q r s) = Cube (-r) (-s) (-q)
-    rotateCcw (Cube q r s) = Cube (-s) (-q) (-r)
-
-    toVec2 size (Cube q r _) =
-        let q' = fromIntegral q
-            r' = fromIntegral r
-            x = size * (sqrt(3)*q' + sqrt(3)/2*r')
-            y = size * (                   3/2*r')
-        in Vec2 x y
-
-    fromVec2 size (Vec2 x y) =
-        let q', r', s' :: Double
-            q' = (sqrt(3)/3 * x - 1/3 * y) / size
-            r' = (                2/3 * y) / size
-            s' = -q'-r'
-        in cubeRound q' r' s'
+-- ^ Convert a Euclidean 'Vec2' to the coordiante of the hexagon it is in.
+fromVec2
+    :: Double -- ^ Size of a hex cell (radius, side length)
+    -> Vec2
+    -> Cube
+fromVec2 size (Vec2 x y) =
+    let q', r', s' :: Double
+        q' = (sqrt(3)/3 * x - 1/3 * y) / size
+        r' = (                2/3 * y) / size
+        s' = -q'-r'
+    in cubeRound q' r' s'
 
 instance Semigroup Cube where
     (<>) = hexAdd
@@ -123,7 +119,7 @@ cubeRound q' r' s' =
         -- s is the only one left
         | otherwise                      -> Cube q r (-q-r)
 
-rotateAround :: HexagonalCoordinate hex => hex -> Int -> hex -> hex
+rotateAround :: Cube -> Int -> Cube -> Cube
 rotateAround center n hex =
     let hex' = hex `hexSubtract` center
         rot i x | i > 0 = rot (i-1) (rotateCw x)
@@ -134,7 +130,7 @@ rotateAround center n hex =
 
 -- | 'Polygon' to match a 'HexagonalCoordinate'. Useful e.g. for collision
 -- checking, and of course also for painting. :-)
-hexagonPoly :: HexagonalCoordinate hex => Double -> hex -> G.Polygon
+hexagonPoly :: Double -> Cube -> G.Polygon
 hexagonPoly sideLength hex =
     let center = toVec2 sideLength hex
         oneCorner = center +. Vec2 0 sideLength
@@ -223,7 +219,7 @@ line start end =
     in [ cubeLerp start end (1/fromIntegral d*fromIntegral i) | i <- [0..d] ]
 
 -- | Ring of
-ring :: HexagonalCoordinate a => Int -> a -> [a]
+ring :: Int -> Cube -> [Cube]
 ring n center = do
     (startDir, walkDir) <- zip [R, UR, UL, L, DL, DR] [UL, L, DL, DR, R, UR]
     let start = move startDir n center
@@ -259,13 +255,12 @@ polygonSketch cellSize polygon =
 -- Diverges if the geometry is not closed, or the starting point is not contained
 -- in it!
 floodFill
-    :: (HexagonalCoordinate hex, Ord hex)
-    => hex -- ^ Starting point
-    -> Set hex
-    -> Set hex
+    :: Cube -- ^ Starting point
+    -> Set Cube
+    -> Set Cube
 floodFill p = go (S.singleton p)
   where
-    go :: (HexagonalCoordinate hex, Ord hex) => Set hex -> Set hex -> Set hex
+    go :: Set Cube -> Set Cube -> Set Cube
     go toVisit filled = case S.minView toVisit of
         Nothing -> filled
         Just (hex, rest) ->

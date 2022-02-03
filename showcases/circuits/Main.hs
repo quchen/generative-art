@@ -49,7 +49,7 @@ main = do
 -- | A lambda in hexagonal coordinates.
 hexLambda
     :: Int -- ^ Scale parameter. c*10 will be the total height.
-    -> ProcessGeometry Cube
+    -> ProcessGeometry
 hexLambda c | c <= 0 = ProcessGeometry S.empty S.empty
 hexLambda c = ProcessGeometry
     { _inside = pointsOnInside
@@ -80,9 +80,9 @@ hexLambda c = ProcessGeometry
 
 -- | A large hexagon with some geometry cut out.
 largeSurroundingCircle
-    :: Int                  -- ^ Radius of the hexagon
-    -> ProcessGeometry Cube -- ^ Geometry to be cut out
-    -> ProcessGeometry Cube
+    :: Int             -- ^ Radius of the hexagon
+    -> ProcessGeometry -- ^ Geometry to be cut out
+    -> ProcessGeometry
 largeSurroundingCircle c excludes =
     let allExcluded = _inside excludes <> _edge excludes
         largeCircle = S.fromList (hexagonsInRange c hexZero)
