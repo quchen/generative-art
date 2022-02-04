@@ -17,16 +17,59 @@ import Geometry.Coordinates.Hexagonal as Hex
 import Numerics.Interpolation
 
 import Test.Common
+import Test.Helpers ()
 import Test.Tasty
 import Test.Tasty.HUnit
-
+import Test.Tasty.QuickCheck
 
 
 tests :: TestTree
 tests = testGroup "Hexagonal coordinate system"
-    [ lineAndCircle
-    , gaussianHexagons
+    [ testGroup "Properties"
+        [ rotationDirectionTest
+        , rotatingIsCyclicTest
+        , rotatingBackAndForthTest
+        , rotatingAddsUpTest
+        ]
+    , testGroup "Visual"
+        [ lineAndCircle
+        , gaussianHexagons
+        ]
     ]
+
+rotationDirectionTest :: TestTree
+rotationDirectionTest = testCase "Rotation direction is correct" $ do
+    let center = hexZero
+        point = move R 5 center
+        pointRotated = Hex.rotateAround center 1 point
+
+        Vec2 _ yOriginal = toVec2 1 point
+        Vec2 _ yRotated  = toVec2 1 pointRotated
+    assertBool "Rotating by positive amount should move example point downward"
+        (yRotated > yOriginal)
+
+rotatingIsCyclicTest :: TestTree
+rotatingIsCyclicTest = testProperty "rotate (6*x) == id" $
+    \center point angle ->
+        (point == Hex.rotateAround center (6*angle) point)
+
+rotatingBackAndForthTest :: TestTree
+rotatingBackAndForthTest = testProperty "Rotating back and forth does nothing" $
+    \center point angle ->
+        (point == Hex.rotateAround center angle (Hex.rotateAround center (-angle) point))
+
+rotatingAddsUpTest :: TestTree
+rotatingAddsUpTest = testProperty "rotate x . rotate y == rotate (x+y)" $
+    \center point angle1 angle2 ->
+        counterexample
+            (unlines
+                [ "rotateAround (" ++ show center ++ ") " ++ show (angle1 + angle2)
+                , "/="
+                , "rotateAround (" ++ show center ++ ") " ++ show angle1 ++" . rotateAround (" ++ show center ++ ") " ++ show angle2
+                ])
+            ((Hex.rotateAround center angle1 . Hex.rotateAround center angle2) point
+            ==
+            Hex.rotateAround center (angle1+angle2) point)
 
 lineAndCircle :: TestTree
 lineAndCircle = testCase "Line and circle" (renderAllFormats 380 350 "docs/hexagonal/1_line_and_circle" (drawing 30 380 350))

@@ -18,6 +18,7 @@ import Data.Colour.SRGB as Colour
 
 import Geometry
 import Draw.Color
+import Geometry.Coordinates.Hexagonal as Hex
 
 import Test.Tasty.QuickCheck
 
@@ -46,6 +47,16 @@ instance Arbitrary GaussianVec where
                     y = root1 * sin u2
                 pure (GaussianVec (Vec2 x y))
     shrink (GaussianVec vec) = map GaussianVec (shrink vec)
+
+instance Arbitrary Hex where
+    arbitrary = do
+        q <- arbitrary
+        r <- arbitrary
+        pure (Hex q r (-q-r))
+    shrink (Hex 0 0 0) = []
+    shrink hex =
+        let r = Hex.distance hexZero hex
+        in ring (r-1) hexZero
 
 newtype LotsOfGaussianPoints = LotsOfGaussianPoints [Vec2]
     deriving (Eq, Ord, Show)
