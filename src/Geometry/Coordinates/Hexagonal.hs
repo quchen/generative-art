@@ -3,7 +3,45 @@
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
 --
 -- <<docs/hexagonal/gaussian_hexagons.svg>>
-module Geometry.Coordinates.Hexagonal where
+module Geometry.Coordinates.Hexagonal (
+      Hex(..)
+    , toVec2
+    , fromVec2
+
+    -- * Painting aid
+    , hexagonalCoordinateSystem
+
+    -- * Movement
+    , Direction(..)
+    , move
+
+    -- * Arithmetic
+    , hexAdd
+    , hexSubtract
+    , hexTimes
+    , hexZero
+
+    -- * Measurement and transformation
+    , distance
+    , rotateAround
+    , rotateCw
+    , rotateCcw
+    , cubeRound
+
+    -- * Geometry
+    , line
+    , ring
+    , hexagonsInRange
+    , Polygon(..)
+    , isOnEdge
+    , pointInPolygon
+    , edgePoints
+    , floodFill
+
+    -- * Drawing and interfacing
+    , polygonSketch
+    , hexagonPoly
+) where
 
 
 
@@ -15,12 +53,16 @@ import           Data.Set                 (Set)
 import qualified Data.Set                 as S
 import           Draw                     hiding (polygonSketch)
 import qualified Draw                     as D
-import           Geometry.Core            as G hiding (Polygon, pointInPolygon)
+import           Geometry.Core            as G hiding (Polygon, pointInPolygon, rotateAround)
 import qualified Geometry.Core            as G
 import           Graphics.Rendering.Cairo as C hiding (x, y)
 
 
+
+-- | Hexagonal coordinate.
 data Hex = Hex !Int !Int !Int
+    -- ^ The choice of values is called »cubal«.
+
     -- This is really just a ℝ^3 with rounding occurring in every calculation,
     -- but alas, ℤ is not a field, so it isn’t a vector space.
     deriving (Eq, Ord, Show)
@@ -28,6 +70,7 @@ data Hex = Hex !Int !Int !Int
 instance NFData Hex where
     rnf _ = () -- Constructors are already strict
 
+-- | Hexagonal direction, used by 'move'.
 data Direction
     = R  -- ^ Right
     | UR -- ^ Up+right
@@ -47,29 +90,49 @@ move dir x (Hex q r s) = case dir of
     DL -> Hex (q-x) (r+x)  (s  )
     DR -> Hex (q  ) (r+x)  (s-x)
 
+-- | Add two 'Hex' coordinates.
 hexAdd :: Hex -> Hex -> Hex
 Hex q1 r1 s1 `hexAdd` Hex q2 r2 s2 = Hex (q1+q2) (r1+r2) (s1+s2)
 
+-- | Subtract two 'Hex' coordinates.
 hexSubtract :: Hex -> Hex -> Hex
 Hex q1 r1 s1 `hexSubtract` Hex q2 r2 s2 = Hex (q1-q2) (r1-r2) (s1-s2)
 
+-- | Multiply a 'Hex' coordinate with a whole number.
 hexTimes :: Int -> Hex -> Hex
 n `hexTimes` Hex q r s = Hex (n*q) (n*r) (n*s)
 
+-- | The origin of the hexagonal coordinate system.
 hexZero :: Hex
 hexZero = Hex 0 0 0
 
--- ^ How many steps are between two coordinates?
+-- | How many steps are between two coordinates?
 distance :: Hex -> Hex -> Int
 distance (Hex q1 r1 s1) (Hex q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
 
+-- | Rotate clockwise by 60°
 rotateCw :: Hex -> Hex
 rotateCw (Hex q r s) = Hex (-r) (-s) (-q)
 
+-- | Rotate counterclockwise by 60°
 rotateCcw :: Hex -> Hex
 rotateCcw (Hex q r s) = Hex (-s) (-q) (-r)
 
--- ^ Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
+-- | Rotate around a center by a number of 60° angles.
+rotateAround
+    :: Hex -- ^ Center
+    -> Int -- ^ number of 60° rotations. positive for clockwise.
+    -> Hex -- ^ Point to rotate
+    -> Hex
+rotateAround center n hex =
+    let hex' = hex `hexSubtract` center
+        rot i x | i > 0 = rot (i-1) (rotateCw x)
+                | i < 0 = rot (i+1) (rotateCcw x)
+                | otherwise = x
+        rotated = rot n hex'
+    in rotated `hexAdd` center
+
+-- | Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
 toVec2
     :: Double -- ^ Size of a hex cell (radius, side length)
     -> Hex
@@ -81,7 +144,7 @@ toVec2 size (Hex q r _) =
         y = size * (                   3/2*r')
     in Vec2 x y
 
--- ^ Convert a Euclidean 'Vec2' to the coordiante of the hexagon it is in.
+-- | Convert a Euclidean 'Vec2' to the coordiante of the hexagon it is in.
 fromVec2
     :: Double -- ^ Size of a hex cell (radius, side length)
     -> Vec2
@@ -93,13 +156,15 @@ fromVec2 size (Vec2 x y) =
         s' = -q'-r'
     in cubeRound q' r' s'
 
+-- | 'hexAdd'
 instance Semigroup Hex where
     (<>) = hexAdd
 
+-- | 'hexZero'
 instance Monoid Hex where
     mempty = hexZero
 
--- Given fractional cubical coordinates, yield the hexagon the coordinate is in.
+-- | Given fractional cubical coordinates, yield the hexagon the coordinate is in.
 cubeRound :: Double -> Double -> Double -> Hex
 cubeRound q' r' s' =
     let q,r,s :: Int
@@ -122,15 +187,6 @@ cubeRound q' r' s' =
         -- s is the only one left
         | otherwise                      -> Hex q r (-q-r)
 
-rotateAround :: Hex -> Int -> Hex -> Hex
-rotateAround center n hex =
-    let hex' = hex `hexSubtract` center
-        rot i x | i > 0 = rot (i-1) (rotateCw x)
-                | i < 0 = rot (i+1) (rotateCcw x)
-                | otherwise = x
-        rotated = rot n hex'
-    in rotated `hexAdd` center
-
 -- | 'Polygon' to match a 'HexagonalCoordinate'. Useful e.g. for collision
 -- checking, and of course also for painting. :-)
 hexagonPoly :: Double -> Hex -> G.Polygon
@@ -139,7 +195,6 @@ hexagonPoly sideLength hex =
         oneCorner = center +. Vec2 0 sideLength
         corner n = G.transform (G.rotateAround center (deg (60*n))) oneCorner
     in G.Polygon [corner n | n <- [0..5]]
-
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
@@ -192,7 +247,8 @@ hexagonalCoordinateSystem sideLength range = do
                     then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
                     else showTextAligned HCenter VCenter (show val)
 
--- | Hexagons reachable within a number of steps from the origin.
+-- | Hexagons reachable within a number of steps from the origin. The boundary of
+-- this will be the 'ring'.
 hexagonsInRange :: Int -> Hex -> [Hex]
 hexagonsInRange range center = do
     q <- [-range,-range+1..range]
@@ -206,7 +262,12 @@ hexagonsInRange range center = do
 lerp :: Double -> Double -> Double -> Double
 lerp a b t = t*a + (1-t)*b
 
-cubeLerp :: Hex -> Hex -> Double -> Hex
+-- | Linearly interpolate between two 'Hex'.
+cubeLerp
+    :: Hex    -- ^ Start
+    -> Hex    -- ^ End
+    -> Double -- [0..1] yields [start..end]
+    -> Hex
 cubeLerp (Hex q1 r1 s1) (Hex q2 r2 s2) t =
     let q1' = fromIntegral q1
         q2' = fromIntegral q2
@@ -216,13 +277,18 @@ cubeLerp (Hex q1 r1 s1) (Hex q2 r2 s2) t =
         s2' = fromIntegral s2
     in cubeRound (lerp q1' q2' t) (lerp r1' r2' t) (lerp s1' s2' t)
 
+-- | Line between two 'Hex'
 line :: Hex -> Hex -> [Hex]
 line start end =
     let d = distance start end
     in [ cubeLerp start end (1/fromIntegral d*fromIntegral i) | i <- [0..d] ]
 
--- | Ring of
-ring :: Int -> Hex -> [Hex]
+-- | All 'Hex' reachable only with one exact number of steps. 'floodFill'ing it
+-- will yield 'hexagonsInRange'
+ring
+    :: Int -- ^ Radius
+    -> Hex -- ^ Center
+    -> [Hex]
 ring n center = do
     (startDir, walkDir) <- zip [R, UR, UL, L, DL, DR] [UL, L, DL, DR, R, UR]
     let start = move startDir n center
@@ -231,11 +297,13 @@ ring n center = do
 newtype Polygon = Polygon [Hex]
     deriving (Eq, Ord, Show)
 
+-- | Given a hexagonal polygon, is the 'Hex' on its edge?
 isOnEdge :: Hex -> Polygon -> Bool
 isOnEdge hex (Polygon corners) =
     let edges = concat (zipWith line corners (tail (cycle corners)))
     in isJust (find (== hex) edges)
 
+-- | Is the 'Hex' inside the polygon (including its edge)?
 pointInPolygon :: Hex -> Polygon -> Bool
 pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
   where
@@ -245,10 +313,15 @@ pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
     -- This feels like cheating
     inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
 
+-- | All points on a polygon’s edge.
 edgePoints :: Polygon -> S.Set Hex
 edgePoints (Polygon corners) = S.fromList (concat (zipWith line corners (tail (cycle corners))))
 
-polygonSketch :: Double -> Polygon -> Render ()
+-- | Sketch a hexagonal polygon.
+polygonSketch
+    :: Double -- ^ Cell size
+    -> Polygon
+    -> Render ()
 polygonSketch cellSize polygon =
     for_ (edgePoints polygon) $ \hex -> do
         D.polygonSketch (hexagonPoly cellSize hex)
