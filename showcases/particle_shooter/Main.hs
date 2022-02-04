@@ -121,19 +121,20 @@ render SystemResult{..} = do
         paint
 
     setLineWidth 1
-    let isoGrid = Grid (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi)) (256*2,144*2)
+    let isoGrid = Grid (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi))
+                       (let (w,h) = boundingBoxSize (_boundingBox systemConfig) in (round (w/10), round (h/10)))
         isosAt = isoLines isoGrid _potential
         isoThresholds = [1.0, 1.02 .. 2.5]
 
         isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
-    -- for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
-    --     liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
-    --     for_ isos $ \iso -> cairoScope $ do
-    --         pathSketch iso
-    --         let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
-    --         setColor (viridis colorValue `withOpacity` 0.3)
-    --         stroke
+    for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
+        liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
+        for_ isos $ \iso -> cairoScope $ do
+            pathSketch iso
+            let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
+            setColor (viridis colorValue `withOpacity` 0.3)
+            stroke
 
     let speeds = do
             (xv, _ic) <- _trajectories
@@ -145,7 +146,7 @@ render SystemResult{..} = do
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 0) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         for_ (zip trajectory (tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
-            setColor (flare (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
+            setColor (turbo (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
             lineSketch (Line a b)
             stroke
 
