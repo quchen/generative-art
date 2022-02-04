@@ -70,9 +70,6 @@ Other (matplotlib)
 ### Twilight (cyclic)
 ![Missing image!](continuous/matplotlib/twilight.png)
 
-### Twilight (cyclic), shifted
-![Missing image!](continuous/matplotlib/twilightShifted.png)
-
 
 
 Seaborn (sequential)
