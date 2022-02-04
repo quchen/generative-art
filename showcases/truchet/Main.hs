@@ -2,14 +2,16 @@
 module Main where
 
 import Data.Traversable (for)
-import Data.List (permutations, inits, nub, partition)
+import Data.List (permutations, inits, partition)
 import Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create, uniformRM, GenIO)
 import qualified Data.Map.Strict as M
+import qualified Data.Vector as V
 
 import Draw
 import Geometry
 import Geometry.Coordinates.Hexagonal
+import Util
 
 
 
@@ -48,10 +50,10 @@ plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Show, Functor)
+newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Ord, Show, Functor)
 
-tiles :: [Tile ()]
-tiles = nub
+tiles :: V.Vector (Tile ())
+tiles = V.fromList $ nubOrd
     [ Tile partialTile
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
     , let fullTile = [((d1, d2), ()), ((d3, d4), ()), ((d5, d6), ())]
@@ -69,8 +71,8 @@ randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
 randomTile :: GenIO -> IO (Tile ())
 randomTile = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
-    pure (tiles !! rnd)
-  where countTiles = length tiles
+    pure (tiles V.! rnd)
+  where countTiles = V.length tiles
 
 indexStrands :: Tiling () -> Tiling Int
 indexStrands = \tiling -> goStrands 0 (strands tiling) (fmap (fmap (const 0)) tiling)
@@ -132,7 +134,6 @@ drawArc colors hex ((d1, d2), i) = cairoScope $ do
     nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
 
-
     sketchArc L  R  = moveToVec (side L)  >> lineToVec (side R)
     sketchArc UL DR = moveToVec (side UL) >> lineToVec (side DR)
     sketchArc UR DL = moveToVec (side DL) >> lineToVec (side UR)
@@ -150,6 +151,8 @@ drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc R  DR = arcSketch (corner R  DR) (0.5 * cellSize) (deg 150) (deg 270)
     sketchArc DR DL = arcSketch (corner DR DL) (0.5 * cellSize) (deg 210) (deg 330)
     sketchArc DL L  = arcSketch (corner DL L)  (0.5 * cellSize) (deg 270) (deg 30)
+
+    sketchArc d1 d2 | d1 == d2 = error ("Illegal tile " ++ show (d1, d2))
 
     sketchArc d d' = sketchArc d' d
 
