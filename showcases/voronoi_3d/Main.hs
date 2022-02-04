@@ -53,7 +53,7 @@ main = do
             <$> cells voronoiWithProps
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
-        cairoScope (setColor black >> Cairo.paint)
+        cairoScope (setColor (magma 0.05) >> Cairo.paint)
         for_ voronoiCells $ uncurry drawCell
 
 randomHeight :: Vec2 -> Double
@@ -64,12 +64,9 @@ randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (
     origin = Vec2 720 720
 
 randomColor :: Vec2 -> Color Double
-randomColor = \p -> hsl
-    (30 + 3 * fromIntegral (round (3 * noise2d p)))
-    1
-    (0.1 * fromIntegral (round (3 * (2 + noise2d p))))
+randomColor = \p -> inferno (0.6 + 0.35 * noise2d p)
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.005, perlinSeed = 321896 }
+    noise = perlin { perlinOctaves = 5, perlinFrequency = 0.001, perlinPersistence = 0.65, perlinSeed = 1980166 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 drawCell :: Polygon -> (Color Double, Double) -> Cairo.Render ()
