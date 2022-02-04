@@ -25,7 +25,7 @@ scaleFactor = 1
 
 main :: IO ()
 main = do
-    let file = "out/voronoi_3d.png"
+    let file = "out/voronoi_3d.svg"
         count = 500
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
