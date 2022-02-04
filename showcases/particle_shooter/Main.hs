@@ -55,13 +55,13 @@ systemConfig = SystemConfig
     , _hillLocation = \gen -> gaussianVec2 (Vec2 0 0) 1500 gen
     , _hillCharge = \_gen -> pure 1
 
-    , _numParticles  = 10000
+    , _numParticles  = 1000
     , _particleMass = 1
     , _particleCharge = \_gen -> pure 1
     }
 
 data SystemResult = SystemResult
-    { _trajectories :: [([Vec2], (Vec2, Vec2))]
+    { _trajectories :: [([(Vec2, Double)], (Vec2, Vec2))]
     , _potential :: Vec2 -> Double
     }
 
@@ -100,11 +100,11 @@ systemSetup config@SystemConfig{..} = do
             ]
 
     let trajectoryThunks = flip map odeSolutions $ \(odeSolution, ic) ->
-            let getTrajectory sol = [x | (_t, (x, _v)) <- sol]
+            let getTrajectory sol = [(x, norm v) | (_t, (x, v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
                 simplify = simplifyTrajectory 1
-            in ((simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
+            in ((getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
         !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
     pure SystemResult
@@ -127,21 +127,27 @@ render SystemResult{..} = do
 
         isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
-    for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
-        liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
-        for_ isos $ \iso -> cairoScope $ do
-            pathSketch iso
-            let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
-            setColor (viridis colorValue `withOpacity` 0.3)
-            stroke
+    -- for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
+    --     liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
+    --     for_ isos $ \iso -> cairoScope $ do
+    --         pathSketch iso
+    --         let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
+    --         setColor (viridis colorValue `withOpacity` 0.3)
+    --         stroke
+
+    let speeds = do
+            (xv, _ic) <- _trajectories
+            (_x,v) <- xv
+            pure v
+        minSpeed = minimum speeds
+        maxSpeed = maximum speeds
 
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 0) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
-        cairoScope $ do
-            setColor $ mathematica97 3 `withOpacity` 0.03
-            pathSketch trajectory
+        for_ (zip trajectory (tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
+            setColor (flare (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
+            lineSketch (Line a b)
             stroke
-        pure ()
 
 gaussianVec2
     :: Vec2 -- ^ Mean
