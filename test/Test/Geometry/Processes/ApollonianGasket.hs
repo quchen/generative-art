@@ -92,7 +92,7 @@ buggyButPretty1 = testCase "Buggy but pretty 1" $ renderAllFormats 300 300 "out/
 
     for_ (zip [0..] apoCircles) $ \(i, apo) -> cairoScope $ do
         setLineWidth 1
-        setColor (mathematica97 i)
+        setColor (rocket (1-fromIntegral i/fromIntegral (length apoCircles)))
         apoCircleSketch apo
         stroke
 
@@ -120,6 +120,6 @@ buggyButPretty2 = testCase "Buggy but pretty 2" $ renderAllFormats 300 300 "out/
 
     for_ (zip [0..] apoCircles) $ \(i, apo) -> cairoScope $ do
         setLineWidth 1
-        setColor (mathematica97 i)
+        setColor (rocket (1-fromIntegral i/fromIntegral (length apoCircles)))
         apoCircleSketch apo
         stroke
