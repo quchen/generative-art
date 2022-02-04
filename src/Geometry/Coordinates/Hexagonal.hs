@@ -24,8 +24,6 @@ module Geometry.Coordinates.Hexagonal (
     -- * Measurement and transformation
     , distance
     , rotateAround
-    , rotateCw
-    , rotateCcw
     , cubeRound
 
     -- * Geometry
