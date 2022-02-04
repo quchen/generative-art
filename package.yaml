@@ -83,6 +83,13 @@ executables:
             - generative-art
             - Noise
             - optparse-applicative
+    voronoi-3d:
+        main: Main.hs
+        source-dirs: showcases/voronoi_3d
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
+        dependencies:
+            - generative-art
+            - Noise
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive
