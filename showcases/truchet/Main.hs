@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Main where
 
-import Graphics.Rendering.Cairo as Cairo
+import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (uniformRM, GenIO, initialize)
 import qualified Data.Vector as V
 
@@ -34,7 +34,7 @@ main = do
         cairoScope (setColor backgroundColor >> Cairo.paint)
         hexagonalCoordinateSystem cellSize 30 >> Cairo.newPath
         for_ plane $ \hex -> do
-            tile <- liftIO $ randomTile gen
+            tile <- Cairo.liftIO $ randomTile gen
             drawTile hex tile
 
 colorScheme :: Int -> Color Double
@@ -51,15 +51,19 @@ plane = hexagonsInRange 15 origin
 newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Ord, Show, Functor)
 
 tiles :: V.Vector (Tile Int)
-tiles = V.fromList
-    [ Tile [((L, UR), 3), ((R, DL), 2)]
-    , Tile [((L, UR), 2), ((R, DL), 3)]
-    , Tile [((L, DR), 3), ((R, UL), 2)]
-    , Tile [((L, DR), 2), ((R, UL), 3)]
-    , Tile [((L, UL), 3), ((UR, R), 3), ((DR, DL), 3)]
-    , Tile [((L, DL), 3), ((DR, R), 3), ((UR, UL), 3)]
-    , Tile [((L, DL), 1), ((DL, DR), 2), ((DR, R), 1), ((R, UR), 2), ((UR, UL), 1), ((UL, L), 2)]
-    , Tile [((L, DL), 2), ((DL, DR), 1), ((DR, R), 2), ((R, UR), 1), ((UR, UL), 2), ((UL, L), 1)]
+tiles = V.fromList $ concat
+    [ [ Tile [((L, UR), k), ((R, DL), l)] | k <- [0..3], l <- [0..2], k+l <= 5, k+l >= 4 ]
+    , [ Tile [((L, DR), k), ((R, UL), l)] | k <- [0..3], l <- [0..2], k+l <= 5, k+l >= 4 ]
+    , [ Tile [((L, UL), k), ((UR, R), l), ((DR, DL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
+    , [ Tile [((L, DL), k), ((DR, R), l), ((UR, UL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
+    , [ Tile [((DL, DR), k), ((DR, R),  l), ((R, UR), m), ((UR, UL), n), ((UL, L),  o), ((L, DL), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
+    , [ Tile [((L,  DL), k), ((DL, DR), l), ((DR, R), m), ((R, UR),  n), ((UR, UL), o), ((UL, L), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
+    , [ Tile [((L, R),   k), ((UL, UR), l), ((DL, DR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    , [ Tile [((R, L),   k), ((DL, DR), l), ((UL, UR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    , [ Tile [((UL, DR), k), ((UR, R),  l), ((L, DL),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    , [ Tile [((DR, UL), k), ((L, DL),  l), ((UR, R),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    , [ Tile [((DL, UR), k), ((UL, L),  l), ((R, DR),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    , [ Tile [((UR, DL), k), ((R, DR),  l), ((UL, L),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
     ]
 
 randomTile :: GenIO -> IO (Tile Int)
@@ -83,10 +87,14 @@ drawArc hex ((d1, d2), n) = cairoScope $ for_ [1..n] $ \i -> do
     side d = 0.5 *. (center +. nextCenter d)
     nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
+    [down, lowerLeft, upperLeft, up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
 
-    sketchArc _ L  R  = moveToVec (side L)  >> lineToVec (side R)
-    sketchArc _ UL DR = moveToVec (side UL) >> lineToVec (side DR)
-    sketchArc _ UR DL = moveToVec (side DL) >> lineToVec (side UR)
+    sketchArc i L  R  = moveToVec ((0.5 - 0.25 * i) *. up         +. side L)  >> lineToVec ((0.5 - 0.25 * i) *. up         +. side R)
+    sketchArc i UL DR = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side DR)
+    sketchArc i UR DL = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR)
+    sketchArc i R  L  = moveToVec ((0.5 - 0.25 * i) *. down       +. side L)  >> lineToVec ((0.5 - 0.25 * i) *. down       +. side R)
+    sketchArc i DR UL = moveToVec ((0.5 - 0.25 * i) *. lowerLeft  +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. lowerLeft  +. side DR)
+    sketchArc i DL UR = moveToVec ((0.5 - 0.25 * i) *. upperLeft  +. side DL) >> lineToVec ((0.5 - 0.25 * i) *. upperLeft  +. side UR)
 
     sketchArc i L  UR = arcSketch (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
     sketchArc i UL R  = arcSketch (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
