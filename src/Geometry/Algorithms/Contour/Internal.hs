@@ -134,7 +134,7 @@ data Grid = Grid
     , _numCells :: (Int, Int) -- ^ Number of grid coordinates, i.e. the grid's resolution.
     } deriving (Eq, Ord, Show)
 
--- | Map a coordinate from the discrete grid to continuous space
+-- | Map a coordinate from the discrete grid to continuous space.
 fromGrid
     :: Grid
     -> IVec2 -- ^ Discrete coordinate
@@ -150,8 +150,14 @@ fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
 -- numbers and then rows in each line.
 valueTable :: Grid -> (Vec2 -> a) -> Vector (Vector a)
 valueTable grid@Grid{_numCells = (is, js)} f =
-    V.generate is (\i -> -- »x« direction
-        V.generate js (\j -> -- »y« direction
+    -- We add 1 here so that we include the bottom-right, bottom-left,
+    -- and top-right corners of the cells at the bottom and right
+    -- Grid edges as well. Without the +1, we only get the value at the
+    -- top left of each cell, which is only sufficient for cells inside
+    -- the grid (because their bottom-right will be covered as another cell’s
+    -- top-left).
+    V.generate (is+1) (\i -> -- »x« direction
+        V.generate (js+1) (\j -> -- »y« direction
             f (fromGrid grid (IVec2 i j))))
 
 data XO = X | O

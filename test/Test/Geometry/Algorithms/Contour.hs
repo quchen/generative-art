@@ -96,9 +96,9 @@ valueTableTests = testGroup "Value table creation"
                 pure $ Grid gridRange (iSize, jSize)
         in forAll gen $ \grid@Grid{_numCells = (iSize, jSize)} ->
             let vt = valueTable grid (const ())
-            in all (\v -> length v == jSize) vt
+            in all (\v -> length v == jSize+1) vt
                &&
-               length vt == iSize
+               length vt == iSize+1
     ]
 
 applyThresholdTests :: TestTree
@@ -132,13 +132,14 @@ visualTests = testGroup "Visual"
 
     ,  testCase "Concentric circles" $ do
         renderAllFormats 100 100 "docs/iso_lines/circles" $ do
-            for_ (zip [1..] [1,3..9]) $ \(colorIndex, r) -> do
+            cartesianCoordinateSystem
+            for_ (zip [1..] [1,2..20]) $ \(colorIndex, r) -> do
                 let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                     gridResolution = (32, 32)
                     isos = isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
                     fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                     fitToBox =
-                        G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (100-10) (100-10)) FitAllMaintainAspect)
+                        G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 100 100) FitAllMaintainAspect)
                 cairoScope $ do
                     setLineWidth 1
                     for_ (fitToBox isos) pathSketch
