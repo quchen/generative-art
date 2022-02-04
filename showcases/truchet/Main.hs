@@ -52,18 +52,18 @@ newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Ord, Show, Fun
 
 tiles :: V.Vector (Tile Int)
 tiles = V.fromList $ concat
-    [ [ Tile [((L, UR), k), ((R, DL), l)] | k <- [0..3], l <- [0..2], k+l <= 5, k+l >= 4 ]
-    , [ Tile [((L, DR), k), ((R, UL), l)] | k <- [0..3], l <- [0..2], k+l <= 5, k+l >= 4 ]
-    , [ Tile [((L, UL), k), ((UR, R), l), ((DR, DL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
-    , [ Tile [((L, DL), k), ((DR, R), l), ((UR, UL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
-    , [ Tile [((DL, DR), k), ((DR, R),  l), ((R, UR), m), ((UR, UL), n), ((UL, L),  o), ((L, DL), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
-    , [ Tile [((L,  DL), k), ((DL, DR), l), ((DR, R), m), ((R, UR),  n), ((UR, UL), o), ((UL, L), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
-    , [ Tile [((L, R),   k), ((UL, UR), l), ((DL, DR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
-    , [ Tile [((R, L),   k), ((DL, DR), l), ((UL, UR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
-    , [ Tile [((UL, DR), k), ((UR, R),  l), ((L, DL),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
-    , [ Tile [((DR, UL), k), ((L, DL),  l), ((UR, R),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
-    , [ Tile [((DL, UR), k), ((UL, L),  l), ((R, DR),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
-    , [ Tile [((UR, DL), k), ((R, DR),  l), ((UL, L),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 4, k+l+m >= 6 ]
+    --[ [ Tile [((L, UR), k), ((R, DL), l)] | k <- [0..3], l <- [0..2], k+l == 5 ]
+    --, [ Tile [((L, DR), k), ((R, UL), l)] | k <- [0..3], l <- [0..2], k+l == 5 ]
+    [ [ Tile [((L, UL), k), ((UR, R), l), ((DR, DL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
+    , [ Tile [((L, DL), k), ((DR, R), l), ((UR, UL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
+    --[ [ Tile [((DL, DR), k), ((DR, R),  l), ((R, UR), m), ((UR, UL), n), ((UL, L),  o), ((L, DL), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
+    --, [ Tile [((L,  DL), k), ((DL, DR), l), ((DR, R), m), ((R, UR),  n), ((UR, UL), o), ((UL, L), p)] | k <- [0..2], l <- [0..2], m <- [0..2], n <- [0..2], o <- [0..2], p <- [0..2], k+l <= 3, l+m <= 3, m+n <= 3, n+o <= 3, o+p <= 3, p+k <= 3, k+l+m+n+o+p >= 9 ]
+    --, [ Tile [((L, R),   k), ((UL, UR), l), ((DL, DR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    --, [ Tile [((R, L),   k), ((DL, DR), l), ((UL, UR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    --, [ Tile [((UL, DR), k), ((UR, R),  l), ((L, DL),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    --, [ Tile [((DR, UL), k), ((L, DL),  l), ((UR, R),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    --, [ Tile [((DL, UR), k), ((UL, L),  l), ((R, DR),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    --, [ Tile [((UR, DL), k), ((R, DR),  l), ((UL, L),  m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
     ]
 
 randomTile :: GenIO -> IO (Tile Int)
