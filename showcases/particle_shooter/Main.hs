@@ -127,8 +127,8 @@ render SystemResult{..} = do
 
         isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
-    for_ isosWithThresolds $ \(isoThreshold, isos) -> do
-        liftIO (putStrLn ("Paint threshold " ++ show isoThreshold))
+    for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
+        liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
         for_ isos $ \iso -> cairoScope $ do
             pathSketch iso
             let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
@@ -136,7 +136,7 @@ render SystemResult{..} = do
             stroke
 
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
-        when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
+        when (mod i 100 == 0) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         cairoScope $ do
             setColor $ mathematica97 3 `withOpacity` 0.03
             pathSketch trajectory
