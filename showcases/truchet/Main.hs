@@ -152,7 +152,7 @@ drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc DR DL = arcSketch (corner DR DL) (0.5 * cellSize) (deg 210) (deg 330)
     sketchArc DL L  = arcSketch (corner DL L)  (0.5 * cellSize) (deg 270) (deg 30)
 
-    sketchArc d1 d2 | d1 == d2 = error ("Illegal tile " ++ show (d1, d2))
+    sketchArc d  d' | d == d' = error ("Illegal tile " ++ show (d, d'))
 
-    sketchArc d d' = sketchArc d' d
+    sketchArc d  d' = sketchArc d' d
 
