@@ -376,3 +376,5 @@ showTextAligned hAlign vAlign str = do
             VBottom -> 0
     relMoveTo dx dy
     showText str
+    newPath -- The text API is wonky, it kinda-sorta moves the pointer but not really.
+            -- newPath clears the path, so we get no leaks from the text.
