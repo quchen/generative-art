@@ -116,19 +116,30 @@ rotateCw (Hex q r s) = Hex (-r) (-s) (-q)
 rotateCcw :: Hex -> Hex
 rotateCcw (Hex q r s) = Hex (-s) (-q) (-r)
 
+-- | Mirror on the origin.
+mirror0 :: Hex -> Hex
+mirror0 (Hex q r s) = Hex (-q) (-r) (-s)
+
 -- | Rotate around a center by a number of 60° angles.
 rotateAround
     :: Hex -- ^ Center
-    -> Int -- ^ number of 60° rotations. positive for clockwise.
+    -> Int -- ^ number of 60° rotations. Positive for clockwise (in Cairo coordinates).
     -> Hex -- ^ Point to rotate
     -> Hex
-rotateAround center n hex =
-    let hex' = hex `hexSubtract` center
-        rot i x | i > 0 = rot (i-1) (rotateCw x)
-                | i < 0 = rot (i+1) (rotateCcw x)
-                | otherwise = x
-        rotated = rot n hex'
-    in rotated `hexAdd` center
+rotateAround center n =
+    (`hexAdd` center) . rotateAround0 n . (`hexSubtract` center)
+
+-- | Rotate around the origin
+rotateAround0 :: Int -> Hex -> Hex
+rotateAround0 n = go (mod n 6)
+  where
+    go 0 = id
+    go 1 = rotateCw
+    go 2 = rotateCw . rotateCw
+    go 3 = mirror0
+    go 4 = rotateCcw . rotateCcw
+    go 5 = rotateCcw
+    go i = bugError ("Bad modulus in rotateAround, got value: " ++ show i)
 
 -- | Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
 toVec2
