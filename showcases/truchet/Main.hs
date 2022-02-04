@@ -4,7 +4,7 @@ module Main where
 import Data.Traversable (for)
 import Data.List (permutations, inits, partition)
 import Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC (create, uniformRM, GenIO)
+import System.Random.MWC (uniformRM, GenIO, initialize)
 import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
 
@@ -31,7 +31,7 @@ main = do
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
 
-    gen <- create
+    gen <- initialize (V.fromList [123, 988])
     tiling <- indexStrands <$> randomTiling gen plane
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
@@ -121,7 +121,7 @@ drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> Cair
 drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (cellSize / 2)
-    setColor backgroundColor
+    setColor (backgroundColor `withOpacity` 0.8)
     Cairo.stroke
     sketchArc d1 d2
     Cairo.setLineWidth (3/8 * cellSize)
