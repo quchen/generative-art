@@ -14,6 +14,7 @@ import Draw
 import Geometry                      as G
 import Numerics.DifferentialEquation
 import Numerics.VectorAnalysis
+import Numerics.Interpolation
 
 main :: IO ()
 main = do
@@ -61,7 +62,7 @@ systemConfig = SystemConfig
 
 data SystemResult = SystemResult
     { _trajectories :: [([Vec2], (Vec2, Vec2))]
-    , _coulombWells :: [(Vec2, Double)]
+    , _potential :: Vec2 -> Double
     }
 
 initializeGen
@@ -77,7 +78,7 @@ systemSetup :: SystemConfig s -> ST s SystemResult
 systemSetup config@SystemConfig{..} = do
     gen <- initializeGen config
 
-    (potential, coulombWells) <- potentials config gen
+    potential <- createPotential config gen
 
     particles <- do
         let mkParticle = do
@@ -108,7 +109,7 @@ systemSetup config@SystemConfig{..} = do
 
     pure SystemResult
         { _trajectories = trajectoriesNF
-        , _coulombWells = coulombWells
+        , _potential = potential
         }
 
 render :: SystemResult -> Render ()
@@ -120,12 +121,19 @@ render SystemResult{..} = do
         paint
 
     setLineWidth 1
-    for_ _coulombWells $ \(center, charge) -> cairoScope $ do
-            setColor $ mathematica97 0
-            for_ [1,3..10] $ \r -> do
-                setColor $ mathematica97 0 `withOpacity` (1/r**0.9)
-                circleSketch center (8*(r*abs charge)**(1/2.5))
-                stroke
+    let isoGrid = Grid (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi)) (256*2,144*2)
+        isosAt = isoLines isoGrid _potential
+        isoThresholds = [1.0, 1.02 .. 2.5]
+
+        isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
+            `using` parList (evalTuple2 r0 rdeepseq)
+    for_ isosWithThresolds $ \(isoThreshold, isos) -> do
+        liftIO (putStrLn ("Paint threshold " ++ show isoThreshold))
+        for_ isos $ \iso -> cairoScope $ do
+            pathSketch iso
+            let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
+            setColor (viridis colorValue `withOpacity` 0.3)
+            stroke
 
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 1) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
@@ -142,11 +150,11 @@ gaussianVec2
     -> ST s Vec2
 gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> Random.normal muX sigma gen <*> Random.normal muY sigma gen
 
-potentials
+createPotential
     :: SystemConfig s
     -> Random.Gen s
-    -> ST s (Vec2 -> Double, [(Vec2, Double)])
-potentials SystemConfig{..} gen = do
+    -> ST s (Vec2 -> Double)
+createPotential SystemConfig{..} gen = do
     hills <- do
         hills' <- replicateM _numHills $ do
             center <- _hillLocation gen
@@ -154,10 +162,8 @@ potentials SystemConfig{..} gen = do
             pure (center, charge)
         let removeOutliers = filter (\(center, _) -> overlappingBoundingBoxes center (G.transform (G.scale 1.1) _boundingBox))
                            . filter (\(center, _) -> norm center > 70)
-        pure (removeOutliers hills')
-    pure (\p -> sum' [coulombPotential center charge p | (center, charge) <- hills]
-         , hills
-         )
+        pure (V.fromList (removeOutliers hills'))
+    pure (\p -> sum' (V.map (\(center, charge) -> coulombPotential center charge p) hills))
 
 coulombPotential
     :: Vec2   -- ^ Center
@@ -166,5 +172,5 @@ coulombPotential
     -> Double -- ^ Magnitude of the potential
 coulombPotential center charge p = charge / norm (p -. center)
 
-sum' :: [Double] -> Double
+sum' :: V.Vector Double -> Double
 sum' = foldl' (+) 0
