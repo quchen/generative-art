@@ -57,7 +57,7 @@ tiles = V.fromList $ nubOrd
     [ Tile partialTile
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
     , let fullTile = [((d1, d2), ()), ((d3, d4), ()), ((d5, d6), ())]
-    , partialTile <- inits fullTile
+    , partialTile <- drop 2 $ inits fullTile
     ]
   where allDirections = [R, UR, UL, L, DL, DR]
 
@@ -121,7 +121,7 @@ drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> Cair
 drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
     Cairo.setLineWidth (cellSize / 2)
-    setColor (backgroundColor `withOpacity` 0.8)
+    setColor (backgroundColor `withOpacity` 0.7)
     Cairo.stroke
     sketchArc d1 d2
     Cairo.setLineWidth (3/8 * cellSize)
