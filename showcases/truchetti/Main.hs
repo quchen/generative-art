@@ -27,7 +27,7 @@ cellSize = 64
 
 main :: IO ()
 main = do
-    let file = "out/truchet.png"
+    let file = "out/truchetti.svg"
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
 
