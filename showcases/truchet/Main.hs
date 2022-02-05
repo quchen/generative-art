@@ -34,13 +34,13 @@ main = do
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor backgroundColor >> Cairo.paint)
-        for_ (M.toList tiling) $ \(hex, tile) -> drawTile hex tile
+        for_ (strands tiling) drawStrand
 
 colorScheme :: Int -> Color Double
-colorScheme = mathematica97
+colorScheme = twilight . (*0.02) . fromIntegral
 
 backgroundColor :: Color Double
-backgroundColor = blend 0 (colorScheme 0) white
+backgroundColor = blend 0.8 (colorScheme 0) white
 
 plane :: [Hex]
 plane = hexagonsInRange 15 origin
@@ -69,6 +69,19 @@ unTile (Tile xs) =
     | ((d1, i), d2) <- M.toList xs
     , cyclic d1 d2
     ]
+
+extractArc :: Tile -> Maybe ((Direction, Int, Direction), Tile)
+extractArc (Tile xs)
+    | M.null xs = Nothing
+    | otherwise =
+        let ((d1, i), d2) = M.findMin xs
+        in  Just ((d1, i, d2), deleteArc (Tile xs) (d1, i, d2))
+
+findArc :: Tile -> (Direction, Int) -> Maybe ((Direction, Int, Direction), Tile)
+findArc (Tile xs) (d1, i) = fmap (\d2 -> ((d1, i, d2), deleteArc (Tile xs) (d1, i, d2))) (M.lookup (d1, i) xs)
+
+deleteArc :: Tile -> (Direction, Int, Direction) -> Tile
+deleteArc (Tile xs) (d1, i, d2) = Tile $ M.delete (d1, i) $ M.delete (d2, 4-i) xs
 
 tiles1 :: V.Vector Tile
 tiles1 = V.fromList $ allRotations =<<
@@ -101,9 +114,9 @@ rotateTile n (Tile xs) = Tile $ M.fromList $ (\((d1, i), d2) -> ((rotateDirectio
   where
     rotateDirection d = toEnum ((fromEnum d + n) `mod` 6)
 
-type Tiling a = M.Map Hex Tile
+type Tiling = M.Map Hex Tile
 
-randomTiling :: GenIO -> [Hex] -> IO (Tiling ())
+randomTiling :: GenIO -> [Hex] -> IO Tiling
 randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
     tile <- randomTile gen
     pure (hex, tile)
@@ -114,11 +127,30 @@ randomTile = \gen -> do
     pure (tiles V.! rnd)
   where countTiles = V.length tiles
 
+strands :: Tiling -> [[(Hex, (Direction, Int, Direction))]]
+strands tiling = case M.lookupMin tiling of
+    Nothing -> []
+    Just (startHex, t) -> case extractArc t of
+        Nothing ->  strands (M.delete startHex tiling)
+        Just ((d, i, d'), t') ->
+            let (s, tiling') = strand tiling startHex (d, i)
+                (s', tiling'') = strand tiling' startHex (d', 4-i)
+            in (reverse s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
+
+strand :: Tiling -> Hex -> (Direction, Int) -> ([(Hex, (Direction, Int, Direction))], Tiling)
+strand tiling hex (d, i) = let hex' = move d 1 hex in case M.lookup hex' tiling of
+    Nothing -> ([], tiling)
+    Just t -> case findArc t (reverseDirection d, 4-i) of
+        Nothing -> ([], tiling)
+        Just ((_, _, d'), t') ->
+            let (s', tiling') = strand (M.insert hex' t' tiling) hex' (d', i)
+            in  ((hex', (reverseDirection d, 4-i, d')) : s', tiling')
+
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawTile :: Hex -> Tile -> Cairo.Render ()
-drawTile hex tile = for_ (unTile tile) $ \(d1, i, d2) -> drawArc hex(d1, i, d2, i `mod` 2)
+drawStrand :: [(Hex, (Direction, Int, Direction))] -> Cairo.Render ()
+drawStrand xs = for_ xs $ \(hex, (d1, n, d2)) -> drawArc hex (d1, n, d2, length xs)
 
 drawArc :: Hex -> (Direction, Int, Direction, Int) -> Cairo.Render ()
 drawArc hex (d1, n, d2, c) = cairoScope $ do
