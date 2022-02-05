@@ -1,14 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Helpers (
-      GaussianVec(..)
-    , LotsOfGaussianPoints(..)
+    Gaussian(..)
 ) where
 
 
-
-import Data.List
-import System.Random
 
 import Geometry
 import Geometry.Coordinates.Hexagonal as Hex
@@ -48,29 +44,20 @@ instance Arbitrary Hex where
         pure (Hex q r (-q-r))
     shrink (Hex q r s) = [ Hex q' r' s' | (q', r', s') <- shrink (q, r, s) ]
 
-newtype LotsOfGaussianPoints = LotsOfGaussianPoints [Vec2]
+-- | Wrapper for 'Vec2' whose 'Arbitrary' instance is Gaussian.
+newtype Gaussian = Gaussian Vec2
     deriving (Eq, Ord, Show)
 
-instance Arbitrary LotsOfGaussianPoints where
+instance Arbitrary Gaussian where
     arbitrary = do
-        seed <- arbitrary
-        numPoints <- choose (10, 100)
-        (pure . LotsOfGaussianPoints . take numPoints . gaussianVecs) seed
-    shrink (LotsOfGaussianPoints xs)
-      = let -- Some sufficiently chaotic seed function :-)
-            seed = foldl' (\s vec -> round (normSquare vec) + s*s) 0 xs
-        in map (\numPoints -> LotsOfGaussianPoints (take numPoints (gaussianVecs seed)))
-               [3 .. length xs-1]
-
-gaussianVecs :: Int -> [Vec2]
-gaussianVecs seed
-  = let go (u1:rest)
-            | u1 <= 0 = go rest -- to avoid diverging on log(0)
-        go (u1:u2:rest)
-            = let root1 = sqrt (-2 * log u1)
-                  pi2u2 = 2 * pi * u2
-                  x = root1 * cos pi2u2
-                  y = root1 * sin pi2u2
-              in Vec2 x y : go rest
-        go _ = error "Can’t happen, input is infinite"
-    in go (randomRs (0, 1) (mkStdGen seed))
+        u1 <- choose (0, 1)
+        if u1 <= 0 -- to avoid diverging on log(0)
+            then arbitrary
+            else do
+                u2 <- choose (0,1)
+                let root1 = sqrt (-2 * log u1)
+                    pi2u2 = 2 * pi * u2
+                    x = root1 * cos pi2u2
+                    y = root1 * sin pi2u2
+                pure (Gaussian (Vec2 x y))
+    shrink (Gaussian vec) = map Gaussian (shrink vec)

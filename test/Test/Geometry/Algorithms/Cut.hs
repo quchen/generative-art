@@ -3,6 +3,7 @@ module Test.Geometry.Algorithms.Cut (tests) where
 
 
 import           Control.Monad
+import           Data.Coerce
 import           Data.Foldable
 import           Data.List
 import qualified Data.Map                 as M
@@ -56,10 +57,14 @@ rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
 
 reconstructConvexPolygonTest :: TestTree
 reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
-    \(LotsOfGaussianPoints points) ->
-        let convexPolygon = convexHull points
+    let gen = do
+            n <- choose (10, 100)
+            replicateM n arbitrary
+    in forAll gen $ \points ->
+        let _ = points :: [Gaussian]
+            convexPolygon = convexHull (coerce points)
             orientation = polygonOrientation convexPolygon
-            maxY = maximum (map (\(Vec2 _ y) -> y) points)
+            maxY = maximum (map (\(Vec2 _ y) -> y) (coerce points))
             scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (deg 0) 1
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
             actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))
@@ -344,7 +349,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
 
 sideOfScissorsTest :: TestTree
 sideOfScissorsTest = testProperty "Side of scissors" $
-    \(GaussianVec vec@(Vec2 _ y)) ->
+    \(Gaussian vec@(Vec2 _ y)) ->
         let scissors = Line (Vec2 0 0) (Vec2 1 0)
             actual = sideOfScissors scissors vec
             expected = case compare y 0 of
