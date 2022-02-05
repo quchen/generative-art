@@ -29,6 +29,7 @@ import qualified Data.Colour.RGBSpace.HSV as Colour
 import qualified Data.Colour.RGBSpace.HSL as Colour
 import Data.Colour.SRGB as Colour
 import qualified Graphics.Rendering.Cairo as C
+import Text.Read
 
 
 
@@ -105,13 +106,14 @@ rgba r g b a = sRGB r g b `withOpacity` a
 -- @
 parseRgbaHex :: String -> AlphaColor Double
 parseRgbaHex ('#' : rrggbbaa) = parseRgbaHex rrggbbaa
-parseRgbaHex [r1, r2, g1, g2, b1, b2, a1, a2] = rgba
-    (read ("0x" ++ [r1, r2]) / 255)
-    (read ("0x" ++ [g1, g2]) / 255)
-    (read ("0x" ++ [b1, b2]) / 255)
-    (read ("0x" ++ [a1, a2]) / 255)
-parseRgbaHex [r1, r2, g1, g2, b1, b2] = parseRgbaHex [r1, r2, g1, g2, b1, b2, 'f', 'f']
-parseRgbaHex str = error ("parseRgbaHex: cannot parse " ++ str)
+parseRgbaHex [r1, r2, g1, g2, b1, b2, a1, a2] = rightOrError "parseRgbaHex" $ rgba
+    <$> parseHexPair r1 r2
+    <*> parseHexPair g1 g2
+    <*> parseHexPair b1 b2
+    <*> parseHexPair a1 a2
+parseRgbaHex str
+    | length str < 8 = error ("parseRgbaHex: input too short: " ++ str)
+    | otherwise      = error ("parseRgbaHex: input too long: " ++ str)
 
 -- | Parse a RGB hex value. 'error's on bad input, so be careful!
 --
@@ -122,11 +124,22 @@ parseRgbaHex str = error ("parseRgbaHex: cannot parse " ++ str)
 -- @
 parseRgbHex :: String -> Color Double
 parseRgbHex ('#' : rrggbb) = parseRgbHex rrggbb
-parseRgbHex [r1, r2, g1, g2, b1, b2] = rgb
-    (read ("0x" ++ [r1, r2]) / 255)
-    (read ("0x" ++ [g1, g2]) / 255)
-    (read ("0x" ++ [b1, b2]) / 255)
-parseRgbHex str = error ("parseRgbHex: cannot parse " ++ str)
+parseRgbHex [r1, r2, g1, g2, b1, b2] = rightOrError "parseRgbHex" $ rgb
+    <$> parseHexPair r1 r2
+    <*> parseHexPair g1 g2
+    <*> parseHexPair b1 b2
+parseRgbHex str
+    | length str < 6 = error ("parseRgbHex: input too short: " ++ str)
+    | otherwise      = error ("parseRgbHex: input too long: " ++ str)
+
+rightOrError :: String -> Either String rgb -> rgb
+rightOrError _ (Right r) = r
+rightOrError source (Left err) = error (source ++ ": " ++ err)
+
+parseHexPair :: Char -> Char -> Either String Double
+parseHexPair a b = case readMaybe ("0x" ++ [a,b]) of
+    Just r -> Right (r / 255)
+    Nothing -> Left ("Cannot parse hex pair: " ++ [a,b])
 
 average :: [Color Double] -> Color Double
 average colors = mconcat (darken (1/fromIntegral (length colors)) <$> colors)

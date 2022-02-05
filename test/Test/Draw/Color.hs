@@ -4,11 +4,13 @@ module Test.Draw.Color (tests) where
 
 import           Control.Monad
 import           Data.Colour.Names
-import           Data.List                (transpose)
+import           Data.List
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C
 import           Test.Tasty
 import           Test.Tasty.HUnit
+import           Test.Tasty.QuickCheck
+import           Text.Printf
 
 import Draw
 import Geometry as G
@@ -28,6 +30,7 @@ tests = testGroup "Colors"
         , testHue
         , testSaturation
         , testBlending
+        , parserTest
         ]
     , testGroup "Schemes"
         [ let maxSwatches = 16 in testGroup "Discrete"
@@ -144,6 +147,51 @@ testBlending = testCase "value" $ do
     renderColorTable "docs/colors/operations/blending_blue"  $
         colorTable baseColors (\factor -> blend factor blue)
 
+parserTest :: TestTree
+parserTest = testGroup "Parser"
+    [ testGroup "parseRgbHex"
+        [ testProperty "Success" $
+            let gen = do
+                    r <- choose (0, 255 :: Int)
+                    g <- choose (0, 255 :: Int)
+                    b <- choose (0, 255 :: Int)
+                    str <- do
+                        leadingHash <- elements ["", "#"]
+                        patternR <- elements ["%02x", "%02X"]
+                        patternG <- elements ["%02x", "%02X"]
+                        patternB <- elements ["%02x", "%02X"]
+                        pure (printf (leadingHash ++ patternR ++ patternG ++ patternB) r g b)
+                    pure (fromIntegral r/255, fromIntegral g/255, fromIntegral b/255, str)
+            in forAll gen $ \(r, g, b, str) -> parseRgbHex str == rgb r g b
+        , testGroup "Error"
+            [ testCase "Failure: bad character"   $ assertThrowsError ("Cannot parse hex pair: eX" `isInfixOf`) (parseRgbHex "abcdeX")
+            , testCase "Failure: input too short" $ assertThrowsError ("input too short" `isInfixOf`)           (parseRgbHex "abcd")
+            , testCase "Failure: input too long"  $ assertThrowsError ("input too long" `isInfixOf`)            (parseRgbHex "abcdefgh")
+            ]
+        ]
+    , testGroup "parseRgbaHex" $
+        [ testProperty "Success" $
+            let gen = do
+                    r <- choose (0, 255 :: Int)
+                    g <- choose (0, 255 :: Int)
+                    b <- choose (0, 255 :: Int)
+                    a <- choose (0, 255 :: Int)
+                    str <- do
+                        leadingHash <- elements ["", "#"]
+                        patternR <- elements ["%02x", "%02X"]
+                        patternG <- elements ["%02x", "%02X"]
+                        patternB <- elements ["%02x", "%02X"]
+                        patternA <- elements ["%02x", "%02X"]
+                        pure (printf (leadingHash ++ patternR ++ patternG ++ patternB ++ patternA) r g b a)
+                    pure (fromIntegral r/255, fromIntegral g/255, fromIntegral b/255, fromIntegral a/255, str)
+            in forAll gen $ \(r, g, b, a, str) -> parseRgbaHex str == rgba r g b a
+        , testGroup "Error"
+            [ testCase "Failure: bad character"   $ assertThrowsError ("Cannot parse hex pair: eX" `isInfixOf`) (parseRgbHex "abcdeX")
+            , testCase "Failure: input too short" $ assertThrowsError ("input too short" `isInfixOf`)           (parseRgbHex "abcd")
+            , testCase "Failure: input too long"  $ assertThrowsError ("input too long" `isInfixOf`)            (parseRgbHex "abcdefgh")
+            ]
+        ]
+    ]
 
 baseColors :: [Color Double]
 baseColors = [grey, maroon, olive, green, teal, navy, purple]
