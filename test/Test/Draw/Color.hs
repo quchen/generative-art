@@ -33,7 +33,7 @@ tests = testGroup "Colors"
             [ testGroup "Mathematica"
                 [ testGroup "ColorData[97]"
                     [ testDiscrete "Visual" "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 maxSwatches
-                    , testCase "Check against Mathematica output" checkMma97
+                    , testCase "Check against Mathematica output" assertReproducesMathematica
                     ]
                 , testGroup "Color Brewer 2"
                     [ testDiscrete "Set2"    "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    maxSwatches
@@ -263,8 +263,8 @@ testDiscrete testName file colorF maxSwatches =
                 circleSketch (lastCellCenter +. Vec2 offset 0) 1
                 fill
 
-checkMma97 :: Assertion
-checkMma97 = sequence_ $ flip V.imap mma97reference $ \i expected -> do
+assertReproducesMathematica :: Assertion
+assertReproducesMathematica = sequence_ $ flip V.imap mma97reference $ \i expected -> do
     let err = unlines
             [ "ColorData[97][" ++ show i ++ "] is " ++ show expected
             , "but our function yields " ++ show actual
