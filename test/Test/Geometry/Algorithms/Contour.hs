@@ -37,21 +37,14 @@ findRootOnLineTests = testGroup "Narrow down root location on a line"
             f (Vec2 x _) = x
             actual = binarySearchRoot f line 1e-10
             expected = Vec2 0 0
-        assertApproxEqual expected actual
+        assertApproxEqual "" (ExpectedWithin 1e-10 expected) (Actual actual)
     , testCase "Polynomial function along diagonal" $ do
         let line = Line (Vec2 (-1) (-1)) (Vec2 1 1)
             f (Vec2 x y) = (x+1)*y^2
             actual = binarySearchRoot f line 1e-10
             expected = Vec2 0 0
-        assertApproxEqual expected actual
+        assertApproxEqual "" (ExpectedWithin 1e-10 expected) (Actual actual)
     ]
-  where
-    assertApproxEqual expected actual =
-        let errMsg = unlines
-                [ "Expected: " ++ show expected
-                , "Actual:   " ++ show actual
-                ]
-        in assertBool errMsg (expected ~== actual)
 
 optimizeDiscreteLineTests :: TestTree
 optimizeDiscreteLineTests = testGroup "Optimize discrete line" []
