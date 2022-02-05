@@ -79,9 +79,9 @@ newtype ColorScheme = ColorScheme (V.Vector (Render ()))
 purple :: ColorScheme
 purple = ColorScheme (V.fromList [darker, dark, brighter])
   where
-    darker = setColor (hsva 257 0.40 0.38 1)
-    dark = setColor (hsva 256 0.40 0.50 1)
-    brighter = setColor (hsva 304 0.45 0.56 1)
+    darker   = setColor (haskell 0)
+    dark     = setColor (haskell 1)
+    brighter = setColor (haskell 2)
 
 grey :: ColorScheme
 grey = ColorScheme (V.fromList [setGrey x | x <- [850, 875, 900]])
