@@ -16,28 +16,28 @@ module Test.TastyAll (
     , renderAllFormats
 
     -- * Reexports
+    , module Test.Arbitrary
     , module Test.Tasty
-    , module Test.Tasty.QuickCheck
     , module Test.Tasty.HUnit
-    , module Test.Helpers
+    , module Test.Tasty.QuickCheck
 ) where
 
 
 
-import Graphics.Rendering.Cairo as C hiding (x, y)
-import Draw
-import Test.Tasty
-import Test.Tasty.QuickCheck
-import Test.Tasty.HUnit hiding (assertEqual)
-import qualified Test.Tasty.HUnit as HUnit
-import Test.Helpers
 import Control.Exception
+import Data.Colour.RGBSpace     as Colour
+import Data.Colour.SRGB         as Colour
 import Data.List
-import Data.Colour.RGBSpace as Colour
-import Data.Colour.SRGB as Colour
+import Draw
+import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Geometry
 
+import           Test.Arbitrary
+import           Test.Tasty
+import           Test.Tasty.HUnit      hiding (assertEqual)
+import qualified Test.Tasty.HUnit      as HUnit
+import           Test.Tasty.QuickCheck
 
 
 
