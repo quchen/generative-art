@@ -26,11 +26,11 @@ import Test.Tasty.QuickCheck
 
 instance Arbitrary Vec2 where
     arbitrary = Vec2 <$> arbitrary <*> arbitrary
-    shrink (Vec2 x y) = [ Vec2 x' y' | x' <- [0,1,-1], y' <- [0,1,-1] ]
-                     ++ [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
+    shrink (Vec2 x y) = [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
 
 instance Arbitrary Angle where
     arbitrary = fmap deg (choose (-360, 720))
+    shrink x = if getRad x == 0 then [] else [rad 0]
 
 newtype GaussianVec = GaussianVec Vec2
     deriving (Eq, Ord, Show)
@@ -53,10 +53,7 @@ instance Arbitrary Hex where
         q <- arbitrary
         r <- arbitrary
         pure (Hex q r (-q-r))
-    shrink (Hex 0 0 0) = []
-    shrink hex =
-        let r = Hex.distance hexZero hex
-        in ring (r-1) hexZero
+    shrink (Hex q r s) = [ Hex q' r' s' | (q', r', s') <- shrink (q, r, s) ]
 
 newtype LotsOfGaussianPoints = LotsOfGaussianPoints [Vec2]
     deriving (Eq, Ord, Show)
