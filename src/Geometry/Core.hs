@@ -65,6 +65,7 @@ module Geometry.Core (
     , transformationProduct
     , inverse
     , Transform(..)
+    , NoTransform(..)
     , translate
     , rotate
     , rotateAround
@@ -341,6 +342,23 @@ mirrorXCoords = scale' (-1) 1
 -- | Invert all Y coordinates.
 mirrorYCoords :: Transformation
 mirrorYCoords = scale' 1 (-1)
+
+-- | This type simply wraps its contents, and makes 'transform' do nothing.
+-- It’s a very useful type when you want to e.g. resize the whole geometry given to
+-- your rendering function, but it contains some non-geometrical render data, like
+-- a timestamp for each shape.
+newtype NoTransform a = NoTransform a
+    deriving (Eq, Ord, Show, Read, Bounded)
+
+instance NFData a => NFData (NoTransform a) where rnf (NoTransform x) = rnf x
+instance Enum a => Enum (NoTransform a) where
+    toEnum = NoTransform . toEnum
+    fromEnum (NoTransform x) = fromEnum x
+instance HasBoundingBox a => HasBoundingBox (NoTransform a) where boundingBox (NoTransform x) = boundingBox x
+instance Semigroup a => Semigroup (NoTransform a) where NoTransform x <> NoTransform y = NoTransform (x <> y)
+instance Monoid a => Monoid (NoTransform a) where mempty = NoTransform mempty
+-- | The key instance: don’t transform a 'NoTransform'.
+instance Transform (NoTransform a) where transform _ x = x
 
 
 

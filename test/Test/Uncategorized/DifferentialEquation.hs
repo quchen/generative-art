@@ -10,6 +10,7 @@ import Geometry
 import Geometry.Chaotic
 import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import Numerics.DifferentialEquation
+import Numerics.Interpolation
 
 import Test.TastyAll
 
@@ -193,17 +194,23 @@ solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
         in noise
 
 renderPhaseSpace :: [(Double, (Double, Double))] -> (Double, Double) -> Render ()
-renderPhaseSpace solution (w, h) = do
-    let solution' = takeWhile (\(t, _) -> t < 120) solution
-        bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution']
+renderPhaseSpace solutionInfinite (w, h) = do
+    let tMin = 100
+        tMax = 150
+        solution = takeWhile (\(t, _) -> t < tMax) . dropWhile (\(t, _) -> t < tMin) $ solutionInfinite
+        bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution]
         bbCanvas = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
         scaleToCanvas :: Transform geo => geo -> geo
         scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
-        trajectory = simplifyTrajectory 0.25 -- SVG compression :-)
-                     [scaleToCanvas (Vec2 x v) | (_t, (x,v)) <- solution']
+        trajectory = scaleToCanvas
+            . map (\(t, (x, v)) -> (NoTransform t, Vec2 x v))
+            . simplifyTrajectoryBy (\(_t, (x, v)) -> Vec2 x v) 0.01 -- SVG compression :-)
+            $ solution
 
     setLineWidth 1
     cairoScope $ do
-        pathSketch trajectory
-        setColor $ mathematica97 0
-        stroke
+        for_ (zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (tail trajectory)) $ \(t, line) -> do
+            lineSketch line
+            let val = linearInterpolate (tMin, tMax) (0,1) t
+            setColor (icefire val `withOpacity` exp (-val/1))
+            stroke

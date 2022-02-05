@@ -2,6 +2,7 @@ module Geometry.Trajectory (
       pointOnTrajectory
     , domain
     , simplifyTrajectory
+    , simplifyTrajectoryBy
     , reassembleLines
 ) where
 
@@ -13,7 +14,6 @@ import qualified Data.Map      as M
 import           Data.Ord
 import           Data.Sequence (Seq, (|>))
 import qualified Data.Sequence as Seq
-import           Data.Vector   (Vector)
 import qualified Data.Vector   as V
 import           Geometry.Core
 import           Geometry.LUT
@@ -72,20 +72,27 @@ pointOnTrajectory points
 --
 -- <<docs/interpolation/3_simplify_path.svg>>
 simplifyTrajectory :: Double -> [Vec2] -> [Vec2]
-simplifyTrajectory epsilon  = V.toList . go . V.fromList
+simplifyTrajectory = simplifyTrajectoryBy id
+
+-- | 'simplifyTrajectory', but allows specifying a function for how to extract the points
+-- to base simplifying on from the input.
+--
+-- This is useful when your trajectory contains metadata, such as the velocity at
+-- each point.
+simplifyTrajectoryBy :: (a -> Vec2) -> Double -> [a] -> [a]
+simplifyTrajectoryBy vec2in epsilon = V.toList . go . V.fromList
   where
-    go :: Vector Vec2 -> Vector Vec2
     go points | V.length points <= 2 = points
     go points
       = let start = V.head points
             end = V.last points
-            isCyclic = start == end
+            isCyclic = vec2in start == vec2in end
 
             (dMax, iMax)
-                | isCyclic = V.maximumBy (comparing fst) (V.imap (\i p -> (norm (p -. start), i)) points)
+                | isCyclic = V.maximumBy (comparing fst) (V.imap (\i p -> (norm (vec2in p -. vec2in start), i)) points)
                 | otherwise =
-                    let connectingLine = Line start end
-                    in V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine p connectingLine, i)) points)
+                    let connectingLine = Line (vec2in start) (vec2in end)
+                    in V.maximumBy (comparing fst) (V.imap (\i p -> (distanceFromLine (vec2in p) connectingLine, i)) points)
         in if dMax <= epsilon
             -- Points are all too close: remove them
             then V.fromList [start, end]
