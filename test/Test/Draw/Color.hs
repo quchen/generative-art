@@ -14,8 +14,6 @@ import Geometry as G
 import Draw.Color.Schemes.Internal.Common
 import Numerics.Interpolation
 
-import Test.Common
-import Test.Helpers
 import Test.TastyAll
 
 

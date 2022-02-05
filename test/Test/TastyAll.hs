@@ -1,25 +1,31 @@
 module Test.TastyAll (
+    -- * HUnit extensions
       assertThrowsError
-
     , Expected(..)
     , Actual(..)
     , assertEqual
 
+    -- * Rendering pictures
+    , renderPng
+    , renderSvg
+    , renderAllFormats
+
+    -- * Reexports
     , module Test.Tasty
     , module Test.Tasty.QuickCheck
     , module Test.Tasty.HUnit
     , module Test.Helpers
-    , module Test.Common
 ) where
 
 
 
+import Graphics.Rendering.Cairo as C hiding (x, y)
+import Draw
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.HUnit hiding (assertEqual)
 import qualified Test.Tasty.HUnit as HUnit
 import Test.Helpers
-import Test.Common
 import Control.Exception
 
 
@@ -52,3 +58,29 @@ instance Show a => Show (Actual a) where
 -- | Type-safe version of 'HUnit.assertEqual', because it’s too easy to mix up the arguments.
 assertEqual :: (Eq a, Show a) => String -> Expected a -> Actual a -> Assertion
 assertEqual errMsg (Expected e) (Actual a) = HUnit.assertEqual errMsg e a
+
+renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
+renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidth picHeight $ \surface ->
+    renderWith surface $ do
+        cairoScope $ do
+            rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
+            setColor black
+            setLineWidth 0
+            fill
+        drawing
+
+renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
+renderSvg picWidth picHeight filename drawing
+  = withSurface SVG filename w h (\surface -> renderWith surface drawing)
+  where
+    w = fromIntegral picWidth
+    h = fromIntegral picHeight
+
+renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
+renderAllFormats w h filename drawing = do
+    renderPng w h (filename ++ ".png") $ do
+        cairoScope $ do
+            setColor white
+            paint
+        drawing
+    renderSvg w h (filename ++ ".svg") drawing
