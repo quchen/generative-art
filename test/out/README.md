@@ -85,6 +85,8 @@ over quickly.
 
 ![Missing image!](../../docs/colors/schemes/continuous/colorbrewer2/ylOrRd.png)
 
+![Missing image!](../../docs/colors/schemes/continuous/haskell/logo.png)
+
 ![Missing image!](../../docs/colors/schemes/continuous/matplotlib/cividis.png)
 
 ![Missing image!](../../docs/colors/schemes/continuous/matplotlib/inferno.png)
