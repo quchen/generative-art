@@ -40,6 +40,17 @@ Continuous
 ==================
 
 
+Haskell
+--------------------------------
+
+### Logo
+
+Official Haskell colors, as extracted from the SVG logo on haskell.org, linearly
+interpolated between. The actual logo’s colors can be found at `0`, `0.5`, `1`.
+
+![Missing image!](continuous/haskell/logo.png)
+
+
 
 Visually uniform (matplotlib)
 --------------------------------

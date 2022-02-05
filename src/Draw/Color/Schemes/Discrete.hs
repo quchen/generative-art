@@ -26,7 +26,7 @@
 -- +-----------------+--------------------------------------------------------------+---------+
 module Draw.Color.Schemes.Discrete (
     -- * Mathematica
-    mathematica97
+      mathematica97
 
     -- * Color Brewer 2
     , accent

@@ -7,6 +7,8 @@
 -- +-------------------+-------------------------------------------------------------------+--------+----------+
 -- | Name              |                                                                   | Domain | Type     |
 -- +===================+===================================================================+========+==========+
+-- | 'haskell'         | <<docs/colors/schemes/continuous/haskell/logo.png>>               | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
 -- | 'magma'           | <<docs/colors/schemes/continuous/matplotlib/magma.png>>           | [0..1] | Monotone |
 -- +-------------------+-------------------------------------------------------------------+--------+----------+
 -- | 'inferno'         | <<docs/colors/schemes/continuous/matplotlib/inferno.png>>         | [0..1] | Monotone |
@@ -90,9 +92,11 @@
 module Draw.Color.Schemes.Continuous
 (
     -- * Linear, clamped on [0..1]
+    -- ** Haskell
+      haskell
 
     -- ** Matplotlib
-      magma
+    , magma
     , inferno
     , plasma
     , viridis
@@ -156,10 +160,18 @@ import Draw.Color
 import Draw.Color.Schemes.Internal.Common
 
 import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
+import qualified Draw.Color.Schemes.Internal.Haskell      as Haskell
 import qualified Draw.Color.Schemes.Internal.MatPlotLib   as MatPlotLib
 import qualified Draw.Color.Schemes.Internal.Seaborn      as Seaborn
 
 
+
+-- | Official Haskell colors, as extracted from the SVG logo on haskell.org,
+-- linearly interpolated between.
+--
+-- The actual logo’s colors can be found at @[0, 0.5, 1]@.
+haskell :: Double -> Color Double
+haskell = toColor . clamped Haskell.logo
 
 -- | <<docs/colors/schemes/continuous/matplotlib/magma.png>>
 magma :: Double -> Color Double

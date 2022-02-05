@@ -30,26 +30,29 @@ tests = testGroup "Colors"
         , testBlending
         ]
     , testGroup "Schemes"
-        [ testGroup "Discrete"
+        [ let maxSwatches = 16 in testGroup "Discrete"
             [ testGroup "Mathematica"
                 [ testGroup "ColorData[97]"
-                    [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 16
+                    [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 maxSwatches
                     , testCase "Check against Mathematica output" checkMma97
                     ]
                 , testGroup "Color Brewer 2"
-                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    16
-                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/accent"  accent  16
-                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set1"    set1    16
-                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set3"    set3    16
-                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/dark2"   dark2   16
-                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/paired"  paired  16
-                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel2" pastel2 16
-                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel1" pastel1 16
+                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    maxSwatches
+                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/accent"  accent  maxSwatches
+                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set1"    set1    maxSwatches
+                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set3"    set3    maxSwatches
+                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/dark2"   dark2   maxSwatches
+                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/paired"  paired  maxSwatches
+                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel2" pastel2 maxSwatches
+                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel1" pastel1 maxSwatches
                     ]
                 ]
             ]
         , testGroup "Continuous"
-            [ testGroup "Matplotlib"
+            [ testGroup "Haskell"
+                [ testCase "Logo" $ renderContinuous "docs/colors/schemes/continuous/haskell/logo" haskell (0,1)
+                ]
+            , testGroup "Matplotlib"
                 [ testGroup "Visually uniform"
                     [ testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/cividis" cividis (0,1)
                     , testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/inferno" inferno (0,1)
