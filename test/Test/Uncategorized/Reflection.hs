@@ -1,4 +1,4 @@
-module Test.Reflection (tests) where
+module Test.Uncategorized.Reflection (tests) where
 
 
 
@@ -8,17 +8,12 @@ import Graphics.Rendering.Cairo as Cairo
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 
 tests :: TestTree
-tests = testCase "Reflection of rays on a mirror" testReflection
-
-testReflection :: IO ()
-testReflection = renderAllFormats 520 300 "docs/geometry/reflection" $ do
+tests = testVisual "Reflection of rays on a mirror" 520 300 "docs/geometry/reflection" $ \_ -> do
 
     let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
 

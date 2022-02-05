@@ -86,8 +86,8 @@ drawCellCairo :: VoronoiCell () -> Cairo.Render ()
 drawCellCairo Cell{..} = case region of
     Polygon [] -> pure ()
     poly -> do
-        let fillColor = parseRGBHex "#eeeeee"
-            lineColor = parseRGBHex "#5d81b4"
+        let fillColor = parseRgbHex "#eeeeee"
+            lineColor = parseRgbHex "#5d81b4"
         polygonSketch poly
         setColor fillColor
         Cairo.fillPreserve

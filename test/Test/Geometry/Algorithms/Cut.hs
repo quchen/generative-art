@@ -3,6 +3,7 @@ module Test.Geometry.Algorithms.Cut (tests) where
 
 
 import           Control.Monad
+import           Data.Coerce
 import           Data.Foldable
 import           Data.List
 import qualified Data.Map                 as M
@@ -13,12 +14,7 @@ import Geometry
 import Geometry.Algorithms.Cut.Internal
 import Geometry.Shapes
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
-import Test.Helpers
+import Test.TastyAll
 
 
 
@@ -31,10 +27,10 @@ tests = testGroup "Cutting things"
         , drawCutEdgeGraphTest
         ]
     , testGroup "Public API"
-        [ testCase "Cut my line into pieces" lineTest
-        , testCase "Convex polygon" cutSquareTest
-        , testCase "Concave polygon" complicatedPolygonTest
-        , testCase "Cut misses polygon" cutMissesPolygonTest
+        [ lineTest
+        , cutSquareTest
+        , complicatedPolygonTest
+        , cutMissesPolygonTest
         , cornerCasesTests
         ]
     ]
@@ -57,22 +53,26 @@ rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
     let actual = sort (reconstructPolygons PolygonPositive simpleCutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
                         , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
-    in assertEqual "" expected actual
+    in assertEqual "" (Expected expected) (Actual actual)
 
 reconstructConvexPolygonTest :: TestTree
 reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
-    \(LotsOfGaussianPoints points) ->
-        let convexPolygon = convexHull points
+    let gen = do
+            n <- choose (10, 100)
+            replicateM n arbitrary
+    in forAll gen $ \points ->
+        let _ = points :: [Gaussian]
+            convexPolygon = convexHull (coerce points)
             orientation = polygonOrientation convexPolygon
-            maxY = maximum (map (\(Vec2 _ y) -> y) points)
+            maxY = maximum (map (\(Vec2 _ y) -> y) (coerce points))
             scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (deg 0) 1
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
             actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))
             expected = [convexPolygon]
         in actual === expected
 
-lineTest :: IO ()
-lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
+lineTest :: TestTree
+lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_line" $ \_ -> do
     Cairo.translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) 100
         scissors = perpendicularBisector paper
@@ -97,7 +97,7 @@ lineTest = renderAllFormats 220 100 "docs/geometry/cut/1_line" (do
     setFontSize 12
     moveTo 60 10
     showText "Cut my line in two pieces"
-    )
+
 
 polyCutDraw :: Polygon -> Line -> [Polygon] -> Render ()
 polyCutDraw initialPolygon scissors cutResults = do
@@ -128,13 +128,13 @@ polyCutDraw initialPolygon scissors cutResults = do
         setColor $ mathematica97 i `withOpacity` 0.1
         fill
 
-cutSquareTest :: IO ()
+cutSquareTest :: TestTree
 cutSquareTest = do
     let polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) 100)
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 170 90 "docs/geometry/cut/2_square" $ do
+    testVisual "Convex polygon" 170 90 "docs/geometry/cut/2_square" $ \_ -> do
         polyCutDraw
             (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
             (Geometry.transform (Geometry.translate (Vec2 90 10)) scissors)
@@ -145,16 +145,17 @@ cutSquareTest = do
         moveTo 90 80
         showText (show (length cutResult) ++ " polygons")
 
-    assertEqual "Number of resulting polygons" 2 (length cutResult)
-    liftIO (assertAreaConserved polygon cutResult)
+        liftIO $ do
+            assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))
+            assertAreaConserved polygon cutResult
 
-complicatedPolygonTest :: IO ()
+complicatedPolygonTest :: TestTree
 complicatedPolygonTest = do
     let polygon = spiralPolygon 9 20
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) 220)
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 400 190 "docs/geometry/cut/3_complicated" $ do
+    testVisual "Concave polygon" 400 190 "docs/geometry/cut/3_complicated" $ \_ -> do
         polyCutDraw
             (Geometry.transform (Geometry.translate (Vec2 90 100)) polygon)
             (Geometry.transform (Geometry.translate (Vec2 290 100)) scissors)
@@ -164,23 +165,26 @@ complicatedPolygonTest = do
         setFontSize 12
         moveTo 250 15
         showText (show (length cutResult) ++ " polygons")
-    assertEqual "Number of resulting polygons" 5 (length cutResult)
-    liftIO (assertAreaConserved polygon cutResult)
 
-cutMissesPolygonTest :: IO ()
+        liftIO $ do
+            assertEqual "Number of resulting polygons" (Expected 5) (Actual (length cutResult))
+            assertAreaConserved polygon cutResult
+
+cutMissesPolygonTest :: TestTree
 cutMissesPolygonTest = do
     let scissors = Line (Vec2 0 70) (Vec2 50 60)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 130 90 "docs/geometry/cut/4_miss"
-        (polyCutDraw
+    testVisual "Cut misses polygon" 130 90 "docs/geometry/cut/4_miss" $ \_ -> do
+        polyCutDraw
             (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
             (Geometry.transform (Geometry.translate (Vec2 70 10)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 70 10)) cutResult))
+            (Geometry.transform (Geometry.translate (Vec2 70 10)) cutResult)
 
-    assertEqual "Number of resulting polygons" 1 (length cutResult)
-    liftIO (assertAreaConserved polygon cutResult)
+        liftIO $ do
+            assertEqual "Number of resulting polygons" (Expected 1) (Actual (length cutResult))
+            assertAreaConserved polygon cutResult
 
 -- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
 -- don’t want to delete them, but I also do not want unused function warnings.
@@ -188,41 +192,38 @@ cornerCasesTests :: TestTree
 cornerCasesTests = testGroup "Corner cases" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
 
 zigzagTest :: TestTree
-zigzagTest = testCase "Zigzag" $ do
+zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
     let scissors = Line (Vec2 0 25) (Vec2 50 25)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 150 90 "docs/geometry/cut/5_zigzag"
-        (polyCutDraw
-            (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
-            (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
-
+    (polyCutDraw
+        (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
 cutThroughCornerTest :: TestTree
-cutThroughCornerTest = testCase "Cut through corner" $ do
+cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut/5_through_corner" $ \_ -> do
     let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    renderAllFormats 150 90 "docs/geometry/cut/5_through_corner"
-        (polyCutDraw
-            (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
-            (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
+    (polyCutDraw
+        (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
-    assertEqual "Number of resulting polygons" 2 (length cutResult)
-    liftIO (assertAreaConserved polygon cutResult)
+    liftIO $ do
+        assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))
+        assertAreaConserved polygon cutResult
 
 pathologicalCornerCutsTests :: [TestTree]
 pathologicalCornerCutsTests = do
     -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
     (name, filenameSuffix, polygon, expectedNumPolys) <- [ooo, lol, ror, ool, oor, loo, roo]
-    [ testCase name $ do
-        renderAllFormats 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix)
-            (specialCaseTest name polygon)
-        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon))
+    [ testVisual name 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix) $ \_ -> do
+            specialCaseTest name polygon
+            liftIO $ assertEqual "Expected polygons" (Expected expectedNumPolys) (Actual (length (cutPolygon scissors polygon)))
         ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
@@ -299,21 +300,19 @@ assertAreaConserved polygon cutResult = do
 
 drawCutEdgeGraphTest :: TestTree
 drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
-    [ testCase "Simple handcrafted graph" $
-        renderAllFormats 120 220 "docs/geometry/cut/7_1_handcrafted_edge_graph" $ do
-            let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
-                transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
-                  where
-                    modify (k, vs) = (f k, f <$> vs)
-            Cairo.translate 10 110
-            drawCutEdgeGraph PolygonPositive cutEdgeGraph
-    , testCase "Simple calculated graph" $
-        renderAllFormats 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ do
-            let polygon = Geometry.transform (Geometry.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
-                scissors = angledLine (Vec2 0 0) (deg 20) 1
-                cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
-            Cairo.translate 60 60
-            drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
+    [ testVisual "Simple handcrafted graph" 120 220 "docs/geometry/cut/7_1_handcrafted_edge_graph" $ \_ -> do
+        let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
+            transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
+                where
+                modify (k, vs) = (f k, f <$> vs)
+        Cairo.translate 10 110
+        drawCutEdgeGraph PolygonPositive cutEdgeGraph
+    , testVisual "Simple calculated graph" 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ \_ -> do
+        let polygon = Geometry.transform (Geometry.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
+            scissors = angledLine (Vec2 0 0) (deg 20) 1
+            cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
+        Cairo.translate 60 60
+        drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
     ]
   where
     moveRight d line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
@@ -349,7 +348,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
 
 sideOfScissorsTest :: TestTree
 sideOfScissorsTest = testProperty "Side of scissors" $
-    \(GaussianVec vec@(Vec2 _ y)) ->
+    \(Gaussian vec@(Vec2 _ y)) ->
         let scissors = Line (Vec2 0 0) (Vec2 1 0)
             actual = sideOfScissors scissors vec
             expected = case compare y 0 of

@@ -74,7 +74,7 @@ haskellLogoWithColors :: [(Polygon, Color Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
   where
     haskellLogoCentered = transform (Geometry.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> Geometry.scale 680) haskellLogo
-    haskellLogoColors = fmap parseRGBHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
+    haskellLogoColors = fmap parseRgbHex [ "453a62", "5e5086", "8f4e8b", "8f4e8b" ]
 
 
 findPointsInPolygon :: RT.RTree Vec2 -> Polygon -> [Vec2]

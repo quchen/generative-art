@@ -1,5 +1,7 @@
 module Test.Geometry.Algorithms.Voronoi (tests) where
 
+
+
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
@@ -7,9 +9,9 @@ import Draw
 import Geometry
 import Geometry.Algorithms.Voronoi
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
+
+
 
 tests :: TestTree
 tests = testGroup "Voronoi Patterns"
@@ -21,8 +23,8 @@ type MathematicaColor = Int
 
 testPolygonCutting :: TestTree
 testPolygonCutting = testGroup "Adding polygons"
-    [ testCase "Cutting a polygon" test1
-    , testCase "Adding another polygon" test2
+    [ test1
+    , test2
     ]
   where
     box = Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
@@ -37,7 +39,7 @@ testPolygonCutting = testGroup "Adding polygons"
     cell2' = updateCell point1 cell2
     cell2'' = updateCell point3 cell2'
     cell3' = updateCell point2 $ updateCell point1 $ cell3
-    test1 = renderAllFormats 420 240 "docs/voronoi/1_cut_polygon" $ do
+    test1 = testVisual "Cutting a polygon" 420 240 "docs/voronoi/1_cut_polygon" $ \_ -> do
         Cairo.translate 10 10
         drawVoronoi [cell1]
         drawSeed cell2
@@ -56,7 +58,7 @@ testPolygonCutting = testGroup "Adding polygons"
         drawArrow (Vec2 110 50) (deg (-45)) 30
         Cairo.translate 150 (-60)
         drawVoronoi [cell1', cell2']
-    test2 = renderAllFormats 420 360 "docs/voronoi/2_add_polygon" $ do
+    test2 = testVisual "Adding another polygon" 420 360 "docs/voronoi/2_add_polygon" $ \_ -> do
         Cairo.translate 10 70
         drawVoronoi [cell1', cell2']
         drawSeed cell3
@@ -85,10 +87,8 @@ testPolygonCutting = testGroup "Adding polygons"
         stroke
 
 testVoronoi :: TestTree
-testVoronoi = testCase "Full Voronoi pattern" test
-  where
-    voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
-    test = renderAllFormats 120 120 "docs/voronoi/3_full_voronoi" $ do
+testVoronoi = testVisual "Full Voronoi pattern" 120 120 "docs/voronoi/3_full_voronoi" $ \_ -> do
+        let voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
         Cairo.translate 10 10
         drawVoronoi (cells voronoiPattern)
 

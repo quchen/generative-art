@@ -1,16 +1,18 @@
 {-# LANGUAGE RecordWildCards #-}
 module Test.Geometry.Processes.Penrose (tests) where
 
+
+
 import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (scale, transform, x, y)
+import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
-import Geometry
+import Geometry as G
 import Geometry.Processes.Penrose
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
+
+
 
 tests :: TestTree
 tests = testGroup "Penrose tiling"
@@ -21,70 +23,64 @@ tests = testGroup "Penrose tiling"
     ]
 
 testBaseConfigurations :: TestTree
-testBaseConfigurations = testCase "Base configurations" test
-  where
-    test = renderAllFormats 860 200 "docs/penrose/1_base_configurations" $ do
+testBaseConfigurations = testVisual "Base configurations" 860 200 "docs/penrose/1_base_configurations" $ \_ -> do
         for_ (star1 (Vec2 100 100) 100) drawTileWithConnectors
-        Cairo.translate 220 0
+        C.translate 220 0
         for_ (star2 (Vec2 100 100) 100) drawTileWithConnectors
-        Cairo.translate 220 0
+        C.translate 220 0
         for_ (decagonRose (Vec2 100 100) 100) drawTileWithConnectors
-        Cairo.translate 220 0
+        C.translate 220 0
         for_ (asymmetricDecagon (Vec2 100 100) 100) drawTileWithConnectors
 
 testSubdivision :: TestTree
-testSubdivision = testCase "Subdividing base rhombs" test
-  where
-    fitToBox = scale 100
-    baseRhombThick = transform fitToBox thickTileBase
-    baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
-    gen0 = baseRhombThick ++ baseRhombThin
-    gen1 = subdivide =<< gen0
-    gen2 = subdivide =<< gen1
-    test = renderAllFormats 600 200 "docs/penrose/2_subdivision" $ do
-        Cairo.translate 10 10
-        for_ gen0 drawTileWithConnectors
-        Cairo.translate 150 0
-        drawArrows
-        Cairo.translate 50 0
-        for_ gen1 drawTileWithConnectors
-        Cairo.translate 150 0
-        drawArrows
-        Cairo.translate 50 0
-        for_ gen2 drawTileWithConnectors
-    drawArrows = do
-        arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-        arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+testSubdivision = testVisual "Subdividing base rhombs" 600 200 "docs/penrose/2_subdivision" $ \_ -> do
+    let fitToBox = G.scale 100
+        baseRhombThick = G.transform fitToBox thickTileBase
+        baseRhombThin = G.transform (G.translate (Vec2 0 120) <> fitToBox) thinTileBase
+        gen0 = baseRhombThick ++ baseRhombThin
+        gen1 = subdivide =<< gen0
+        gen2 = subdivide =<< gen1
+        drawArrows = do
+            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
+            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+
+    C.translate 10 10
+    for_ gen0 drawTileWithConnectors
+    C.translate 150 0
+    drawArrows
+    C.translate 50 0
+    for_ gen1 drawTileWithConnectors
+    C.translate 150 0
+    drawArrows
+    C.translate 50 0
+    for_ gen2 drawTileWithConnectors
 
 testInscribedPentagons :: TestTree
-testInscribedPentagons = testCase "Switch to pentagons & stars" test
-  where
-    test = renderAllFormats 200 200 "docs/penrose/3_inscribed_pentagons" $
+testInscribedPentagons = testVisual "Switch to pentagons & stars" 200 200 "docs/penrose/3_inscribed_pentagons" $ \_ -> do
         for_ (decagonRose (Vec2 100 100) 100) drawInscribedPentagons
 
 testSubdivisionWithInscribedPentagons :: TestTree
-testSubdivisionWithInscribedPentagons = testCase "Subdivision rules with pentagons & stars" test
-  where
-    fitToBox = scale 100
-    baseRhombThick = transform fitToBox thickTileBase
-    baseRhombThin = transform (Geometry.translate (Vec2 0 120) <> fitToBox) thinTileBase
-    gen0 = baseRhombThick ++ baseRhombThin
-    gen1 = subdivide =<< gen0
-    gen2 = subdivide =<< gen1
-    test = renderAllFormats 600 200 "docs/penrose/4_subdivision_with_pentagons" $ do
-        Cairo.translate 10 10
-        for_ gen0 drawInscribedPentagons
-        Cairo.translate 150 0
-        drawArrows
-        Cairo.translate 50 0
-        for_ gen1 drawInscribedPentagons
-        Cairo.translate 150 0
-        drawArrows
-        Cairo.translate 50 0
-        for_ gen2 drawInscribedPentagons
-    drawArrows = do
-        arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-        arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+testSubdivisionWithInscribedPentagons = testVisual "Subdivision rules with pentagons & stars" 600 200 "docs/penrose/4_subdivision_with_pentagons" $ \_ -> do
+    let fitToBox = G.scale 100
+        baseRhombThick = G.transform fitToBox thickTileBase
+        baseRhombThin = G.transform (G.translate (Vec2 0 120) <> fitToBox) thinTileBase
+        gen0 = baseRhombThick ++ baseRhombThin
+        gen1 = subdivide =<< gen0
+        gen2 = subdivide =<< gen1
+        drawArrows = do
+            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
+            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+
+    C.translate 10 10
+    for_ gen0 drawInscribedPentagons
+    C.translate 150 0
+    drawArrows
+    C.translate 50 0
+    for_ gen1 drawInscribedPentagons
+    C.translate 150 0
+    drawArrows
+    C.translate 50 0
+    for_ gen2 drawInscribedPentagons
 
 drawTileWithConnectors :: Tile -> Render ()
 drawTileWithConnectors tile = drawTile tile >> drawConnectors tile

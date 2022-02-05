@@ -1,4 +1,4 @@
-module Test.Bezier (tests) where
+module Test.Uncategorized.Bezier (tests) where
 
 
 
@@ -8,9 +8,8 @@ import Graphics.Rendering.Cairo as C hiding (x, y)
 import Draw
 import Geometry as G
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
+
 
 
 tests :: TestTree
@@ -29,23 +28,20 @@ tests = testGroup "Bezier curves"
     ]
 
 somePoints :: TestTree
-somePoints = testCase "Open curve" (renderAllFormats 400 300 "docs/interpolation/1_bezier_open" somePointsRender)
-
-somePointsRender :: Render ()
-somePointsRender = paintBezierOpenPicture points smoothed
-  where
-    points =
-        G.transform (G.translate (Vec2 50 25) <> G.scale 0.5) [ Vec2 100 500
-        , Vec2 200 200
-        , Vec2 500 500
-        , Vec2 600 100
-        , Vec2 400 50
-        , Vec2 50 100
-        , Vec2 50 50
-        , Vec2 250 100
-        , Vec2 200 500
-        ]
-    smoothed = bezierSmoothen points
+somePoints = testVisual "Open curve" 400 300 "docs/interpolation/1_bezier_open" $ \_ -> do
+    let points =
+            G.transform (G.translate (Vec2 50 25) <> G.scale 0.5) [ Vec2 100 500
+            , Vec2 200 200
+            , Vec2 500 500
+            , Vec2 600 100
+            , Vec2 400 50
+            , Vec2 50 100
+            , Vec2 50 50
+            , Vec2 250 100
+            , Vec2 200 500
+            ]
+        smoothed = bezierSmoothen points
+    paintBezierOpenPicture points smoothed
 
 paintBezierOpenPicture :: [Vec2] -> [Bezier] -> Render ()
 paintBezierOpenPicture points smoothed = do
@@ -86,10 +82,7 @@ paintBezierOpenPicture points smoothed = do
     for_ points prettyPoint
 
 picassoSquirrel :: TestTree
-picassoSquirrel = testCase "Picasso squirrel" (renderAllFormats 320 270 "docs/interpolation/2_picasso_squirrel" picassoSquirrelRender)
-
-picassoSquirrelRender :: Render ()
-picassoSquirrelRender = do
+picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_picasso_squirrel" $ \_ -> do
     let beziers = [bezierFace, bezierEar, bezierBack, bezierTail1, bezierTail2]
     cairoScope $ do -- Paint squirrel outline
         moveToVec (head face)
@@ -171,10 +164,7 @@ picassoSquirrelRender = do
         ]
 
 subdivideBezierCurveTest :: TestTree
-subdivideBezierCurveTest = testCase "Subdivide" (renderAllFormats 300 300 "docs/interpolation/4_bezier_subdivide" subdivideBezierCurve)
-
-subdivideBezierCurve :: Render ()
-subdivideBezierCurve = do
+subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_bezier_subdivide" $ \_ -> do
     let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
         fitToBox bbContents box = G.transform (transformBoundingBox bbContents box FitAllIgnoreAspect)
         beziers = bezierSmoothen graph
@@ -215,10 +205,7 @@ subdivideBezierCurve = do
         showText (show (length interpolated) ++ " curves")
 
 interpolateSingleCurveTest :: TestTree
-interpolateSingleCurveTest = testCase "Single curve" (renderAllFormats 300 150 "docs/bezier/1_single_curve" (interpolateSingleCurveRender 300 150))
-
-interpolateSingleCurveRender :: Int -> Int -> Render ()
-interpolateSingleCurveRender _w _h = do
+interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_single_curve" $ \_ -> do
     let curve = let curveRaw = G.transform (G.rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
                     fitToBox = G.transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) FitAllIgnoreAspect)
                 in fitToBox curveRaw
@@ -241,8 +228,7 @@ interpolateSingleCurveRender _w _h = do
         let u = offsetBelow u'
         let circle p = newPath >> circleSketch p 3 >> stroke
             connect p q = do
-                let shrink factor = resizeLineSymmetric (\d -> factor*d)
-                    line = shrink 0.8 (Line p q)
+                let line = resizeLineSymmetric (*0.8) (Line p q)
                 lineSketch line
                 setDash [1,1] 0
                 stroke
@@ -251,11 +237,11 @@ interpolateSingleCurveRender _w _h = do
         cairoScope (setSourceRGBA 0 0 0 0.1 >> connect e u)
 
 bezierLoop :: TestTree
-bezierLoop = testCase "Loop interpolation" $ renderAllFormats 60 100 "docs/interpolation/bezier_loop_interpolation" $ do
+bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_loop_interpolation" $ \(w,h) -> do
     let geometry =
             let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1)]
                 smoothened = bezierSmoothenLoop points
-                fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (60-10) (100-10)) FitAllMaintainAspect)
+                fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (w-10) (h-10)) FitAllMaintainAspect)
             in fitToBox smoothened
 
     for_ geometry $ \bezier -> cairoScope $ do

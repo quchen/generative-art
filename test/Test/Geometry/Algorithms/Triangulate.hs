@@ -17,9 +17,7 @@ import Geometry
 import Geometry.Shapes
 import Util
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 
@@ -34,31 +32,23 @@ tests = testGroup "Polygon triangulation"
     ]
 
 testSquare :: TestTree
-testSquare = testCase "Square" test
-  where
-    triangulation = triangulate (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
-    test = renderAllFormats 120 120 "docs/triangulation/1_square" $ do
-        Cairo.translate 10 10
-        paintTriangulation triangulation
+testSquare = testVisual "Square" 120 120 "docs/triangulation/1_square" $ \_ -> do
+    let triangulation = triangulate (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
+    Cairo.translate 10 10
+    paintTriangulation triangulation
 
 testRegular9gon :: TestTree
-testRegular9gon = testCase "Regular 9-gon" test
-  where
-    triangulation = triangulate (Geometry.transform (Geometry.scale 50) (regularPolygon 9))
-    test = renderAllFormats 120 120 "docs/triangulation/2_regular_polygon" $ do
-        Cairo.translate 60 60
-        paintTriangulation triangulation
+testRegular9gon = testVisual "Regular 9-gon" 120 120 "docs/triangulation/2_regular_polygon" $ \_ -> do
+    let triangulation = triangulate (Geometry.transform (Geometry.scale 50) (regularPolygon 9))
+    Cairo.translate 60 60
+    paintTriangulation triangulation
 
 testHaskellLogo :: TestTree
-testHaskellLogo = testCase "Haskell logo" test
-  where
-    triangulation = map triangulate wonkyHaskellLogo
-    test = renderAllFormats 510 360 "docs/triangulation/3_haskell_logo" $ do
-        Cairo.translate 10 10
-        for_ triangulation (cairoScope . paintTriangulation)
-
-    wonkyHaskellLogo :: [Polygon]
-    wonkyHaskellLogo = wigglePolys 5 (Geometry.transform (Geometry.scale 340) haskellLogo)
+testHaskellLogo = testVisual "Haskell logo" 510 360 "docs/triangulation/3_haskell_logo" $ \_ -> do
+    let triangulation = map triangulate wonkyHaskellLogo
+        wonkyHaskellLogo = wigglePolys 5 (Geometry.transform (Geometry.scale 340) haskellLogo)
+    Cairo.translate 10 10
+    for_ triangulation (cairoScope . paintTriangulation)
 
 wigglePolys :: Double -> [Polygon] -> [Polygon]
 wigglePolys sigma polys = runST $ do
@@ -74,10 +64,8 @@ wigglePoly gen sigma (Polygon corners) = do
     pure (Polygon wiggled)
 
 testSpiral :: TestTree
-testSpiral = testCase "Spiral" test
-  where
-    triangulation = triangulate (spiralPolygon 13 20)
-    test = renderAllFormats 280 260 "docs/triangulation/4_spiral" $ do
+testSpiral = testVisual "Spiral" 280 260 "docs/triangulation/4_spiral" $ \_ -> do
+        let triangulation = triangulate (spiralPolygon 13 20)
         Cairo.translate 130 130
         paintTriangulation triangulation
 

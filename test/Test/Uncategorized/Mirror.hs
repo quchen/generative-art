@@ -1,4 +1,4 @@
-module Test.Mirror (tests) where
+module Test.Uncategorized.Mirror (tests) where
 
 
 
@@ -8,14 +8,16 @@ import Graphics.Rendering.Cairo as Cairo hiding (transform)
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 
 tests :: TestTree
-tests = testCase "Mirror along an axis" mirrorPointsTest
+tests = testVisual "Mirror along an axis" 550 550 "docs/geometry/mirror" $ \_ -> do
+    Cairo.translate 10 20
+    mirror1
+    Cairo.translate 0 230
+    mirror2
 
 originalC, mirroredC :: Double -> Render ()
 originalC o = setColor (withOpacity (mathematica97 0) o)
@@ -23,14 +25,6 @@ mirroredC o = setColor (withOpacity (mathematica97 1) o)
 
 setMirrorStyle :: Render ()
 setMirrorStyle = setColor (black `withOpacity` 0.5) >> setDash [5,5] 0 >> setLineWidth 1
-
-mirrorPointsTest :: IO ()
-mirrorPointsTest = renderAllFormats 550 550 "docs/geometry/mirror" (do
-    Cairo.translate 10 20
-    mirror1
-    Cairo.translate 0 230
-    mirror2
-    )
 
 mirror1 :: Render ()
 mirror1 = do

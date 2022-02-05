@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Test.Properties (tests) where
+module Test.Uncategorized.Properties (tests) where
 
 
 
@@ -9,12 +9,7 @@ import Text.Printf
 
 import Geometry
 
-import Test.QuickCheck
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
-import Test.Helpers
+import Test.TastyAll
 
 
 
@@ -83,7 +78,7 @@ intersectionLLTest = testProperty "Line-line intersection" (forAll
             line2 = Line start end2
             line2' = transform (translate (polar (angleOfLine line2) dist2)) line2
             Just expectedIntersection = intersectionPoint (intersectionLL line1' line2')
-        in approxEqualTolerance (Tolerance 1e-8) start expectedIntersection ))
+        in approxEqual (Tolerance 1e-8) start expectedIntersection ))
   where
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
@@ -156,7 +151,7 @@ polygonInstancesTest = testGroup "Eq Polygon"
         gen = do
             size <- getSize
             len <- fmap (+3) (choose (0, size))
-            polygon <- fmap Polygon (Test.QuickCheck.vectorOf len arbitrary)
+            polygon <- fmap Polygon (Test.TastyAll.vectorOf len arbitrary)
             rot <- choose (0, len-1)
             pure (rot, polygon)
         test (rot, polygon)
@@ -172,7 +167,7 @@ transformationTest :: TestTree
 transformationTest = testGroup "Affine transformations"
     [ testGroup "Algebraic properties"
         [ testProperty "Multiple rotations add angles" $ \a1 a2 ->
-            approxEqualTolerance (Tolerance 1e-5)
+            approxEqual (Tolerance 1e-5)
                 (transformationProduct (rotate a1) (rotate a2))
                 (rotate (a1 +. a2))
         ]
@@ -194,7 +189,7 @@ transformationTest = testGroup "Affine transformations"
         , invertibilityTest "Combination of transformations" $ do
             size <- getSize
             n <- choose (2, min size 10)
-            Test.Tasty.QuickCheck.vectorOf n (frequency
+            Test.TastyAll.vectorOf n (frequency
                 [ (1, pure identityTransformation)
                 , (3, rotate <$> arbitrary)
                 , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
@@ -209,14 +204,14 @@ transformationTest = testGroup "Affine transformations"
                 let transformation = foldr transformationProduct identityTransformation trafos
                 vec <- arbitrary
                 pure (vec :: Vec2, transformation)
-            test (vec, transformation) = approxEqualTolerance (Tolerance 1e-5)
+            test (vec, transformation) = approxEqual (Tolerance 1e-5)
                 ((transform (inverse transformation) . transform transformation) vec)
                 vec
         in testProperty name (forAll gen test)
 
 distanceFromLineTest :: TestTree
 distanceFromLineTest = testProperty "Distance from point to line" $
-    forAll gen $ \(d, (point, line)) -> approxEqualTolerance (Tolerance 1e-5) (distanceFromLine point line) d
+    forAll gen $ \(d, (point, line)) -> approxEqual (Tolerance 1e-5) (distanceFromLine point line) d
   where
     -- Generate a simple geometry where the distance is known
     gen = do

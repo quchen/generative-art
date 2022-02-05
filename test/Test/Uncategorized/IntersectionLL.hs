@@ -1,4 +1,4 @@
-module Test.IntersectionLL (tests) where
+module Test.Uncategorized.IntersectionLL (tests) where
 
 
 
@@ -8,23 +8,21 @@ import Text.Printf
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 
 tests :: TestTree
 tests = testGroup "Line-line intersection"
-    [ testCase "Real intersection" intersectionReal
-    , testCase "Half-virtual intersection" intersectionHalfVirtual
-    , testCase "Virtual intersection" intersectionVirtual
-    , testCase "Parallel" intersectionParallel
-    , testCase "Parallel lines that fail to be recognized as parallel" intersectionAlmostParallel
+    [ intersectionReal
+    , intersectionHalfVirtual
+    , intersectionVirtual
+    , intersectionParallel
+    , intersectionAlmostParallel
     ]
 
-intersectionReal :: IO ()
-intersectionReal = renderAllFormats 580 200 "docs/geometry/intersection/real" $ do
+intersectionReal :: TestTree
+intersectionReal = testVisual "Real intersection" 580 200 "docs/geometry/intersection/real" $ \_ -> do
     testReal1
     testReal2
   where
@@ -35,8 +33,8 @@ intersectionReal = renderAllFormats 580 200 "docs/geometry/intersection/real" $ 
         (transform (translate (Vec2 320 10)) (Line (Vec2 0   0) (Vec2 120 120)))
         (transform (translate (Vec2 320 10)) (Line (Vec2 120 0) (Vec2 0   120)))
 
-intersectionHalfVirtual :: IO ()
-intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/half_virtual" $ do
+intersectionHalfVirtual :: TestTree
+intersectionHalfVirtual = testVisual "Half-virtual intersection" 580 120 "docs/geometry/intersection/half_virtual" $ \_ -> do
     testVirtualInL
     testVirtualR
   where
@@ -47,8 +45,8 @@ intersectionHalfVirtual = renderAllFormats 580 120 "docs/geometry/intersection/h
         (angledLine (Vec2 370 60) (rad      0) 50)
         (angledLine (Vec2 350 10) (rad (pi/2)) 100)
 
-intersectionVirtual :: IO ()
-intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtual" $ do
+intersectionVirtual :: TestTree
+intersectionVirtual = testVisual "Virtual intersection" 580 120 "docs/geometry/intersection/virtual" $ \_ -> do
     testVirtual1
     testVirtual2
   where
@@ -59,8 +57,8 @@ intersectionVirtual = renderAllFormats 580 120 "docs/geometry/intersection/virtu
         (transform (translate (Vec2 300 60 +. polar (rad (-pi/6)) 20)) (angledLine (Vec2 0 0) (rad (-pi/6)) 100))
         (transform (translate (Vec2 300 60 +. polar (rad ( pi/6)) 20)) (angledLine (Vec2 0 0) (rad ( pi/6)) 100))
 
-intersectionParallel :: IO ()
-intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/parallel" $ do
+intersectionParallel :: TestTree
+intersectionParallel = testVisual "Parallel" 580 120 "docs/geometry/intersection/parallel" $ \_ -> do
     testParallel1
     testParallel2
   where
@@ -71,8 +69,8 @@ intersectionParallel = renderAllFormats 580 120 "docs/geometry/intersection/para
         (Line (Vec2 300 60) (Vec2 400 60))
         (Line (Vec2 420 60) (Vec2 520 60))
 
-intersectionAlmostParallel :: IO ()
-intersectionAlmostParallel = renderAllFormats 580 120 "docs/geometry/intersection/almost_parallel" $ testDraw
+intersectionAlmostParallel :: TestTree
+intersectionAlmostParallel = testVisual "Parallel lines that fail to be recognized as parallel" 580 120 "docs/geometry/intersection/almost_parallel" $ \_ -> testDraw
     (angledLine (Vec2 50 0) (rad (pi/6)) 80)
     (angledLine (Vec2 50 20) (rad (pi/6)) 80)
 
@@ -129,3 +127,15 @@ testDraw line1@(Line start _) line2 = do
                 moveTo x y
                 setFontSize 10
                 showText (tyStr ++ ", " ++ angleDeg ++ "°")
+
+angleSketch :: Vec2 -> Angle -> Angle -> Render ()
+angleSketch point angle1 angle2 = do
+    let radius = 10
+    arcSketch point radius angle1 angle2
+    let arcEnd = transform (translate (polar angle2 radius)) point
+        arrowAngleTweak = rad (-0.2)
+        tangentStart = transform (translate (polar (angle2 -. rad (pi/2) +. arrowAngleTweak) radius)) arcEnd
+        tangent = Line tangentStart arcEnd
+    arrowSketch tangent def
+        { arrowheadSize = 6
+        , arrowDrawBody = False }

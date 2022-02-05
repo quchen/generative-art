@@ -8,9 +8,7 @@ import Graphics.Rendering.Cairo as Cairo
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 
@@ -23,10 +21,10 @@ tests = testGroup "Billard process"
     ]
 
 rectangularTableTest, holeInTableTest, lambdaTableTest, brokenTableTest :: TestTree
-rectangularTableTest = testCase "Rectangular table"   (renderAllFormats 320 240 "docs/billard/1_rectangular" rectangularTable)
-holeInTableTest      = testCase "Hole in table"       (renderAllFormats 320 240 "docs/billard/2_hole"        holeInTable)
-lambdaTableTest      = testCase "Lambda-shaped table" (renderAllFormats 330 360 "docs/billard/3_lambda"      lambdaTable)
-brokenTableTest      = testCase "Broken table"        (renderAllFormats 160 120 "docs/billard/4_broken"      brokenTable)
+rectangularTableTest = testVisual "Rectangular table"   320 240 "docs/billard/1_rectangular" (\_ -> rectangularTable)
+holeInTableTest      = testVisual "Hole in table"       320 240 "docs/billard/2_hole"        (\_ -> holeInTable)
+lambdaTableTest      = testVisual "Lambda-shaped table" 330 360 "docs/billard/3_lambda"      (\_ -> lambdaTable)
+brokenTableTest      = testVisual "Broken table"        160 120 "docs/billard/4_broken"      (\_ -> brokenTable)
 
 rectangularTable :: Render ()
 rectangularTable = do
