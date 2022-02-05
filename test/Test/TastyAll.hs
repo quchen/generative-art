@@ -14,6 +14,7 @@ module Test.TastyAll (
     , renderPng
     , renderSvg
     , renderAllFormats
+    , testVisual
 
     -- * Reexports
     , module Test.Arbitrary
@@ -193,3 +194,12 @@ instance (Real a, Floating a, EqApprox a) => EqApprox (AlphaColour a) where
                 let alpha = alphaChannel color
                 in uncurryRGB (\r g b -> (r,g,b, realToFrac alpha)) (toSRGB (colourConvert (dissolve (1/alpha) color `over` black)))
         in approxEqual tol (toTuple s) (toTuple t)
+
+testVisual
+    :: TestName
+    -> Int                       -- ^ Output width
+    -> Int                       -- ^ Output height
+    -> FilePath                  -- ^ Output file
+    -> (Int -> Int -> Render ()) -- ^ Renderer, given width/height
+    -> TestTree
+testVisual testName w h filePath render = testCase testName (renderAllFormats w h filePath (render w h))
