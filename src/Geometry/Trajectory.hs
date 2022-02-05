@@ -1,6 +1,5 @@
 module Geometry.Trajectory (
       pointOnTrajectory
-    , domain
     , simplifyTrajectory
     , simplifyTrajectoryBy
     , reassembleLines
@@ -34,12 +33,6 @@ trajectoryLut = VLUT . V.fromList . go 0 . pairLines
     go currentDistance (currentLine:rest)
        = let newPosition = currentDistance +. lineLength currentLine
          in (currentDistance, currentLine) : go newPosition rest
-
--- | Domain of distances covered by a trajectory’s LUT
-domain :: VLUT Double Line -> Double
-domain (VLUT lut)
-  = let (allButTheLastDistance, lastLine) = V.last lut
-    in allButTheLastDistance +. lineLength lastLine
 
 -- | Walk a certain 'Distance' on a trajectory defined by its points.
 --
