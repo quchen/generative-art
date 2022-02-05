@@ -18,6 +18,3 @@ logo = V.fromList [dark, medium, bright]
     dark   = rgbFF 0x45 0x3a 0x62
     medium = rgbFF 0x5e 0x50 0x86
     bright = rgbFF 0x8f 0x4e 0x8b
-
-rgbFF :: Int -> Int -> Int -> RGB
-rgbFF r g b = RGB (fromIntegral r / 255) (fromIntegral g / 255) (fromIntegral b / 255)
