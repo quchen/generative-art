@@ -20,4 +20,4 @@ logo = V.fromList [dark, medium, bright]
     bright = rgbFF 0x8f 0x4e 0x8b
 
 rgbFF :: Int -> Int -> Int -> RGB
-rgbFF r g b = RGB (fromIntegral r / 256) (fromIntegral g / 256) (fromIntegral b / 256)
+rgbFF r g b = RGB (fromIntegral r / 255) (fromIntegral g / 255) (fromIntegral b / 255)
