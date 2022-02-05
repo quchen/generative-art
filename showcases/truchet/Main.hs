@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Main where
 
+import qualified Data.Vector as V
+import qualified Data.Map.Strict as M
+import Data.Traversable (for)
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (uniformRM, GenIO, initialize)
-import qualified Data.Vector as V
 
 import Draw
 import Geometry
@@ -28,13 +30,13 @@ main = do
         scaledHeight = round (scaleFactor * picHeight)
 
     gen <- initialize (V.fromList [123, 987])
+    tiling <- randomTiling gen plane
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
         cairoScope (setColor backgroundColor >> Cairo.paint)
         hexagonalCoordinateSystem cellSize 30 >> Cairo.newPath
-        for_ plane $ \hex -> do
-            tile <- Cairo.liftIO $ randomTile gen
+        for_ (M.toList tiling) $ \(hex, tile) -> do
             drawTile hex tile
 
 colorScheme :: Int -> Color Double
@@ -80,6 +82,13 @@ rotateTile :: Int -> Tile a -> Tile a
 rotateTile n (Tile xs) = Tile (fmap (\((d1, d2), a) -> ((rotateDirection d1, rotateDirection d2), a)) xs)
   where
     rotateDirection d = toEnum ((fromEnum d + n) `mod` 6)
+
+type Tiling a = M.Map Hex (Tile a)
+
+randomTiling :: GenIO -> [Hex] -> IO (Tiling Int)
+randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
+    tile <- randomTile gen
+    pure (hex, tile)
 
 randomTile :: GenIO -> IO (Tile Int)
 randomTile = \gen -> do
