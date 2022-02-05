@@ -32,83 +32,83 @@ tests = testGroup "Colors"
         [ let maxSwatches = 16 in testGroup "Discrete"
             [ testGroup "Mathematica"
                 [ testGroup "ColorData[97]"
-                    [ testCase "Visual" $ renderDiscrete "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 maxSwatches
+                    [ testDiscrete "Visual" "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 maxSwatches
                     , testCase "Check against Mathematica output" checkMma97
                     ]
                 , testGroup "Color Brewer 2"
-                    [ testCase "Set2"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    maxSwatches
-                    , testCase "Accent"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/accent"  accent  maxSwatches
-                    , testCase "Set1"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set1"    set1    maxSwatches
-                    , testCase "Set3"    $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/set3"    set3    maxSwatches
-                    , testCase "Dark2"   $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/dark2"   dark2   maxSwatches
-                    , testCase "Paired"  $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/paired"  paired  maxSwatches
-                    , testCase "Pastel2" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel2" pastel2 maxSwatches
-                    , testCase "Pastel1" $ renderDiscrete "docs/colors/schemes/discrete/colorbrewer2/pastel1" pastel1 maxSwatches
+                    [ testDiscrete "Set2"    "docs/colors/schemes/discrete/colorbrewer2/set2"    set2    maxSwatches
+                    , testDiscrete "Accent"  "docs/colors/schemes/discrete/colorbrewer2/accent"  accent  maxSwatches
+                    , testDiscrete "Set1"    "docs/colors/schemes/discrete/colorbrewer2/set1"    set1    maxSwatches
+                    , testDiscrete "Set3"    "docs/colors/schemes/discrete/colorbrewer2/set3"    set3    maxSwatches
+                    , testDiscrete "Dark2"   "docs/colors/schemes/discrete/colorbrewer2/dark2"   dark2   maxSwatches
+                    , testDiscrete "Paired"  "docs/colors/schemes/discrete/colorbrewer2/paired"  paired  maxSwatches
+                    , testDiscrete "Pastel2" "docs/colors/schemes/discrete/colorbrewer2/pastel2" pastel2 maxSwatches
+                    , testDiscrete "Pastel1" "docs/colors/schemes/discrete/colorbrewer2/pastel1" pastel1 maxSwatches
                     ]
                 ]
             ]
         , testGroup "Continuous"
             [ testGroup "Haskell"
-                [ testCase "Logo" $ renderContinuous "docs/colors/schemes/continuous/haskell/logo" haskell (0,1)
+                [ testContinuous "Logo" "docs/colors/schemes/continuous/haskell/logo" haskell (0,1)
                 ]
             , testGroup "Matplotlib"
                 [ testGroup "Visually uniform"
-                    [ testCase "cividis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/cividis" cividis (0,1)
-                    , testCase "inferno" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/inferno" inferno (0,1)
-                    , testCase "magma"   $ renderContinuous "docs/colors/schemes/continuous/matplotlib/magma"   magma   (0,1)
-                    , testCase "plasma"  $ renderContinuous "docs/colors/schemes/continuous/matplotlib/plasma"  plasma  (0,1)
-                    , testCase "viridis" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/viridis" viridis (0,1)
+                    [ testContinuous "cividis" "docs/colors/schemes/continuous/matplotlib/cividis" cividis (0,1)
+                    , testContinuous "inferno" "docs/colors/schemes/continuous/matplotlib/inferno" inferno (0,1)
+                    , testContinuous "magma"   "docs/colors/schemes/continuous/matplotlib/magma"   magma   (0,1)
+                    , testContinuous "plasma"  "docs/colors/schemes/continuous/matplotlib/plasma"  plasma  (0,1)
+                    , testContinuous "viridis" "docs/colors/schemes/continuous/matplotlib/viridis" viridis (0,1)
                     ]
                 , testGroup "Other"
-                    [ testCase "turbo"    $ renderContinuous "docs/colors/schemes/continuous/matplotlib/turbo"    turbo    (0,1)
-                    , testCase "twilight" $ renderContinuous "docs/colors/schemes/continuous/matplotlib/twilight" twilight (0,1)
+                    [ testContinuous "turbo"    "docs/colors/schemes/continuous/matplotlib/turbo"    turbo    (0,1)
+                    , testContinuous "twilight" "docs/colors/schemes/continuous/matplotlib/twilight" twilight (0,1)
                     ]
                 ]
             , testGroup "Seaborn"
                 [ testGroup "Visually uniform"
                     [ testGroup "Sequential"
-                        [ testCase "rocket"  $ renderContinuous "docs/colors/schemes/continuous/seaborn/rocket"  rocket  (0,1)
-                        , testCase "mako"    $ renderContinuous "docs/colors/schemes/continuous/seaborn/mako"    mako    (0,1)
-                        , testCase "flare"   $ renderContinuous "docs/colors/schemes/continuous/seaborn/flare"   flare   (0,1)
-                        , testCase "crest"   $ renderContinuous "docs/colors/schemes/continuous/seaborn/crest"   crest   (0,1)
+                        [ testContinuous "rocket"  "docs/colors/schemes/continuous/seaborn/rocket"  rocket  (0,1)
+                        , testContinuous "mako"    "docs/colors/schemes/continuous/seaborn/mako"    mako    (0,1)
+                        , testContinuous "flare"   "docs/colors/schemes/continuous/seaborn/flare"   flare   (0,1)
+                        , testContinuous "crest"   "docs/colors/schemes/continuous/seaborn/crest"   crest   (0,1)
                         ]
                     , testGroup "Divisive"
-                        [ testCase "vlag"    $ renderContinuous "docs/colors/schemes/continuous/seaborn/vlag"    vlag    (0,1)
-                        , testCase "icefire" $ renderContinuous "docs/colors/schemes/continuous/seaborn/icefire" icefire (0,1)
+                        [ testContinuous "vlag"    "docs/colors/schemes/continuous/seaborn/vlag"    vlag    (0,1)
+                        , testContinuous "icefire" "docs/colors/schemes/continuous/seaborn/icefire" icefire (0,1)
                         ]
                     ]
                 ]
             , testGroup "Color Brewer 2"
                 [ testGroup "Sequential"
-                    [ testCase "OrRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)
-                    , testCase "PuBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBu"    puBu    (0,1)
-                    , testCase "BuPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buPu"    buPu    (0,1)
-                    , testCase "Oranges" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/oranges" oranges (0,1)
-                    , testCase "BuGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/buGn"    buGn    (0,1)
-                    , testCase "YlOrBr"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrBr"  ylOrBr  (0,1)
-                    , testCase "YlGn"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGn"    ylGn    (0,1)
-                    , testCase "Reds"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/reds"    reds    (0,1)
-                    , testCase "RdPu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdPu"    rdPu    (0,1)
-                    , testCase "Greens"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greens"  greens  (0,1)
-                    , testCase "YlGnBu"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylGnBu"  ylGnBu  (0,1)
-                    , testCase "Purples" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/purples" purples (0,1)
-                    , testCase "GnBu"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/gnBu"    gnBu    (0,1)
-                    , testCase "Greys"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/greys"   greys   (0,1)
-                    , testCase "YlOrRd"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/ylOrRd"  ylOrRd  (0,1)
-                    , testCase "PuRd"    $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puRd"    puRd    (0,1)
-                    , testCase "Blues"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/blues"   blues   (0,1)
-                    , testCase "PuBuGn"  $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puBuGn"  puBuGn  (0,1)
+                    [ testContinuous "OrRd"    "docs/colors/schemes/continuous/colorbrewer2/orRd"    orRd    (0,1)
+                    , testContinuous "PuBu"    "docs/colors/schemes/continuous/colorbrewer2/puBu"    puBu    (0,1)
+                    , testContinuous "BuPu"    "docs/colors/schemes/continuous/colorbrewer2/buPu"    buPu    (0,1)
+                    , testContinuous "Oranges" "docs/colors/schemes/continuous/colorbrewer2/oranges" oranges (0,1)
+                    , testContinuous "BuGn"    "docs/colors/schemes/continuous/colorbrewer2/buGn"    buGn    (0,1)
+                    , testContinuous "YlOrBr"  "docs/colors/schemes/continuous/colorbrewer2/ylOrBr"  ylOrBr  (0,1)
+                    , testContinuous "YlGn"    "docs/colors/schemes/continuous/colorbrewer2/ylGn"    ylGn    (0,1)
+                    , testContinuous "Reds"    "docs/colors/schemes/continuous/colorbrewer2/reds"    reds    (0,1)
+                    , testContinuous "RdPu"    "docs/colors/schemes/continuous/colorbrewer2/rdPu"    rdPu    (0,1)
+                    , testContinuous "Greens"  "docs/colors/schemes/continuous/colorbrewer2/greens"  greens  (0,1)
+                    , testContinuous "YlGnBu"  "docs/colors/schemes/continuous/colorbrewer2/ylGnBu"  ylGnBu  (0,1)
+                    , testContinuous "Purples" "docs/colors/schemes/continuous/colorbrewer2/purples" purples (0,1)
+                    , testContinuous "GnBu"    "docs/colors/schemes/continuous/colorbrewer2/gnBu"    gnBu    (0,1)
+                    , testContinuous "Greys"   "docs/colors/schemes/continuous/colorbrewer2/greys"   greys   (0,1)
+                    , testContinuous "YlOrRd"  "docs/colors/schemes/continuous/colorbrewer2/ylOrRd"  ylOrRd  (0,1)
+                    , testContinuous "PuRd"    "docs/colors/schemes/continuous/colorbrewer2/puRd"    puRd    (0,1)
+                    , testContinuous "Blues"   "docs/colors/schemes/continuous/colorbrewer2/blues"   blues   (0,1)
+                    , testContinuous "PuBuGn"  "docs/colors/schemes/continuous/colorbrewer2/puBuGn"  puBuGn  (0,1)
                     ]
                 , testGroup "Divisive"
-                    [ testCase "Spectral" $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/spectral" spectral (0,1)
-                    , testCase "RdYlGn"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdYlGn"   rdYlGn   (0,1)
-                    , testCase "RdBu"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdBu"     rdBu     (0,1)
-                    , testCase "PiYG"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/piYG"     piYG     (0,1)
-                    , testCase "PRGn"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/pRGn"     pRGn     (0,1)
-                    , testCase "RdYlBu"   $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdYlBu"   rdYlBu   (0,1)
-                    , testCase "BrBG"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/brBG"     brBG     (0,1)
-                    , testCase "RdGy"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/rdGy"     rdGy     (0,1)
-                    , testCase "PuOr"     $ renderContinuous "docs/colors/schemes/continuous/colorbrewer2/puOr"     puOr     (0,1)
+                    [ testContinuous "Spectral" "docs/colors/schemes/continuous/colorbrewer2/spectral" spectral (0,1)
+                    , testContinuous "RdYlGn"   "docs/colors/schemes/continuous/colorbrewer2/rdYlGn"   rdYlGn   (0,1)
+                    , testContinuous "RdBu"     "docs/colors/schemes/continuous/colorbrewer2/rdBu"     rdBu     (0,1)
+                    , testContinuous "PiYG"     "docs/colors/schemes/continuous/colorbrewer2/piYG"     piYG     (0,1)
+                    , testContinuous "PRGn"     "docs/colors/schemes/continuous/colorbrewer2/pRGn"     pRGn     (0,1)
+                    , testContinuous "RdYlBu"   "docs/colors/schemes/continuous/colorbrewer2/rdYlBu"   rdYlBu   (0,1)
+                    , testContinuous "BrBG"     "docs/colors/schemes/continuous/colorbrewer2/brBG"     brBG     (0,1)
+                    , testContinuous "RdGy"     "docs/colors/schemes/continuous/colorbrewer2/rdGy"     rdGy     (0,1)
+                    , testContinuous "PuOr"     "docs/colors/schemes/continuous/colorbrewer2/puOr"     puOr     (0,1)
                     ]
                 ]
             ]
@@ -216,30 +216,38 @@ renderColorTable file table = renderAllFormats width height file $ do
     width = 20 * length (transpose table)
     height = 20 * length table
 
-renderContinuous :: FilePath -> (Double -> Color Double) -> (Double, Double) -> IO ()
-renderContinuous file colorF (lo,hi) = renderAllFormats width height file $ do
-    for_ [-10..width+10] $ \x -> do
-        C.rectangle (fromIntegral x) 0 (fromIntegral x+1) height
-        setColor (colorF (linearInterpolate (0,width-1) (lo,hi) (fromIntegral x)))
+testContinuous :: TestName -> FilePath -> (Double -> Color Double) -> (Double, Double) -> TestTree
+testContinuous testName file colorF (lo,hi) = testVisual testName 480 32 file $ \(w,h) -> do
+    for_ [-10..w+10] $ \x -> do
+        C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral h)
+        setColor (colorF (linearInterpolate (0,fromIntegral w-1) (lo,hi) (fromIntegral x)))
         fill
-  where
-    width, height :: Num a => a
-    width = 480
-    height = 32
 
 -- | Render discrete swatches until a color repeats, or until a maximum number is reached.
-renderDiscrete
-    :: FilePath
+testDiscrete
+    :: TestName
+    -> FilePath
     -> (Int -> Color Double)
     -> Int -- ^ Maximum number of swatches
-    -> IO ()
-renderDiscrete file colorF maxSwatches = do
+    -> TestTree
+testDiscrete testName file colorF maxSwatches =
     let allColors = colorF 0 : takeWhile (/= colorF 0) (map colorF [1..])
         colors = take maxSwatches allColors
         numColors = length colors
-    renderAllFormats (width*numColors) height file $ do
+
+        tileWidth, tileHeight :: Num a => a
+        tileWidth = 32
+        tileHeight = 32
+
+        isLongerThan (_:xs) (_:ys) = isLongerThan xs ys
+        isLongerThan []     []     = False
+        isLongerThan (_:_)  []     = True
+        isLongerThan []     (_:_)  = True
+
+    in testVisual testName (tileWidth*numColors) tileHeight file $ \_ -> do
+
         for_ (zip [0..] colors) $ \(i, color) -> cairoScope $ do
-            C.rectangle (fromIntegral i*width) (-1) (fromIntegral (i+1)*width) height
+            C.rectangle (fromIntegral i*tileWidth) (-1) (fromIntegral (i+1)*tileWidth) tileHeight
             setColor color
             fill
 
@@ -247,22 +255,13 @@ renderDiscrete file colorF maxSwatches = do
         when (allColors `isLongerThan` colors) $ cairoScope $ do
             setColor black
             setLineWidth 1
-            let lastCellCenter = Vec2 (fromIntegral numColors*width - width/2) (height/2)
+            let lastCellCenter = Vec2 (fromIntegral numColors*tileWidth - tileWidth/2) (tileHeight/2)
             arrowSketch (angledLine (lastCellCenter +. Vec2 2 0) (deg 0) 10)
                 def {arrowheadSize = 5 }
             stroke
             for_ [-10, -6, -2] $ \offset -> do
                 circleSketch (lastCellCenter +. Vec2 offset 0) 1
                 fill
-  where
-    width, height :: Num a => a
-    width = 32
-    height = 32
-
-    isLongerThan (_:xs) (_:ys) = isLongerThan xs ys
-    isLongerThan []     []     = False
-    isLongerThan (_:_)  []     = True
-    isLongerThan []     (_:_)  = True
 
 checkMma97 :: Assertion
 checkMma97 = sequence_ $ flip V.imap mma97reference $ \i expected -> do

@@ -196,10 +196,11 @@ instance (Real a, Floating a, EqApprox a) => EqApprox (AlphaColour a) where
         in approxEqual tol (toTuple s) (toTuple t)
 
 testVisual
-    :: TestName
-    -> Int                       -- ^ Output width
-    -> Int                       -- ^ Output height
-    -> FilePath                  -- ^ Output file
-    -> (Int -> Int -> Render ()) -- ^ Renderer, given width/height
+    :: Num a
+    => TestName
+    -> Int                   -- ^ Output width
+    -> Int                   -- ^ Output height
+    -> FilePath              -- ^ Output file
+    -> ((a, a) -> Render ()) -- ^ Renderer, given width/height
     -> TestTree
-testVisual testName w h filePath render = testCase testName (renderAllFormats w h filePath (render w h))
+testVisual testName w h filePath render = testCase testName (renderAllFormats w h filePath (render (fromIntegral w,fromIntegral h)))

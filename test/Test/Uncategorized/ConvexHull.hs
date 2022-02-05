@@ -32,7 +32,7 @@ tests = testGroup "Convex hull"
     ]
 
 visualTest :: TestTree
-visualTest = testCase "Visual" $ do
+visualTest = testVisual "Visual" 210 180 "docs/geometry/convex_hull" $ \_ -> do
     let points = runST $ do
             gen <- MWC.initialize (V.fromList [])
             replicateM 128 (fix $ \loop -> do
@@ -41,33 +41,31 @@ visualTest = testCase "Visual" $ do
 
         hull = convexHull points
 
-    renderVisual points hull
-    assertions points hull
-  where
-    renderVisual points hull = renderAllFormats 210 180 "docs/geometry/convex_hull" $ do
-        Cairo.translate 110 90
-        setLineWidth 1
-        for_ (polygonEdges hull) $ \edge@(Line start _) -> do
-            setColor $ mathematica97 1
-            arrowSketch edge def{ arrowheadRelPos = 0.5
-                                , arrowheadSize   = 5 }
-            stroke
-            setColor $ mathematica97 3
-            circleSketch start 2
-            fill
+    Cairo.translate 110 90
+    setLineWidth 1
+    for_ (polygonEdges hull) $ \edge@(Line start _) -> cairoScope $ do
+        setColor $ mathematica97 1
+        arrowSketch edge def{ arrowheadRelPos = 0.5
+                            , arrowheadSize   = 5 }
+        stroke
+        setColor $ mathematica97 3
+        circleSketch start 2
+        fill
 
+    cairoScope $ do
         setColor $ mathematica97 1
         moveTo 0 85
         setFontSize 12
         showText "Convex hull"
 
+    cairoScope $ do
         setColor $ mathematica97 0 `withOpacity` 0.5
         let Polygon hullPoints = hull
         for_ (points \\ hullPoints) $ \p -> do
             circleSketch p 2
             fill
 
-    assertions points hull =
+    liftIO $
         assertBool "Some points lie outside the hull!" $
             let notHullPoints = let Polygon hullPoints = hull in points \\ hullPoints
             in all (\p -> pointInPolygon p hull) notHullPoints

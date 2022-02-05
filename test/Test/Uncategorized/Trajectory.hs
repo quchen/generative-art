@@ -31,44 +31,43 @@ simplifyPathTests = testGroup "Simplify path"
     ]
 
 simplifyFunctionGraphTest :: TestTree
-simplifyFunctionGraphTest = testCase "Simplify function graph" $
-    renderAllFormats 400 300 "docs/interpolation/3_simplify_path" $ do
-        let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
-            graphBB = boundingBox graph
-            fitToBox :: Transform geo => geo -> geo
-            fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) FitAllIgnoreAspect)
+simplifyFunctionGraphTest = testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path" $ \_ -> do
+    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
+        graphBB = boundingBox graph
+        fitToBox :: Transform geo => geo -> geo
+        fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) FitAllIgnoreAspect)
 
-        let plotPath points = cairoScope $ do
-                setLineWidth 1
-                newPath
-                pathSketch points
+    let plotPath points = cairoScope $ do
+            setLineWidth 1
+            newPath
+            pathSketch points
+            stroke
+        plotPoints points = for_ points $ \p -> do
+            circleSketch p 1
+            fillPreserve
+            cairoScope $ do
+                setSourceRGB 0 0 0
+                setLineWidth 0.5
                 stroke
-            plotPoints points = for_ points $ \p -> do
-                circleSketch p 1
-                fillPreserve
-                cairoScope $ do
-                    setSourceRGB 0 0 0
-                    setLineWidth 0.5
-                    stroke
-            plotBezier segments = cairoScope $ do
-                setLineWidth 1
-                bezierCurveSketch segments
-                stroke
-            epsilons = [ 2**(-e) | e <- [10,9..1]]
+        plotBezier segments = cairoScope $ do
+            setLineWidth 1
+            bezierCurveSketch segments
+            stroke
+        epsilons = [ 2**(-e) | e <- [10,9..1]]
 
-        cairoScope $ do
-            setColor $ mathematica97 0
-            plotPath (fitToBox graph)
-            plotPoints (fitToBox graph)
+    cairoScope $ do
+        setColor $ mathematica97 0
+        plotPath (fitToBox graph)
+        plotPoints (fitToBox graph)
 
-        cairoScope $ do
-            for_ epsilons $ \epsilon -> do
-                Cairo.translate 0 20
-                let simplified = simplifyTrajectory epsilon graph
-                    interpolatedAgain = bezierSmoothen simplified
-                setColor $ mathematica97 1
-                plotBezier (fitToBox interpolatedAgain)
-                plotPoints (fitToBox simplified)
+    cairoScope $ do
+        for_ epsilons $ \epsilon -> do
+            Cairo.translate 0 20
+            let simplified = simplifyTrajectory epsilon graph
+                interpolatedAgain = bezierSmoothen simplified
+            setColor $ mathematica97 1
+            plotBezier (fitToBox interpolatedAgain)
+            plotPoints (fitToBox simplified)
 
 simplifyPathRegressionTest :: TestTree
 simplifyPathRegressionTest = localOption (Timeout (10^5) "100ms") $ testCase "Can handle cyclic paths" $ do

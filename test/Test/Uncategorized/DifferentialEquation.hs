@@ -25,7 +25,7 @@ tests = testGroup "Differential equations"
     ]
 
 twoBodyProblem :: TestTree
-twoBodyProblem = testCase "Two-body problem" (renderAllFormats 400 400 "docs/differential_equations/1_two_body_problem" (renderTwoBodyProblem 400 400))
+twoBodyProblem = testVisual "Two-body problem" 400 400 "docs/differential_equations/1_two_body_problem" renderTwoBodyProblem
 
 planetPhaseDiagram :: [(Double, (Vec2, Vec2))]
 planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tolNorm tol
@@ -47,14 +47,14 @@ planetPhaseDiagram = rungeKuttaAdaptiveStep f y0 t0 dt0 tolNorm tol
 
     tolNorm (x,v) = max (norm x) (norm v)
 
-renderTwoBodyProblem :: Int -> Int -> Render ()
-renderTwoBodyProblem w h = do
+renderTwoBodyProblem :: (Double, Double) -> Render ()
+renderTwoBodyProblem (w, h) = do
     let phaseDiagram' = takeWhile (\(t,_) -> t < 1000) planetPhaseDiagram
 
         transformNicely
           = let trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram']
                                      <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
-                canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
+                canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
                 scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox FitAllMaintainAspect
             in Geometry.transform scaleToCanvas
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
@@ -88,7 +88,7 @@ renderTwoBodyProblem w h = do
     paintPlanet
 
 doublePendulum :: TestTree
-doublePendulum = testCase "Double pendulum" (renderAllFormats 400 400 "docs/differential_equations/2_double_pendulum" (renderDoublePendulum 400 400))
+doublePendulum = testVisual "Double pendulum" 400 400 "docs/differential_equations/2_double_pendulum" renderDoublePendulum
 
 data DoublePendulum = DoublePendulum {
       _m1 :: Double
@@ -138,10 +138,10 @@ system = DoublePendulum {
     , _y0 = ((120 * 2*pi/360, 120 * 2*pi/360), (0, 0))
 }
 
-renderDoublePendulum :: Int -> Int -> Render ()
-renderDoublePendulum _w _h = do
+renderDoublePendulum :: (Double, Double) -> Render ()
+renderDoublePendulum (w,h) = do
     let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
-        scaleToCanvas = Geometry.transform (Geometry.translate (Vec2 200 200))
+        scaleToCanvas = Geometry.transform (Geometry.translate (Vec2 (w/2) (h/2)))
         transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
         bezierSmoothTrajectory = bezierSmoothen [x | (_, x) <- transformedTrajectory]
 
@@ -170,7 +170,7 @@ doublePendulumTrajectory sys =
 
 
 noisePendulum :: TestTree
-noisePendulum = testCase "Phase space of dampened noise pendulum" (renderAllFormats 260 200 "docs/differential_equations/3_noise_pendulum" (renderPhaseSpace 260 200 solveNoisePendulum))
+noisePendulum = testVisual "Phase space of dampened noise pendulum" 260 200 "docs/differential_equations/3_noise_pendulum" (renderPhaseSpace solveNoisePendulum)
 
 solveNoisePendulum :: [(Double, (Double, Double))]
 solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
@@ -192,11 +192,11 @@ solveNoisePendulum = rungeKuttaConstantStep ode y0 t0 dt
       = let noise:_ = normals (t, phi, omega)
         in noise
 
-renderPhaseSpace :: Int -> Int -> [(Double, (Double, Double))] -> Render ()
-renderPhaseSpace w h solution = do
+renderPhaseSpace :: [(Double, (Double, Double))] -> (Double, Double) -> Render ()
+renderPhaseSpace solution (w, h) = do
     let solution' = takeWhile (\(t, _) -> t < 120) solution
         bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution']
-        bbCanvas = boundingBox (Vec2 10 10, Vec2 (fromIntegral w - 10) (fromIntegral h - 10))
+        bbCanvas = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
         scaleToCanvas :: Transform geo => geo -> geo
         scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
         trajectory = simplifyTrajectory 0.25 -- SVG compression :-)

@@ -69,10 +69,8 @@ rotatingAddsUpTest = testProperty "rotate x . rotate y == rotate (x+y)" $
             Hex.rotateAround center (angle1+angle2) point)
 
 lineAndCircle :: TestTree
-lineAndCircle = testCase "Line and circle" (renderAllFormats 380 350 "docs/hexagonal/1_line_and_circle" (drawing 30 380 350))
-
-drawing :: Double -> Int -> Int -> Render ()
-drawing sideLength w h = do
+lineAndCircle = testVisual "Line and circle" 380 350 "docs/hexagonal/1_line_and_circle" $ \(w, h) -> do
+    let sideLength = 30
     C.translate (fromIntegral w/2) (fromIntegral h/2)
     cairoScope $ do
         setFontSize 8
@@ -93,7 +91,8 @@ drawing sideLength w h = do
         stroke
 
 gaussianHexagons :: TestTree
-gaussianHexagons = testCase "Gaussian hexagons" $ renderAllFormats width height "docs/hexagonal/gaussian_hexagons" $ do
+gaussianHexagons = testVisual "Gaussian hexagons" 360 360 "docs/hexagonal/gaussian_hexagons" $ \(width, height) -> do
+    let cellSize = 10
     let hexagons = runST $ do
             gen <- initialize (V.fromList [])
             hexs <- replicateM (2^12) $ do
@@ -114,8 +113,3 @@ gaussianHexagons = testCase "Gaussian hexagons" $ renderAllFormats width height 
         setLineWidth 1
         fillPreserve
         stroke
-  where
-    cellSize = 10
-    width, height :: Num a => a
-    width = 360
-    height = 360

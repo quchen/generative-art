@@ -24,7 +24,7 @@ tests = testGroup "Simple operations"
     ]
 
 rotateLineTest :: TestTree
-rotateLineTest = testCase "Rotate line" $ renderAllFormats 300 90 "docs/geometry/rotate_line" $ do
+rotateLineTest = testVisual "Rotate line" 300 90 "docs/geometry/rotate_line" $ \_ -> do
     C.translate 30 30
     let initialLine = angledLine (Vec2 0 0) (rad 0) 75
         rotated = iterate (Geometry.transform (rotateAround (Vec2 25 0) (deg 20))) initialLine
@@ -41,7 +41,7 @@ rotateLineTest = testCase "Rotate line" $ renderAllFormats 300 90 "docs/geometry
     showText "Rotate line in 20° increments"
 
 perpendicularBisectorTest :: TestTree
-perpendicularBisectorTest = testCase "Perpendicular bisector" $ renderAllFormats 190 60 "docs/geometry/perpendicular_bisector" $ do
+perpendicularBisectorTest = testVisual "Perpendicular bisector" 190 60 "docs/geometry/perpendicular_bisector" $ \_ -> do
     C.translate 10 20
     let line = angledLine (Vec2 0 0) (deg 30) 50
         bisector = perpendicularBisector line
@@ -59,7 +59,7 @@ perpendicularBisectorTest = testCase "Perpendicular bisector" $ renderAllFormats
     showText "Perpendicular bisector"
 
 perpendicularLineThroughTest :: TestTree
-perpendicularLineThroughTest = testCase "Perpendicular line through point" $ renderAllFormats 250 70 "docs/geometry/perpendicular_line_through_point" $ do
+perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250 70 "docs/geometry/perpendicular_line_through_point" $ \_ -> do
     C.translate 10 10
     let line = angledLine (Vec2 0 0) (deg 30) 50
         point = Vec2 20 30
@@ -80,7 +80,7 @@ perpendicularLineThroughTest = testCase "Perpendicular line through point" $ ren
     showText "Perpendicular line through point"
 
 pointInPolygonTest :: TestTree
-pointInPolygonTest = testCase "Point in polygon" $ renderAllFormats 200 70 "docs/geometry/point_in_polygon" $ do
+pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_in_polygon" $ \_ -> do
     C.translate 30 10
     let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
