@@ -21,7 +21,17 @@ instance Arbitrary Vec2 where
 
 instance Arbitrary Angle where
     arbitrary = fmap deg (choose (-360, 720))
-    shrink x = if getRad x == 0 then [] else [rad 0]
+    shrink x =
+        let r = getRad x
+        in if
+            -- Angle 0 is as simple as it gets
+            | r == 0 -> []
+
+            -- For single turns, try with zero angle
+            | 0 <= r && r < 2*pi -> [rad 0]
+
+            -- For non-normalized angles, normalize them
+            | otherwise -> [normalizeAngle (rad 0) x]
 
 instance Arbitrary Hex where
     arbitrary = do
