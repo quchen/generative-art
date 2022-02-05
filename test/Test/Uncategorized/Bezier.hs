@@ -8,9 +8,8 @@ import Graphics.Rendering.Cairo as C hiding (x, y)
 import Draw
 import Geometry as G
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
+
 
 
 tests :: TestTree
@@ -241,8 +240,7 @@ interpolateSingleCurveRender _w _h = do
         let u = offsetBelow u'
         let circle p = newPath >> circleSketch p 3 >> stroke
             connect p q = do
-                let shrink factor = resizeLineSymmetric (\d -> factor*d)
-                    line = shrink 0.8 (Line p q)
+                let line = resizeLineSymmetric (*0.8) (Line p q)
                 lineSketch line
                 setDash [1,1] 0
                 stroke

@@ -8,9 +8,7 @@ import Graphics.Rendering.Cairo as Cairo hiding (transform)
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 

@@ -7,9 +7,6 @@ import           Data.Colour.Names
 import           Data.List
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C
-import           Test.Tasty
-import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck
 import           Text.Printf
 
 import Draw
@@ -19,6 +16,7 @@ import Numerics.Interpolation
 
 import Test.Common
 import Test.Helpers
+import Test.TastyAll
 
 
 

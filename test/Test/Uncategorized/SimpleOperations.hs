@@ -8,9 +8,7 @@ import Graphics.Rendering.Cairo as C hiding (x, y)
 import Draw
 import Geometry
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 

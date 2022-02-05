@@ -9,12 +9,7 @@ import Text.Printf
 
 import Geometry
 
-import Test.QuickCheck
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
-import Test.Helpers
+import Test.TastyAll
 
 
 
@@ -156,7 +151,7 @@ polygonInstancesTest = testGroup "Eq Polygon"
         gen = do
             size <- getSize
             len <- fmap (+3) (choose (0, size))
-            polygon <- fmap Polygon (Test.QuickCheck.vectorOf len arbitrary)
+            polygon <- fmap Polygon (Test.TastyAll.vectorOf len arbitrary)
             rot <- choose (0, len-1)
             pure (rot, polygon)
         test (rot, polygon)
@@ -194,7 +189,7 @@ transformationTest = testGroup "Affine transformations"
         , invertibilityTest "Combination of transformations" $ do
             size <- getSize
             n <- choose (2, min size 10)
-            Test.Tasty.QuickCheck.vectorOf n (frequency
+            Test.TastyAll.vectorOf n (frequency
                 [ (1, pure identityTransformation)
                 , (3, rotate <$> arbitrary)
                 , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))

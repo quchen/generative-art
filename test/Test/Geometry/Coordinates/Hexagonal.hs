@@ -16,11 +16,8 @@ import Geometry as G
 import Geometry.Coordinates.Hexagonal as Hex
 import Numerics.Interpolation
 
-import Test.Common
-import Test.Helpers ()
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
+import Test.TastyAll
+
 
 
 tests :: TestTree

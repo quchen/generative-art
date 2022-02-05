@@ -13,11 +13,7 @@ import Draw
 import Geometry as G
 import Geometry.Algorithms.Contour.Internal
 
-import Test.Common
-import Test.Helpers
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
+import Test.TastyAll
 
 
 

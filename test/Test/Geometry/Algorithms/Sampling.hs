@@ -6,13 +6,12 @@ module Test.Geometry.Algorithms.Sampling (tests) where
 import Control.Monad.IO.Class (liftIO)
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create)
-import Test.Tasty (TestTree)
-import Test.Tasty.HUnit (testCase)
 
 import Draw
 import Geometry
 import Geometry.Algorithms.Sampling
-import Test.Common
+
+import Test.TastyAll
 
 
 

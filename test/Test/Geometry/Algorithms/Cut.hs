@@ -13,12 +13,7 @@ import Geometry
 import Geometry.Algorithms.Cut.Internal
 import Geometry.Shapes
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
-
-import Test.Helpers
+import Test.TastyAll
 
 
 

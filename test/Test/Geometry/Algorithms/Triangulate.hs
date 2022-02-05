@@ -17,9 +17,7 @@ import Geometry
 import Geometry.Shapes
 import Util
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 

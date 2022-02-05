@@ -1,5 +1,7 @@
 module Test.Geometry.Algorithms.Voronoi (tests) where
 
+
+
 import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
@@ -7,9 +9,9 @@ import Draw
 import Geometry
 import Geometry.Algorithms.Voronoi
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
+
+
 
 tests :: TestTree
 tests = testGroup "Voronoi Patterns"

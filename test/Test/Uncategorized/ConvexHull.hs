@@ -17,11 +17,7 @@ import Draw
 import Geometry
 import Geometry.Chaotic
 
-import Test.Common
-import Test.Helpers
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck
+import Test.TastyAll
 
 
 

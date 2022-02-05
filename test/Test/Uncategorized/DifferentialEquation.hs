@@ -2,15 +2,17 @@
 
 module Test.Uncategorized.DifferentialEquation  where
 
+
+
 import Data.Foldable
 import Draw
 import Geometry
 import Geometry.Chaotic
 import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import Numerics.DifferentialEquation
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+
+import Test.TastyAll
+
 
 
 tests :: TestTree

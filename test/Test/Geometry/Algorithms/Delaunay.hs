@@ -1,13 +1,12 @@
 {-# LANGUAGE RecordWildCards #-}
 module Test.Geometry.Algorithms.Delaunay (tests) where
 
+
+
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.List (scanl')
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC (create)
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase)
-import Test.Common (renderAllFormats)
 
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Delaunay.Internal
@@ -15,6 +14,10 @@ import Draw
 import Geometry
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
+
+import Test.TastyAll
+
+
 
 tests :: TestTree
 tests = testGroup "Delaunay triangulation"

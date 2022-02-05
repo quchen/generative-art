@@ -14,9 +14,7 @@ import Draw
 import Geometry as G
 import Why
 
-import Test.Common
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.TastyAll
 
 
 

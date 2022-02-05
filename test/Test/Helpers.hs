@@ -7,8 +7,6 @@ module Test.Helpers (
     , EqApprox(..)
     , Tolerance(..)
     , (~==)
-
-    , assertThrowsError
 ) where
 
 
@@ -17,14 +15,12 @@ import Data.List
 import System.Random
 import Data.Colour.RGBSpace as Colour
 import Data.Colour.SRGB as Colour
-import Control.Exception
 
 import Geometry
 import Draw.Color
 import Geometry.Coordinates.Hexagonal as Hex
 
 import Test.Tasty.QuickCheck
-import Test.Tasty.HUnit
 
 
 
@@ -167,11 +163,3 @@ instance (Real a, Floating a, EqApprox a) => EqApprox (AlphaColour a) where
                 let alpha = alphaChannel color
                 in uncurryRGB (\r g b -> (r,g,b, realToFrac alpha)) (toSRGB (colourConvert (dissolve (1/alpha) color `over` black)))
         in approxEqualTolerance tol (toTuple s) (toTuple t)
-
-assertThrowsError :: (String -> Bool) -> a -> IO ()
-assertThrowsError p x = handle
-    (\(ErrorCallWithLocation err _loc) -> if p err
-        then pure ()
-        else assertFailure ("An ErrorCall was raised, but not with the right contents. Received: " ++ err)
-        )
-    (evaluate x >> assertFailure "Expected ErrorCall, but none was raised")
