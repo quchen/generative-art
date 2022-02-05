@@ -103,13 +103,13 @@ systemSetup config@SystemConfig{..} = do
             let getTrajectory sol = [(x, norm v) | (_t, (x, v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-                simplify = simplifyTrajectory 1
-            in ((getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
-        !trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
+                simplify = simplifyTrajectoryBy (\(x, _v) -> x) 1
+            in ((simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
+        trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
     pure SystemResult
         { _trajectories = trajectoriesNF
-        , _potential = potential
+        , _potential    = potential
         }
 
 render :: SystemResult -> Render ()
@@ -120,11 +120,12 @@ render SystemResult{..} = do
         setSourceRGB 1 1 1
         paint
 
+    liftIO (putStrLn "Calculate and paint lines")
     setLineWidth 1
     let isoGrid = Grid (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi))
                        (let (w,h) = boundingBoxSize (_boundingBox systemConfig) in (round (w/10), round (h/10)))
         isosAt = isoLines isoGrid _potential
-        isoThresholds = [1.0, 1.02 .. 2.5]
+        isoThresholds = [1.0, 1.05 .. 2.5]
 
         isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
@@ -143,10 +144,11 @@ render SystemResult{..} = do
         minSpeed = minimum speeds
         maxSpeed = maximum speeds
 
+    liftIO (putStrLn "Calculate and paint trajectories")
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 0) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
         for_ (zip trajectory (tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
-            setColor (turbo (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
+            setColor (magma (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
             lineSketch (Line a b)
             stroke
 
