@@ -52,7 +52,7 @@ rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
     let actual = sort (reconstructPolygons PolygonPositive simpleCutEdgeGraph)
         expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
                         , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
-    in assertEqual "" expected actual
+    in assertEqual "" (Expected expected) (Actual actual)
 
 reconstructConvexPolygonTest :: TestTree
 reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
@@ -140,7 +140,7 @@ cutSquareTest = do
         moveTo 90 80
         showText (show (length cutResult) ++ " polygons")
 
-    assertEqual "Number of resulting polygons" 2 (length cutResult)
+    assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))
     liftIO (assertAreaConserved polygon cutResult)
 
 complicatedPolygonTest :: IO ()
@@ -159,7 +159,7 @@ complicatedPolygonTest = do
         setFontSize 12
         moveTo 250 15
         showText (show (length cutResult) ++ " polygons")
-    assertEqual "Number of resulting polygons" 5 (length cutResult)
+    assertEqual "Number of resulting polygons" (Expected 5) (Actual (length cutResult))
     liftIO (assertAreaConserved polygon cutResult)
 
 cutMissesPolygonTest :: IO ()
@@ -174,7 +174,7 @@ cutMissesPolygonTest = do
             (Geometry.transform (Geometry.translate (Vec2 70 10)) scissors)
             (Geometry.transform (Geometry.translate (Vec2 70 10)) cutResult))
 
-    assertEqual "Number of resulting polygons" 1 (length cutResult)
+    assertEqual "Number of resulting polygons" (Expected 1) (Actual (length cutResult))
     liftIO (assertAreaConserved polygon cutResult)
 
 -- These corner cases are terrible. Maybe I’ll rework the alg one day, until then I
@@ -207,7 +207,7 @@ cutThroughCornerTest = testCase "Cut through corner" $ do
             (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
             (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
 
-    assertEqual "Number of resulting polygons" 2 (length cutResult)
+    assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))
     liftIO (assertAreaConserved polygon cutResult)
 
 pathologicalCornerCutsTests :: [TestTree]
@@ -217,7 +217,7 @@ pathologicalCornerCutsTests = do
     [ testCase name $ do
         renderAllFormats 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix)
             (specialCaseTest name polygon)
-        assertEqual "Expected polygons" expectedNumPolys (length (cutPolygon scissors polygon))
+        assertEqual "Expected polygons" (Expected expectedNumPolys) (Actual (length (cutPolygon scissors polygon)))
         ]
   where
     scissors = Line (Vec2 (-60) 0) (Vec2 180 0)
