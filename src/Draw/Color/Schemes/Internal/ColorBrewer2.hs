@@ -10,7 +10,7 @@ import Draw.Color.Schemes.Internal.Common
 
 
 rgb256 :: Double -> Double -> Double -> RGB
-rgb256 r g b = RGB (r/256) (g/256) (b/256)
+rgb256 r g b = RGB (r/255) (g/255) (b/255)
 
 divisive_Spectral :: Vector RGB
 divisive_Spectral = V.fromList $
