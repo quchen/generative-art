@@ -1,4 +1,4 @@
-module Test.Bezier (tests) where
+module Test.Uncategorized.Bezier (tests) where
 
 
 

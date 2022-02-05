@@ -1,4 +1,4 @@
-module Test.ConvexHull (tests) where
+module Test.Uncategorized.ConvexHull (tests) where
 
 
 

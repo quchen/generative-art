@@ -10,9 +10,6 @@ import Data.Foldable
 import System.FilePath
 import System.FilePath.Glob
 
-import qualified Test.Bezier
-import qualified Test.ConvexHull
-import qualified Test.DifferentialEquation
 import qualified Test.Draw.Color
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
@@ -23,12 +20,15 @@ import qualified Test.Geometry.Algorithms.Voronoi
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
-import qualified Test.IntersectionLL
-import qualified Test.Mirror
-import qualified Test.Properties
-import qualified Test.Reflection
-import qualified Test.SimpleOperations
-import qualified Test.Trajectory
+import qualified Test.Uncategorized.Bezier
+import qualified Test.Uncategorized.ConvexHull
+import qualified Test.Uncategorized.DifferentialEquation
+import qualified Test.Uncategorized.IntersectionLL
+import qualified Test.Uncategorized.Mirror
+import qualified Test.Uncategorized.Properties
+import qualified Test.Uncategorized.Reflection
+import qualified Test.Uncategorized.SimpleOperations
+import qualified Test.Uncategorized.Trajectory
 
 import           Test.Tasty
 import           Test.Tasty.Runners
@@ -50,27 +50,25 @@ test pattern = case parseTestPattern pattern of
 
 tests :: TestTree
 tests = testGroup "Test suite"
-    [ Test.Properties.tests
-    , testGroup "Visual tests"
-        [ Test.Bezier.tests
-        , Test.ConvexHull.tests
-        , Test.DifferentialEquation.tests
-        , Test.Draw.Color.tests
-        , Test.Geometry.Algorithms.Contour.tests
-        , Test.Geometry.Algorithms.Cut.tests
-        , Test.Geometry.Algorithms.Delaunay.tests
-        , Test.Geometry.Algorithms.Sampling.tests
-        , Test.Geometry.Algorithms.Triangulate.tests
-        , Test.Geometry.Algorithms.Voronoi.tests
-        , Test.Geometry.Coordinates.Hexagonal.tests
-        , Test.Geometry.Processes.Billard.tests
-        , Test.Geometry.Processes.Penrose.tests
-        , Test.IntersectionLL.tests
-        , Test.Mirror.tests
-        , Test.Reflection.tests
-        , Test.SimpleOperations.tests
-        , Test.Trajectory.tests
-        ]
+    [ Test.Draw.Color.tests
+    , Test.Geometry.Algorithms.Contour.tests
+    , Test.Geometry.Algorithms.Cut.tests
+    , Test.Geometry.Algorithms.Delaunay.tests
+    , Test.Geometry.Algorithms.Sampling.tests
+    , Test.Geometry.Algorithms.Triangulate.tests
+    , Test.Geometry.Algorithms.Voronoi.tests
+    , Test.Geometry.Coordinates.Hexagonal.tests
+    , Test.Geometry.Processes.Billard.tests
+    , Test.Geometry.Processes.Penrose.tests
+    , Test.Uncategorized.Bezier.tests
+    , Test.Uncategorized.ConvexHull.tests
+    , Test.Uncategorized.DifferentialEquation.tests
+    , Test.Uncategorized.IntersectionLL.tests
+    , Test.Uncategorized.Mirror.tests
+    , Test.Uncategorized.Properties.tests
+    , Test.Uncategorized.Reflection.tests
+    , Test.Uncategorized.SimpleOperations.tests
+    , Test.Uncategorized.Trajectory.tests
     ]
 
 runPostTestScripts :: IO ()

@@ -1,4 +1,4 @@
-module Test.IntersectionLL (tests) where
+module Test.Uncategorized.IntersectionLL (tests) where
 
 
 

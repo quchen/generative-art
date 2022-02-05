@@ -1,4 +1,4 @@
-module Test.SimpleOperations (tests) where
+module Test.Uncategorized.SimpleOperations (tests) where
 
 
 

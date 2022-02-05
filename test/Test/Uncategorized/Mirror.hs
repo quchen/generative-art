@@ -1,4 +1,4 @@
-module Test.Mirror (tests) where
+module Test.Uncategorized.Mirror (tests) where
 
 
 

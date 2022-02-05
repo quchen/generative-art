@@ -1,4 +1,4 @@
-module Test.Trajectory (tests) where
+module Test.Uncategorized.Trajectory (tests) where
 
 
 

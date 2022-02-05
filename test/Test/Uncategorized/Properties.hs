@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Test.Properties (tests) where
+module Test.Uncategorized.Properties (tests) where
 
 
 

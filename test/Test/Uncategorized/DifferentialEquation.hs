@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Test.DifferentialEquation  where
+module Test.Uncategorized.DifferentialEquation  where
 
 import Data.Foldable
 import Draw

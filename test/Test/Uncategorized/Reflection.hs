@@ -1,4 +1,4 @@
-module Test.Reflection (tests) where
+module Test.Uncategorized.Reflection (tests) where
 
 
 
