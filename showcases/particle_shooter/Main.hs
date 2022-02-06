@@ -5,6 +5,7 @@ import           Control.Monad.ST
 import           Control.Parallel.Strategies
 import           Data.Foldable
 import qualified Data.Vector                     as V
+import  Data.Vector               (Vector)
 import           Data.Word
 import           Graphics.Rendering.Cairo        as C
 import qualified System.Random.MWC               as Random
@@ -61,7 +62,7 @@ systemConfig = SystemConfig
     }
 
 data SystemResult = SystemResult
-    { _trajectories :: [([(Vec2, Double)], (Vec2, Vec2))]
+    { _trajectories :: [(Vector (Vec2, Double), (Vec2, Vec2))]
     , _potential :: Vec2 -> Double
     }
 
@@ -103,14 +104,21 @@ systemSetup config@SystemConfig{..} = do
             let getTrajectory sol = [(x, norm v) | (_t, (x, v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-                simplify = simplifyTrajectoryBy (\(x, _v) -> x) 1
-            in ((simplify . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
+                simplify = simplifyTrajectoryBy 1 (\(x, _v) -> x)
+            in ((simplify . V.fromList . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
         trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
     pure SystemResult
         { _trajectories = trajectoriesNF
         , _potential    = potential
         }
+
+-- | Monoid to calculate the min/max at the same time.
+data MinMax = MinMax Double Double
+instance Semigroup MinMax where
+    MinMax a b <> MinMax x y = MinMax (min a x) (max b y)
+instance Monoid MinMax where
+    mempty = MinMax (1/0) (-1/0)
 
 render :: SystemResult -> Render ()
 render SystemResult{..} = do
@@ -127,28 +135,24 @@ render SystemResult{..} = do
         isosAt = isoLines isoGrid _potential
         isoThresholds = [1.0, 1.05 .. 2.5]
 
-        isosWithThresolds = [(threshold, map (simplifyTrajectory 1) (isosAt threshold)) | threshold <- isoThresholds]
+        isosWithThresolds = [(threshold, map (V.toList . bezierSmoothen . simplifyTrajectory 1 . V.fromList) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
     for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
         liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
         for_ isos $ \iso -> cairoScope $ do
-            pathSketch iso
+            bezierCurveSketch iso
             let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
-            setColor (viridis colorValue `withOpacity` 0.3)
+            setColor (rocket colorValue `withOpacity` 0.3)
             stroke
 
-    let speeds = do
-            (xv, _ic) <- _trajectories
-            (_x,v) <- xv
-            pure v
-        minSpeed = minimum speeds
-        maxSpeed = maximum speeds
+    let MinMax minSpeed maxSpeed = foldMap (\(xv, _ic) -> foldMap (\(_x, speed) -> MinMax speed speed) xv) _trajectories
 
     liftIO (putStrLn "Calculate and paint trajectories")
     for_ (zip [1..] _trajectories) $ \(i, (trajectory, _ic)) -> do
         when (mod i 100 == 0) (liftIO (putStrLn ("Paint trajectory " ++ show i ++ "/" ++ show (length _trajectories))))
-        for_ (zip trajectory (tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
-            setColor (magma (linearInterpolate (minSpeed, maxSpeed) (0,1) speed))
+        for_ (V.zip trajectory (V.tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
+            let colorValue = linearInterpolate (minSpeed, maxSpeed) (0,1) speed
+            setColor (mako colorValue `withOpacity` 0.3)
             lineSketch (Line a b)
             stroke
 
