@@ -37,7 +37,7 @@ main = do
         for_ (strands tiling) drawStrand
 
 colorScheme :: Int -> Color Double
-colorScheme = mako . (*0.01) . fromIntegral
+colorScheme = mako . (*0.02) . fromIntegral
 
 backgroundColor :: Color Double
 backgroundColor = blend 0.8 (colorScheme 0) black
@@ -85,7 +85,7 @@ deleteArc (Tile xs) (d1, i, d2) = Tile $ M.delete (d1, i) $ M.delete (d2, 4-i) x
 
 tiles1 :: V.Vector Tile
 tiles1 = V.fromList $ allRotations =<<
-    [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == 5 ]
+    [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l >= 4 ]
 
 tiles2 :: V.Vector Tile
 tiles2 = V.fromList $ allRotations =<<
@@ -104,7 +104,7 @@ tiles5 = V.fromList $ allRotations =<<
     [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
 tiles :: V.Vector Tile
-tiles = V.concat [ tiles1, tiles2, tiles3 ]
+tiles = V.concat [ tiles1, tiles4, tiles5 ]
 
 allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
