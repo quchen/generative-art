@@ -27,7 +27,7 @@ canvasSize = 8*cellSize
 
 main :: IO ()
 main = do
-    let file = "out/truchet.png"
+    let file = "out/truchet.svg"
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
         canvases = concat
