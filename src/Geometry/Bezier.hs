@@ -14,6 +14,7 @@ module Geometry.Bezier
 
     -- * Interpolation
     , bezierSmoothen
+    , bezierSmoothenOpen
     , bezierSmoothenLoop
 
     -- * References
@@ -226,15 +227,31 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 --   by Stuart Kent
 --   https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
 
--- | Smoothen a number of points by putting a Bezier curve between each pair.
+-- | Smoothen a number of points by putting a Bezier curve between each pair. If
+-- the first and last point are identical, assume the trajectory is closed, and
+-- smoothly interpolate between beginning and end as well.
+--
 -- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
 -- solution to a differential equation.
 --
--- For an input of n+1 points, this will yield n Bezier curves.
+-- If you want control over the closing behaviour, use 'bezierSmoothenOpen' and
+-- 'bezierSmoothenLoop' explicitly.
 --
 -- <<docs/interpolation/1_bezier_open.svg>>
 bezierSmoothen :: Vector Vec2 -> Vector Bezier
-bezierSmoothen points = V.zipWith4 Bezier points controlPointsStart controlPointsEnd (V.tail points)
+bezierSmoothen vec
+    | V.head vec == V.last vec = bezierSmoothenLoop (V.init vec)
+        --                                           ^^^^^^
+        -- Without the init (or tail), we interpolate the head twice, leading to a cute-but-undesirable »ear«.
+    | otherwise = bezierSmoothenOpen vec
+
+-- | Smoothen a number of points by putting a Bezier curve between each pair,
+-- assuming the curve is open (i.e. the last and first point have nothing to do
+-- with each other).
+--
+-- For an input of n+1 points, this will yield n Bezier curves.
+bezierSmoothenOpen :: Vector Vec2 -> Vector Bezier
+bezierSmoothenOpen points = V.zipWith4 Bezier points controlPointsStart controlPointsEnd (V.tail points)
   where
     n = V.length points - 1
 
@@ -272,4 +289,4 @@ target n vertices = V.generate n $ \i -> case () of
 -- given trajectory as well. (Simply using 'bezierSmoothen' will yield a sharp bend
 -- at the line’s origin.)
 bezierSmoothenLoop :: Vector Vec2 -> Vector Bezier
-bezierSmoothenLoop points = V.slice 1 (V.length points) (bezierSmoothen (points <> V.take 3 points))
+bezierSmoothenLoop points = V.slice 1 (V.length points) (bezierSmoothenOpen (points <> V.take 3 points))

@@ -245,8 +245,8 @@ interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_si
 bezierLoop :: TestTree
 bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_loop_interpolation" $ \(w,h) -> do
     let geometry =
-            let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1)]
-                smoothened = bezierSmoothenLoop (V.fromList points)
+            let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1), Vec2 0.5 0]
+                smoothened = bezierSmoothen (V.fromList points)
                 fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (w-10) (h-10)) FitAllMaintainAspect)
             in fitToBox smoothened
 
