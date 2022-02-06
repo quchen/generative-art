@@ -3,6 +3,7 @@ module Main (main) where
 
 import           Control.Monad            (replicateM)
 import           Data.Maybe               (fromMaybe)
+import qualified Data.Vector              as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import           Math.Noise               (Perlin (..), getValue, perlin)
 import           System.Random.MWC
@@ -51,7 +52,7 @@ main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surfa
 drawFieldLine :: Double -> [(Double, Vec2)] -> Render ()
 drawFieldLine _ [] = pure ()
 drawFieldLine thickness ps = cairoScope $ do
-    let ps' = bezierSmoothen (snd <$> ps)
+    let ps' = V.toList (bezierSmoothen (V.fromList (snd <$> ps)))
         time = fst <$> ps
     for_ (zip time ps') $ \(t, p) -> do
         Cairo.setLineCap Cairo.LineCapRound
