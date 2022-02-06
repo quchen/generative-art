@@ -263,6 +263,9 @@ instance Transform Transformation where
 instance Transform a => Transform [a] where
     transform t = map (transform t)
 
+instance Transform a => Transform (V.Vector a) where
+    transform t = V.map (transform t)
+
 instance (Ord a, Transform a) => Transform (S.Set a) where
     transform t = S.map (transform t)
 
