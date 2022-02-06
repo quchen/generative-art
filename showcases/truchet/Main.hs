@@ -48,12 +48,12 @@ plane = hexagonsInRange 15 origin
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
-mkTile :: [((Direction, Direction), Int)] -> Tile
+mkTile :: [(Direction, Direction, [Int])] -> Tile
 mkTile = Tile . go M.empty
   where
-    go :: M.Map (Direction, Int) Direction -> [((Direction, Direction), Int)] -> M.Map (Direction, Int) Direction
+    go :: M.Map (Direction, Int) Direction -> [(Direction, Direction, [Int])] -> M.Map (Direction, Int) Direction
     go m [] = m
-    go m (((d1, d2), n) : xs) = foldl' (addArc d1 d2) (go m xs) [1..n]
+    go m ((d1, d2, is) : xs) = foldl' (addArc d1 d2) (go m xs) is
     addArc :: Direction -> Direction -> M.Map (Direction, Int) Direction -> Int -> M.Map (Direction, Int) Direction
     addArc d1 d2 m i = M.insert (d1, arcIndex d1 d2 i) d2 . M.insert (d2, arcIndex d2 d1 i) d1 $ m
     arcIndex d1 d2 i = if cyclic d1 d2 then i else 4-i
@@ -72,23 +72,23 @@ unTile (Tile xs) =
 
 tiles1 :: V.Vector Tile
 tiles1 = V.fromList $ allRotations =<<
-    [ mkTile [((L, UR), k), ((R, DL), l)] | k <- [0..3], l <- [0..2], k+l == 5 ]
+    [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == 5 ]
 
 tiles2 :: V.Vector Tile
 tiles2 = V.fromList $ allRotations =<<
-    [ mkTile [((L, UL), k), ((UR, R), l), ((DR, DL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
+    [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
 
 tiles3 :: V.Vector Tile
 tiles3 = V.fromList $ allRotations =<<
-    [ mkTile [((DL, DR), k), ((DR, R),  l), ((R, UR), m), ((UR, UL), n), ((UL, L),  o), ((L, DL), p)] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+    [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
 
 tiles4 :: V.Vector Tile
 tiles4 = V.fromList $ allRotations =<<
-    [ mkTile [((L, R), k), ((DL, DR), l), ((UL, UR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+    [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
 
 tiles5 :: V.Vector Tile
 tiles5 = V.fromList $ allRotations =<<
-    [ mkTile [((L, R), k), ((DL, DR), l), ((L, UL), m), ((UL, UR), n), ((UR, R), m)] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
+    [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
 tiles :: V.Vector Tile
 tiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
