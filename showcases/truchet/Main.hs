@@ -37,10 +37,10 @@ main = do
         for_ (strands tiling) drawStrand
 
 colorScheme :: Int -> Color Double
-colorScheme = mako . (*0.02) . fromIntegral
+colorScheme = mako . (*0.018) . (+5) . fromIntegral
 
 backgroundColor :: Color Double
-backgroundColor = blend 0.8 (colorScheme 0) black
+backgroundColor = blend 0.8 (colorScheme (-5)) black
 
 plane :: [Hex]
 plane = hexagonsInRange 30 origin
