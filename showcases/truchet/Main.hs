@@ -60,20 +60,22 @@ main = do
 
         for_ configurations $ \(hex, tiles) -> cairoScope $ do
             let Vec2 x y = toVec2 canvasSize hex in Cairo.translate x y
-            polygonSketch (hexagon zero (canvasSize - 16))
-            setColor (blend 0.5 backgroundColor white)
-            Cairo.fillPreserve
-            Cairo.clip
 
             gen <- Cairo.liftIO $ initialize (V.fromList [123, 987])
             tiling <- Cairo.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
 
-            for_ (strands tiling) drawStrand
+            let paintOnHexagonalCanvas = do
+                    polygonSketch (hexagon zero (canvasSize - 16))
+                    Cairo.fillPreserve -- expects the content to be set as source
+                    setColor (colorScheme 9)
+                    Cairo.setLineWidth 8
+                    Cairo.stroke
+                drawTiling = do
+                    setColor (blend 0.5 backgroundColor white)
+                    Cairo.paint
+                    for_ (strands tiling) drawStrand
 
-            polygonSketch (hexagon zero (canvasSize - 16))
-            setColor (colorScheme 9)
-            Cairo.setLineWidth 8
-            Cairo.stroke
+            grouped paintOnHexagonalCanvas drawTiling
 
 hexagon :: Vec2 -> Double -> Polygon
 hexagon origin sideLength = Polygon [ transform (rotateAround origin angle) bottomCorner | angle <- deg <$> [0, 60 .. 360]]
