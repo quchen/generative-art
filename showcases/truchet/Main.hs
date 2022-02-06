@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 module Main where
 
 import qualified Data.Map.Strict as M
@@ -47,16 +46,16 @@ plane :: [Hex]
 plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
-newtype Tile a = Tile (M.Map (Direction, Int) (Direction, a)) deriving (Eq, Ord, Show, Functor)
+newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
-mkTile :: [((Direction, Direction), Int)] -> Tile ()
+mkTile :: [((Direction, Direction), Int)] -> Tile
 mkTile = Tile . go M.empty
   where
-    go :: M.Map (Direction, Int) (Direction, ()) -> [((Direction, Direction), Int)] -> M.Map (Direction, Int) (Direction, ())
+    go :: M.Map (Direction, Int) Direction -> [((Direction, Direction), Int)] -> M.Map (Direction, Int) Direction
     go m [] = m
     go m (((d1, d2), n) : xs) = foldl' (addArc d1 d2) (go m xs) [1..n]
-    addArc :: Direction -> Direction -> M.Map (Direction, Int) (Direction, ()) -> Int -> M.Map (Direction, Int) (Direction, ())
-    addArc d1 d2 m i = M.insert (d1, arcIndex d1 d2 i) (d2, ()) . M.insert (d2, arcIndex d2 d1 i) (d1, ()) $ m
+    addArc :: Direction -> Direction -> M.Map (Direction, Int) Direction -> Int -> M.Map (Direction, Int) Direction
+    addArc d1 d2 m i = M.insert (d1, arcIndex d1 d2 i) d2 . M.insert (d2, arcIndex d2 d1 i) d1 $ m
     arcIndex d1 d2 i = if cyclic d1 d2 then i else 4-i
 
 cyclic :: Direction -> Direction -> Bool
@@ -64,52 +63,52 @@ cyclic d1 d2
     | d1 == reverseDirection d2 = d1 < d2
     | otherwise = (6 + fromEnum d1 - fromEnum d2) `mod` 6 <= 3
 
-unTile :: Tile a -> [(Direction, Int, Direction, a)]
+unTile :: Tile -> [(Direction, Int, Direction)]
 unTile (Tile xs) =
-    [ (d1, i, d2, a)
-    | ((d1, i), (d2, a)) <- M.toList xs
+    [ (d1, i, d2)
+    | ((d1, i), d2) <- M.toList xs
     , cyclic d1 d2
     ]
 
-tiles1 :: V.Vector (Tile ())
+tiles1 :: V.Vector Tile
 tiles1 = V.fromList $ allRotations =<<
     [ mkTile [((L, UR), k), ((R, DL), l)] | k <- [0..3], l <- [0..2], k+l == 5 ]
 
-tiles2 :: V.Vector (Tile ())
+tiles2 :: V.Vector Tile
 tiles2 = V.fromList $ allRotations =<<
     [ mkTile [((L, UL), k), ((UR, R), l), ((DR, DL), m)] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
 
-tiles3 :: V.Vector (Tile ())
+tiles3 :: V.Vector Tile
 tiles3 = V.fromList $ allRotations =<<
     [ mkTile [((DL, DR), k), ((DR, R),  l), ((R, UR), m), ((UR, UL), n), ((UL, L),  o), ((L, DL), p)] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
 
-tiles4 :: V.Vector (Tile ())
+tiles4 :: V.Vector Tile
 tiles4 = V.fromList $ allRotations =<<
     [ mkTile [((L, R), k), ((DL, DR), l), ((UL, UR), m)] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
 
-tiles5 :: V.Vector (Tile ())
+tiles5 :: V.Vector Tile
 tiles5 = V.fromList $ allRotations =<<
     [ mkTile [((L, R), k), ((DL, DR), l), ((L, UL), m), ((UL, UR), n), ((UR, R), m)] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
-tiles :: V.Vector (Tile ())
+tiles :: V.Vector Tile
 tiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
 
-allRotations :: Tile a -> [Tile a]
+allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
 
-rotateTile :: Int -> Tile a -> Tile a
-rotateTile n (Tile xs) = Tile $ M.fromList $ (\((d1, i), (d2, a)) -> ((rotateDirection d1, i), (rotateDirection d2, a))) <$> M.toList xs
+rotateTile :: Int -> Tile -> Tile
+rotateTile n (Tile xs) = Tile $ M.fromList $ (\((d1, i), d2) -> ((rotateDirection d1, i), rotateDirection d2)) <$> M.toList xs
   where
     rotateDirection d = toEnum ((fromEnum d + n) `mod` 6)
 
-type Tiling a = M.Map Hex (Tile a)
+type Tiling a = M.Map Hex Tile
 
 randomTiling :: GenIO -> [Hex] -> IO (Tiling ())
 randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
     tile <- randomTile gen
     pure (hex, tile)
 
-randomTile :: GenIO -> IO (Tile ())
+randomTile :: GenIO -> IO Tile
 randomTile = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
     pure (tiles V.! rnd)
@@ -118,8 +117,8 @@ randomTile = \gen -> do
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawTile :: Hex -> Tile () -> Cairo.Render ()
-drawTile hex tile = for_ (unTile tile) $ \(d1, i, d2, _) -> drawArc hex(d1, i, d2, i `mod` 2)
+drawTile :: Hex -> Tile -> Cairo.Render ()
+drawTile hex tile = for_ (unTile tile) $ \(d1, i, d2) -> drawArc hex(d1, i, d2, i `mod` 2)
 
 drawArc :: Hex -> (Direction, Int, Direction, Int) -> Cairo.Render ()
 drawArc hex (d1, n, d2, c) = cairoScope $ do
@@ -134,7 +133,7 @@ drawArc hex (d1, n, d2, c) = cairoScope $ do
     side d = 0.5 *. (center +. nextCenter d)
     nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
-    [down, lowerLeft, upperLeft, up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
+    [down, _lowerLeft, _upperLeft, _up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
 
     sketchArc i UL DR = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side DR)
     sketchArc i UR DL = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR)
