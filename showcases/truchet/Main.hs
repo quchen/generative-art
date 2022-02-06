@@ -8,7 +8,7 @@ import System.Random.MWC (uniformRM, GenIO, initialize)
 
 import Draw
 import Geometry
-import Geometry.Coordinates.Hexagonal
+import Geometry.Coordinates.Hexagonal hiding (Polygon, polygonSketch, rotateAround)
 
 
 
@@ -20,30 +20,60 @@ scaleFactor :: Double
 scaleFactor = 0.5
 
 cellSize :: Num a => a
-cellSize = 64
+cellSize = 32
+
+canvasSize :: Num a => a
+canvasSize = 8*cellSize
 
 main :: IO ()
 main = do
     let file = "out/truchet.png"
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
-
-    gen <- initialize (V.fromList [123, 987])
-    tiling <- randomTiling gen plane
+        canvases = hexagonsInRange 1 hexZero
+        configurations = zip canvases
+            [ tiles1
+            , tiles2
+            , tiles3
+            , tiles4
+            , tiles5
+            , tiles2 <> tiles3
+            , tiles2 <> tiles5
+            ]
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
         Cairo.scale scaleFactor scaleFactor
+        Cairo.translate (picWidth / 2) (picHeight / 2)
         cairoScope (setColor backgroundColor >> Cairo.paint)
-        for_ (strands tiling) drawStrand
+
+        hexagonalCoordinateSystem canvasSize 2
+
+        for_ configurations $ \(hex, tiles) -> cairoScope $ do
+            let Vec2 x y = toVec2 canvasSize hex in Cairo.translate x y
+            polygonSketch (hexagon zero (canvasSize - 16))
+            setColor black
+            Cairo.setLineWidth 2
+            Cairo.strokePreserve
+            Cairo.clip
+
+            gen <- Cairo.liftIO $ initialize (V.fromList [123, 987])
+            tiling <- Cairo.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
+
+            for_ (strands tiling) drawStrand
+
+hexagon :: Vec2 -> Double -> Polygon
+hexagon origin sideLength = Polygon [ transform (rotateAround origin angle) bottomCorner | angle <- deg <$> [0, 60 .. 360]]
+  where
+    bottomCorner = origin +. Vec2 0 sideLength
 
 colorScheme :: Int -> Color Double
-colorScheme = twilight . (*0.02) . fromIntegral
+colorScheme = mathematica97
 
 backgroundColor :: Color Double
-backgroundColor = blend 0.8 (colorScheme 0) white
+backgroundColor = blend 0 (colorScheme 0) white
 
 plane :: [Hex]
-plane = hexagonsInRange 15 origin
+plane = hexagonsInRange 1 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
@@ -116,16 +146,16 @@ rotateTile n (Tile xs) = Tile $ M.fromList $ (\((d1, i), d2) -> ((rotateDirectio
 
 type Tiling = M.Map Hex Tile
 
-randomTiling :: GenIO -> [Hex] -> IO Tiling
-randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
-    tile <- randomTile gen
+randomTiling :: V.Vector Tile -> GenIO -> [Hex] -> IO Tiling
+randomTiling baseTiles gen coords = fmap M.fromList $ for coords $ \hex -> do
+    tile <- randomTile baseTiles gen
     pure (hex, tile)
 
-randomTile :: GenIO -> IO Tile
-randomTile = \gen -> do
+randomTile :: V.Vector Tile -> GenIO -> IO Tile
+randomTile baseTiles = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
-    pure (tiles V.! rnd)
-  where countTiles = V.length tiles
+    pure (baseTiles V.! rnd)
+  where countTiles = V.length baseTiles
 
 strands :: Tiling -> [[(Hex, (Direction, Int, Direction))]]
 strands tiling = case M.lookupMin tiling of
@@ -135,7 +165,7 @@ strands tiling = case M.lookupMin tiling of
         Just ((d, i, d'), t') ->
             let (s, tiling') = strand tiling startHex (d, i)
                 (s', tiling'') = strand tiling' startHex (d', 4-i)
-            in (reverse s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
+            in (reverseStrand s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
 
 strand :: Tiling -> Hex -> (Direction, Int) -> ([(Hex, (Direction, Int, Direction))], Tiling)
 strand tiling hex (d, i) = let hex' = move d 1 hex in case M.lookup hex' tiling of
@@ -146,20 +176,26 @@ strand tiling hex (d, i) = let hex' = move d 1 hex in case M.lookup hex' tiling 
             let (s', tiling') = strand (M.insert hex' t' tiling) hex' (d', i)
             in  ((hex', (reverseDirection d, 4-i, d')) : s', tiling')
 
+reverseStrand :: [(Hex, (Direction, Int, Direction))] -> [(Hex, (Direction, Int, Direction))]
+reverseStrand = fmap (\(h, (d1, i, d2)) -> (h, (d2, 4-i, d1))) . reverse
+
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
 drawStrand :: [(Hex, (Direction, Int, Direction))] -> Cairo.Render ()
-drawStrand xs = for_ xs $ \(hex, (d1, n, d2)) -> drawArc hex (d1, n, d2, length xs)
-
-drawArc :: Hex -> (Direction, Int, Direction, Int) -> Cairo.Render ()
-drawArc hex (d1, n, d2, c) = cairoScope $ do
-    let i = if cyclic d1 d2 then n else 4-n
-    sketchArc (fromIntegral i) d1 d2
+drawStrand [] = pure ()
+drawStrand xs@((_, (_, n, _)):_) = do
+    let c = n `mod` 2
+    for_ xs $ uncurry drawArc
     Cairo.setLineWidth (3/16 * cellSize)
     Cairo.setLineCap Cairo.LineCapRound
     setColor (colorScheme c)
     Cairo.stroke
+
+drawArc :: Hex -> (Direction, Int, Direction) -> Cairo.Render ()
+drawArc hex (d1, n, d2) = cairoScope $ do
+    let i = if cyclic d1 d2 then n else 4-n
+    sketchArc (fromIntegral i) d1 d2
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
@@ -167,25 +203,37 @@ drawArc hex (d1, n, d2, c) = cairoScope $ do
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
     [down, _lowerLeft, _upperLeft, _up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
 
-    sketchArc i UL DR = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side DR)
+    sketchArc i DR UL = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side DR)
     sketchArc i UR DL = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR)
     sketchArc i R  L  = moveToVec ((0.5 - 0.25 * i) *. down       +. side L)  >> lineToVec ((0.5 - 0.25 * i) *. down       +. side R)
+    sketchArc i UL DR = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side DR) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side UL)
+    sketchArc i DL UR = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL)
+    sketchArc i L  R  = moveToVec ((0.5 - 0.25 * i) *. down       +. side R)  >> lineToVec ((0.5 - 0.25 * i) *. down       +. side L)
 
-    sketchArc i L  UR = arcSketch (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
-    sketchArc i UL R  = arcSketch (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
-    sketchArc i UR DR = arcSketch (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 150) (deg 210)
-    sketchArc i R  DL = arcSketch (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 210) (deg 270)
-    sketchArc i DR L  = arcSketch (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 330)
-    sketchArc i DL UL = arcSketch (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 330) (deg 30)
+    sketchArc i UR L  = arcSketch (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
+    sketchArc i R  UL = arcSketch (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
+    sketchArc i DR UR = arcSketch (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 150) (deg 210)
+    sketchArc i DL R  = arcSketch (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 210) (deg 270)
+    sketchArc i L  DR = arcSketch (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 330)
+    sketchArc i UL DL = arcSketch (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 330) (deg 30)
+    sketchArc i L  UR = arcSketchNegative (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 30)
+    sketchArc i UL R  = arcSketchNegative (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 150) (deg 90)
+    sketchArc i UR DR = arcSketchNegative (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 210) (deg 150)
+    sketchArc i R  DL = arcSketchNegative (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 210)
+    sketchArc i DR L  = arcSketchNegative (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 330) (deg 270)
+    sketchArc i DL UL = arcSketchNegative (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 330)
 
-    sketchArc i L  UL = arcSketch (corner L  UL) (0.25 * i * cellSize) (deg 330) (deg 90)
-    sketchArc i UL UR = arcSketch (corner UL UR) (0.25 * i * cellSize) (deg 30)  (deg 150)
-    sketchArc i UR R  = arcSketch (corner UR R)  (0.25 * i * cellSize) (deg 90)  (deg 210)
-    sketchArc i R  DR = arcSketch (corner R  DR) (0.25 * i * cellSize) (deg 150) (deg 270)
-    sketchArc i DR DL = arcSketch (corner DR DL) (0.25 * i * cellSize) (deg 210) (deg 330)
-    sketchArc i DL L  = arcSketch (corner DL L)  (0.25 * i * cellSize) (deg 270) (deg 30)
+    sketchArc i UL L  = arcSketch (corner L  UL) (0.25 * i * cellSize) (deg 330) (deg 90)
+    sketchArc i UR UL = arcSketch (corner UL UR) (0.25 * i * cellSize) (deg 30)  (deg 150)
+    sketchArc i R  UR = arcSketch (corner UR R)  (0.25 * i * cellSize) (deg 90)  (deg 210)
+    sketchArc i DR R  = arcSketch (corner R  DR) (0.25 * i * cellSize) (deg 150) (deg 270)
+    sketchArc i DL DR = arcSketch (corner DR DL) (0.25 * i * cellSize) (deg 210) (deg 330)
+    sketchArc i L  DL = arcSketch (corner DL L)  (0.25 * i * cellSize) (deg 270) (deg 30)
+    sketchArc i L  UL = arcSketchNegative (corner L  UL) (0.25 * i * cellSize) (deg 90)  (deg 330)
+    sketchArc i UL UR = arcSketchNegative (corner UL UR) (0.25 * i * cellSize) (deg 150) (deg 30)
+    sketchArc i UR R  = arcSketchNegative (corner UR R)  (0.25 * i * cellSize) (deg 210) (deg 90)
+    sketchArc i R  DR = arcSketchNegative (corner R  DR) (0.25 * i * cellSize) (deg 270) (deg 150)
+    sketchArc i DR DL = arcSketchNegative (corner DR DL) (0.25 * i * cellSize) (deg 330) (deg 210)
+    sketchArc i DL L  = arcSketchNegative (corner DL L)  (0.25 * i * cellSize) (deg 30)  (deg 270)
 
-    sketchArc _ d  d' | d == d' = error ("Illegal tile " ++ show (d, d'))
-
-    sketchArc i d  d' = sketchArc i d' d
-
+    sketchArc _ d  d' = error ("Illegal tile " ++ show (d, d'))
