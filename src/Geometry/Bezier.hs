@@ -285,6 +285,8 @@ target n vertices = V.generate n $ \i -> case () of
 -- given trajectory as well. (Simply using 'bezierSmoothen' will yield a sharp bend
 -- at the line’s origin.)
 bezierSmoothenLoop :: Vector Vec2 -> Vector Bezier
+bezierSmoothenLoop points
+    | V.length points <= 2 = V.empty
 bezierSmoothenLoop points =
     -- The idea is this: we can artificially lengthen a closed trajectory by
     -- wrapping it onto itself. We then interpolate it as if it was open, and later
