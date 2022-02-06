@@ -6,6 +6,12 @@ Cairo.
 
 ![](showcases/circuits.svg)
 
+![](showcases/truchet.svg)
+
+![](showcases/truchetti.svg)
+
+![](showcases/voronoi_3d.svg)
+
 ![](showcases/haskell_logo_billard.svg)
 
 ![](showcases/haskell_logo_shattered.svg)
