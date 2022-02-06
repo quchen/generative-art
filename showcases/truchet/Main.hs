@@ -20,7 +20,7 @@ scaleFactor :: Double
 scaleFactor = 0.5
 
 cellSize :: Num a => a
-cellSize = 64
+cellSize = 32
 
 main :: IO ()
 main = do
@@ -28,7 +28,7 @@ main = do
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
 
-    gen <- initialize (V.fromList [123, 987])
+    gen <- initialize (V.fromList [123, 997])
     tiling <- randomTiling gen plane
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
@@ -37,13 +37,13 @@ main = do
         for_ (strands tiling) drawStrand
 
 colorScheme :: Int -> Color Double
-colorScheme = twilight . (*0.02) . fromIntegral
+colorScheme = mako . (*0.01) . fromIntegral
 
 backgroundColor :: Color Double
-backgroundColor = blend 0.8 (colorScheme 0) white
+backgroundColor = blend 0.8 (colorScheme 0) black
 
 plane :: [Hex]
-plane = hexagonsInRange 15 origin
+plane = hexagonsInRange 30 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
@@ -104,7 +104,7 @@ tiles5 = V.fromList $ allRotations =<<
     [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
 tiles :: V.Vector Tile
-tiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
+tiles = V.concat [ tiles1, tiles2, tiles3 ]
 
 allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
