@@ -13,6 +13,7 @@ import qualified Data.Map      as M
 import           Data.Ord
 import           Data.Sequence (Seq, (|>))
 import qualified Data.Sequence as Seq
+import           Data.Vector   (Vector)
 import qualified Data.Vector   as V
 import           Geometry.Core
 import           Geometry.LUT
@@ -63,17 +64,27 @@ pointOnTrajectory points
 -- This implements the Ramer-Douglas-Peucker algorithm,
 -- https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
 --
+-- If your trajectory contains more than just the points you want to simplify on,
+-- use 'simplifyTrajectoryBy'.
+--
 -- <<docs/interpolation/3_simplify_path.svg>>
-simplifyTrajectory :: Double -> [Vec2] -> [Vec2]
-simplifyTrajectory = simplifyTrajectoryBy id
+simplifyTrajectory
+    :: Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points
+    -> Vector Vec2 -- ^ Trajectory
+    -> Vector Vec2 -- ^ Simplified trajectory
+simplifyTrajectory epsilon = simplifyTrajectoryBy epsilon id
 
 -- | 'simplifyTrajectory', but allows specifying a function for how to extract the points
 -- to base simplifying on from the input.
 --
 -- This is useful when your trajectory contains metadata, such as the velocity at
 -- each point.
-simplifyTrajectoryBy :: (a -> Vec2) -> Double -> [a] -> [a]
-simplifyTrajectoryBy vec2in epsilon = V.toList . go . V.fromList
+simplifyTrajectoryBy
+    :: Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points
+    -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
+    -> Vector a    -- ^ Trajectory
+    -> Vector a    -- ^ Simplified trajectory
+simplifyTrajectoryBy epsilon vec2in = go
   where
     go points | V.length points <= 2 = points
     go points

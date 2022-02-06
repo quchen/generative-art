@@ -19,7 +19,7 @@ import Test.TastyAll
 
 
 tests :: TestTree
-tests = testGroup "Trajactories"
+tests = testGroup "Trajectories"
     [ simplifyPathTests
     , reassembleLinesTest
     ]
@@ -63,7 +63,7 @@ simplifyFunctionGraphTest = testVisual "Simplify function graph" 400 300 "docs/i
     cairoScope $ do
         for_ epsilons $ \epsilon -> do
             Cairo.translate 0 20
-            let simplified = simplifyTrajectory epsilon graph
+            let simplified = simplifyTrajectory epsilon (V.fromList graph)
                 interpolatedAgain = bezierSmoothen simplified
             setColor $ mathematica97 1
             plotBezier (fitToBox interpolatedAgain)
@@ -71,7 +71,7 @@ simplifyFunctionGraphTest = testVisual "Simplify function graph" 400 300 "docs/i
 
 simplifyPathRegressionTest :: TestTree
 simplifyPathRegressionTest = localOption (Timeout (10^5) "100ms") $ testCase "Can handle cyclic paths" $ do
-    let cyclicPath = [Vec2 1 0, Vec2 1 1, Vec2 1 0]
+    let cyclicPath = V.fromList [Vec2 1 0, Vec2 1 1, Vec2 1 0]
         simplified = simplifyTrajectory 100 cyclicPath
     assertBool "The algorithm did not terminate" (simplified `seq` True)
 

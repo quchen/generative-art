@@ -117,11 +117,13 @@ bezierSegmentSketch (Bezier start p1 p2 end) = do
     curveToVec p1 p2 end
 
 -- | Sketch a curve consisting out of multiple Bezier segments.
-bezierCurveSketch :: [Bezier] -> Render ()
-bezierCurveSketch [] = pure ()
-bezierCurveSketch (ps@(Bezier start _ _ _ : _)) = do
-    moveToVec start
-    for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
+bezierCurveSketch :: Foldable f => f Bezier -> Render ()
+bezierCurveSketch = go . toList
+  where
+    go [] = pure ()
+    go (ps@(Bezier start _ _ _ : _)) = do
+        moveToVec start
+        for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
 
 data ArrowSpec = ArrowSpec
     { arrowheadRelPos    :: Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center.
@@ -200,11 +202,13 @@ arcSketch (Vec2 x y) r angleStart angleEnd
   = arc x y r (getRad angleStart) (getRad angleEnd)
 
 -- | Sketch the line defined by a sequence of points.
-pathSketch :: [Vec2] -> Render ()
-pathSketch [] = pure ()
-pathSketch (Vec2 x y : vecs) = do
-    moveTo x y
-    for_ vecs (\(Vec2 x' y') -> lineTo x' y')
+pathSketch :: Foldable f => f Vec2 -> Render ()
+pathSketch = go . toList
+  where
+    go [] = pure ()
+    go (Vec2 x y : vecs) = do
+        moveTo x y
+        for_ vecs (\(Vec2 x' y') -> lineTo x' y')
 
 -- | Sketch a 'Polygon'.
 polygonSketch :: Polygon -> Render ()

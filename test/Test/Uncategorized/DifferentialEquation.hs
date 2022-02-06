@@ -11,6 +11,7 @@ import Geometry.Chaotic
 import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import Numerics.DifferentialEquation
 import Numerics.Interpolation
+import qualified Data.Vector as V
 
 import Test.TastyAll
 
@@ -143,14 +144,14 @@ renderDoublePendulum :: (Double, Double) -> Render ()
 renderDoublePendulum (w,h) = do
     let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
         scaleToCanvas = Geometry.transform (Geometry.translate (Vec2 (w/2) (h/2)))
-        transformedTrajectory = [(t, scaleToCanvas x) | (t,x) <- trajectory]
-        bezierSmoothTrajectory = bezierSmoothen [x | (_, x) <- transformedTrajectory]
+        transformedTrajectory = V.fromList [(t, scaleToCanvas x) | (t,x) <- trajectory]
+        bezierSmoothTrajectory = bezierSmoothen (fmap (\(_, x) -> x) transformedTrajectory)
 
     cairoScope $ do
-        let (_t0, start) = head transformedTrajectory
+        let (_t0, start) = V.head transformedTrajectory
         moveToVec start
         setLineWidth 1
-        for_ (zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
+        for_ (V.zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
             setColor $ rocket (1-exp (-t / 500)) `withOpacity` exp (-t / 500)
             bezierSegmentSketch bezier
             stroke
@@ -197,19 +198,19 @@ renderPhaseSpace :: [(Double, (Double, Double))] -> (Double, Double) -> Render (
 renderPhaseSpace solutionInfinite (w, h) = do
     let tMin = 100
         tMax = 150
-        solution = takeWhile (\(t, _) -> t < tMax) . dropWhile (\(t, _) -> t < tMin) $ solutionInfinite
-        bb = boundingBox [Vec2 x v | (_t, (x,v)) <- solution]
+        solution = V.fromList . takeWhile (\(t, _) -> t < tMax) . dropWhile (\(t, _) -> t < tMin) $ solutionInfinite
+        bb = boundingBox (fmap (\(_t, (x,v)) -> Vec2 x v) solution)
         bbCanvas = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
         scaleToCanvas :: Transform geo => geo -> geo
         scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
         trajectory = scaleToCanvas
-            . map (\(t, (x, v)) -> (NoTransform t, Vec2 x v))
-            . simplifyTrajectoryBy (\(_t, (x, v)) -> Vec2 x v) 0.01 -- SVG compression :-)
+            . simplifyTrajectoryBy 0.01 (\(_t, phaseSpacePoint) -> phaseSpacePoint) -- SVG compression :-)
+            . fmap (\(t, (x, v)) -> (NoTransform t, Vec2 x v))
             $ solution
 
     setLineWidth 1
     cairoScope $ do
-        for_ (zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (tail trajectory)) $ \(t, line) -> do
+        for_ (V.zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (V.tail trajectory)) $ \(t, line) -> do
             lineSketch line
             let val = linearInterpolate (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val/1))
