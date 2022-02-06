@@ -3,6 +3,8 @@ module Test.Uncategorized.Bezier (tests) where
 
 
 import Data.Foldable
+import qualified Data.Vector as V
+import Data.Vector (Vector)
 import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
@@ -29,8 +31,8 @@ tests = testGroup "Bezier curves"
 
 somePoints :: TestTree
 somePoints = testVisual "Open curve" 400 300 "docs/interpolation/1_bezier_open" $ \_ -> do
-    let points =
-            G.transform (G.translate (Vec2 50 25) <> G.scale 0.5) [ Vec2 100 500
+    let points = G.transform (G.translate (Vec2 50 25) <> G.scale 0.5) $ V.fromList
+            [ Vec2 100 500
             , Vec2 200 200
             , Vec2 500 500
             , Vec2 600 100
@@ -43,7 +45,7 @@ somePoints = testVisual "Open curve" 400 300 "docs/interpolation/1_bezier_open" 
         smoothed = bezierSmoothen points
     paintBezierOpenPicture points smoothed
 
-paintBezierOpenPicture :: [Vec2] -> [Bezier] -> Render ()
+paintBezierOpenPicture :: Vector Vec2 -> Vector Bezier -> Render ()
 paintBezierOpenPicture points smoothed = do
     setLineWidth 1
 
@@ -85,7 +87,7 @@ picassoSquirrel :: TestTree
 picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_picasso_squirrel" $ \_ -> do
     let beziers = [bezierFace, bezierEar, bezierBack, bezierTail1, bezierTail2]
     cairoScope $ do -- Paint squirrel outline
-        moveToVec (head face)
+        moveToVec (V.head face)
         setSourceRGB 0 0 0
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> do
             curveTo x1 y1 x2 y2 x3 y3
@@ -106,46 +108,48 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
         setSourceRGB 0 0 0
-        for_ (concat [face, ear, back, tail1, tail2, foot]) $ \p -> do
+        for_ (mconcat [face, ear, back, tail1, tail2, foot]) $ \p -> do
             circleSketch p 2.5 >> fill
 
 
 
   where
+    bezierFace, bezierEar, bezierBack, bezierTail1, bezierTail2 :: Vector Bezier
     bezierFace = bezierSmoothen face
-    bezierEar = bezierSmoothen (last face : ear)
-    bezierBack = bezierSmoothen (last ear : back)
-    bezierTail1 = bezierSmoothen (last back : tail1)
-    bezierTail2 = bezierSmoothen (last tail1 : tail2)
-    lineFoot = Line (last tail2) (head foot) -- Foot is just a line
+    bezierEar = bezierSmoothen (V.singleton (V.last face) <> ear)
+    bezierBack = bezierSmoothen (V.singleton (V.last ear) <> back)
+    bezierTail1 = bezierSmoothen (V.singleton (V.last back) <> tail1)
+    bezierTail2 = bezierSmoothen (V.singleton (V.last tail1) <> tail2)
+    lineFoot = Line (V.last tail2) (V.head foot) -- Foot is just a line
 
     moveToCanvas = G.transform (G.translate (Vec2 (-30) 320) <> mirrorYCoords <> G.scale 1.5)
 
-    face = moveToCanvas
+    face, ear, back, tail1, tail2, foot :: Vector Vec2
+    face = moveToCanvas $ V.fromList
         [ Vec2 50.77511154733325  152.3192840188383
         , Vec2 33.646158254256974 148.34291986151698
         , Vec2 31.810913258570228 150.17816485720374
         , Vec2 34.56378075210034  163.33075399295876
         , Vec2 47.71636988785535  179.23621062224385
         ]
-    ear = moveToCanvas
+    ear = moveToCanvas $ V.fromList
         [ Vec2 53.22210487491557  200.953276404537
         , Vec2 75.5509189891043   206.15313722564943
         , Vec2 82.89189897185128  187.18893893688642
         , Vec2 70.35105816799185  176.17746896276594
         ]
-    back = moveToCanvas
+    back = moveToCanvas $ V.fromList
         [ Vec2 122.65554054506407 128.76697324085836
         , Vec2 143.76085799546163 57.80416674097094
         ]
-    tail1 = moveToCanvas
+    tail1 = moveToCanvas $ V.fromList
         [ Vec2 184.13624790057    83.49759668058542
         , Vec2 198.20645953416837 129.99046990464961
         , Vec2 162.41918211827686 170.36585980975798
         , Vec2 146.51372548899175 145.89592653393476
         , Vec2 160.5839371225901  131.51984073438854
         ]
-    tail2 = moveToCanvas
+    tail2 = moveToCanvas $ V.fromList
         [ Vec2 148.0430963187307  124.17886075164157
         , Vec2 134.5846330170279  132.1315890662841
         , Vec2 132.13763968944556 157.21327067400296
@@ -159,15 +163,16 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
         , Vec2 104.30309058819662 40.67521344789472
         , Vec2 76.77441565289546  43.122206775477025
         ]
-    foot = moveToCanvas
+    foot = moveToCanvas $ V.fromList
         [ Vec2 94.20924311191953  67.99997227256398
         ]
 
 subdivideBezierCurveTest :: TestTree
 subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_bezier_subdivide" $ \_ -> do
     let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
+        fitToBox :: (HasBoundingBox a, HasBoundingBox b, Transform geo) => a -> b -> geo -> geo
         fitToBox bbContents box = G.transform (transformBoundingBox bbContents box FitAllIgnoreAspect)
-        beziers = bezierSmoothen graph
+        beziers = bezierSmoothen (V.fromList graph)
 
     setLineWidth 1
 
@@ -179,10 +184,11 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
         moveTo 200 70
         showText (show (length beziers) ++ " curves")
 
-    let subpoints = beziers >>= bezierSubdivideT 10
+    let subpoints = beziers >>= (V.fromList . bezierSubdivideT 10)
     let simplified = simplifyTrajectory 0.05 subpoints
     cairoScope $ do
-        let fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
+        let fit :: Transform geo => geo -> geo
+            fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
         cairoScope $ for_ (fit subpoints) $ \p -> do
             setColor $ mathematica97 1 `withOpacity` 0.1
@@ -240,7 +246,7 @@ bezierLoop :: TestTree
 bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_loop_interpolation" $ \(w,h) -> do
     let geometry =
             let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1)]
-                smoothened = bezierSmoothenLoop points
+                smoothened = bezierSmoothenLoop (V.fromList points)
                 fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (w-10) (h-10)) FitAllMaintainAspect)
             in fitToBox smoothened
 

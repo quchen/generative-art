@@ -160,6 +160,6 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 setColor (mathematica97 colorIx `withOpacity` threshold)
-                for_ isos $ \path -> pathSketch (simplifyTrajectory 0.4 path)
+                for_ isos $ \path -> pathSketch (simplifyTrajectory 0.4 (V.fromList path))
                 stroke
     ]
