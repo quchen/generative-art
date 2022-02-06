@@ -24,6 +24,7 @@ module Draw (
     , circleSketch
     , crossSketch
     , arcSketch
+    , arcSketchNegative
     , polygonSketch
     , pathSketch
     , boundingBoxSketch
@@ -200,6 +201,16 @@ arcSketch
     -> Render ()
 arcSketch (Vec2 x y) r angleStart angleEnd
   = arc x y r (getRad angleStart) (getRad angleEnd)
+
+-- | Sketch part of a circle.
+arcSketchNegative
+    :: Vec2 -- ^ Center
+    -> Double -- ^ Radius
+    -> Angle -- ^ Starting angle (absolute)
+    -> Angle -- ^ Ending angle (absolute)
+    -> Render ()
+arcSketchNegative (Vec2 x y) r angleStart angleEnd
+  = arcNegative x y r (getRad angleStart) (getRad angleEnd)
 
 -- | Sketch the line defined by a sequence of points.
 pathSketch :: Foldable f => f Vec2 -> Render ()
