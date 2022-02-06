@@ -30,15 +30,27 @@ main = do
     let file = "out/truchet.png"
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
-        canvases = hexagonsInRange 1 hexZero
+        canvases = concat
+            [ [ move UR 1 $ move R n hexZero | n <- [-2..1]]
+            , [ move R n hexZero | n <- [-2..2]]
+            , [ move DR 1 $ move R n hexZero | n <- [-2..1]]
+            ]
         configurations = zip canvases
-            [ tiles1
-            , tiles2
-            , tiles3
+            [ V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
+            , V.fromList $ allRotations $ mkTile [(UL, UR, [1..3]), (R, DR, [1..3]), (DL, L, [1..3])]
+            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [1..3], l <- [1..3], m <- [1..3], n <- [1..3], o <- [1..3], p <- [1..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+
+            , V.singleton $ mkTile [(L, UR, [1..3]), (R, DL, [1..2])]
+            , tiles1
+            , tiles1 <> tiles4
+            , V.fromList $ allRotations $ mkTile [(L, UR, [1, 2]), (R, DL, [1, 2])]
+            , V.singleton $ mkTile [(R, UL, [1,2]), (R, DL, [1])]
+
             , tiles4
             , tiles5
-            , tiles2 <> tiles3
-            , tiles2 <> tiles5
+            , tiles2 <> tiles4
+            , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
             ]
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
@@ -46,14 +58,11 @@ main = do
         Cairo.translate (picWidth / 2) (picHeight / 2)
         cairoScope (setColor backgroundColor >> Cairo.paint)
 
-        hexagonalCoordinateSystem canvasSize 2
-
         for_ configurations $ \(hex, tiles) -> cairoScope $ do
             let Vec2 x y = toVec2 canvasSize hex in Cairo.translate x y
             polygonSketch (hexagon zero (canvasSize - 16))
-            setColor black
-            Cairo.setLineWidth 2
-            Cairo.strokePreserve
+            setColor (blend 0.5 backgroundColor white)
+            Cairo.fillPreserve
             Cairo.clip
 
             gen <- Cairo.liftIO $ initialize (V.fromList [123, 987])
@@ -61,16 +70,21 @@ main = do
 
             for_ (strands tiling) drawStrand
 
+            polygonSketch (hexagon zero (canvasSize - 16))
+            setColor (colorScheme 9)
+            Cairo.setLineWidth 8
+            Cairo.stroke
+
 hexagon :: Vec2 -> Double -> Polygon
 hexagon origin sideLength = Polygon [ transform (rotateAround origin angle) bottomCorner | angle <- deg <$> [0, 60 .. 360]]
   where
     bottomCorner = origin +. Vec2 0 sideLength
 
 colorScheme :: Int -> Color Double
-colorScheme = mathematica97
+colorScheme = paired
 
 backgroundColor :: Color Double
-backgroundColor = blend 0 (colorScheme 0) white
+backgroundColor = blend 0.5 (colorScheme 8) white
 
 plane :: [Hex]
 plane = hexagonsInRange 1 origin
@@ -133,8 +147,8 @@ tiles5 :: V.Vector Tile
 tiles5 = V.fromList $ allRotations =<<
     [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
-tiles :: V.Vector Tile
-tiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
+allTiles :: V.Vector Tile
+allTiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
 
 allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
