@@ -17,6 +17,8 @@ module Test.TastyAll (
     , testVisual
 
     -- * Reexports
+    , module Control.Applicative
+    , module Control.Monad
     , module Test.Arbitrary
     , module Test.Tasty
     , module Test.Tasty.HUnit
@@ -25,6 +27,8 @@ module Test.TastyAll (
 
 
 
+import Control.Applicative
+import Control.Monad
 import Control.Exception
 import Data.Colour.RGBSpace     as Colour
 import Data.Colour.SRGB         as Colour

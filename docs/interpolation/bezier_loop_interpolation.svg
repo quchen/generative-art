@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="60pt" height="100pt" viewBox="0 0 60 100" version="1.1">
 <g id="id1">
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 30 89.972656 C 21.5625 89.972656 10.457031 69.984375 10.015625 50 "/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 10.015625 50 C 9.570312 30.015625 19.785156 10.027344 30 10.027344 "/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 30 10.027344 C 40.214844 10.027344 50.429688 30.015625 49.984375 50 "/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 49.984375 50 C 49.542969 69.984375 38.4375 89.972656 30 89.972656 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 10.015625 50 C 10.015625 33.121094 20.007812 10.917969 30 10.027344 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 30 10.027344 C 39.992188 9.140625 49.984375 29.570312 49.984375 50 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 49.984375 50 C 49.984375 70.429688 39.992188 90.859375 30 89.972656 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:0.5;stroke-miterlimit:10;" d="M 30 89.972656 C 20.007812 89.082031 10.015625 66.878906 10.015625 50 "/>
 </g>
 </svg>

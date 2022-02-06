@@ -2,6 +2,7 @@ module Test.Uncategorized.Bezier (tests) where
 
 
 
+import Data.Coerce
 import Data.Foldable
 import qualified Data.Vector as V
 import Data.Vector (Vector)
@@ -20,7 +21,9 @@ tests = testGroup "Bezier curves"
         [ interpolateSingleCurveTest
         ]
     , testGroup "Interpolation"
-        [ testGroup "Visual"
+        [ smoothenOpenCurveCountTest
+        , smoothenClosedCurveCountTest
+        , testGroup "Visual"
             [ somePoints
             , picassoSquirrel
             , subdivideBezierCurveTest
@@ -28,6 +31,43 @@ tests = testGroup "Bezier curves"
             ]
         ]
     ]
+
+smoothenOpenCurveCountTest :: TestTree
+smoothenOpenCurveCountTest = testProperty "Smoothen open curve: n points => n-1 Beziers" $
+    let gen :: Gen (Vector Gaussian)
+        gen = do
+            n <- choose (3, 10)
+            fmap V.fromList (replicateM n arbitrary)
+    in forAll gen $ \points ->
+        let nPoints = V.length points
+            nBeziers = V.length (bezierSmoothen (coerce points))
+        in counterexample
+            (unlines
+                [ "Input has " ++ show nPoints ++ " points"
+                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen (coerce points))
+                ])
+            (nPoints-1 == nBeziers)
+
+smoothenClosedCurveCountTest :: TestTree
+smoothenClosedCurveCountTest = testProperty "Smoothen closed curve: n points (n-1 distinct) => n-1 Beziers" $
+    let gen :: Gen (Vector Gaussian)
+        gen = do
+            n <- choose (3, 10)
+            xs <- replicateM n arbitrary
+            pure (V.fromList (xs ++ [head xs]))
+        shrinker points
+            | V.length points <= 3 = []
+            | otherwise = let (firstHalf, secondHalf) = V.splitAt (V.length points `div` 2) points
+                          in [firstHalf <> V.drop 1 secondHalf]
+    in forAllShrink gen shrinker $ \points ->
+        let nPoints = V.length points
+            nBeziers = V.length (bezierSmoothen (coerce points))
+        in counterexample
+            (unlines
+                [ "Input has " ++ show nPoints ++ " points"
+                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen (coerce points))
+                ])
+            (nPoints-1 == nBeziers)
 
 somePoints :: TestTree
 somePoints = testVisual "Open curve" 400 300 "docs/interpolation/1_bezier_open" $ \_ -> do

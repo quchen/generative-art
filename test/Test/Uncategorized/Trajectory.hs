@@ -19,7 +19,7 @@ import Test.TastyAll
 
 
 tests :: TestTree
-tests = testGroup "Trajactories"
+tests = testGroup "Trajectories"
     [ simplifyPathTests
     , reassembleLinesTest
     ]
