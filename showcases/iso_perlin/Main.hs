@@ -30,8 +30,8 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
 
     let cellSize = 10
         grid = Grid
-            { _range = (Vec2 (-cellSize) (-cellSize), Vec2 (picWidth + cellSize) (picHeight + cellSize))
-            , _numCells = (round (picWidth / cellSize + 2), round (picHeight / cellSize + 2))
+            { _range = (Vec2 (-2*cellSize) (-2*cellSize), Vec2 (picWidth + 2*cellSize) (picHeight + 2*cellSize))
+            , _numCells = (round (picWidth / cellSize + 4), round (picHeight / cellSize + 4))
             }
         isoLine = isoLines grid scalarField
 
@@ -43,8 +43,7 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
     scaledHeight = round (picHeight * scaleFactor)
 
 drawIsoLine :: Double -> [[Vec2]] -> Cairo.Render ()
-drawIsoLine v ls = for_ ls $ \l -> cairoScope $ do
-    let smoothLine = V.toList $ bezierSmoothenLoop (V.fromList l)
+drawIsoLine v ls = grouped Cairo.paint $ do
     Cairo.translate 0 (-200*v)
     Cairo.translate (picWidth/2) (picHeight/2)
     Cairo.scale 2 0.5
@@ -52,13 +51,18 @@ drawIsoLine v ls = for_ ls $ \l -> cairoScope $ do
     Cairo.translate (-picWidth/2) (-picHeight/2)
     Cairo.rectangle (0.5 * (picWidth - picHeight)) 0 picHeight picHeight
     Cairo.clip
-    bezierCurveSketch smoothLine
-    Cairo.closePath
-    setColor (inferno (v+0.45))
-    Cairo.fillPreserve
-    Cairo.setLineWidth 5
-    setColor (inferno (v+0.5))
-    Cairo.stroke
+    grouped Cairo.paint $ for_ ls $ \l -> cairoScope $ do
+        smoothLineSketch l
+        Cairo.setOperator Cairo.OperatorXor
+        setColor (inferno (v+0.45))
+        Cairo.fill
+    for_ ls $ \l -> cairoScope $ do
+        smoothLineSketch l
+        Cairo.setLineWidth 5
+        setColor (inferno (v+0.5))
+        Cairo.stroke
+  where
+    smoothLineSketch l = bezierCurveSketch (V.toList (bezierSmoothenLoop (V.fromList l))) >> Cairo.closePath
 
 scalarField :: Vec2 -> Double
 scalarField (Vec2 x y)
