@@ -43,6 +43,7 @@ import           Test.Tasty
 import           Test.Tasty.HUnit      hiding (assertEqual)
 import qualified Test.Tasty.HUnit      as HUnit
 import           Test.Tasty.QuickCheck
+import           VisualOutput.NormalizeSvg
 
 
 
@@ -104,8 +105,9 @@ renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidt
         drawing
 
 renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
-renderSvg picWidth picHeight filename drawing
-  = withSurface SVG filename w h (\surface -> renderWith surface drawing)
+renderSvg picWidth picHeight filename drawing = do
+    withSurface SVG filename w h (\surface -> renderWith surface drawing)
+    normalizeSvgFile filename
   where
     w = fromIntegral picWidth
     h = fromIntegral picHeight

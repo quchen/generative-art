@@ -33,7 +33,6 @@ import qualified Test.Uncategorized.Trajectory
 import           Test.Tasty
 import           Test.Tasty.Runners
 import qualified VisualOutput.FileSystem         as FileSystem
-import qualified VisualOutput.NormalizeSvg       as Normalize
 import qualified VisualOutput.TestsuiteGenerator as Visual
 
 
@@ -80,10 +79,6 @@ runPostTestScripts = do
                 | otherwise = takeExtension path == ".svg"
         pure (filter p paths)
 
-    normalizeAsyncs <- do
-        putStrLn "Normalize SVG files for reproducible test output"
-        traverse (async . Normalize.normalizeSvgFile) files
-
     mdAsync <- do
         putStrLn "Generate visual testsuite file (Markdown)"
         async (Visual.generateMarkdown "test/out/README.md" files)
@@ -92,4 +87,5 @@ runPostTestScripts = do
         putStrLn "Generate visual testsuite file (HTML)"
         async (Visual.generateHtml "test/out/README.html" files)
 
-    traverse_ wait (mdAsync : htmlAsync : normalizeAsyncs)
+    wait mdAsync
+    wait htmlAsync
