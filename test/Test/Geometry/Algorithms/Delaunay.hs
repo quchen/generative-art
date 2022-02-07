@@ -3,9 +3,9 @@ module Test.Geometry.Algorithms.Delaunay (tests) where
 
 
 
-import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.IO.Class
 import Data.List (scanl')
-import qualified Graphics.Rendering.Cairo as Cairo
+import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC (create)
 
 import Geometry.Algorithms.Delaunay
@@ -29,35 +29,35 @@ tests = testGroup "Delaunay triangulation"
 testRandomTriangulation :: TestTree
 testRandomTriangulation = testVisual "Random points" 220 220 "docs/voronoi/delaunay_random" $ \_ -> do
     triangulation <- liftIO $ randomDelaunay 200 200
-    Cairo.translate 10 10
+    C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
         polygonSketch poly
         setColor $ mathematica97 0
-        Cairo.setLineJoin Cairo.LineJoinBevel
-        Cairo.stroke
+        C.setLineJoin C.LineJoinBevel
+        C.stroke
         setColor $ mathematica97 1
         for_ ps $ \p -> do
             circleSketch p 4
-            Cairo.fill
+            C.fill
 
 testConversionToVoronoi :: TestTree
 testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voronoi/delaunay_voronoi" $ \_ -> do
     triangulation <- liftIO $ randomDelaunay 200 200
     let voronoi = toVoronoi triangulation
-    Cairo.translate 10 10
+    C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
         polygonSketch poly
         setColor $ mathematica97 0 `withOpacity` 0.25
-        Cairo.setLineJoin Cairo.LineJoinBevel
-        Cairo.stroke
+        C.setLineJoin C.LineJoinBevel
+        C.stroke
         setColor $ mathematica97 1
         for_ ps $ \p -> do
             circleSketch p 4
-            Cairo.fill
+            C.fill
     for_ (cells voronoi) $ \Cell{..} -> do
         setColor $ mathematica97 3
         polygonSketch region
-        Cairo.stroke
+        C.stroke
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
 randomDelaunay width height = do
@@ -70,18 +70,18 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
     points <- liftIO $ do
         gen <- create
         uniformlyDistributedPoints gen 200 200 15
-    let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) points
+    let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) (toList points)
         triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
-    Cairo.translate 10 10
+    C.translate 10 10
     for_ triangulations $ \triangulation -> do
         for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
             setColor $ mathematica97 0
             polygonSketch region
-            Cairo.stroke
+            C.stroke
             setColor $ mathematica97 3
             arrowSketch (Line seed (centroid region)) def { arrowheadSize = 4 }
-            Cairo.stroke
+            C.stroke
             setColor $ mathematica97 1
             circleSketch seed 4
-            Cairo.fill
-        Cairo.translate 210 0
+            C.fill
+        C.translate 210 0
