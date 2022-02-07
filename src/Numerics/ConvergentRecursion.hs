@@ -42,6 +42,8 @@ retryLinearlyUntilPrecision f precision = findCloseConsecutives [f n | n <- [0..
 -- | Recursively apply a function to a value, until the relative distance between
 -- two iterations is below the precision parameter.
 --
+-- Find the a root of \(x^2-1=0\):
+--
 -- @
 -- let f x = x^2-1
 --     f' x = 2*x

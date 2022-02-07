@@ -13,7 +13,6 @@ module Geometry.Algorithms.Sampling (
 
 import           Control.Applicative
 import           Control.Monad
-import           Control.Monad.ST
 import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
@@ -38,9 +37,6 @@ data PoissonDiscProperties s = PoissonDisc
     , gen :: GenST s
     , k :: Int
     }
-
-foo :: PrimMonad m => Seed -> m (Gen (PrimState m))
-foo = undefined
 
 -- | <<docs/sampling/poisson-disc.svg>>
 poissonDisc :: PrimMonad m => PoissonDiscProperties (PrimState m) -> m [Vec2]
