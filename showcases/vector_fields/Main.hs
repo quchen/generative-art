@@ -1,18 +1,21 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import           Control.Monad            (replicateM)
-import           Data.Maybe               (fromMaybe)
+
+
+import           Control.Monad
+import           Data.Maybe
 import qualified Data.Vector              as V
-import qualified Graphics.Rendering.Cairo as Cairo
+import qualified Graphics.Rendering.Cairo as C
 import           Math.Noise               (Perlin (..), getValue, perlin)
 import           System.Random.MWC
 
 import Draw
-import Geometry
-import Graphics.Rendering.Cairo      (Render, liftIO)
-import Numerics.DifferentialEquation
+import Geometry                      as G
 import Geometry.Algorithms.Sampling
+import Graphics.Rendering.Cairo
+import Numerics.DifferentialEquation
+
 
 
 picWidth, picHeight :: Num a => a
@@ -27,14 +30,14 @@ seed :: Int
 seed = 519496
 
 main :: IO ()
-main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
-    Cairo.scale scaleFactor scaleFactor
+main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
+    C.scale scaleFactor scaleFactor
     cairoScope $ do
-        Cairo.setSourceRGB 1 1 1
-        Cairo.paint
+        C.setSourceRGB 1 1 1
+        C.paint
 
     gen <- liftIO create
-    startPoints <- liftIO $ transform (translate (Vec2 (-500) 0)) <$> poissonDisc PoissonDisc
+    startPoints <- liftIO $ G.transform (G.translate (Vec2 (-500) 0)) <$> poissonDisc PoissonDisc
         { width = picWidth + 500
         , height = picHeight
         , radius = 18
@@ -55,13 +58,13 @@ drawFieldLine thickness ps = cairoScope $ do
     let ps' = V.toList (bezierSmoothen (V.fromList (snd <$> ps)))
         time = fst <$> ps
     for_ (zip time ps') $ \(t, p) -> do
-        Cairo.setLineCap Cairo.LineCapRound
-        Cairo.setLineWidth (thickness * (t/100))
+        setLineCap LineCapRound
+        setLineWidth (thickness * (t/100))
         bezierSegmentSketch p
-        Cairo.stroke
+        stroke
 
 scalarField :: Vec2 -> Double
-scalarField = noise2d . transform (scale' 1 2)
+scalarField = noise2d . G.transform (G.scale' 1 2)
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
@@ -72,7 +75,7 @@ gradientField p = noiseScale *. grad scalarField p
     grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
 
 rotationField :: Vec2 -> Vec2
-rotationField = transform (rotate (deg 90)) . gradientField
+rotationField = G.transform (G.rotate (deg 90)) . gradientField
 
 compositeField :: Vec2 -> Vec2
 compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotationField p
