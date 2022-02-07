@@ -41,7 +41,7 @@ main :: IO ()
 main = finally (defaultMain (localOption (Timeout (10^7) "10s") tests))
                runPostTestScripts
 
--- Useful in GHCi: no timeout, no output sanitization
+-- Useful in GHCi: no timeout
 test :: String -> IO ()
 test pattern = case parseTestPattern pattern of
     Nothing -> error "Pattern parse error"
