@@ -31,14 +31,35 @@ import Geometry
 
 
 data PoissonDiscProperties s = PoissonDisc
-    { width :: Int
+    { width  :: Int
     , height :: Int
-    , radius :: Double
-    , gen :: GenST s
-    , k :: Int
+    , radius :: Double -- ^ Minimum distance between points.
+    , gen    :: Gen s  -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    , k      :: Int    -- ^ Point density. Higher 'k' yields tighter packings.
     }
 
--- | <<docs/sampling/poisson-disc.svg>>
+-- | Sample points using the Poisson Disc algorithm, which yields a visually
+-- uniform distribution. This is opposed to uniformly distributed points yield
+-- clumps and empty areas, which is often undesirable for generative art.
+--
+-- <<docs/sampling/poisson-disc.svg>>
+--
+-- === Example code
+--
+-- The \(r=8\), \(k=80\) picture is based on the following code:
+--
+-- @
+-- points :: ['Vec2']
+-- points = 'Control.Monad.ST.runST' $ do
+--     gen <- 'create'
+--     'poissonDisc' 'PoissonDiscProperties'
+--         { 'width'  = 80
+--         , 'height' = 80
+--         , 'radius' = 8
+--         , 'gen'    = gen
+--         , 'k'      = 80
+--         }
+-- @
 poissonDisc :: PrimMonad m => PoissonDiscProperties (PrimState m) -> m [Vec2]
 poissonDisc properties = result <$> execStateT poissonDiscInternal initialState
   where
@@ -136,7 +157,22 @@ gridCell (Vec2 x y) = do
 
 -- | @'uniformlyDistributedPoints' gen width height count@ generates @count@
 -- random points within a rectangle of @width@ x @height@.
-uniformlyDistributedPoints :: PrimMonad m => Gen (PrimState m) -> Int -> Int -> Int -> m (Vector Vec2)
+--
+-- Create 100 points in a 64*64 square:
+--
+-- @
+-- points :: 'Vector' 'Vec2'
+-- points = 'Control.Monad.ST.runST' $ do
+--     gen <- 'create'
+--     'uniformlyDistributedPoints' gen 64 64 100
+-- @
+uniformlyDistributedPoints
+    :: PrimMonad m
+    => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -> Int               -- ^ Width
+    -> Int               -- ^ Height
+    -> Int               -- ^ Number of points
+    -> m (Vector Vec2)
 uniformlyDistributedPoints gen width height count = V.replicateM count randomPoint
   where
     randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
@@ -144,12 +180,27 @@ uniformlyDistributedPoints gen width height count = V.replicateM count randomPoi
 
 -- | @'uniformlyDistributedPoints' gen (width, sigmaX) (height, sigmaY) count@
 -- generates @count@ normal distributed random points within a rectangle of
--- @width@ x @height@, with a the given standard deviations.
+-- @width@ x @height@, with the given standard deviations.
 --
--- Note: This is a rejection algorithm. If you choose the standard deviation
--- much higher than the height or width, performance will deteriorate as more
--- and more points are rejected.
-gaussianDistributedPoints :: PrimMonad m => Gen (PrimState m) -> (Int, Double) -> (Int, Double) -> Int -> m (Vector Vec2)
+-- Note: This is a rejection algorithm. If you choose the standard deviation much
+-- higher than the height or width, performance will deteriorate as more and more
+-- points are rejected.
+--
+-- Create 100 Gaussian points in a 64*64 square with standard deviation \(\sigma=10\):
+--
+-- @
+-- points :: 'Vector' 'Vec2'
+-- points = 'Control.Monad.ST.runST' $ do
+--     gen <- 'create'
+--     'uniformlyDistributedPoints' gen (64, 10) (64, 10) 100
+-- @
+gaussianDistributedPoints
+    :: PrimMonad m
+    => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -> (Int, Double)     -- ^ Width, \(\sigma_x\)
+    -> (Int, Double)     -- ^ Height, \(\sigma_y\)
+    -> Int               -- ^ Number of points
+    -> m (Vector Vec2)
 gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = V.replicateM count randomPoint
   where
     randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)

@@ -32,7 +32,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
         drawPoints points
         C.translate 0 82 >> drawExplanation "Poisson disc"
         C.translate 0 10 >> drawExplanation ("r = " ++ show radius)
-        C.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
+        C.translate 0 10 >> drawExplanation ("k = " ++ show (length points))
 
     C.translate 100 0
     cairoScope $ do
@@ -44,7 +44,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
         drawPoints points
         C.translate 0 82 >> drawExplanation "Poisson disc"
         C.translate 0 10 >> drawExplanation ("r = " ++ show radius)
-        C.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
+        C.translate 0 10 >> drawExplanation ("k = " ++ show (length points))
 
     C.translate 100 0
     cairoScope $ do
@@ -56,7 +56,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
         drawPoints points
         C.translate 0 82 >> drawExplanation "Poisson disc"
         C.translate 0 10 >> drawExplanation ("r = " ++ show radius)
-        C.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
+        C.translate 0 10 >> drawExplanation ("k = " ++ show (length points))
 
     C.translate 100 0
     cairoScope $ do
@@ -67,7 +67,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
         drawPoints points
         C.translate 0 82 >> drawExplanation "Random points"
         C.translate 0 10 >> drawExplanation "Uniform distribution"
-        C.translate 0 10 >> drawExplanation ("n = " ++ show (length points))
+        C.translate 0 10 >> drawExplanation ("k = " ++ show (length points))
 
 
 drawPoints :: Foldable f => f Vec2 -> C.Render ()
