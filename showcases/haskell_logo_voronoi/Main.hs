@@ -2,22 +2,26 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import Data.Char          (ord)
-import Data.Maybe         (fromMaybe)
-import Data.Vector        (fromList)
-import Math.Noise         (Perlin (..), getValue, perlin)
-import Prelude            hiding ((**))
-import System.Random.MWC  (initialize)
-import Options.Applicative
 
-import Geometry.Algorithms.Delaunay
-import Draw
-import Geometry
-import Geometry.Shapes          (haskellLogo)
-import Graphics.Rendering.Cairo hiding (transform)
-import Geometry.Algorithms.Sampling
-import qualified Util.RTree as RT
-import Geometry.Algorithms.Voronoi
+
+import           Data.Char
+import           Data.Maybe
+import qualified Data.Vector         as V
+import           Math.Noise          (Perlin (..), getValue, perlin)
+import           Options.Applicative
+import           Prelude             hiding ((**))
+import           System.Random.MWC
+
+import           Draw
+import           Geometry                     as G
+import           Geometry.Algorithms.Delaunay
+import           Geometry.Algorithms.Sampling
+import           Geometry.Algorithms.Voronoi
+import           Geometry.Shapes              (haskellLogo)
+import           Graphics.Rendering.Cairo     as C
+import qualified Util.RTree                   as RT
+
+
 
 picWidth, picHeight :: Num a => a
 picWidth = 1000
@@ -58,7 +62,7 @@ commandLineOptions = execParser parserOpts
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
     Options {_count=count, _file=file} <- commandLineOptions
-    gen <- initialize (fromList (map (fromIntegral . ord) (show count)))
+    gen <- initialize (V.fromList (map (fromIntegral . ord) (show count)))
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = adaptiveRadius, k = 4, ..}
@@ -73,7 +77,7 @@ mainHaskellLogo = do
 haskellLogoWithColors :: [(Polygon, Color Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
   where
-    haskellLogoCentered = transform (Geometry.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> Geometry.scale 680) haskellLogo
+    haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) haskellLogo
     haskellLogoColors = [haskell 0, haskell 1, haskell 2, haskell 2]
 
 
