@@ -52,6 +52,10 @@ extra-doc-files:
     - docs/differential_equations/2_double_pendulum.svg
     - docs/differential_equations/1_two_body_problem.svg
     - docs/hexagonal/gaussian_hexagons.svg
+    - docs/apollonian_gasket/classical_gasket.svg
+    - docs/apollonian_gasket/forgetting_gen0.svg
+    - docs/apollonian_gasket/spaced_gasket.svg
+    - docs/apollonian_gasket/missing_the_minus.svg
 
 ghc-options: [-Wall, -Wno-type-defaults]
 
