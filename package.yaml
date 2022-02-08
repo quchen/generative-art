@@ -27,6 +27,7 @@ dependencies:
     - transformers
     - vector
     - deepseq
+    - heaps
 
 default-extensions:
     - BangPatterns
