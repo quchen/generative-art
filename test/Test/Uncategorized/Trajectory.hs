@@ -2,16 +2,20 @@ module Test.Uncategorized.Trajectory (tests) where
 
 
 
-import Data.Foldable
-import Graphics.Rendering.Cairo as Cairo hiding (x, y)
-import qualified Data.Set as S
-import Control.Monad.ST
-import qualified System.Random.MWC as MWC
-import Data.Maybe
-import qualified Data.Vector as V
+import           Control.Monad.ST
+import           Data.Foldable
+import           Data.Maybe
+import qualified Data.Set                 as S
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import qualified System.Random.MWC        as MWC
 
 import Draw
-import Geometry as G
+import Geometry               as G
+import Geometry.Shapes        as G
+import Numerics.Interpolation
+import Util
 import Why
 
 import Test.TastyAll
@@ -26,54 +30,109 @@ tests = testGroup "Trajectories"
 
 simplifyPathTests :: TestTree
 simplifyPathTests = testGroup "Simplify path"
-    [ simplifyFunctionGraphTest
-    , simplifyPathRegressionTest
+    [ testGroup "Ramer-Douglas-Peucker"
+        [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_rdp" (simplifyFunctionGraphTest rocket simplifyTrajectory [ 2**(-e) | e <- [10,9..1]])
+        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectory
+        , simplifyPathRegressionTest
+        ]
+    , testGroup "Visvalingam-Whyatt"
+        [ testGroup "Smoke tests"
+            [ simplifyThreePointsSmokeTest
+            , simplifyRegularPolygonSmokeTest
+            , simplifyRegularPolygonSmokeTest2
+            , simplifyClosedTrajectoryTestSmallParameter
+            , simplifyClosedTrajectoryTestHuteParameter
+            ]
+        ]
+        , testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_vw" (simplifyFunctionGraphTest mako simplifyTrajectoryVW [ 2**(-e) | e <- [10,9..1]])
+        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryVW
     ]
 
-simplifyFunctionGraphTest :: TestTree
-simplifyFunctionGraphTest = testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path" $ \_ -> do
-    let graph = [Vec2 x (sin x / (0.5 * x)) | x <- [0.1, 0.2 .. 16]]
+simplifyFunctionGraphTest
+    :: (Double -> Color Double)
+    -> (param -> Vector Vec2 -> Vector Vec2) -- ^ Algorithm
+    -> [param]                               -- ^ Parameters for algorithm, gernerate one graph per entry
+    -> (Double, Double)                      -- ^ Width, height
+    -> Render ()
+simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
+    let graph = [Vec2 x (sin (2*x) / (0.5*x)) | x <- [0.1, 0.2 .. 16]]
         graphBB = boundingBox graph
         fitToBox :: Transform geo => geo -> geo
-        fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (400-10) (100-10))) FitAllIgnoreAspect)
+        fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (w-10) (h/3-10))) FitAllIgnoreAspect)
 
     let plotPath points = cairoScope $ do
             setLineWidth 1
             newPath
             pathSketch points
             stroke
-        plotPoints points = for_ points $ \p -> do
+        plotPoints points = for_ points $ \p -> cairoScope $ do
             circleSketch p 1
             fillPreserve
-            cairoScope $ do
-                setSourceRGB 0 0 0
-                setLineWidth 0.5
-                stroke
-        plotBezier segments = cairoScope $ do
-            setLineWidth 1
-            bezierCurveSketch segments
+            setSourceRGBA 0 0 0 1
+            setLineWidth 0.3
             stroke
-        epsilons = [ 2**(-e) | e <- [10,9..1]]
 
     cairoScope $ do
-        setColor $ mathematica97 0
+        setColor (colorScheme 0.5)
         plotPath (fitToBox graph)
         plotPoints (fitToBox graph)
 
     cairoScope $ do
-        for_ epsilons $ \epsilon -> do
+        for_ (zip [1..] parameters) $ \(i, parameter) -> do
             Cairo.translate 0 20
-            let simplified = simplifyTrajectory epsilon (V.fromList graph)
-                interpolatedAgain = bezierSmoothen simplified
-            setColor $ mathematica97 1
-            plotBezier (fitToBox interpolatedAgain)
-            plotPoints (fitToBox simplified)
+            let simplified = f parameter (V.fromList graph)
+            cairoScope $ do
+                setColor (black `withOpacity` 0.2)
+                plotPath (fitToBox graph)
+            cairoScope $ do
+                setColor (colorScheme (linearInterpolate (1, fromIntegral (length parameters)) (0.7,0.8) i))
+                plotPath (fitToBox simplified)
+                plotPoints (fitToBox simplified)
 
 simplifyPathRegressionTest :: TestTree
 simplifyPathRegressionTest = localOption (Timeout (10^5) "100ms") $ testCase "Can handle cyclic paths" $ do
     let cyclicPath = V.fromList [Vec2 1 0, Vec2 1 1, Vec2 1 0]
         simplified = simplifyTrajectory 100 cyclicPath
     assertBool "The algorithm did not terminate" (simplified `seq` True)
+
+simplifyThreePointsSmokeTest :: TestTree
+simplifyThreePointsSmokeTest = testCase "Three points (giant threshold → nothing simplified)" $ do
+    let !_ = simplifyTrajectoryVW 10 (V.fromList [Vec2 0 0, Vec2 1 1, Vec2 2 0])
+    pure ()
+
+simplifyRegularPolygonSmokeTest :: TestTree
+simplifyRegularPolygonSmokeTest = testCase "A regular n-gon (giant threshold → nothing simplified)" $ do
+    let !_ = simplifyTrajectoryVW 10 (V.fromList (let Polygon corners = regularPolygon 5 in corners))
+    pure ()
+
+simplifyRegularPolygonSmokeTest2 :: TestTree
+simplifyRegularPolygonSmokeTest2 = testCase "A regular n-gon (small threshold → simplification)" $ do
+    let numPoints = 10
+        trajectory = V.fromList (let Polygon corners = regularPolygon numPoints in corners)
+        simplified = simplifyTrajectoryVW 10 trajectory
+    assertBool "Length of the result is wrong" (V.length simplified < numPoints)
+
+simplifyClosedTrajectoryTestSmallParameter :: TestTree
+simplifyClosedTrajectoryTestSmallParameter = testCase "Closed trajectory, small parameter" $ do
+    let !_ = simplifyTrajectoryVW 0.001 (V.fromList [Vec2 0 0, Vec2 1 0, Vec2 1 1, Vec2 0 1, Vec2 0 0])
+    pure ()
+
+simplifyClosedTrajectoryTestHuteParameter :: TestTree
+simplifyClosedTrajectoryTestHuteParameter = testCase "Closed trajectory, huge parameter" $ do
+    let !_ = simplifyTrajectoryVW 1000 (V.fromList [Vec2 0 0, Vec2 1 0, Vec2 1 1, Vec2 0 1, Vec2 0 0])
+    pure ()
+
+simplifyKeepsEndPoints :: TestName -> param -> (param -> Vector Vec2 -> Vector Vec2) -> TestTree
+simplifyKeepsEndPoints testName param simplify = testProperty testName $
+    let gen = do
+            n <- choose (3, 100)
+            vecs <- replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
+            pure (V.fromList (nubOrd vecs))
+    in forAll gen $ \vecs -> case toList (simplify param vecs) of
+        [start, end] -> (start, end) === (V.head vecs, V.last vecs)
+        xs           -> counterexample ("Points left over after giant simplification: " ++ show xs) False
 
 fisherYatesList :: [a] -> [a]
 fisherYatesList xs = runST $ do
