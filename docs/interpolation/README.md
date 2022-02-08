@@ -34,7 +34,26 @@ basically all on a line (depending on a parameter) and then re-join the points
 smoothly, we can save quite a number of points without impacting visual fidelity
 at all.
 
-![](3_simplify_path.svg)
+We provide two path simplifiers:
+
+  - [Ramer-Douglas-Peucker][rdp] eliminates points that are close to the
+    connecting line between two other points
+
+  - [Visvalingam–Whyatt][vw] eliminates points that span a triangle with very
+    small area with its neighbours
+
+Deciding which one is better is best done by experiment.
+
+[vw]: https://en.wikipedia.org/wiki/Visvalingam%E2%80%93Whyatt_algorithm
+[rdp]: https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+
+### Ramer-Douglas-Peucker
+
+![](3_simplify_path_rdp.svg)
+
+### Visvalingam–Whyatt
+
+![](3_simplify_path_vw.svg)
 
 Another trick is to subdivide the source curve, forgetting newly created unnecessary points again, and interpolating fresh Bezier curves through the remainder. This can achieve a number of effects beyond smoothing or saving data, such as a more hand-sketched appearance, depending on the parameters.
 
