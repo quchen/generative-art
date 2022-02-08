@@ -40,7 +40,8 @@ extra-doc-files:
     - docs/colors/schemes/continuous/**/*.png
     - docs/colors/schemes/discrete/**/*.svg
     - docs/geometry/cut/3_complicated.svg
-    - docs/interpolation/3_simplify_path.svg
+    - docs/interpolation/3_simplify_path_rdp.svg
+    - docs/interpolation/3_simplify_path_vw.svg
     - docs/geometry/convex_hull.svg
     - docs/geometry/point_in_polygon.svg
     - docs/interpolation/1_bezier_open.svg
