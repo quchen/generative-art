@@ -17,6 +17,7 @@ import Test.TastyAll
 tests :: TestTree
 tests = testGroup "Apollonian gasket"
     [ correctGasket
+    , spacedGasket
     , testGroup "Pretty bugs :-D"
         [ forgettingGen0
         , missingTheMinus
@@ -28,6 +29,20 @@ correctGasket = testCase "The Gasket" $ renderAllFormats 300 300 "docs/apollonia
     let gen0L = Circle (Vec2 100 100) 50
         gen0R = Circle (Vec2 200 100) 50
         gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
+
+        gasket = createGasket 0.5 gen0L gen0R gen0B
+
+    for_ (zip [1..] gasket) $ \(i, (Circle center r)) -> cairoScope $ do
+        setLineWidth 1
+        setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
+        circleSketch center r
+        stroke
+
+spacedGasket :: TestTree
+spacedGasket = testCase "Gasket with slightly spaced initial circles" $ renderAllFormats 300 300 "docs/apollonian_gasket/spaced_gasket" $ do
+    let gen0L = Circle (Vec2 100 100) 42
+        gen0R = Circle (Vec2 200 100) 42
+        gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 42
 
         gasket = createGasket 0.5 gen0L gen0R gen0B
 
