@@ -6,7 +6,6 @@ module Main (main, test) where
 
 import Control.Concurrent.Async
 import Control.Exception
-import Data.Foldable
 import System.FilePath
 import System.FilePath.Glob
 
