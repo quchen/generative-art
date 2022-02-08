@@ -36,26 +36,26 @@ default-extensions:
     - RecordWildCards
 
 extra-doc-files:
-    - docs/bezier/1_single_curve.svg
-    - docs/colors/schemes/continuous/**/*.png
-    - docs/colors/schemes/discrete/**/*.svg
-    - docs/geometry/cut/3_complicated.svg
-    - docs/interpolation/3_simplify_path_rdp.svg
-    - docs/interpolation/3_simplify_path_vw.svg
-    - docs/geometry/convex_hull.svg
-    - docs/geometry/point_in_polygon.svg
-    - docs/interpolation/1_bezier_open.svg
-    - docs/iso_lines/potentials.svg
-    - docs/triangulation/3_haskell_logo.svg
-    - docs/sampling/poisson-disc.svg
-    - docs/billard/3_lambda.svg
-    - docs/differential_equations/2_double_pendulum.svg
-    - docs/differential_equations/1_two_body_problem.svg
-    - docs/hexagonal/gaussian_hexagons.svg
     - docs/apollonian_gasket/classical_gasket.svg
     - docs/apollonian_gasket/forgetting_gen0.svg
-    - docs/apollonian_gasket/spaced_gasket.svg
     - docs/apollonian_gasket/missing_the_minus.svg
+    - docs/apollonian_gasket/spaced_gasket.svg
+    - docs/bezier/1_single_curve.svg
+    - docs/billard/3_lambda.svg
+    - docs/colors/schemes/continuous/**/*.png
+    - docs/colors/schemes/discrete/**/*.svg
+    - docs/differential_equations/1_two_body_problem.svg
+    - docs/differential_equations/2_double_pendulum.svg
+    - docs/geometry/convex_hull.svg
+    - docs/geometry/cut/3_complicated.svg
+    - docs/geometry/point_in_polygon.svg
+    - docs/hexagonal/gaussian_hexagons.svg
+    - docs/interpolation/1_bezier_open.svg
+    - docs/interpolation/3_simplify_path_rdp.svg
+    - docs/interpolation/3_simplify_path_vw.svg
+    - docs/iso_lines/potentials.svg
+    - docs/sampling/poisson-disc.svg
+    - docs/triangulation/3_haskell_logo.svg
 
 ghc-options: [-Wall, -Wno-type-defaults]
 
