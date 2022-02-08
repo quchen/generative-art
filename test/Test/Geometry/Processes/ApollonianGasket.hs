@@ -20,6 +20,7 @@ tests = testGroup "Apollonian gasket"
         [ buggyButPretty1
         , buggyButPretty2
         ]
+    , correct
     ]
 
 threeCircles :: TestTree
@@ -107,7 +108,7 @@ buggyButPretty2 = testCase "Buggy but pretty 2" $ renderAllFormats 300 300 "out/
         recurse [] = []
         recurse ((c1, c2, c3) : rest) =
             let new@(ApoCircle _ k) = newCircle (+) (+) c1 c2 c3
-            in if k > 3
+            in if k > 1
                 then recurse rest
                 else new : recurse ((c1, c2, new) : (c1, c3, new) : (c2, c3, new) : rest)
 
@@ -116,7 +117,61 @@ buggyButPretty2 = testCase "Buggy but pretty 2" $ renderAllFormats 300 300 "out/
             let Circle center radius = toCircle c
             in circleSketch center (abs radius)
 
-        apoCircles = large : startB : startL : startR : recurse [(large, startB, startL), (large, startB, startR), (startB, startL, startR), (large, startL, startR)]
+        apoCircles
+            = large
+            : startB
+            : startL
+            : startR
+            : recurse
+                [ (large, startB, startL)
+                , (large, startB, startR)
+                , (startB, startL, startR)
+                , (large, startL, startR)
+                ]
+
+    for_ (zip [0..] apoCircles) $ \(i, apo) -> cairoScope $ do
+        setLineWidth 1
+        setColor (rocket (1-fromIntegral i/fromIntegral (length apoCircles)))
+        apoCircleSketch apo
+        stroke
+
+
+correct :: TestTree
+correct = testCase "Correct" $ renderAllFormats 300 300 "out/correct" $ do
+    let startL = toApoCircle $ Circle (Vec2 100 100) 50
+        startR = toApoCircle $ Circle (Vec2 200 100) 50
+        startB = toApoCircle $ Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
+
+        large = newCircle (-) (-) startL startR startB
+
+        gen1T = newCircle (+) (+) large startL startR
+        gen1L = newCircle (+) (-) large startL startB
+        gen1R = newCircle (+) (+) large startR startB
+
+        recurse [] = []
+        recurse ((c1, c2, c3) : rest) =
+            let new@(ApoCircle _ k) = newCircle (+) (+) c1 c2 c3
+            in if k > 2
+                then recurse rest
+                else new : recurse ((c1, c2, new) : (c1, c3, new) : (c2, c3, new) : rest)
+
+
+        apoCircleSketch c =
+            let Circle center radius = toCircle c
+            in circleSketch center (abs radius)
+
+        apoCircles = concat
+            [ []
+            , [large]
+            , [startB, startL, startR]
+            , recurse [(startL, startR, startB)]
+            , gen1T : recurse [(gen1T, startL, large)]
+            , gen1T : recurse [(gen1T, startR, large)]
+            , gen1R : recurse [(gen1R, startR, large)]
+            , gen1R : recurse [(gen1R, startB, large)]
+            , gen1L : recurse [(gen1L, startB, large)]
+            , gen1L : recurse [(gen1L, startL, large)]
+            ]
 
     for_ (zip [0..] apoCircles) $ \(i, apo) -> cairoScope $ do
         setLineWidth 1
