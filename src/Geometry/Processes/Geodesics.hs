@@ -35,8 +35,11 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
   where
     h = 1e-3
 
-    f_dx  = d X h (f t)
-    f_dy  = d Y h (f t)
+    f_dx = d X h (f t)
+    f_dy = d Y h (f t)
+
+    f_dxV = f_dx v
+    f_dyV = f_dy v
 
     -- Metric g_{ab}
     g__ X X p = 1 + f_dx p^2
@@ -45,17 +48,17 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__ Y Y p = 1 + f_dy p^2
 
     -- Inverse metric g^{ab}
-    denom p = (1+f_dx p^2+f_dy p^2)
-    g'' X X p = (1+f_dy p^2)    /denom p
-    g'' X Y p = -(f_dx p*f_dy p) /denom p
-    g'' Y X p = g'' X Y p
-    g'' Y Y p = (1+f_dx p^2)    /denom p
+    denomV = (1+f_dxV^2+f_dyV^2)
+    g'' X X = (1+f_dyV^2)    /denomV
+    g'' X Y = -(f_dxV*f_dyV) /denomV
+    g'' Y X = g'' X Y
+    g'' Y Y = (1+f_dxV^2)    /denomV
 
     -- Derivative of the metric g_{ab,c}
     g__d_ a b c = d c h (g__ a b)
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'__ i k l p = 0.5 * sum [ g'' i m p * (g__d_ m k l p + g__d_ m l k p - g__d_ k l m p) | m <- [X,Y]]
+    c'__ i k l p = 0.5 * sum [ g'' i m * (g__d_ m k l p + g__d_ m l k p - g__d_ k l m p) | m <- [X,Y]]
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
