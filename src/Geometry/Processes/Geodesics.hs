@@ -48,11 +48,13 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__ Y Y p = 1 + f_dy p^2
 
     -- Inverse metric g^{ab}
-    denomV = (1+f_dxV^2+f_dyV^2)
-    g'' X X = (1+f_dyV^2)    /denomV
-    g'' X Y = -(f_dxV*f_dyV) /denomV
-    g'' Y X = g'' X Y
-    g'' Y Y = (1+f_dxV^2)    /denomV
+    (g''xx, g''xy, g''yx, g''yy) =
+        let denominator = (1+f_dxV^2+f_dyV^2)
+        in ( (1+f_dyV^2)    /denominator
+           , -(f_dxV*f_dyV) /denominator
+           , g''xy
+           , (1+f_dxV^2)    /denominator
+        )
 
     -- Derivative of the metric g_{ab,c}
     g__d_ a b c = d c h (g__ a b)
