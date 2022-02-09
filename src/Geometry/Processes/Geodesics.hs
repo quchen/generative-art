@@ -60,7 +60,7 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_ a b c = d c h (g__ a b)
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'__ i k l p = 0.5 * sum [ g'' i m * (g__d_ m k l p + g__d_ m l k p - g__d_ k l m p) | m <- [X,Y]]
+    c'__ i k l p = 0.5 * (g'' i X * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'' i Y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
