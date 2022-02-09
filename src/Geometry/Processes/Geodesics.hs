@@ -35,6 +35,9 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
   where
     h = 1e-3
 
+    vXH = v +. Vec2 h 0
+    vYH = v +. Vec2 0 h
+
     fdx = d X h (f t)
     fdy = d Y h (f t)
 
@@ -60,14 +63,14 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_V Y Y X = g_y_yd_xV
     g__d_V Y Y Y = g_y_yd_yV
 
-    g_x_xd_xV = ((\p -> 1 + fdx p^2)   (v +. Vec2 h 0) -. (1 + fdxV^2)) /. h
-    g_x_xd_yV = ((\p -> 1 + fdx p^2)   (v +. Vec2 0 h) -. (1 + fdxV^2)) /. h
-    g_x_yd_xV = ((\p -> fdx p * fdy p) (v +. Vec2 h 0) -. (fdxV * fdyV)) /. h
-    g_x_yd_yV = ((\p -> fdx p * fdy p) (v +. Vec2 0 h) -. (fdxV * fdyV)) /. h
-    g_y_xd_xV = ((\p -> fdx p * fdy p) (v +. Vec2 h 0) -. (fdxV * fdyV)) /. h
-    g_y_xd_yV = ((\p -> fdx p * fdy p) (v +. Vec2 0 h) -. (fdxV * fdyV)) /. h
-    g_y_yd_xV = ((\p -> 1 + fdy p^2)   (v +. Vec2 h 0) -. (1 + fdyV^2)) /. h
-    g_y_yd_yV = ((\p -> 1 + fdy p^2)   (v +. Vec2 0 h) -. (1 + fdyV^2)) /. h
+    g_x_xd_xV = ((\p -> 1 + fdx p^2)   vXH -. (1 + fdxV^2)) /. h
+    g_x_xd_yV = ((\p -> 1 + fdx p^2)   vYH -. (1 + fdxV^2)) /. h
+    g_x_yd_xV = ((\p -> fdx p * fdy p) vXH -. (fdxV * fdyV)) /. h
+    g_x_yd_yV = ((\p -> fdx p * fdy p) vYH -. (fdxV * fdyV)) /. h
+    g_y_xd_xV = ((\p -> fdx p * fdy p) vXH -. (fdxV * fdyV)) /. h
+    g_y_xd_yV = ((\p -> fdx p * fdy p) vYH -. (fdxV * fdyV)) /. h
+    g_y_yd_xV = ((\p -> 1 + fdy p^2)   vXH -. (1 + fdyV^2)) /. h
+    g_y_yd_yV = ((\p -> 1 + fdy p^2)   vYH -. (1 + fdyV^2)) /. h
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
     c'x__V k l = 0.5 * (g'x'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'x'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
