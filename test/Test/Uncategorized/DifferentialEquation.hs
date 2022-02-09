@@ -24,7 +24,7 @@ tests = testGroup "Differential equations"
         [ twoBodyProblem
         , doublePendulum
         , noisePendulum
-        , geodesicFlatTest
+        , geodesicTest
         ]
     ]
 
@@ -218,17 +218,48 @@ renderPhaseSpace solutionInfinite (w, h) = do
             setColor (icefire val `withOpacity` exp (-val/1))
             stroke
 
-geodesicFlatTest :: TestTree
-geodesicFlatTest = testVisual "Geodesic through flat terrain" 100 100 "docs/differential_equations/geodesic_flat" $ \_ -> do
-    let ode = geodesicEquation (\_t _v -> 0)
-        geodesic = rungeKuttaAdaptiveStep ode xv0 t0 dt0 tolNorm tol
+geodesicTest :: TestTree
+geodesicTest = testVisual "Geodesic through simple terrain" 360 360 "docs/differential_equations/geodesic_flat" $ \(w,h) -> do
+    let cauchyHill g v0 v = 1 / (g*pi*(1+(normSquare (v-.v0)/g)^2))
+        hills = [Vec2 (2/3*w) (1/3*h), Vec2 (1/3*w) (2/3*h)]
+        terrain v = 1e6 * sum [cauchyHill 1000 center v | center <- hills]
+        ode = geodesicEquation (\_t -> terrain)
+        geodesics =
+            [rungeKuttaAdaptiveStep ode (zero, polar angle 1) t0 dt0 tolNorm tol
+            | angle <- map (deg . fromIntegral) [3, 6 .. 98]
+            ]
 
-        xv0 = (zero, Vec2 1 1)
+        -- xv0 = (zero, Vec2 1 1)
         t0 = 0
         dt0 = 1
         tolNorm (x,v) = max (norm x) (norm v)
-        tol = 1e-3
+        tol = 1e-4
 
-    for_ (takeWhile (\(_, (Vec2 x y, _v)) -> max x y <= 100) geodesic) $ \(_t, (x, _v)) -> do
-        circleSketch x 1
-        fill
+    setLineWidth 1
+    cairoScope $ do
+        setColor (mathematica97 5)
+        for_ hills $ \center -> do
+            circleSketch center 2
+            fill
+
+    let entireCanvas = (Vec2 0 0, Vec2 w h)
+    cairoScope $ do -- iso lines
+        for_ [0, 1 .. 30] $ \threshold -> do
+            let grid = Grid entireCanvas (100, 100)
+                isos = isoLines grid terrain threshold
+            for_ isos $ \iso -> do
+                pathSketch iso
+                setColor (black `withOpacity` 0.1)
+                stroke
+
+    cairoScope $ do -- Geodesics
+        let trajectories = do
+                trajectory <- geodesics
+                let cutoff = takeWhile (\(_, (x, _v)) -> insideBoundingBox x entireCanvas)
+                    justPosition = map (\(_t, (x, _v)) -> x)
+                pure (justPosition (cutoff (trajectory)))
+        for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
+            pathSketch trajectory
+            let colorValue = linearInterpolate (1, fromIntegral (length trajectories)) (0,1) i
+            setColor (viridis colorValue)
+            stroke
