@@ -35,33 +35,33 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
   where
     h = 1e-3
 
-    f_dx = d X h (f t)
-    f_dy = d Y h (f t)
+    fdx = d X h (f t)
+    fdy = d Y h (f t)
 
-    f_dxV = f_dx v
-    f_dyV = f_dy v
+    fdxV = fdx v
+    fdyV = fdy v
 
     -- Metric g_{ab}
-    g__ X X p = 1 + f_dx p^2
-    g__ X Y p = f_dx p * f_dy p
+    g__ X X p = 1 + fdx p^2
+    g__ X Y p = fdx p * fdy p
     g__ Y X p = g__ X Y p
-    g__ Y Y p = 1 + f_dy p^2
+    g__ Y Y p = 1 + fdy p^2
 
     -- Inverse metric g^{ab}
-    (g''xx, g''xy, g''yx, g''yy) =
-        let denominator = (1+f_dxV^2+f_dyV^2)
-        in ( (1+f_dyV^2)    /denominator
-           , -(f_dxV*f_dyV) /denominator
-           , g''xy
-           , (1+f_dxV^2)    /denominator
+    (g'x'x, g'x'y, g'y'x, g'y'y) =
+        let denominator = (1+fdxV^2+fdyV^2)
+        in ( (1+fdyV^2)   /denominator
+           , -(fdxV*fdyV) /denominator
+           , g'x'y
+           , (1+fdxV^2)   /denominator
         )
 
     -- Derivative of the metric g_{ab,c}
     g__d_ a b c = d c h (g__ a b)
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'x__ k l p = 0.5 * (g''xx * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g''xy * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
-    c'y__ k l p = 0.5 * (g''yx * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g''yy * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
+    c'x__ k l p = 0.5 * (g'x'x * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'x'y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
+    c'y__ k l p = 0.5 * (g'y'x * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'y'y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
