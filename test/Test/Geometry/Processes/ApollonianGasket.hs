@@ -25,7 +25,7 @@ tests = testGroup "Apollonian gasket"
     ]
 
 correctGasket :: TestTree
-correctGasket = testCase "The Gasket" $ renderAllFormats 300 300 "docs/apollonian_gasket/classical_gasket" $ do
+correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classical_gasket" $ \_ -> do
     let gen0L = Circle (Vec2 100 100) 50
         gen0R = Circle (Vec2 200 100) 50
         gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
@@ -39,7 +39,7 @@ correctGasket = testCase "The Gasket" $ renderAllFormats 300 300 "docs/apollonia
         stroke
 
 spacedGasket :: TestTree
-spacedGasket = testCase "Gasket with slightly spaced initial circles" $ renderAllFormats 300 300 "docs/apollonian_gasket/spaced_gasket" $ do
+spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 "docs/apollonian_gasket/spaced_gasket" $ \_ -> do
     let gen0L = Circle (Vec2 100 100) 42
         gen0R = Circle (Vec2 200 100) 42
         gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 42
@@ -53,7 +53,7 @@ spacedGasket = testCase "Gasket with slightly spaced initial circles" $ renderAl
         stroke
 
 forgettingGen0 :: TestTree
-forgettingGen0 = testCase "Forgetting to use the gen0 circles" $ renderAllFormats 300 300 "docs/apollonian_gasket/forgetting_gen0" $ do
+forgettingGen0 = testVisual "Forgetting to use the gen0 circles" 300 300 "docs/apollonian_gasket/forgetting_gen0" $ \_ -> do
     let gen0L = toApoCircle $ Circle (Vec2 100 100) 50
         gen0R = toApoCircle $ Circle (Vec2 200 100) 50
         gen0B = toApoCircle $ Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
@@ -94,7 +94,7 @@ forgettingGen0 = testCase "Forgetting to use the gen0 circles" $ renderAllFormat
         stroke
 
 missingTheMinus :: TestTree
-missingTheMinus = testCase "Missing that one minus" $ renderAllFormats 300 300 "docs/apollonian_gasket/missing_the_minus" $ do
+missingTheMinus = testVisual "Missing that one minus" 300 300 "docs/apollonian_gasket/missing_the_minus" $ \_ -> do
     let gen0L = toApoCircle $ Circle (Vec2 100 100) 50
         gen0R = toApoCircle $ Circle (Vec2 200 100) 50
         gen0B = toApoCircle $ Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
