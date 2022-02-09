@@ -29,8 +29,8 @@ geodesicEquation
 geodesicEquation f t (v, v'@(Vec2 x' y')) =
     ( v'
     , Vec2
-        (-c'x__ X X v*x'^2 -2*c'x__ X Y v*x'*y' -c'x__ Y Y v*y'^2)
-        (-c'y__ X X v*x'^2 -2*c'y__ X Y v*x'*y' -c'y__ Y Y v*y'^2)
+        (-c'x__V X X*x'^2 -2*c'x__V X Y*x'*y' -c'x__V Y Y*y'^2)
+        (-c'y__V X X*x'^2 -2*c'y__V X Y*x'*y' -c'y__V Y Y*y'^2)
     )
   where
     h = 1e-3
@@ -57,27 +57,27 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
         )
 
     -- Derivative of the metric g_{ab,c}
-    g__d_ X X X = g_x_xd_x
-    g__d_ X X Y = g_x_xd_y
-    g__d_ X Y X = g_x_yd_x
-    g__d_ X Y Y = g_x_yd_y
-    g__d_ Y X X = g_y_xd_x
-    g__d_ Y X Y = g_y_xd_y
-    g__d_ Y Y X = g_y_yd_x
-    g__d_ Y Y Y = g_y_yd_y
+    g__d_V X X X = g_x_xd_xV
+    g__d_V X X Y = g_x_xd_yV
+    g__d_V X Y X = g_x_yd_xV
+    g__d_V X Y Y = g_x_yd_yV
+    g__d_V Y X X = g_y_xd_xV
+    g__d_V Y X Y = g_y_xd_yV
+    g__d_V Y Y X = g_y_yd_xV
+    g__d_V Y Y Y = g_y_yd_yV
 
-    g_x_xd_x = d X h (g__ X X)
-    g_x_xd_y = d Y h (g__ X X)
-    g_x_yd_x = d X h (g__ X Y)
-    g_x_yd_y = d Y h (g__ X Y)
-    g_y_xd_x = d X h (g__ Y X)
-    g_y_xd_y = d Y h (g__ Y X)
-    g_y_yd_x = d X h (g__ Y Y)
-    g_y_yd_y = d Y h (g__ Y Y)
+    g_x_xd_xV = d X h (g__ X X) v
+    g_x_xd_yV = d Y h (g__ X X) v
+    g_x_yd_xV = d X h (g__ X Y) v
+    g_x_yd_yV = d Y h (g__ X Y) v
+    g_y_xd_xV = d X h (g__ Y X) v
+    g_y_xd_yV = d Y h (g__ Y X) v
+    g_y_yd_xV = d X h (g__ Y Y) v
+    g_y_yd_yV = d Y h (g__ Y Y) v
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'x__ k l p = 0.5 * (g'x'x * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'x'y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
-    c'y__ k l p = 0.5 * (g'y'x * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'y'y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
+    c'x__V k l = 0.5 * (g'x'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'x'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
+    c'y__V k l = 0.5 * (g'y'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'y'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
