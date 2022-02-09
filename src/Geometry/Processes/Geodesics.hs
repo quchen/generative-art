@@ -57,7 +57,23 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
         )
 
     -- Derivative of the metric g_{ab,c}
-    g__d_ a b c = d c h (g__ a b)
+    g__d_ X X X = g_x_xd_x
+    g__d_ X X Y = g_x_xd_y
+    g__d_ X Y X = g_x_yd_x
+    g__d_ X Y Y = g_x_yd_y
+    g__d_ Y X X = g_y_xd_x
+    g__d_ Y X Y = g_y_xd_y
+    g__d_ Y Y X = g_y_yd_x
+    g__d_ Y Y Y = g_y_yd_y
+
+    g_x_xd_x = d X h (g__ X X)
+    g_x_xd_y = d Y h (g__ X X)
+    g_x_yd_x = d X h (g__ X Y)
+    g_x_yd_y = d Y h (g__ X Y)
+    g_y_xd_x = d X h (g__ Y X)
+    g_y_xd_y = d Y h (g__ Y X)
+    g_y_yd_x = d X h (g__ Y Y)
+    g_y_yd_y = d Y h (g__ Y Y)
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
     c'x__ k l p = 0.5 * (g'x'x * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'x'y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
