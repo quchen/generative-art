@@ -6,17 +6,21 @@ import Geometry.Core
 
 
 
--- | Geodesic equation of a two-dimensional function, suitable for using in ODE
--- solvers such as
+-- | The geodesic is the shortest path between two points.
+--
+-- This function allows creating the geodesic differential equation, suitable for
+-- using in ODE solvers such as
 -- 'Numerics.DifferentialEquation.rungeKuttaAdaptiveStep'.
 --
--- https://web.mit.edu/hyperbook/Patrikalakis-Maekawa-Cho/node195.html
---
--- https://github.com/rndsrc/bhrad/blob/main/5.geodesic.ipynb
+-- The equation is very simple, as long as you don’t have to implement it.
 --
 -- \[
--- \ddot v^a = \Gamma^a_{bc}\dot v^b\dot v^c
+-- \ddot v^i = \Gamma^i_{kl}\dot v^k\dot v^l \\
+-- \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m}) \\
+-- g_{ij}(f) = \left\langle \partial_if,\partial_jf \right\rangle
 -- \]
+--
+-- Go ahead, look at the code, I dare you
 geodesicEquation
     :: (Double -> Vec2 -> Double) -- ^ Surface function \(f(t, \mathbf v)\)
     -> Double                     -- ^ Time \(t\)
