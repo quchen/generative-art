@@ -29,8 +29,8 @@ geodesicEquation
 geodesicEquation f t (v, v'@(Vec2 x' y')) =
     ( v'
     , Vec2
-        (-c'__ X X X v*x'^2 -2*c'__ X X Y v*x'*y' -c'__ X Y Y v*y'^2)
-        (-c'__ Y X X v*x'^2 -2*c'__ Y X Y v*x'*y' -c'__ Y Y Y v*y'^2)
+        (-c'x__ X X v*x'^2 -2*c'x__ X Y v*x'*y' -c'x__ Y Y v*y'^2)
+        (-c'y__ X X v*x'^2 -2*c'y__ X Y v*x'*y' -c'y__ Y Y v*y'^2)
     )
   where
     h = 1e-3
@@ -60,7 +60,8 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_ a b c = d c h (g__ a b)
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'__ i k l p = 0.5 * (g'' i X * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g'' i Y * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
+    c'x__ k l p = 0.5 * (g''xx * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g''xy * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
+    c'y__ k l p = 0.5 * (g''yx * (g__d_ X k l p + g__d_ X l k p - g__d_ k l X p) + g''yy * (g__d_ Y k l p + g__d_ Y l k p - g__d_ k l Y p))
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
