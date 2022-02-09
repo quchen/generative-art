@@ -25,50 +25,33 @@ geodesicEquation
 geodesicEquation f t (v, v'@(Vec2 x' y')) =
     ( v'
     , Vec2
-        (-c'x_xx v*x'^2 -2*c'x_xy v*x'*y' -c'x_yy v*y'^2)
-        (-c'y_xx v*x'^2 -2*c'y_xy v*x'*y' -c'y_yy v*y'^2)
+        (-c'__ X X X v*x'^2 -2*c'__ X X Y v*x'*y' -c'__ X Y Y v*y'^2)
+        (-c'__ Y X X v*x'^2 -2*c'__ Y X Y v*x'*y' -c'__ Y Y Y v*y'^2)
     )
   where
     h = 1e-3
 
-    f_x, f_y, f_xx, f_xy, f_yx, f_yy :: Vec2 -> Double
     f_x  = d X h (f t)
     f_y  = d Y h (f t)
-    f_xx = d X h f_x
-    f_xy = d X h f_y
-    f_yx = f_xy -- this is one of the few non-awful parts in this code
-    f_yy = d Y h f_y
 
-    -- Metric
-    g_xx p = 1 + f_x p^2
-    g_xy p = f_x p * f_y p
-    g_yx p = g_xy p
-    g_yy p = 1 + f_y p^2
+    -- Metric g_{ab}
+    g__ X X p = 1 + f_x p^2
+    g__ X Y p = f_x p * f_y p
+    g__ Y X p = g__ X Y p
+    g__ Y Y p = 1 + f_y p^2
 
-    -- Inverse metric
+    -- Inverse metric g^{ab}
     denom p = (1+f_x p^2+f_y p^2)
-    g'xx p = (1+f_y p^2)    /denom p
-    g'xy p = -(f_x p*f_y p) /denom p
-    g'yx p = g'xy p
-    g'yy p = (1+f_x p^2)    /denom p
+    g'' X X p = (1+f_y p^2)    /denom p
+    g'' X Y p = -(f_x p*f_y p) /denom p
+    g'' Y X p = g'' X Y p
+    g'' Y Y p = (1+f_x p^2)    /denom p
 
-    -- Derivative of the metric
-    g_xx_x = d X h g_xx
-    g_xy_x = d X h g_xy
-    g_yx_x = g_yx_x
-    g_yy_x = d X h g_yy
-    g_xx_y = d Y h g_xx
-    g_xy_y = d Y h g_xy
-    g_yx_y = g_xy_y
-    g_yy_y = d Y h g_yy
+    -- Derivative of the metric g_{ab,c}
+    g___ a b c = d c h (g__ a b)
 
-    -- Christoffel symbols, \Gamma^i_{jk} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
-    c'x_xx p = 0.5 * ( g'xx p * (g_xx_x p + g_xx_x p - g_xx_x p) + g'xy p * (g_yx_x p + g_yx_x p - g_xx_y p) )
-    c'x_xy p = 0.5 * ( g'xx p * (g_xx_y p + g_xy_x p - g_xy_x p) + g'xy p * (g_yx_y p + g_yy_x p - g_xy_y p) )
-    c'x_yy p = 0.5 * ( g'xx p * (g_xy_y p + g_xy_y p - g_yy_x p) + g'xy p * (g_yy_y p + g_yy_y p - g_yy_y p) )
-    c'y_xx p = 0.5 * ( g'yx p * (g_xx_x p + g_xx_x p - g_xx_x p) + g'yy p * (g_yx_x p + g_yx_x p - g_xx_y p) )
-    c'y_xy p = 0.5 * ( g'yx p * (g_xx_y p + g_xy_x p - g_xy_x p) + g'yy p * (g_yx_y p + g_yy_x p - g_xy_y p) )
-    c'y_yy p = 0.5 * ( g'yx p * (g_xy_y p + g_xy_y p - g_yy_x p) + g'yy p * (g_yy_y p + g_yy_y p - g_yy_y p) )
+    -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
+    c'__ i k l p = 0.5 * sum [ g'' i m p * (g___ m k l p + g___ m l k p - g___ k l m p) | m <- [X,Y]]
 
 -- | Spatial derivative
 d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
