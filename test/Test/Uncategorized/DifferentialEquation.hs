@@ -219,7 +219,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
             stroke
 
 geodesicTest :: TestTree
-geodesicTest = testVisual "Geodesic through simple terrain" 360 360 "docs/differential_equations/geodesic_flat" $ \(w,h) -> do
+geodesicTest = testVisual "Geodesic through simple terrain" 360 360 "docs/differential_equations/geodesic" $ \(w,h) -> do
     let cauchyHill g v0 v = 1 / (g*pi*(1+(normSquare (v-.v0)/g)^2))
         hills = [Vec2 (2/3*w) (1/3*h), Vec2 (1/3*w) (2/3*h)]
         terrain v = 1e6 * sum [cauchyHill 1000 center v | center <- hills]
