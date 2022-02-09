@@ -5,6 +5,8 @@ import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import Math.Noise (Perlin (..), perlin, getValue)
 
+import Geometry.Algorithms.Dijkstra
+
 import Draw
 import Geometry
 import Numerics.VectorAnalysis (grad)
@@ -37,18 +39,25 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
             }
         isoLine = isoLines grid scalarField
 
-    for_ [-0.6,-0.55..0.1] $ \v ->
+    for_ [-0.6,-0.55..0] $ \v ->
         drawAtHeight v $ drawIsoLine v (isoLine v)
 
-    let withinBounds (t, (Vec2 x y, _)) = x >= 0 && x <= picWidth && y >= 0 && y <= picWidth && t <= 10000
-        xs = fst . snd <$> takeWhile withinBounds (trajectory (Vec2 (picWidth/2) (picHeight/2)) (Vec2 0 0))
+    let start = Vec2 1800 1400
+        end = Vec2 200 200
+        xs = dijkstra Dijkstra
+            { weight = \p -> exp (scalarField p * 10)
+            , width = picWidth
+            , height = picHeight
+            , step = cellSize
+            } start end
 
     drawAtHeight 0 $ do
-        bezierCurveSketch (V.toList (bezierSmoothenOpen (V.fromList xs)))
+        bezierCurveSketch (V.toList (bezierSmoothenOpen (V.fromList (simplifyTrajectoryRadial 100 (V.fromList xs)))))
         Cairo.setLineWidth 5
         setColor (white `withOpacity` 0.6)
         Cairo.stroke
-    for_ [0.1, 0.15 .. 0.5] $ \v ->
+
+    for_ [0,0.05..0.5] $ \v ->
         drawAtHeight v $ drawIsoLine v (isoLine v)
 
   where
@@ -56,9 +65,13 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
     scaledWidth = round (picWidth * scaleFactor)
     scaledHeight = round (picHeight * scaleFactor)
 
+everyNth :: Int -> [a] -> [a]
+everyNth _ [] = []
+everyNth n (x:xs) = x : everyNth n (drop (n-1) xs)
+
 drawAtHeight :: Double -> Cairo.Render () -> Cairo.Render ()
 drawAtHeight v action = cairoScope $ do
-    Cairo.translate 0 (-200*v)
+    Cairo.translate 0 (-300*v)
     Cairo.translate (picWidth/2) (picHeight/2)
     Cairo.scale 2 0.5
     Cairo.rotate (0.25*pi)
@@ -84,7 +97,7 @@ drawIsoLine v ls = do
 
 scalarField :: Vec2 -> Double
 scalarField (Vec2 x y)
-    | x < 0 || x > picWidth || y < 0 || y > picHeight = -1/0
+    | x < -0 || x > picWidth || y < 0 || y > picHeight = -1/0
     | otherwise = noise2d
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }

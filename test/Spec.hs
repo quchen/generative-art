@@ -13,6 +13,7 @@ import qualified Test.Draw.Color
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
 import qualified Test.Geometry.Algorithms.Delaunay
+import qualified Test.Geometry.Algorithms.Dijkstra
 import qualified Test.Geometry.Algorithms.Sampling
 import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Algorithms.Voronoi
@@ -55,6 +56,7 @@ tests = testGroup "Test suite"
     , Test.Geometry.Algorithms.Contour.tests
     , Test.Geometry.Algorithms.Cut.tests
     , Test.Geometry.Algorithms.Delaunay.tests
+    , Test.Geometry.Algorithms.Dijkstra.tests
     , Test.Geometry.Algorithms.Sampling.tests
     , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Algorithms.Voronoi.tests
