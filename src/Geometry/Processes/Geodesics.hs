@@ -41,12 +41,6 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     fdxV = fdx v
     fdyV = fdy v
 
-    -- Metric g_{ab}
-    g__ X X p = 1 + fdx p^2
-    g__ X Y p = fdx p * fdy p
-    g__ Y X p = g__ X Y p
-    g__ Y Y p = 1 + fdy p^2
-
     -- Inverse metric g^{ab}
     (g'x'x, g'x'y, g'y'x, g'y'y) =
         let denominator = (1+fdxV^2+fdyV^2)
@@ -66,14 +60,14 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_V Y Y X = g_y_yd_xV
     g__d_V Y Y Y = g_y_yd_yV
 
-    g_x_xd_xV = d X h (g__ X X) v
-    g_x_xd_yV = d Y h (g__ X X) v
-    g_x_yd_xV = d X h (g__ X Y) v
-    g_x_yd_yV = d Y h (g__ X Y) v
-    g_y_xd_xV = d X h (g__ Y X) v
-    g_y_xd_yV = d Y h (g__ Y X) v
-    g_y_yd_xV = d X h (g__ Y Y) v
-    g_y_yd_yV = d Y h (g__ Y Y) v
+    g_x_xd_xV = d X h (\p -> 1 + fdx p^2) v
+    g_x_xd_yV = d Y h (\p -> 1 + fdx p^2) v
+    g_x_yd_xV = d X h (\p -> fdx p * fdy p) v
+    g_x_yd_yV = d Y h (\p -> fdx p * fdy p) v
+    g_y_xd_xV = d X h (\p -> fdx p * fdy p) v
+    g_y_xd_yV = d Y h (\p -> fdx p * fdy p) v
+    g_y_yd_xV = d X h (\p -> 1 + fdy p^2) v
+    g_y_yd_yV = d Y h (\p -> 1 + fdy p^2) v
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
     c'x__V k l = 0.5 * (g'x'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'x'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
