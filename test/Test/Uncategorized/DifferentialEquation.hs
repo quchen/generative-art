@@ -12,6 +12,7 @@ import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import Numerics.DifferentialEquation
 import Numerics.Interpolation
 import qualified Data.Vector as V
+import Geometry.Processes.Geodesics
 
 import Test.TastyAll
 
@@ -23,6 +24,7 @@ tests = testGroup "Differential equations"
         [ twoBodyProblem
         , doublePendulum
         , noisePendulum
+        , geodesicFlatTest
         ]
     ]
 
@@ -215,3 +217,18 @@ renderPhaseSpace solutionInfinite (w, h) = do
             let val = linearInterpolate (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val/1))
             stroke
+
+geodesicFlatTest :: TestTree
+geodesicFlatTest = testVisual "Geodesic through flat terrain" 100 100 "docs/differential_equations/geodesic_flat" $ \_ -> do
+    let ode = geodesicEquation (\_t _v -> 0)
+        geodesic = rungeKuttaAdaptiveStep ode xv0 t0 dt0 tolNorm tol
+
+        xv0 = (zero, Vec2 1 1)
+        t0 = 0
+        dt0 = 1
+        tolNorm (x,v) = max (norm x) (norm v)
+        tol = 1e-3
+
+    for_ (takeWhile (\(_, (Vec2 x y, _v)) -> max x y <= 100) geodesic) $ \(_t, (x, _v)) -> do
+        circleSketch x 1
+        fill
