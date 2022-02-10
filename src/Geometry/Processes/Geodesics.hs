@@ -39,15 +39,20 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     vXH = v +. Vec2 h 0
     vYH = v +. Vec2 0 h
 
+    -- Function application sharing
+    ftv = f t v
+    ftvXH = f t vXH
+    ftvYH = f t vYH
+
     -- First derivatives, applied to the offsets, for the second derivatives
-    fdxvXH = (\p -> (f t (p +. Vec2 h 0) -. f t p) /. h) vXH
-    fdxvYH = (\p -> (f t (p +. Vec2 h 0) -. f t p) /. h) vYH
-    fdyvXH = (\p -> (f t (p +. Vec2 0 h) -. f t p) /. h) vXH
-    fdyvYH = (\p -> (f t (p +. Vec2 0 h) -. f t p) /. h) vYH
+    fdxvXH = (f t (vXH +. Vec2 h 0) -. ftvXH) /. h
+    fdxvYH = (f t (vYH +. Vec2 h 0) -. ftvYH) /. h
+    fdyvXH = (f t (vXH +. Vec2 0 h) -. ftvXH) /. h
+    fdyvYH = (f t (vYH +. Vec2 0 h) -. ftvYH) /. h
 
     -- First derivatives applied at our current position
-    fdxV = (f t vXH -. f t v) /. h
-    fdyV = (f t vYH -. f t v) /. h
+    fdxV = (ftvXH -. ftv) /. h
+    fdyV = (ftvYH -. ftv) /. h
 
     -- Inverse metric g^{ab}
     (g'x'x, g'x'y, g'y'x, g'y'y) =
