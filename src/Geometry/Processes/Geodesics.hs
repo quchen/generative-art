@@ -43,6 +43,12 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     fdx = d X h (f t)
     fdy = d Y h (f t)
 
+    -- First derivatives, applied to the offsets, for the second derivatives
+    fdxvXH = fdx vXH
+    fdxvYH = fdx vYH
+    fdyvXH = fdy vXH
+    fdyvYH = fdy vYH
+
     -- First derivatives applied at our current position
     fdxV = fdx v
     fdyV = fdy v
@@ -67,14 +73,14 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_V Y Y Y = g_y_yd_yV
 
     -- Derivative of the metric g_{ab,c} at our current position
-    g_x_xd_xV = ((1 + fdx vXH^2)     -. (1 + fdxV^2))  /. h
-    g_x_xd_yV = ((1 + fdx vYH^2)     -. (1 + fdxV^2))  /. h
-    g_x_yd_xV = ((fdx vXH * fdy vXH) -. (fdxV * fdyV)) /. h
-    g_x_yd_yV = ((fdx vYH * fdy vYH) -. (fdxV * fdyV)) /. h
-    g_y_xd_xV = ((fdx vXH * fdy vXH) -. (fdxV * fdyV)) /. h
-    g_y_xd_yV = ((fdx vYH * fdy vYH) -. (fdxV * fdyV)) /. h
-    g_y_yd_xV = ((1 + fdy vXH^2)     -. (1 + fdyV^2))  /. h
-    g_y_yd_yV = ((1 + fdy vYH^2)     -. (1 + fdyV^2))  /. h
+    g_x_xd_xV = ((1 + fdxvXH^2)    -. (1 + fdxV^2))  /. h
+    g_x_xd_yV = ((1 + fdxvYH^2)    -. (1 + fdxV^2))  /. h
+    g_x_yd_xV = ((fdxvXH * fdyvXH) -. (fdxV * fdyV)) /. h
+    g_x_yd_yV = ((fdxvYH * fdyvYH) -. (fdxV * fdyV)) /. h
+    g_y_xd_xV = ((fdxvXH * fdyvXH) -. (fdxV * fdyV)) /. h
+    g_y_xd_yV = ((fdxvYH * fdyvYH) -. (fdxV * fdyV)) /. h
+    g_y_yd_xV = ((1 + fdyvXH^2)    -. (1 + fdyV^2))  /. h
+    g_y_yd_yV = ((1 + fdyvYH^2)    -. (1 + fdyV^2))  /. h
 
     -- Christoffel symbols, \Gamma^i_{kl} = \frac12 g^{im} (g_{mk,l}+g_{ml,k}-g_{kl,m})
     c'x__V k l = 0.5 * (g'x'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'x'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
