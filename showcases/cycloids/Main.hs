@@ -15,9 +15,9 @@ scaleFactor :: Double
 scaleFactor = 1
 
 main :: IO ()
-main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
+main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface -> renderWith surface $ do
     C.scale scaleFactor scaleFactor
-    cairoScope (setColor colorBackground2 >> C.paint)
+    cairoScope (setColor bg2 >> paint)
 
     let curve k t = hypotrochoid Trochoid
             { baseRadius = t+800
@@ -30,11 +30,11 @@ main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface ->
             C.scale 0.25 0.25
             rectangle 240 240 2080 2080
             cairoScope $ do
-                setColor colorForeground2
+                setColor fg2
                 setLineWidth 20
                 strokePreserve
             cairoScope $ do
-                setColor colorBackground1
+                setColor bg1
                 fillPreserve
             clip
 
@@ -42,7 +42,7 @@ main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface ->
             moveToVec (curve (fromIntegral k) 0)
             for_ [0, 0.2 .. 5700] $ lineToVec . curve (fromIntegral k)
 
-            setColor colorForeground1
+            setColor fg1
             stroke
 
         C.translate (picWidth/4) 0
@@ -69,10 +69,7 @@ hypotrochoid :: Trochoid -> Double -> Vec2
 hypotrochoid Trochoid{..} t =  order0 +. pencilRadius *. order1
   where
     order0 = polar (rad t) (baseRadius - rotorRadius)
-    order1 = polar (rad $ (rotorRadius - baseRadius) / rotorRadius * t) 1
+    order1 = polar (rad ((rotorRadius - baseRadius) / rotorRadius * t)) 1
 
-colorBackground1, colorForeground1, colorBackground2, colorForeground2 :: Color Double
-colorBackground1 = parseRgbHex "#002b36"
-colorBackground2 = parseRgbHex "#073642"
-colorForeground1 = parseRgbHex "#586e75"
-colorForeground2 = parseRgbHex "#657b83"
+bg1, bg2, fg1, fg2 :: Color Double
+[bg1, bg2, fg1, fg2] = map parseRgbHex ["#002b36", "#073642", "#586e75", "#657b83"]
