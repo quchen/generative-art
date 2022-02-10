@@ -211,6 +211,8 @@ over quickly.
 
 ![Missing image!](../../docs/interpolation/2_picasso_squirrel.svg)
 
+![Missing image!](../../docs/interpolation/3_simplify_path_radial.svg)
+
 ![Missing image!](../../docs/interpolation/3_simplify_path_rdp.svg)
 
 ![Missing image!](../../docs/interpolation/3_simplify_path_vw.svg)
