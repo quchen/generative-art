@@ -35,9 +35,15 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
   where
     h = 1e-3
 
-    -- Offsets for derivatives at our current position
+    -- Offsets for first derivatives at our current position
     vXH = v +. Vec2 h 0
     vYH = v +. Vec2 0 h
+
+    -- Offsets for second derivatives at our current position
+    vXHXH = vXH +. Vec2 h 0
+    vYHXH = vYH +. Vec2 h 0
+    vXHYH = vYHXH -- Vector addition commutativity saves us another call to f!
+    vYHYH = vYH +. Vec2 0 h
 
     -- Function application sharing
     ftv = f t v
@@ -45,10 +51,10 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     ftvYH = f t vYH
 
     -- First derivatives, applied to the offsets, for the second derivatives
-    fdxvXH = (f t (vXH +. Vec2 h 0) -. ftvXH) /. h
-    fdxvYH = (f t (vYH +. Vec2 h 0) -. ftvYH) /. h
-    fdyvXH = (f t (vXH +. Vec2 0 h) -. ftvXH) /. h
-    fdyvYH = (f t (vYH +. Vec2 0 h) -. ftvYH) /. h
+    fdxvXH = (f t vXHXH -. ftvXH) /. h
+    fdxvYH = (f t vYHXH -. ftvYH) /. h
+    fdyvXH = (f t vXHYH -. ftvXH) /. h
+    fdyvYH = (f t vYHYH -. ftvYH) /. h
 
     -- First derivatives applied at our current position
     fdxV = (ftvXH -. ftv) /. h
