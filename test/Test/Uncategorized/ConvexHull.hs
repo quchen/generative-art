@@ -4,7 +4,6 @@ module Test.Uncategorized.ConvexHull (tests) where
 
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Coerce
 import           Data.Default.Class
 import           Data.Foldable
 import           Data.Function
@@ -87,24 +86,29 @@ allPointsInHullTest :: TestTree
 allPointsInHullTest = testProperty "All points are inside the hull" $
     let gen = do
             n <- choose (10, 100)
-            replicateM n arbitrary
-    in forAll gen $ \gaussianPoints ->
-        let points = coerce (gaussianPoints :: [Gaussian])
-            hull@(Polygon hullPoints) = convexHull points
+            replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
+    in forAll gen $ \points ->
+        let hull@(Polygon hullPoints) = convexHull points
         in all (\p -> pointInPolygon p hull) (points \\ hullPoints)
 
 convexHullIsConvexTest :: TestTree
 convexHullIsConvexTest = testProperty "Convex hull is convex" $
     let gen = do
             n <- choose (10, 100)
-            replicateM n arbitrary
-    in forAll gen $ \points -> isConvex (convexHull (coerce (points :: [Gaussian])))
+            replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
+    in forAll gen $ \points -> isConvex (convexHull (points ))
 
 isNotSelfIntersecting :: TestTree
 isNotSelfIntersecting = testProperty "Result is satisfies polygon invariants" $
     let gen = do
             n <- choose (10, 100)
-            replicateM n arbitrary
-    in forAll gen $ \points -> case validatePolygon (convexHull (coerce (points :: [Gaussian]))) of
+            replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
+    in forAll gen $ \points -> case validatePolygon (convexHull points) of
         Left err -> error (show err)
         Right _ -> ()

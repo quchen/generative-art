@@ -102,6 +102,7 @@ module Geometry.Core (
 import           Algebra.VectorSpace
 import           Control.DeepSeq
 import           Data.Fixed
+import           Data.Foldable
 import           Data.List
 import qualified Data.Map            as M
 import qualified Data.Set            as S
@@ -807,10 +808,10 @@ polygonAngles polygon@(Polygon corners)
 -- clockwise.)
 --
 -- <<docs/geometry/convex_hull.svg>>
-convexHull :: [Vec2] -> Polygon
+convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
-  = let pointsSorted = sort points
+  = let pointsSorted = sort (toList points)
         angleSign a b c = signum (det (b -. a) (c -. b))
         go :: (Double -> Double -> Bool) -> [Vec2] -> [Vec2] -> [Vec2]
         go cmp [] (p:ps) = go cmp [p] ps
@@ -838,10 +839,11 @@ polygonOrientation polygon
 -- out whether something is inside more complicated objects, such as nested
 -- polygons (e.g. polygons with holes).
 countEdgeTraversals
-    :: Vec2   -- ^ Point to check
-    -> [Line] -- ^ Geometry
-    -> Int    -- ^ Number of edges crossed
-countEdgeTraversals p edges = length intersections
+    :: Foldable list
+    => Vec2      -- ^ Point to check
+    -> list Line -- ^ Geometry
+    -> Int       -- ^ Number of edges crossed
+countEdgeTraversals p edges' = length intersections
   where
     -- The test ray comes from outside the polygon, and ends at the point to be
     -- tested.
@@ -851,6 +853,7 @@ countEdgeTraversals p edges = length intersections
     -- should only be one.  For this reason, we subtract 1 from the y coordinate
     -- as well to get a bit of an odd angle, greatly reducing the chance of
     -- exactly hitting a corner on the way.
+    edges = toList edges'
     testRay = Line (Vec2 (leftmostPolyX - 1) (pointY - 1)) p
       where
         leftmostPolyX = minimum (edges >>= \(Line (Vec2 x1 _) (Vec2 x2 _)) -> [x1,x2])
