@@ -46,6 +46,7 @@ extra-doc-files:
     - docs/colors/schemes/discrete/**/*.svg
     - docs/differential_equations/1_two_body_problem.svg
     - docs/differential_equations/2_double_pendulum.svg
+    - docs/differential_equations/geodesic_hill_and_valley.svg
     - docs/geometry/convex_hull.svg
     - docs/geometry/cut/3_complicated.svg
     - docs/geometry/point_in_polygon.svg
