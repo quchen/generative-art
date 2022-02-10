@@ -18,19 +18,20 @@ module Geometry.Trajectory (
 
 
 import           Data.Foldable
-import           Data.Heap     (Entry (..), Heap)
-import qualified Data.Heap     as H
-import           Data.Map      (Map)
-import qualified Data.Map      as M
+import           Data.Heap       (Entry (..), Heap)
+import qualified Data.Heap       as H
+import           Data.Map        (Map)
+import qualified Data.Map        as M
 import           Data.Ord
-import           Data.Sequence (Seq, (|>))
-import qualified Data.Sequence as Seq
-import           Data.Vector   (Vector, (!))
-import qualified Data.Vector   as V
-import           GHC.Stack     (HasCallStack)
+import           Data.Sequence   (Seq, (|>))
+import qualified Data.Sequence   as Seq
+import           Data.Sequential
+import           Data.Vector     (Vector, (!))
+import qualified Data.Vector     as V
+import           GHC.Stack       (HasCallStack)
 import           Geometry.Core
 import           Geometry.LUT
-import           Prelude       hiding (lines)
+import           Prelude         hiding (lines)
 
 
 
@@ -57,9 +58,9 @@ trajectoryLut = VLUT . V.fromList . go 0 . pairLines
 -- let goto = 'pointOnTrajectory' […]
 -- 'print' [goto ('Distance' d) | d <- [0, 0.1 .. 5]]
 -- @
-pointOnTrajectory :: [Vec2] -> Double -> Vec2
+pointOnTrajectory :: Sequential list => list Vec2 -> Double -> Vec2
 pointOnTrajectory points
-  = let lut = trajectoryLut points
+  = let lut = trajectoryLut (toList points)
     in \dist ->
         let (start, line) = lookupBiasLower lut dist
             distLeft = dist -. start
@@ -81,8 +82,9 @@ pointOnTrajectory points
 --
 -- <<docs/interpolation/3_simplify_path_rdp.svg>>
 simplifyTrajectory
-    :: Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points. Larger values yield simpler results.
-    -> Vector Vec2 -- ^ Trajectory
+    :: Sequential vector
+    => Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points. Larger values yield simpler results.
+    -> vector Vec2 -- ^ Trajectory
     -> Vector Vec2 -- ^ Simplified trajectory
 simplifyTrajectory epsilon = simplifyTrajectoryBy epsilon id
 
@@ -92,11 +94,12 @@ simplifyTrajectory epsilon = simplifyTrajectoryBy epsilon id
 -- This is useful when your trajectory contains metadata, such as the velocity at
 -- each point.
 simplifyTrajectoryBy
-    :: Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points. Larger values yield simpler results.
+    :: Sequential vector
+    => Double      -- ^ Discard points closer than \(\varepsilon\) to the connecting line of two points. Larger values yield simpler results.
     -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
-    -> Vector a    -- ^ Trajectory
+    -> vector a    -- ^ Trajectory
     -> Vector a    -- ^ Simplified trajectory
-simplifyTrajectoryBy epsilon vec2in = go
+simplifyTrajectoryBy epsilon vec2in = go . toVector
   where
     go points | V.length points <= 2 = points
     go points
@@ -135,10 +138,11 @@ simplifyTrajectoryBy epsilon vec2in = go
 --
 -- <<docs/interpolation/3_simplify_path_vw.svg>>
 simplifyTrajectoryVW
-    :: Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
-    -> Vector Vec2 -- ^ Trajectory
+    :: Sequential vector
+    => Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
+    -> vector Vec2 -- ^ Trajectory
     -> Vector Vec2 -- ^ Simplified trajectory
-simplifyTrajectoryVW areaCutoff = simplifyTrajectoryVWBy areaCutoff id
+simplifyTrajectoryVW areaCutoff = simplifyTrajectoryVWBy areaCutoff id . toVector
 
 -- | 'simplifyTrajectoryVWBy', but allows specifying a function for how to extract the points
 -- to base simplifying on from the input.
@@ -146,13 +150,15 @@ simplifyTrajectoryVW areaCutoff = simplifyTrajectoryVWBy areaCutoff id
 -- This is useful when your trajectory contains metadata, such as the velocity at
 -- each point.
 simplifyTrajectoryVWBy
-    :: forall a. Ord a
+    :: forall a vector.
+       (Ord a, Sequential vector)
     => Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
     -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
-    -> Vector a    -- ^ Trajectory
+    -> vector a    -- ^ Trajectory
     -> Vector a    -- ^ Simplified trajectory
-simplifyTrajectoryVWBy areaCutoff vec2in trajectory =
-    let isCyclic = vec2in (V.head trajectory) == vec2in (V.last trajectory)
+simplifyTrajectoryVWBy areaCutoff vec2in trajectorySequence =
+    let trajectory = toVector trajectorySequence
+        isCyclic = vec2in (V.head trajectory) == vec2in (V.last trajectory)
         areaHeap :: Heap (Entry Double Vec2)
         areaHeap =
             let vecs = fmap vec2in trajectory
@@ -300,19 +306,21 @@ triangleArea left center right = abs (det (left -. center) (right -. center))
 --
 -- <<docs/interpolation/3_simplify_path_radial.svg>>
 simplifyTrajectoryRadial
-    :: Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
-    -> Vector Vec2 -- ^ Trajectory
+    :: Sequential vector
+    => Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
+    -> vector Vec2 -- ^ Trajectory
     -> [Vec2]      -- ^ Simplified trajectory
-simplifyTrajectoryRadial cutoff = simplifyTrajectoryRadialBy cutoff id
+simplifyTrajectoryRadial cutoff = simplifyTrajectoryRadialBy cutoff id . toVector
 
 -- | 'simplifyTrajectoryRadial', but allows specifying a function for how to extract the points
 -- to base simplifying on from the input.
 simplifyTrajectoryRadialBy
-    :: Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
+    :: Sequential vector
+    => Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
     -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
-    -> Vector a    -- ^ Trajectory
+    -> vector a    -- ^ Trajectory
     -> [a]         -- ^ Simplified trajectory
-simplifyTrajectoryRadialBy cutoff vec2in = go
+simplifyTrajectoryRadialBy cutoff vec2in = go . toVector
   where
     tooClose pivot candidate = normSquare (vec2in pivot -. vec2in candidate) <= cutoff^2
     go trajectory = case V.uncons trajectory of
