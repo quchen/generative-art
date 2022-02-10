@@ -25,7 +25,7 @@ main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface ->
             , pencilRadius = -0.2*t + 1800 }
             (t*0.5)
 
-    for_ [0..16] $ \k -> do
+    for_ [0..15] $ \k -> do
         cairoScope $ do
             C.scale 0.25 0.25
             rectangle 240 240 2080 2080
@@ -40,7 +40,7 @@ main = withSurfaceAuto "out/cycloids.png" scaledWidth scaledHeight $ \surface ->
 
             C.translate (picWidth / 2) (picHeight / 2)
             moveToVec (curve (fromIntegral k) 0)
-            for_ [0, 0.2 .. 5700] $ lineToVec . curve (fromIntegral k)
+            for_ [0, 0.2 .. 5700] $ \t -> lineToVec (curve (fromIntegral k) t)
 
             setColor fg1
             stroke
