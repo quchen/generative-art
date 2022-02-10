@@ -78,11 +78,13 @@ toGridTest = testProperty "toGrid" $
 lookupOnGridPointsYieldsFunctionValuesTest :: TestTree
 lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid points yields original function values" $
     let f (Vec2 x y) = sin (x^2 + y^3)
-        vecMin = Vec2 0 0
-        vecMax = Vec2 100 127 -- Works with 100 100. :-|
-        grid = Grid (vecMin, vecMax) (100, 100)
+        vecMin = Vec2 (-10) 0
+        vecMax = Vec2 100 127
+        grid = Grid (vecMin, vecMax) (100, 120)
         lut = lookupTable2 grid f
         gen = do
-            Vec2 i' j' <- pointInGridRange grid
-            pure (fromGrid grid (IVec2 (round i') (round j')))
+            vOnGrid <- pointInGridRange grid
+            let Vec2 i' j' = toGrid grid vOnGrid
+                gridVec = IVec2 (round i') (round j')
+            pure (fromGrid grid gridVec)
     in forAll gen $ \v -> lookupBilinear lut v ~== f v

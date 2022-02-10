@@ -91,7 +91,7 @@ lookupBilinear (LookupTable2 grid vec) xy =
             | otherwise = lut_iFloor!jFloor
         iCeilValue
             | jFloor /= jCeil = linearInterpolate (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil !jFloor, lut_iCeil !jCeil) jCont
-            | otherwise = lut_iFloor!jFloor
+            | otherwise = lut_iCeil!jFloor
 
         result
             | iFloorValue /= iCeilValue = linearInterpolate (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
