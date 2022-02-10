@@ -16,6 +16,7 @@ module Test.TastyAll (
     , renderSvg
     , renderAllFormats
     , testVisual
+    , testVisual'
 
     -- * Reexports
     , module Control.Applicative
@@ -212,3 +213,13 @@ testVisual
     -> ((a, a) -> Render ()) -- ^ Renderer, given width/height
     -> TestTree
 testVisual testName w h filePath render = testCase testName (renderAllFormats w h filePath (render (fromIntegral w,fromIntegral h)))
+
+testVisual'
+    :: TestName
+    -> Int                   -- ^ Output width
+    -> Int                   -- ^ Output height
+    -> FilePath              -- ^ Output file
+    -> ((Render () -> IO ()) -> IO ()) -- ^ Renderer, given width/height
+    -> TestTree
+testVisual' testName w h filePath render = testCase testName $ render (renderAllFormats w h filePath)
+

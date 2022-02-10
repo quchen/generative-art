@@ -147,6 +147,12 @@ over quickly.
 
 ![Missing image!](../../docs/differential_equations/geodesic_hill_and_valley.svg)
 
+![Missing image!](../../docs/dijkstra/avoidsGradient.svg)
+
+![Missing image!](../../docs/dijkstra/avoidsHeights.svg)
+
+![Missing image!](../../docs/dijkstra/maze.svg)
+
 ![Missing image!](../../docs/geometry/convex_hull.svg)
 
 ![Missing image!](../../docs/geometry/cut/1_line.svg)

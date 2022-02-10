@@ -1,9 +1,12 @@
 module Main where
 
 import Data.Maybe (fromMaybe)
+import Data.Ord (comparing)
 import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import Math.Noise (Perlin (..), perlin, getValue)
+import System.Random.MWC
+import System.Random.MWC.Distributions
 
 import Geometry.Algorithms.Dijkstra
 
@@ -112,3 +115,21 @@ equationOfMotion (x0, p0) = (deltaX, deltaP)
 
 trajectory :: Vec2 -> Vec2 -> [(Double, (Vec2, Vec2))]
 trajectory x0 p0 = rungeKuttaConstantStep (const equationOfMotion) (x0, p0) 0 10
+
+optimizeTrajectory :: (Vec2 -> Double) -> Double -> GenIO -> V.Vector Vec2 -> IO (V.Vector Vec2)
+optimizeTrajectory f d gen ps = do
+    pos <- uniformRM (0, V.length ps - 1) gen
+    let item = ps V.! pos
+    nudge <- gaussianVec2 item d gen
+    let ps' = ps V.// [(pos, item +. nudge)]
+    pure (minimumBy (comparing trajectoryLength) [ps, ps'])
+  where
+    trajectoryLength = sum . fmap f
+
+
+gaussianVec2
+    :: Vec2 -- ^ Mean
+    -> Double -- ^ Standard deviation
+    -> GenIO
+    -> IO Vec2
+gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> normal muX sigma gen <*> normal muY sigma gen
