@@ -82,9 +82,4 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     c'x__V k l = 0.5 * (g'x'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'x'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
     c'y__V k l = 0.5 * (g'y'x * (g__d_V X k l + g__d_V X l k - g__d_V k l X) + g'y'y * (g__d_V Y k l + g__d_V Y l k - g__d_V k l Y))
 
--- | Spatial derivative
-d :: VectorSpace v => Dim -> Double -> (Vec2 -> v) -> Vec2 -> v
-d X h f v = (f (v +. Vec2 h 0) -. f v) /. h
-d Y h f v = (f (v +. Vec2 0 h) -. f v) /. h
-
 data Dim = X | Y
