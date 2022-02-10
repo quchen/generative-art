@@ -35,12 +35,15 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
   where
     h = 1e-3
 
+    -- Offsets for derivatives at our current position
     vXH = v +. Vec2 h 0
     vYH = v +. Vec2 0 h
 
+    -- General spatial first derivatives of f
     fdx = d X h (f t)
     fdy = d Y h (f t)
 
+    -- First derivatives applied at our current position
     fdxV = fdx v
     fdyV = fdy v
 
@@ -63,6 +66,7 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     g__d_V Y Y X = g_y_yd_xV
     g__d_V Y Y Y = g_y_yd_yV
 
+    -- Derivative of the metric g_{ab,c} at our current position
     g_x_xd_xV = ((\p -> 1 + fdx p^2)   vXH -. (1 + fdxV^2)) /. h
     g_x_xd_yV = ((\p -> 1 + fdx p^2)   vYH -. (1 + fdxV^2)) /. h
     g_x_yd_xV = ((\p -> fdx p * fdy p) vXH -. (fdxV * fdyV)) /. h
