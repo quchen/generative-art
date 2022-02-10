@@ -21,7 +21,7 @@ module Draw.Color (
 
 
 
-import qualified Data.Colour as ReExport hiding (black, darken)
+import qualified Data.Colour as ReExport hiding (black)
 import Data.Colour
 import Data.Colour.Names hiding (grey)
 import Data.Colour.RGBSpace as Colour
