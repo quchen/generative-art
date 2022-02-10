@@ -4,6 +4,7 @@ module Test.Uncategorized.DifferentialEquation  where
 
 
 
+import           Control.Parallel.Strategies
 import           Data.Foldable
 import qualified Data.Vector                   as V
 import           Draw
@@ -227,7 +228,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
         hills =
             [ ( 100, Vec2 (2/3*w) (1/3*h))
             , (-33, Vec2 (1/3*w) (2/3*h))]
-        terrain v = sum [height * cauchyHill 55 center v | (height, center) <- hills]
+        terrain v = sum [height * cauchyHill 49 center v | (height, center) <- hills]
         ode = geodesicEquation (\_t -> terrain)
         startingAngles = map (deg . fromIntegral) [20,21..70]
         geodesics =
@@ -265,15 +266,16 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
                 setColor (icefire colorValue `withOpacity` 0.07)
                 stroke
 
-    cairoScope $ do -- Geodesics
-        let trajectories = do
+    cairoScope $ do
+        let trajectories = withStrategy (parList rdeepseq) $ do
                 (startingAngle, trajectory) <- geodesics
                 let cutoff = takeWhile (\(_, (x, _v)) -> insideBoundingBox x entireCanvas)
                     justPosition = map (\(_t, (x, _v)) -> x)
-                pure (startingAngle, justPosition (cutoff (trajectory)))
+                    simplify = simplifyTrajectory 0.5
+                pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
-            pathSketch (simplifyTrajectory 0.5 (V.fromList trajectory))
+            pathSketch trajectory
             let colorValue = linearInterpolate angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke
