@@ -31,7 +31,8 @@ tests = testGroup "Trajectories"
 simplifyPathTests :: TestTree
 simplifyPathTests = testGroup "Simplify path"
     [ testGroup "Ramer-Douglas-Peucker"
-        [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_rdp" (simplifyFunctionGraphTest rocket simplifyTrajectory [ 2**(-e) | e <- [10,9..1]])
+        [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_rdp"
+            (simplifyFunctionGraphTest reds simplifyTrajectory [ 2**(-e) | e <- [10,9..1]])
         , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectory
         , simplifyPathRegressionTest
         ]
@@ -44,8 +45,15 @@ simplifyPathTests = testGroup "Simplify path"
             , simplifyClosedTrajectoryTestHuteParameter
             ]
         ]
-        , testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_vw" (simplifyFunctionGraphTest mako simplifyTrajectoryVW [ 2**(-e) | e <- [10,9..1]])
+        , testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_vw"
+            (simplifyFunctionGraphTest blues simplifyTrajectoryVW [ 2**(-e) | e <- [10,9..1]])
         , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryVW
+    , testGroup "Radial"
+        [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_radial"
+            (simplifyFunctionGraphTest greens (\param vec -> V.fromList (simplifyTrajectoryRadial param vec)) [ 2**(-e/2) | e <- [10,9..1]])
+        , simplifyKeepsEndPoints "End points are always kept" 1000
+            (\param vec -> V.fromList (simplifyTrajectoryRadial param vec))
+        ]
     ]
 
 simplifyFunctionGraphTest
@@ -66,14 +74,15 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
             pathSketch points
             stroke
         plotPoints points = for_ points $ \p -> cairoScope $ do
-            circleSketch p 1
+            circleSketch p 1.2
             fillPreserve
             setSourceRGBA 0 0 0 1
-            setLineWidth 0.3
+            setColor (darken 0.8 (colorScheme 0.9))
+            setLineWidth 0.5
             stroke
 
     cairoScope $ do
-        setColor (colorScheme 0.5)
+        setColor (colorScheme 0.9)
         plotPath (fitToBox graph)
         plotPoints (fitToBox graph)
 
@@ -85,7 +94,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
                 setColor (black `withOpacity` 0.2)
                 plotPath (fitToBox graph)
             cairoScope $ do
-                setColor (colorScheme (linearInterpolate (1, fromIntegral (length parameters)) (0.7,0.8) i))
+                setColor (colorScheme (linearInterpolate (1, fromIntegral (length parameters)) (0.8, 0.5) i))
                 plotPath (fitToBox simplified)
                 plotPoints (fitToBox simplified)
 

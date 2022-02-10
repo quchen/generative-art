@@ -2,10 +2,16 @@
 
 module Geometry.Trajectory (
       pointOnTrajectory
+
     , simplifyTrajectory
     , simplifyTrajectoryBy
+
     , simplifyTrajectoryVW
     , simplifyTrajectoryVWBy
+
+    , simplifyTrajectoryRadial
+    , simplifyTrajectoryRadialBy
+
     , reassembleLines
 ) where
 
@@ -288,6 +294,34 @@ updateRightNeighbour subject newLeft neighbours = case M.lookup subject neighbou
 -- | Area of a triangle, defined by its corners.
 triangleArea :: Vec2 -> Vec2 -> Vec2 -> Double
 triangleArea left center right = abs (det (left -. center) (right -. center))
+
+-- | Simplify a path by dropping points too close to their neighbours. The larger
+-- the cutoff parameter, the simpler the result will be.
+--
+-- <<docs/interpolation/3_simplify_path_radial.svg>>
+simplifyTrajectoryRadial
+    :: Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
+    -> Vector Vec2 -- ^ Trajectory
+    -> [Vec2]      -- ^ Simplified trajectory
+simplifyTrajectoryRadial cutoff = simplifyTrajectoryRadialBy cutoff id
+
+-- | 'simplifyTrajectoryRadial', but allows specifying a function for how to extract the points
+-- to base simplifying on from the input.
+simplifyTrajectoryRadialBy
+    :: Double      -- ^ Cutoff parameter. We remove points that are closer than this to a neighbour.
+    -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
+    -> Vector a    -- ^ Trajectory
+    -> [a]         -- ^ Simplified trajectory
+simplifyTrajectoryRadialBy cutoff vec2in = go
+  where
+    tooClose pivot candidate = normSquare (vec2in pivot -. vec2in candidate) <= cutoff^2
+    go trajectory = case V.uncons trajectory of
+        Nothing -> []
+        Just (pivot,xs)
+            | V.null rest && V.null toDrop -> [pivot]
+            | V.null rest -> [pivot, V.last toDrop]
+            | otherwise -> pivot : go rest
+            where (toDrop, rest) = V.span (tooClose pivot) xs
 
 -- | Contains at most two neighbours of a point. Can be seen as representing the
 -- locations we can travel to on a line – one neighbour this way, or one neighbour

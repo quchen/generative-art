@@ -51,6 +51,7 @@ extra-doc-files:
     - docs/geometry/point_in_polygon.svg
     - docs/hexagonal/gaussian_hexagons.svg
     - docs/interpolation/1_bezier_open.svg
+    - docs/interpolation/3_simplify_path_radial.svg
     - docs/interpolation/3_simplify_path_rdp.svg
     - docs/interpolation/3_simplify_path_vw.svg
     - docs/iso_lines/potentials.svg

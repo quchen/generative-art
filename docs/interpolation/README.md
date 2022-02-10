@@ -55,6 +55,12 @@ Deciding which one is better is best done by experiment.
 
 ![](3_simplify_path_vw.svg)
 
+### Radial
+
+![](3_simplify_path_radial.svg)
+
+## Other applications
+
 Another trick is to subdivide the source curve, forgetting newly created unnecessary points again, and interpolating fresh Bezier curves through the remainder. This can achieve a number of effects beyond smoothing or saving data, such as a more hand-sketched appearance, depending on the parameters.
 
 ![](4_bezier_subdivide.svg)
