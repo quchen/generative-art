@@ -18,27 +18,28 @@ module Geometry.Trajectory (
 
 
 import           Data.Foldable
-import           Data.Heap            (Entry (..), Heap)
-import qualified Data.Heap            as H
-import           Data.Map             (Map)
-import qualified Data.Map             as M
+import           Data.Heap       (Entry (..), Heap)
+import qualified Data.Heap       as H
+import           Data.Map        (Map)
+import qualified Data.Map        as M
 import           Data.Ord
-import           Data.Sequence        (Seq, (|>))
-import qualified Data.Sequence        as Seq
+import           Data.Sequence   (Seq, (|>))
+import qualified Data.Sequence   as Seq
 import           Data.Sequential
-import           Data.Vector          (Vector, (!))
-import qualified Data.Vector          as V
-import           GHC.Stack            (HasCallStack)
-import           Geometry.Core
-import           Geometry.LookupTable
-import           Prelude              hiding (lines)
+import           Data.Vector     (Vector, (!))
+import qualified Data.Vector     as V
+import           GHC.Stack       (HasCallStack)
+import           Prelude         hiding (lines)
+
+import Geometry.Core
+import Geometry.LookupTable.Lookup1
 
 
 
 -- | Build a lookup table from arc length to the line that we’re on at that arc
 -- length.
-trajectoryLut :: [Vec2] -> VectorLookupTable Double Line
-trajectoryLut = VectorLookupTable . V.fromList . go 0 . pairLines
+trajectoryLut :: [Vec2] -> LookupTable1 Double Line
+trajectoryLut = LookupTable1 . V.fromList . go 0 . pairLines
   where
     pairLines :: [Vec2] -> [Line]
     pairLines xs = zipWith Line xs (tail xs)
