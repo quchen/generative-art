@@ -49,7 +49,7 @@ rungeKuttaConstantStep
     -> vec                    -- ^ Initial y
     -> Double                 -- ^ Initial time
     -> Double                 -- ^ Step size
-    -> [(Double, vec)]        -- ^ time, y
+    -> [(Double, vec)]        -- ^ Infinite list of (time, y). Use e.g. 'takeWhile' to narrow it down if necessary.
 rungeKuttaConstantStep f y0 t0 dt
   = iterate (\(t, y) -> rungeKutta4Step f y t dt) (t0, y0)
 
@@ -103,6 +103,6 @@ rungeKuttaAdaptiveStep
     -> Double                 -- ^ Initial step size
     -> (vec -> Double)        -- ^ Norm function to calculate how good our estimate is
     -> Double                 -- ^ Error tolerance
-    -> [(Double, vec)]
+    -> [(Double, vec)]        -- ^ Infinite list of (time, y). Use e.g. 'takeWhile' to narrow it down if necessary.
 rungeKuttaAdaptiveStep f y0 t0 dt0 toleranceNorm tolerance
   = [ (t, y) | (t,y,_dt) <- iterate (\(t, y, dt) -> rkf45step f y t dt toleranceNorm tolerance) (t0, y0, dt0) ]
