@@ -3,7 +3,6 @@ module Test.Geometry.Algorithms.Cut (tests) where
 
 
 import           Control.Monad
-import           Data.Coerce
 import           Data.Foldable
 import           Data.List
 import qualified Data.Map                 as M
@@ -59,12 +58,13 @@ reconstructConvexPolygonTest :: TestTree
 reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
     let gen = do
             n <- choose (10, 100)
-            replicateM n arbitrary
+            replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
     in forAll gen $ \points ->
-        let _ = points :: [Gaussian]
-            convexPolygon = convexHull (coerce points)
+        let convexPolygon = convexHull points
             orientation = polygonOrientation convexPolygon
-            maxY = maximum (map (\(Vec2 _ y) -> y) (coerce points))
+            maxY = maximum (map (\(Vec2 _ y) -> y) points)
             scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (deg 0) 1
             cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
             actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))

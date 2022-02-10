@@ -2,7 +2,7 @@ module Numerics.VectorAnalysis (
 
     -- * Operators with default settings
       grad
-    , div
+    , divergence
     , curl
     , laplace
 
@@ -14,7 +14,6 @@ module Numerics.VectorAnalysis (
 ) where
 
 import Geometry.Core
-import Prelude hiding (div)
 
 -- | A good standard value to use as a step size for taking derivatives.
 standardH :: Double
@@ -38,7 +37,8 @@ standardH = 1e-3
 grad :: (Vec2 -> Double) -> Vec2 -> Vec2
 grad = gradH standardH
 
--- | Divergence with a predefined sampling distance.
+-- | Divergence with a predefined sampling distance. Named to avoid clashing with
+-- integer 'div'ision.
 --
 -- \[
 -- \begin{align}
@@ -49,9 +49,9 @@ grad = gradH standardH
 -- \end{align}
 -- \]
 --
--- The fire-and-forget version of 'gradH'.
-div :: (Vec2 -> Vec2) -> Vec2 -> Double
-div = divH standardH
+-- The fire-and-forget version of 'divH'.
+divergence :: (Vec2 -> Vec2) -> Vec2 -> Double
+divergence = divH standardH
 
 -- | Curl with a predefined sampling distance. Note that in two dimensions, the
 -- curl is simply a number (or, more accurately, a 1-form).
@@ -93,7 +93,7 @@ gradH h f = \x ->
     let f_x = f x
     in Vec2 (f (x +. Vec2 h 0) - f_x) (f (x +. Vec2 0 h) - f_x) /. h
 
--- | Divergence with customizable sampling distance. The configurable version of 'div'.
+-- | Divergence with customizable sampling distance. The configurable version of 'divergence'.
 divH
     :: Double -- ^ \(h\) as in \(\frac{f(x+h)-f(x)}h\)
     -> (Vec2 -> Vec2)

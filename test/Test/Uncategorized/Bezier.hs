@@ -2,11 +2,10 @@ module Test.Uncategorized.Bezier (tests) where
 
 
 
-import Data.Coerce
-import Data.Foldable
-import qualified Data.Vector as V
-import Data.Vector (Vector)
-import Graphics.Rendering.Cairo as C hiding (x, y)
+import           Data.Foldable
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
 import Geometry as G
@@ -34,38 +33,40 @@ tests = testGroup "Bezier curves"
 
 smoothenOpenCurveCountTest :: TestTree
 smoothenOpenCurveCountTest = testProperty "Smoothen open curve: n points => n-1 Beziers" $
-    let gen :: Gen (Vector Gaussian)
-        gen = do
+    let gen = do
             n <- choose (3, 10)
-            fmap V.fromList (replicateM n arbitrary)
+            fmap toVector $ replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
     in forAll gen $ \points ->
-        let nPoints = V.length points
-            nBeziers = V.length (bezierSmoothen (coerce points))
+        let nPoints = length points
+            nBeziers = length (bezierSmoothen points)
         in counterexample
             (unlines
                 [ "Input has " ++ show nPoints ++ " points"
-                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen (coerce points))
+                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen points)
                 ])
             (nPoints-1 == nBeziers)
 
 smoothenClosedCurveCountTest :: TestTree
 smoothenClosedCurveCountTest = testProperty "Smoothen closed curve: n points (n-1 distinct) => n-1 Beziers" $
-    let gen :: Gen (Vector Gaussian)
-        gen = do
+    let gen = do
             n <- choose (3, 10)
-            xs <- replicateM n arbitrary
-            pure (V.fromList (xs ++ [head xs]))
+            xs <- replicateM n $ do
+                Gaussian v <- arbitrary
+                pure v
+            pure (toVector (xs ++ [head xs]))
         shrinker points
             | V.length points <= 3 = []
             | otherwise = let (firstHalf, secondHalf) = V.splitAt (V.length points `div` 2) points
                           in [firstHalf <> V.drop 1 secondHalf]
     in forAllShrink gen shrinker $ \points ->
         let nPoints = V.length points
-            nBeziers = V.length (bezierSmoothen (coerce points))
+            nBeziers = V.length (bezierSmoothen points)
         in counterexample
             (unlines
                 [ "Input has " ++ show nPoints ++ " points"
-                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen (coerce points))
+                , "Interpolation has " ++ show nBeziers ++ " Bezier curves: " ++ show (bezierSmoothen points)
                 ])
             (nPoints-1 == nBeziers)
 

@@ -22,16 +22,20 @@ module Geometry.Bezier
 )
 where
 
-import           Control.DeepSeq
-import           Data.Vector                   (Vector, (!))
-import qualified Data.Vector                   as V
 
-import           Geometry.Core
-import           Geometry.LUT
-import           Numerics.ConvergentRecursion
-import           Numerics.DifferentialEquation
-import           Numerics.Integrate
-import           Numerics.LinearEquationSystem
+
+import           Control.DeepSeq
+import           Data.Vector     (Vector, (!))
+import qualified Data.Vector     as V
+
+import Geometry.Core
+import Geometry.LUT
+import Numerics.ConvergentRecursion
+import Numerics.DifferentialEquation
+import Numerics.Integrate
+import Numerics.LinearEquationSystem
+
+
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier !Vec2 !Vec2 !Vec2 !Vec2 deriving (Eq, Ord, Show)
@@ -238,17 +242,19 @@ s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
 -- is open, and \(n\) if it is closed.
 --
 -- <<docs/interpolation/1_bezier_open.svg>>
-bezierSmoothen :: Vector Vec2 -> Vector Bezier
-bezierSmoothen vec
+bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier
+bezierSmoothen vecSequence
     | V.head vec == V.last vec = bezierSmoothenLoop vec
     | otherwise = bezierSmoothenOpen vec
+    where vec = toVector vecSequence
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair,
 -- assuming the curve is open (i.e. the last and first point have nothing to do
 -- with each other).
-bezierSmoothenOpen :: Vector Vec2 -> Vector Bezier
-bezierSmoothenOpen points = V.zipWith4 Bezier points controlPointsStart controlPointsEnd (V.tail points)
+bezierSmoothenOpen :: Sequential vector => vector Vec2 -> Vector Bezier
+bezierSmoothenOpen pointsSequence = V.zipWith4 Bezier points controlPointsStart controlPointsEnd (V.tail points)
   where
+    points = toVector pointsSequence
     n = V.length points - 1
 
     controlPointsStart =
@@ -284,13 +290,15 @@ target n vertices = V.generate n $ \i -> case () of
 -- | Like 'bezierSmoothen', but will smoothly connect the start and the end of the
 -- given trajectory as well. (Simply using 'bezierSmoothen' will yield a sharp bend
 -- at the line’s origin.)
-bezierSmoothenLoop :: Vector Vec2 -> Vector Bezier
-bezierSmoothenLoop points
-    | V.length points <= 2 = V.empty
-bezierSmoothenLoop points =
-    -- The idea is this: we can artificially lengthen a closed trajectory by
-    -- wrapping it onto itself. We then interpolate it as if it was open, and later
-    -- forget the end parts again. In the overlap, we get a smooth transition.
-    let opened = V.tail points
-        openedWithAppendix = opened <> V.take 3 opened
-    in V.slice 1 (V.length points-1) (bezierSmoothenOpen openedWithAppendix)
+bezierSmoothenLoop :: Sequential vector => vector Vec2 -> Vector Bezier
+bezierSmoothenLoop pointsSequence
+    | length points <= 2 = V.empty
+    | otherwise =
+        -- The idea is this: we can artificially lengthen a closed trajectory by
+        -- wrapping it onto itself. We then interpolate it as if it was open, and later
+        -- forget the end parts again. In the overlap, we get a smooth transition.
+        let opened = V.tail points
+            openedWithAppendix = opened <> V.take 3 opened
+        in V.slice 1 (V.length points-1) (bezierSmoothenOpen openedWithAppendix)
+    where
+      points = toVector pointsSequence
