@@ -94,20 +94,22 @@ module Geometry.Core (
     , det
     , direction
     , bugError
+    , module Data.Sequential
 ) where
 
 
 
-import Algebra.VectorSpace
-import Data.Fixed
-import Data.List
-import Text.Printf
-import Control.DeepSeq
-import qualified System.Random.MWC as MWC
-import qualified Data.Set as S
-import qualified Data.Map as M
-import qualified Data.Vector as V
+import           Algebra.VectorSpace
+import           Control.DeepSeq
+import           Data.Fixed
+import           Data.List
+import qualified Data.Map            as M
+import qualified Data.Set            as S
+import qualified Data.Vector         as V
+import qualified System.Random.MWC   as MWC
+import           Text.Printf
 
+import Data.Sequential
 import Util
 
 
