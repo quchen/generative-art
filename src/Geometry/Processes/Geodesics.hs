@@ -46,8 +46,8 @@ geodesicEquation f t (v, v'@(Vec2 x' y')) =
     fdyvYH = (\p -> (f t (p +. Vec2 0 h) -. f t p) /. h) vYH
 
     -- First derivatives applied at our current position
-    fdxV = (\p -> (f t (p +. Vec2 h 0) -. f t p) /. h) v
-    fdyV = (\p -> (f t (p +. Vec2 0 h) -. f t p) /. h) v
+    fdxV = (f t vXH -. f t v) /. h
+    fdyV = (f t vYH -. f t v) /. h
 
     -- Inverse metric g^{ab}
     (g'x'x, g'x'y, g'y'x, g'y'y) =
