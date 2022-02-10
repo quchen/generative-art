@@ -4,14 +4,16 @@ module Test.Uncategorized.DifferentialEquation  where
 
 
 
-import Data.Foldable
-import Draw
-import Geometry
-import Geometry.Chaotic
-import Graphics.Rendering.Cairo      as Cairo hiding (x, y)
-import Numerics.DifferentialEquation
-import Numerics.Interpolation
-import qualified Data.Vector as V
+import           Control.Parallel.Strategies
+import           Data.Foldable
+import qualified Data.Vector                   as V
+import           Draw
+import           Geometry
+import           Geometry.Chaotic
+import           Geometry.Processes.Geodesics
+import           Graphics.Rendering.Cairo      as Cairo hiding (x, y)
+import           Numerics.DifferentialEquation
+import           Numerics.Interpolation
 
 import Test.TastyAll
 
@@ -23,6 +25,9 @@ tests = testGroup "Differential equations"
         [ twoBodyProblem
         , doublePendulum
         , noisePendulum
+        , testGroup "Geodesics"
+            [ geodesicsHillAndValley
+            ]
         ]
     ]
 
@@ -214,4 +219,63 @@ renderPhaseSpace solutionInfinite (w, h) = do
             lineSketch line
             let val = linearInterpolate (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val/1))
+            stroke
+
+geodesicsHillAndValley :: TestTree
+geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley" 360 360 "docs/differential_equations/geodesic_hill_and_valley" $ \(w,h) -> do
+    let -- Cauchy distribution, normalized to 1 at v0.
+        cauchyHill g v0 v = 1 / (1+(normSquare (v-.v0)/g^2))
+        hills =
+            [ ( 100, Vec2 (2/3*w) (1/3*h))
+            , (-33, Vec2 (1/3*w) (2/3*h))]
+        terrain v = sum [height * cauchyHill 49 center v | (height, center) <- hills]
+        ode = geodesicEquation (\_t -> terrain)
+        startingAngles = map (deg . fromIntegral) [20,21..70]
+        geodesics =
+            [ (angle, rungeKuttaAdaptiveStep ode (x0, v0) t0 dt0 tolNorm tol)
+            | angle <- startingAngles
+            , let v0 = polar angle 1
+            ]
+
+        x0 = zero
+        t0 = 0
+        dt0 = 1
+        tolNorm (x,v) = max (norm x) (norm v)
+        tol = 1e-3
+
+    let entireCanvas = (Vec2 0 0, Vec2 w h)
+
+    let isos =
+            let thresholds = [-30, -29 .. 30]
+                grid = Grid entireCanvas (round (w/10), round (h/10))
+                computeIso = isoLines grid terrain
+            in [(threshold, computeIso threshold) | threshold <- thresholds]
+
+    setLineWidth 1
+    cairoScope $ do
+        for_ hills $ \(height, center) -> do
+            setColor (icefire (if height > 0 then 0.75 else 0.25))
+            circleSketch center 2
+            fill
+
+    cairoScope $
+        for_ isos $ \(threshold, isosAtThreshold) ->
+            for_ isosAtThreshold $ \singleIso -> do
+                pathSketch singleIso
+                let colorValue= linearInterpolate (-30, 30) (0,1) threshold
+                setColor (icefire colorValue `withOpacity` 0.07)
+                stroke
+
+    cairoScope $ do
+        let trajectories = withStrategy (parList rdeepseq) $ do
+                (startingAngle, trajectory) <- geodesics
+                let cutoff = takeWhile (\(_, (x, _v)) -> insideBoundingBox x entireCanvas)
+                    justPosition = map (\(_t, (x, _v)) -> x)
+                    simplify = simplifyTrajectory 0.5
+                pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
+            angles = (getDeg (head startingAngles), getDeg (last startingAngles))
+        for_ trajectories $ \(startingAngle, trajectory) -> do
+            pathSketch trajectory
+            let colorValue = linearInterpolate angles (1,0) (getDeg startingAngle)
+            setColor (icefire colorValue)
             stroke

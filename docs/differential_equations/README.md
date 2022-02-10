@@ -33,3 +33,7 @@ This is the phase space of a pendulum subject to
 - Gravity :-)
 
 ![](3_noise_pendulum.svg)
+
+## Geodesics
+
+![Missing image!](geodesic_hill_and_valley.svg)

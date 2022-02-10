@@ -145,6 +145,8 @@ over quickly.
 
 ![Missing image!](../../docs/differential_equations/3_noise_pendulum.svg)
 
+![Missing image!](../../docs/differential_equations/geodesic_hill_and_valley.svg)
+
 ![Missing image!](../../docs/geometry/convex_hull.svg)
 
 ![Missing image!](../../docs/geometry/cut/1_line.svg)
