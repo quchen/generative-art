@@ -7,12 +7,18 @@ import Geometry.LookupTable.Lookup2
 
 import Test.TastyAll
 
+import Debug.Trace
+
 
 
 tests :: TestTree
-tests = testGroup "2D lookup table"
+tests = testGroup "2D lookup tables"
     [ fromGridTests
     , valueTableTests
+    , testGroup "2D function lookup table"
+        [ toGridTest
+        , lookupOnGridPointsYieldsFunctionValuesTest
+        ]
     ]
 
 fromGridTests :: TestTree
@@ -55,3 +61,28 @@ valueTableTests = testGroup "Value table creation"
                &&
                length vt == iSize+1
     ]
+
+pointInGridRange :: Grid -> Gen Vec2
+pointInGridRange (Grid (Vec2 xMin yMin, Vec2 xMax yMax) _) = do
+    x <- choose (xMin, xMax)
+    y <- choose (yMin, yMax)
+    pure (Vec2 x y)
+
+toGridTest :: TestTree
+toGridTest = testProperty "toGrid" $
+    let vecMin = Vec2 0 0
+        vecMax = Vec2 100 100
+        grid = Grid (vecMin, vecMax) (100, 100)
+    in forAll (pointInGridRange grid) $ \v -> toGrid grid v === v
+
+lookupOnGridPointsYieldsFunctionValuesTest :: TestTree
+lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid points yields original function values" $
+    let f (Vec2 x y) = sin (x^2 + y^3)
+        vecMin = Vec2 0 0
+        vecMax = Vec2 100 127 -- Works with 100 100. :-|
+        grid = Grid (vecMin, vecMax) (100, 100)
+        lut = lookupTable2 grid f
+        gen = do
+            Vec2 i' j' <- pointInGridRange grid
+            pure (fromGrid grid (IVec2 (round i') (round j')))
+    in forAll gen $ \v -> lookupBilinear lut v ~== f v
