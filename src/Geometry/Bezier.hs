@@ -29,7 +29,7 @@ import           Data.Vector     (Vector, (!))
 import qualified Data.Vector     as V
 
 import Geometry.Core
-import Geometry.LUT
+import Geometry.LookupTable
 import Numerics.ConvergentRecursion
 import Numerics.DifferentialEquation
 import Numerics.Integrate
@@ -201,8 +201,8 @@ bezierS_ode bz ds
 s_to_t_lut_ode
     :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
-    -> VLUT (S Double) (T Double) -- ^ Lookup table
-s_to_t_lut_ode bz ds = VLUT (sol_to_vec sol)
+    -> VectorLookupTable (S Double) (T Double) -- ^ Lookup table
+s_to_t_lut_ode bz ds = VectorLookupTable (sol_to_vec sol)
   where
     sol_to_vec = V.map (\(s, tt) -> (S s, tt)) . V.fromList . takeWhile (\(_s, T t) -> t <= 1)
 
