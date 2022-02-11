@@ -8,7 +8,12 @@ module Numerics.Interpolation (
     , linearInterpolateII
 ) where
 
--- | Linearly interpolate the interval [a,b] to [x,y].
+-- | Linearly interpolate the interval \([a,b]\) to \([x,y]\). In computer graphics
+-- lingo, this is often known as /lerp/.
+--
+-- \[
+-- f(t) = x + \frac{y-x}{b-a} (t-a)
+-- \]
 --
 -- >>> linearInterpolate (0,1) (10,20) 0.5
 -- 15
