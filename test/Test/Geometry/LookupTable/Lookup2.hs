@@ -2,7 +2,7 @@ module Test.Geometry.LookupTable.Lookup2 (tests) where
 
 
 
-import Geometry as G
+import Geometry                     as G
 import Geometry.LookupTable.Lookup2
 
 import Test.TastyAll
@@ -15,8 +15,9 @@ tests :: TestTree
 tests = testGroup "2D lookup tables"
     [ fromGridTests
     , valueTableTests
-    , testGroup "2D function lookup table"
-        [ toGridTest
+    , localOption (QuickCheckTests 1000) $ testGroup "2D function lookup table"
+        [ gridInverseTest
+        , toGridTest
         , lookupOnGridPointsYieldsFunctionValuesTest
         ]
     ]
@@ -68,12 +69,30 @@ pointInGridRange (Grid (Vec2 xMin yMin, Vec2 xMax yMax) _) = do
     y <- choose (yMin, yMax)
     pure (Vec2 x y)
 
+discreteGridPoint :: Grid -> Gen IVec2
+discreteGridPoint (Grid _ (iMax, jMax)) = do
+    i <- choose (0, iMax)
+    j <- choose (0, jMax)
+    pure (IVec2 i j)
+
+gridInverseTest :: TestTree
+gridInverseTest = testProperty "toGrid . fromGrid = id" $
+    let vecMin = Vec2 0 0
+        vecMax = Vec2 100 100
+        grid = Grid (vecMin, vecMax) (100, 100)
+    in forAll (discreteGridPoint grid) $ \iVec ->
+        let vec = fromGrid grid iVec
+            ciVec = toGrid grid vec
+        in roundCIVec2 ciVec === iVec
+
 toGridTest :: TestTree
 toGridTest = testProperty "toGrid" $
     let vecMin = Vec2 0 0
         vecMax = Vec2 100 100
         grid = Grid (vecMin, vecMax) (100, 100)
-    in forAll (pointInGridRange grid) $ \v -> toGrid grid v === v
+    in forAll (pointInGridRange grid) $ \v ->
+        let gridVec = roundCIVec2 (toGrid grid v)
+        in fromGrid grid gridVec === v
 
 lookupOnGridPointsYieldsFunctionValuesTest :: TestTree
 lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid points yields original function values" $
@@ -83,8 +102,7 @@ lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid po
         grid = Grid (vecMin, vecMax) (100, 120)
         lut = lookupTable2 grid f
         gen = do
-            vOnGrid <- pointInGridRange grid
-            let Vec2 i' j' = toGrid grid vOnGrid
-                gridVec = IVec2 (round i') (round j')
+            v <- pointInGridRange grid
+            let gridVec = roundCIVec2 (toGrid grid v)
             pure (fromGrid grid gridVec)
     in forAll gen $ \v -> lookupBilinear lut v ~== f v

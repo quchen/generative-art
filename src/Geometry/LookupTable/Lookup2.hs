@@ -12,9 +12,18 @@ import Numerics.Interpolation
 
 
 
--- | Discrete 'Vec2'.
+-- | Discrete 'Vec2'. Useful as coordinate in a @'Vector' ('Vector' a)@.
 data IVec2 = IVec2 !Int !Int
     deriving (Eq, Ord, Show)
+
+-- | Continuous version of 'IVec2'. Type-wise the same as 'Vec2', but it shows
+-- fractional grid coodrdinates, so we can express the fact that our lookup might
+-- be »between i and i+1« and we can interpolate.
+data CIVec2 = CIVec2 !Double !Double
+    deriving (Eq, Ord, Show)
+
+roundCIVec2 :: CIVec2 -> IVec2
+roundCIVec2 (CIVec2 i j) = IVec2 (round i) (round j)
 
 -- | Specification of a discrete grid, used for sampling contour lines.
 --
@@ -41,13 +50,14 @@ fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
 toGrid
     :: Grid
     -> Vec2 -- ^ Continuous coordinate
-    -> Vec2 -- ^ Continuous coordinate, scaled to grid dimensions.
+    -> CIVec2
+            -- ^ Continuous coordinate, scaled to grid dimensions.
             --   Suitable to be rounded to an 'IVec' and then used
             --   for a lookup table query.
 toGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (Vec2 x y) =
     let iContinuous = linearInterpolate (xMin, xMax) (0, fromIntegral iMax) x
         jContinuous = linearInterpolate (yMin, yMax) (0, fromIntegral jMax) y
-    in Vec2 iContinuous jContinuous
+    in CIVec2 iContinuous jContinuous
 
 -- | We first index by i and then j, so that vec!i!j has the intuitive meaning of »go in i/x direction and then in j/y.
 -- The drawback is that this makes the table look like downward columns of y
@@ -74,10 +84,10 @@ data LookupTable2 a = LookupTable2 Grid (Vector (Vector a))
 lookupTable2 :: Grid -> (Vec2 -> a) -> LookupTable2 a
 lookupTable2 grid f = LookupTable2 grid (valueTable grid f)
 
--- Bilinear lookup in a two-dimensional lookup table.
+-- | Bilinear lookup in a two-dimensional lookup table.
 lookupBilinear :: LookupTable2 Double -> Vec2 -> Double
 lookupBilinear (LookupTable2 grid vec) xy =
-    let Vec2 iCont jCont = toGrid grid xy
+    let CIVec2 iCont jCont = toGrid grid xy
         iFloor = floor iCont
         jFloor = floor jCont
         iCeil = ceiling iCont
