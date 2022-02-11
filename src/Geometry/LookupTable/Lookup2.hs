@@ -84,14 +84,16 @@ data LookupTable2 a = LookupTable2 Grid (Vector (Vector a))
 lookupTable2 :: Grid -> (Vec2 -> a) -> LookupTable2 a
 lookupTable2 grid f = LookupTable2 grid (valueTable grid f)
 
--- | Bilinear lookup in a two-dimensional lookup table.
+-- | Bilinear lookup in a two-dimensional lookup table. Lookup outside of the
+-- lookup table’s domain is clamped to the table’s edges, so while it will not make
+-- the program crash, the values are not useful.
 lookupBilinear :: LookupTable2 Double -> Vec2 -> Double
-lookupBilinear (LookupTable2 grid vec) xy =
+lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
     let CIVec2 iCont jCont = toGrid grid xy
-        iFloor = floor iCont
-        jFloor = floor jCont
-        iCeil = ceiling iCont
-        jCeil = ceiling jCont
+        iFloor = max 0 (floor iCont)
+        jFloor = max 0 (floor jCont)
+        iCeil = min iMax (ceiling iCont)
+        jCeil = min jMax (ceiling jCont)
 
         lut_iFloor = vec!iFloor
         lut_iCeil = vec!iCeil
