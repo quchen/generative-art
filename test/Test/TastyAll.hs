@@ -97,13 +97,7 @@ assertApproxEqual errMsg (ExpectedWithin tol expected) (Actual actual) = HUnit.a
 
 renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
 renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidth picHeight $ \surface ->
-    renderWith surface $ do
-        cairoScope $ do
-            rectangle 0 0 (fromIntegral picWidth) (fromIntegral picHeight)
-            setColor black
-            setLineWidth 0
-            fill
-        drawing
+    renderWith surface drawing
 
 renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
 renderSvg picWidth picHeight filename drawing = do
