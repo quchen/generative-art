@@ -12,13 +12,17 @@ import Debug.Trace
 
 
 tests :: TestTree
-tests = testGroup "2D lookup tables"
+tests = localOption (QuickCheckTests 1000) $ testGroup "2D lookup tables"
     [ fromGridTests
     , valueTableTests
-    , localOption (QuickCheckTests 1000) $ testGroup "2D function lookup table"
-        [ gridInverseTest
-        , toGridTest
-        , lookupOnGridPointsYieldsFunctionValuesTest
+    , testGroup "Grid"
+        [ testGroup "toGrid . fromGrid = id"
+            [ gridInverseTest_simple
+            , gridInverseTest_random
+            ]
+        ]
+    , testGroup "2D function lookup table"
+        [ lookupOnGridPointsYieldsFunctionValuesTest
         ]
     ]
 
@@ -75,8 +79,23 @@ discreteGridPoint (Grid _ (iMax, jMax)) = do
     j <- choose (0, jMax)
     pure (IVec2 i j)
 
-gridInverseTest :: TestTree
-gridInverseTest = testProperty "toGrid . fromGrid = id" $
+arbitraryGrid :: Gen Grid
+arbitraryGrid = do
+    xMin <- choose (-100, 100)
+    yMin <- choose (-100, 100)
+    let vMin = Vec2 xMin yMin
+
+    xOffset <- choose (1, 100)
+    yOffset <- choose (1, 100)
+    let vMax = vMin +. Vec2 xOffset yOffset
+
+    iMax <- choose (1, 100)
+    jMax <- choose (1, 100)
+
+    pure (Grid (vMin, vMax) (iMax, jMax))
+
+gridInverseTest_simple :: TestTree
+gridInverseTest_simple = testProperty "Simple square grid" $
     let vecMin = Vec2 0 0
         vecMax = Vec2 100 100
         grid = Grid (vecMin, vecMax) (100, 100)
@@ -85,14 +104,16 @@ gridInverseTest = testProperty "toGrid . fromGrid = id" $
             ciVec = toGrid grid vec
         in roundCIVec2 ciVec === iVec
 
-toGridTest :: TestTree
-toGridTest = testProperty "toGrid" $
-    let vecMin = Vec2 0 0
-        vecMax = Vec2 100 100
-        grid = Grid (vecMin, vecMax) (100, 100)
-    in forAll (pointInGridRange grid) $ \v ->
-        let gridVec = roundCIVec2 (toGrid grid v)
-        in fromGrid grid gridVec === v
+gridInverseTest_random :: TestTree
+gridInverseTest_random = testProperty "Random grid" $
+    let gen = do
+            grid <- arbitraryGrid
+            iVec <- discreteGridPoint grid
+            pure (grid, iVec)
+    in forAll gen $ \(grid, iVec) ->
+        let vec = fromGrid grid iVec
+            ciVec = toGrid grid vec
+        in roundCIVec2 ciVec === iVec
 
 lookupOnGridPointsYieldsFunctionValuesTest :: TestTree
 lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid points yields original function values" $
