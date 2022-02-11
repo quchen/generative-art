@@ -125,7 +125,7 @@ lookupOnGridMatchesFunction_hardcoded = testProperty "With hardcoded grid/functi
         vecMin = Vec2 (-10) 0
         vecMax = Vec2 100 127
         grid = Grid (vecMin, vecMax) (100, 120)
-        lut = lookupTable2 grid f
+        lut = createLookupTable2 grid f
         gen = do
             v <- pointInGridRange grid
             let gridVec = roundCIVec2 (toGrid grid v)
@@ -146,6 +146,6 @@ lookupOnGridMatchesFunction_random = testProperty "With random grid/function" $
                 e2 <- elements [0..2]
                 s2 <- elements [1, -1]
                 pure (\(Vec2 x y) -> sinCosId (s1*x^e1 + s2*y^e2))
-            let lut = lookupTable2 grid f
+            let lut = createLookupTable2 grid f
             pure (lut, Blind f, fromGrid grid gridVec)
     in forAll gen $ \(lut, Blind f, v) -> lookupBilinear lut v ~=== f v
