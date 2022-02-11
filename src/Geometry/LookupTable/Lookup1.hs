@@ -1,6 +1,6 @@
--- | Lookup tables
-module Geometry.LookupTable (
-      VectorLookupTable(..)
+-- | One-dimensional lookup tables
+module Geometry.LookupTable.Lookup1 (
+      LookupTable1(..)
     , S(..)
     , T(..)
     , lookupInterpolated
@@ -13,11 +13,11 @@ import Control.DeepSeq
 import Geometry.Core
 
 -- | Vector-based lookup table from 'fst' to 'snd'. Values must increase with vector index, enabling binary search.
-newtype VectorLookupTable a b = VectorLookupTable (V.Vector (a, b))
+newtype LookupTable1 a b = LookupTable1 (V.Vector (a, b))
     deriving (Eq, Ord, Show)
 
-instance (NFData a, NFData b) => NFData (VectorLookupTable a b) where
-    rnf (VectorLookupTable vec) = rnf vec
+instance (NFData a, NFData b) => NFData (LookupTable1 a b) where
+    rnf (LookupTable1 vec) = rnf vec
 
 -- | Safety newtype wrapper because it’s super confusing that Runge-Kutta commonly
 -- has t for time, but here we have s(t) where s corredponds to time in RK.
@@ -64,8 +64,8 @@ instance Num a => Num (S a) where
 --
 -- If the value is not actually in the LUT but between the LUT’s values, you can
 -- use 'interpolate' to get a linear interpolation.
-lookupIndex :: Ord a => VectorLookupTable a b -> a -> Int
-lookupIndex (VectorLookupTable lut) needle = search 0 (V.length lut)
+lookupIndex :: Ord a => LookupTable1 a b -> a -> Int
+lookupIndex (LookupTable1 lut) needle = search 0 (V.length lut)
   where
     search lo hi
         | lo >= mid = mid
@@ -81,21 +81,21 @@ lookupIndex (VectorLookupTable lut) needle = search 0 (V.length lut)
 
 -- | Find t(s) from a LUT using binary search, interpolating linearly around the
 -- search result. Clips for out-of-range values.
-lookupInterpolated :: VectorLookupTable (S Double) (T Double) -> S Double -> T Double
+lookupInterpolated :: LookupTable1 (S Double) (T Double) -> S Double -> T Double
 lookupInterpolated lut needle = interpolate lut needle (lookupIndex lut needle)
 
 -- | Lookup in the LUT, with bias towards the left, i.e. when searching a value not
 -- present in the LUT, return the closest one before.
-lookupBiasLower :: Ord a => VectorLookupTable a b -> a -> (a, b)
-lookupBiasLower lut@(VectorLookupTable rawLut) needle
+lookupBiasLower :: Ord a => LookupTable1 a b -> a -> (a, b)
+lookupBiasLower lut@(LookupTable1 rawLut) needle
   = let ix = lookupIndex lut needle
     in rawLut V.! ix
 
 -- | Look at left/right neighbours. If they’re there and the needle is between it
 -- and the found pivot index, then linearly interpolate the result value between
 -- them.
-interpolate :: VectorLookupTable (S Double) (T Double) -> S Double -> Int -> T Double
-interpolate (VectorLookupTable lut) needle pivotIndex = case (lut V.!? (pivotIndex-1), lut V.! pivotIndex, lut V.!? (pivotIndex+1)) of
+interpolate :: LookupTable1 (S Double) (T Double) -> S Double -> Int -> T Double
+interpolate (LookupTable1 lut) needle pivotIndex = case (lut V.!? (pivotIndex-1), lut V.! pivotIndex, lut V.!? (pivotIndex+1)) of
     -- Interpolate between pivot and left neighbour?
     (Just (leftS, leftT), (pivotS, pivotT), _)
         | between (leftS, pivotS) needle -> linearInterpolate (leftS, pivotS) (leftT, pivotT) needle

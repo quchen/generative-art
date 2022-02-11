@@ -7,6 +7,7 @@ module Test.TastyAll (
     , assertEqual
     , assertApproxEqual
     , (~==)
+    , (~===)
     , approxEqual
     , Tolerance(..)
 
@@ -130,6 +131,13 @@ class EqApprox a where
 (~==) :: EqApprox a => a -> a -> Bool
 (~==) = approxEqual (Tolerance 1e-10)
 infix 4 ~==
+
+-- | Approximate version of Quickcheck’s counterexample-printing '==='.
+(~===) :: (Show a, EqApprox a) => a -> a -> Property
+x ~=== y = counterexample
+    (show x ++ " is not approximately " ++ show y)
+    (approxEqual (Tolerance 1e-10) x y)
+infix 4 ~===
 
 instance (EqApprox a, EqApprox b) => EqApprox (a,b) where
     approxEqual (Tolerance tol) (a1, b1) (a2, b2) = and

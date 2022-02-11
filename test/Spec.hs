@@ -17,6 +17,7 @@ import qualified Test.Geometry.Algorithms.Sampling
 import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Algorithms.Voronoi
 import qualified Test.Geometry.Coordinates.Hexagonal
+import qualified Test.Geometry.LookupTable.Lookup2
 import qualified Test.Geometry.Processes.ApollonianGasket
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
@@ -57,6 +58,7 @@ tests = testGroup "Test suite"
     , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Algorithms.Voronoi.tests
     , Test.Geometry.Coordinates.Hexagonal.tests
+    , Test.Geometry.LookupTable.Lookup2.tests
     , Test.Geometry.Processes.ApollonianGasket.tests
     , Test.Geometry.Processes.Billard.tests
     , Test.Geometry.Processes.Penrose.tests
