@@ -6,6 +6,7 @@ module Geometry.LookupTable.Lookup2 (
     , lookupTable2
     , lookupNearest
     , lookupBilinear
+    , forLookupTable2_
 
     -- * Technical utilities
     , IVec2(..)
@@ -94,6 +95,16 @@ lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
             | otherwise = iFloorValue
 
     in result
+
+-- | Perform an action for each entry in the lookup table. Can be handy for
+-- plotting its contents.
+forLookupTable2_ :: Monad f => LookupTable2 a -> (a -> Vec2 -> IVec2 -> f b) -> f ()
+forLookupTable2_ (LookupTable2 grid vec) f =
+    V.iforM_ vec $ \i iVec ->
+        V.iforM_ iVec $ \j val ->
+            let iVec2 = IVec2 i j
+                vec2 = fromGrid grid iVec2
+            in f val vec2 iVec2
 
 -- | Discrete 'Vec2'. Useful as coordinate in a @'Vector' ('Vector' a)@.
 data IVec2 = IVec2 !Int !Int
