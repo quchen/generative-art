@@ -2,13 +2,13 @@ module Geometry.Algorithms.Contour.Internal where
 
 
 
+import           Control.DeepSeq
+import           Control.Parallel.Strategies
 import           Data.Foldable
-import           Data.Set      (Set)
-import qualified Data.Set      as S
-import           Data.Vector   (Vector, (!))
-import qualified Data.Vector   as V
-import           Data.Ord
-import           Prelude       hiding (lines)
+import           Data.Set                    (Set)
+import qualified Data.Set                    as S
+import           Data.Vector                 (Vector, (!))
+import qualified Data.Vector                 as V
 
 import Geometry.Core
 import Geometry.LookupTable.Lookup2
@@ -125,11 +125,21 @@ optimizeDiscreteLine grid f threshold (IEdge iStart iEnd) tolerance =
 data XO = X | O
     deriving (Eq, Ord, Show)
 
+instance NFData XO where
+    rnf X = ()
+    rnf O = ()
+
 data CellClassification = CellClassification !XO !XO !XO !XO
     deriving (Eq, Ord, Show)
 
+instance NFData CellClassification where
+    rnf _ = () -- it’s already strict in all fields
+
+linewiseDeepseq :: NFData a => Vector (Vector a) -> Vector (Vector a)
+linewiseDeepseq = withStrategy (parTraversable rdeepseq)
+
 applyThreshold :: Double -> Vector (Vector Double) -> Vector (Vector XO)
-applyThreshold threshold = (fmap.fmap) xo
+applyThreshold threshold = linewiseDeepseq . (fmap.fmap) xo
   where
     xo v | v <= threshold = X
          | otherwise      = O
@@ -138,7 +148,7 @@ ifor :: Vector a -> (Int -> a -> b) -> Vector b
 ifor = flip V.imap
 
 classifySquares :: Vector (Vector XO) -> Vector (Vector CellClassification)
-classifySquares xos =
+classifySquares xos = linewiseDeepseq $
     -- Our squares extend from the top left to the bottom right, so we drop
     -- the last element or the bottom-right would run out of bounds of the Vec.
     ifor (V.init xos) $
@@ -153,11 +163,17 @@ classifySquares xos =
 data IEdge = IEdge !IVec2 !IVec2
     deriving (Eq, Ord, Show)
 
+instance NFData IEdge where
+    rnf _ = () -- it’s already strict in all fields
+
 data LineBetweenEdges = LineBetweenEdges !IEdge !IEdge
     deriving (Eq, Ord, Show)
 
+instance NFData LineBetweenEdges where
+    rnf _ = () -- it’s already strict in all fields
+
 classificationsToContourEdgeSegments :: Vector (Vector CellClassification) -> Set LineBetweenEdges
-classificationsToContourEdgeSegments classifiedCells = fold.fold $ ifor classifiedCells $ \i cy -> ifor cy $ \j classification ->
+classificationsToContourEdgeSegments classifiedCells = fold.fold $ linewiseDeepseq $ ifor classifiedCells $ \i cy -> ifor cy $ \j classification ->
     let topLeft     = IVec2 i      j
         topRight    = IVec2 (i+1)  j
         bottomLeft  = IVec2 i      (j+1)
