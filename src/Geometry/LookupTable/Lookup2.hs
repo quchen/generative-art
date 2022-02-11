@@ -17,10 +17,8 @@ module Geometry.LookupTable.Lookup2 (
 
 
 
-import           Data.Vector   (Vector, (!))
-import qualified Data.Vector   as V
-import           Data.Ord
-import           Prelude       hiding (lines)
+import           Data.Vector (Vector, (!))
+import qualified Data.Vector as V
 
 import Geometry.Core
 import Numerics.Interpolation
