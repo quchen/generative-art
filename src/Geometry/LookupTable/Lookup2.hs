@@ -4,6 +4,7 @@ module Geometry.LookupTable.Lookup2 (
       LookupTable2
     , Grid(..)
     , lookupTable2
+    , lookupNearest
     , lookupBilinear
 
     -- * Technical utilities
@@ -17,8 +18,9 @@ module Geometry.LookupTable.Lookup2 (
 
 
 
-import           Data.Vector (Vector, (!))
-import qualified Data.Vector as V
+import           Data.Ord.Extended
+import           Data.Vector       (Vector, (!))
+import qualified Data.Vector       as V
 
 import Geometry.Core
 import Numerics.Interpolation
@@ -41,6 +43,19 @@ data LookupTable2 a = LookupTable2 Grid (Vector (Vector a))
 -- @
 lookupTable2 :: Grid -> (Vec2 -> a) -> LookupTable2 a
 lookupTable2 grid f = LookupTable2 grid (valueTable grid f)
+
+-- | Nearest neigbour lookup in a two-dimensional lookup table. Lookup outside of
+-- the lookup table’s domain is clamped to the table’s edges.
+--
+-- Compared to 'lookupBilinear' this function works on types that don’t support
+-- arithmetic on them, and is faster. The downside is of course that only the
+-- values on the grid points are accessible, without any interpolation.
+lookupNearest :: LookupTable2 Double -> Vec2 -> Double
+lookupNearest (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
+    let CIVec2 iCont jCont = toGrid grid xy
+        i = clamp 0 iMax (round iCont)
+        j = clamp 0 jMax (round jCont)
+    in vec!i!j
 
 -- | Bilinear lookup in a two-dimensional lookup table. Lookup outside of the
 -- lookup table’s domain is clamped to the table’s edges, so while it will not make
