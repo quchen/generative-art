@@ -1,5 +1,6 @@
 module Data.Ord.Extended (
       clamp
+    , between
     , module Data.Ord
 ) where
 
@@ -27,3 +28,7 @@ clamp a b x =
     let lo = min a b
         hi = max a b
     in min hi (max x lo)
+
+-- | Is the value between two other values?
+between :: Ord a => (a, a) -> a -> Bool
+between (a,b) x = min a b < x && x < max a b

@@ -103,9 +103,9 @@ bezierT (Bezier a b c d) t
 -- \]
 bezierT'
   :: Bezier
-  -> T Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT' (Bezier a b c d) (T t)
+bezierT' (Bezier a b c d) t
   =    (-3*(1-t)^2)    *. a
     +. (3+t*(-12+9*t)) *. b
     +. ((6-9*t)*t)     *. c
@@ -117,9 +117,9 @@ bezierT' (Bezier a b c d) (T t)
 -- which makes this curve easy to compute.
 _bezierT''
   :: Bezier
-  -> T Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-_bezierT'' (Bezier a b c d) (T t)
+_bezierT'' (Bezier a b c d) t
   =    (6-6*t)         *. a
     +. (-12+18*t)      *. b
     +. (6-18*t)        *. c
@@ -129,11 +129,11 @@ _bezierT'' (Bezier a b c d) (T t)
 --
 -- The number of segments doesn’t need to be very high: 16 is already plenty for most curves.
 bezierLength
-    :: Bezier   -- ^ Curve
+    :: Bezier
     -> Double
 bezierLength bezier = retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6
   where
-    f t = norm (bezierT' bezier (T t))
+    f t = norm (bezierT' bezier t)
 
 
 
@@ -191,7 +191,7 @@ bezierS_ode
     -> Vec2     -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
-    in \s -> let T t = lookupInterpolated lut (S s)
+    in \s -> let t = lookupInterpolated lut s
              in bezierT bz t
 
 -- | S⇆T lookup table for a Bezier curve
@@ -201,16 +201,16 @@ bezierS_ode bz ds
 s_to_t_lut_ode
     :: Bezier
     -> Double -- ^ ODE solver step width. Correlates with result precision/length.
-    -> LookupTable1 (S Double) (T Double) -- ^ Lookup table
+    -> LookupTable1 Double Double -- ^ Lookup table
 s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
   where
-    sol_to_vec = V.map (\(s, tt) -> (S s, tt)) . V.fromList . takeWhile (\(_s, T t) -> t <= 1)
+    sol_to_vec = V.fromList . takeWhile (\(_s, t) -> t <= 1)
 
     sol = rungeKuttaConstantStep dt_ds t0 s0 ds
 
-    dt_ds _s t = T (1 / norm (bezierT' bz t))
+    dt_ds _s t = 1 / norm (bezierT' bz t)
 
-    t0 = T 0
+    t0 = 0
     s0 = 0
 
 -- $references
