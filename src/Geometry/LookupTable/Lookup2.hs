@@ -3,7 +3,7 @@ module Geometry.LookupTable.Lookup2 (
     -- * Function cache
       LookupTable2
     , Grid(..)
-    , lookupTable2
+    , createLookupTable2
     , lookupNearest
     , lookupBilinear
     , forLookupTable2_
@@ -45,10 +45,10 @@ instance NFData a => NFData (LookupTable2 a) where
 -- @
 -- grid = 'Grid' ('Vec2' (-10) (-10), 'Vec2' 10 10), (100, 100)
 -- f ('Vec2' x y) = x*y
--- table = 'lookupTable2' grid f
+-- table = 'createLookupTable2' grid f
 -- @
-lookupTable2 :: Grid -> (Vec2 -> a) -> LookupTable2 a
-lookupTable2 grid f = LookupTable2 grid (valueTable grid f)
+createLookupTable2 :: Grid -> (Vec2 -> a) -> LookupTable2 a
+createLookupTable2 grid f = LookupTable2 grid (valueTable grid f)
 
 -- | Nearest neigbour lookup in a two-dimensional lookup table. Lookup outside of
 -- the lookup table’s domain is clamped to the table’s edges.
@@ -70,7 +70,7 @@ lookupNearest (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
 -- This lookup approximates a function in the sense that
 --
 -- @
--- 'lookupBilinear' ('lookupTable2' grid f) x ≈ f x
+-- 'lookupBilinear' ('createLookupTable2' grid f) x ≈ f x
 -- @
 lookupBilinear :: LookupTable2 Double -> Vec2 -> Double
 lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
@@ -98,6 +98,16 @@ lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
 
 -- | Perform an action for each entry in the lookup table. Can be handy for
 -- plotting its contents.
+--
+-- @
+-- grid = 'Grid' ('Vec2' 0 0, 'Vec2' 100, 100) (100, 100)
+-- f ('Vec2' x y) = x + 'sin' y
+-- table = 'createLookupTable2' grid f
+--
+-- 'forLookupTable2_' table $ \val pos _ ->
+--     'Draw.moveToVec' pos
+--     'Draw.showTextAligned' 'Draw.HCenter' 'Draw.VCenter' ('show' val)
+-- @
 forLookupTable2_ :: Monad f => LookupTable2 a -> (a -> Vec2 -> IVec2 -> f b) -> f ()
 forLookupTable2_ (LookupTable2 grid vec) f =
     V.iforM_ vec $ \i iVec ->
