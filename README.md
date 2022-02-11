@@ -12,12 +12,6 @@ Cairo.
 
 ![](showcases/voronoi_3d.svg)
 
-![](showcases/haskell_logo_billard.svg)
-
-![](showcases/haskell_logo_shattered.svg)
-
-![](showcases/haskell_logo_voronoi.svg)
-
 ![](showcases/vector_fields.svg)
 
 More examples are shown in the [docs/](docs/README.md) folder.
