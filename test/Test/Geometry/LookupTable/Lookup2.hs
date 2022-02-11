@@ -126,4 +126,4 @@ lookupOnGridMatchesFunction = testProperty "On grid: lookup lut x == f x" $
             v <- pointInGridRange grid
             let gridVec = roundCIVec2 (toGrid grid v)
             pure (fromGrid grid gridVec)
-    in forAll gen $ \v -> lookupBilinear lut v ~== f v
+    in forAll gen $ \v -> lookupBilinear lut v ~=== f v
