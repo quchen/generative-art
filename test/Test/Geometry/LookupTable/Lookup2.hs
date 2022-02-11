@@ -61,7 +61,7 @@ valueTableTests = testGroup "Value table creation"
                 jSize <- choose (0, 10)
                 let gridRange = (Vec2 0 0, Vec2 1 1)
                 pure $ Grid gridRange (iSize, jSize)
-        in forAll gen $ \grid@Grid{_numCells = (iSize, jSize)} ->
+        in forAll gen $ \grid@Grid{_maxIndex = (iSize, jSize)} ->
             let vt = valueTable grid (const ())
             in all (\v -> length v == jSize+1) vt
                &&
