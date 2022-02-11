@@ -19,9 +19,10 @@ module Geometry.LookupTable.Lookup2 (
 
 
 import           Control.DeepSeq
+import           Control.Parallel.Strategies
 import           Data.Ord.Extended
-import           Data.Vector       (Vector, (!))
-import qualified Data.Vector       as V
+import           Data.Vector                 (Vector, (!))
+import qualified Data.Vector                 as V
 
 import Geometry.Core
 import Numerics.Interpolation
@@ -33,7 +34,7 @@ data LookupTable2 a = LookupTable2 Grid (Vector (Vector a))
     deriving (Eq, Ord, Show)
 
 instance NFData a => NFData (LookupTable2 a) where
-    rnf (LookupTable2 grid vec) = rnf grid `seq` rnf vec
+    rnf (LookupTable2 grid vec) = withStrategy (parTraversable rdeepseq) vec `seq` rnf grid
 
 -- | Build a 2D lookup table, suitable for caching function calls. Values are
 -- initialized lazily, so that only repeated computations are sped up.
