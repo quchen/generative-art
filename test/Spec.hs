@@ -29,6 +29,7 @@ import qualified Test.Uncategorized.Mirror
 import qualified Test.Uncategorized.Properties
 import qualified Test.Uncategorized.Reflection
 import qualified Test.Uncategorized.SimpleOperations
+import qualified Test.Uncategorized.SvgPathParser
 import qualified Test.Uncategorized.Trajectory
 
 import           Test.Tasty
@@ -70,6 +71,7 @@ tests = testGroup "Test suite"
     , Test.Uncategorized.Properties.tests
     , Test.Uncategorized.Reflection.tests
     , Test.Uncategorized.SimpleOperations.tests
+    , Test.Uncategorized.SvgPathParser.tests
     , Test.Uncategorized.Trajectory.tests
     ]
 
