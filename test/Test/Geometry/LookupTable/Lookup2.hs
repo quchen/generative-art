@@ -7,8 +7,6 @@ import Geometry.LookupTable.Lookup2
 
 import Test.TastyAll
 
-import Debug.Trace
-
 
 
 tests :: TestTree
@@ -22,7 +20,10 @@ tests = localOption (QuickCheckTests 1000) $ testGroup "2D lookup tables"
             ]
         ]
     , testGroup "2D function lookup table"
-        [ lookupOnGridMatchesFunction
+        [ testGroup "lookup lut x == f x"
+            [ lookupOnGridMatchesFunction_hardcoded
+            , lookupOnGridMatchesFunction_random
+            ]
         ]
     ]
 
@@ -79,20 +80,23 @@ discreteGridPoint (Grid _ (iMax, jMax)) = do
     j <- choose (0, jMax)
     pure (IVec2 i j)
 
-arbitraryGrid :: Gen Grid
-arbitraryGrid = do
-    xMin <- choose (-100, 100)
-    yMin <- choose (-100, 100)
-    let vMin = Vec2 xMin yMin
+-- | A reasonably sized grid for its 'Arbitrary' instance.
+newtype ReasonableGrid = ReasonableGrid Grid
 
-    xOffset <- choose (1, 100)
-    yOffset <- choose (1, 100)
-    let vMax = vMin +. Vec2 xOffset yOffset
+instance Arbitrary ReasonableGrid where
+    arbitrary = do
+        xMin <- choose (-100, 100)
+        yMin <- choose (-100, 100)
+        let vMin = Vec2 xMin yMin
 
-    iMax <- choose (1, 100)
-    jMax <- choose (1, 100)
+        xOffset <- choose (1, 100)
+        yOffset <- choose (1, 100)
+        let vMax = vMin +. Vec2 xOffset yOffset
 
-    pure (Grid (vMin, vMax) (iMax, jMax))
+        iMax <- choose (1, 100)
+        jMax <- choose (1, 100)
+
+        pure (ReasonableGrid (Grid (vMin, vMax) (iMax, jMax)))
 
 gridInverseTest_simple :: TestTree
 gridInverseTest_simple = testProperty "Simple square grid" $
@@ -107,7 +111,7 @@ gridInverseTest_simple = testProperty "Simple square grid" $
 gridInverseTest_random :: TestTree
 gridInverseTest_random = testProperty "Random grid" $
     let gen = do
-            grid <- arbitraryGrid
+            ReasonableGrid grid <- arbitrary
             iVec <- discreteGridPoint grid
             pure (grid, iVec)
     in forAll gen $ \(grid, iVec) ->
@@ -115,8 +119,8 @@ gridInverseTest_random = testProperty "Random grid" $
             ciVec = toGrid grid vec
         in roundCIVec2 ciVec === iVec
 
-lookupOnGridMatchesFunction :: TestTree
-lookupOnGridMatchesFunction = testProperty "On grid: lookup lut x == f x" $
+lookupOnGridMatchesFunction_hardcoded :: TestTree
+lookupOnGridMatchesFunction_hardcoded = testProperty "With hardcoded grid/function" $
     let f (Vec2 x y) = sin (x^2 + y^3)
         vecMin = Vec2 (-10) 0
         vecMax = Vec2 100 127
@@ -127,3 +131,21 @@ lookupOnGridMatchesFunction = testProperty "On grid: lookup lut x == f x" $
             let gridVec = roundCIVec2 (toGrid grid v)
             pure (fromGrid grid gridVec)
     in forAll gen $ \v -> lookupBilinear lut v ~=== f v
+
+lookupOnGridMatchesFunction_random :: TestTree
+lookupOnGridMatchesFunction_random = testProperty "With random grid/function" $
+    let gen = do
+            ReasonableGrid grid <- arbitrary
+            gridVec <- do
+                v <- pointInGridRange grid
+                pure (roundCIVec2 (toGrid grid v))
+            f <- do
+                sinCosId <- elements [sin, cos, id]
+                e1 <- elements [0..2]
+                s1 <- elements [1, -1]
+                e2 <- elements [0..2]
+                s2 <- elements [1, -1]
+                pure (\(Vec2 x y) -> sinCosId (s1*x^e1 + s2*y^e2))
+            let lut = lookupTable2 grid f
+            pure (lut, Blind f, fromGrid grid gridVec)
+    in forAll gen $ \(lut, Blind f, v) -> lookupBilinear lut v ~=== f v
