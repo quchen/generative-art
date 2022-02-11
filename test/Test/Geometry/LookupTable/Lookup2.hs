@@ -13,23 +13,23 @@ import Debug.Trace
 
 tests :: TestTree
 tests = localOption (QuickCheckTests 1000) $ testGroup "2D lookup tables"
-    [ fromGridTests
-    , valueTableTests
+    [ valueTableTests
     , testGroup "Grid"
-        [ testGroup "toGrid . fromGrid = id"
+        [ fromGridTests
+        , testGroup "toGrid . fromGrid = id"
             [ gridInverseTest_simple
             , gridInverseTest_random
             ]
         ]
     , testGroup "2D function lookup table"
-        [ lookupOnGridPointsYieldsFunctionValuesTest
+        [ lookupOnGridMatchesFunction
         ]
     ]
 
 fromGridTests :: TestTree
 fromGridTests = testGroup "Convert grid coordinates to continuous"
     [ testGroup "Square continuous, square discrete"
-        [testCase "Start" $ do
+        [ testCase "Start" $ do
             let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 11)
             assertBool "xxx" $ fromGrid grid (IVec2 0 0) ~== Vec2 0 0
         , testCase "Middle" $ do
@@ -40,7 +40,7 @@ fromGridTests = testGroup "Convert grid coordinates to continuous"
             assertBool "xxx" $ fromGrid grid (IVec2 5 5) ~== Vec2 0.5 0.5
         ]
     , testGroup "Square continuous, rectangular discrete"
-        [testCase "Start" $ do
+        [ testCase "Start" $ do
             let grid = Grid (Vec2 0 0, Vec2 1 1) (11, 9)
             assertBool "xxx" $ fromGrid grid (IVec2 0 0) ~== Vec2 0 0
         , testCase "Middle" $ do
@@ -115,8 +115,8 @@ gridInverseTest_random = testProperty "Random grid" $
             ciVec = toGrid grid vec
         in roundCIVec2 ciVec === iVec
 
-lookupOnGridPointsYieldsFunctionValuesTest :: TestTree
-lookupOnGridPointsYieldsFunctionValuesTest = testProperty "Lookup on the grid points yields original function values" $
+lookupOnGridMatchesFunction :: TestTree
+lookupOnGridMatchesFunction = testProperty "On grid: lookup lut x == f x" $
     let f (Vec2 x y) = sin (x^2 + y^3)
         vecMin = Vec2 (-10) 0
         vecMax = Vec2 100 127
