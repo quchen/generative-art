@@ -18,6 +18,7 @@ module Geometry.LookupTable.Lookup2 (
 
 
 
+import           Control.DeepSeq
 import           Data.Ord.Extended
 import           Data.Vector       (Vector, (!))
 import qualified Data.Vector       as V
@@ -30,6 +31,9 @@ import Numerics.Interpolation
 -- | Lookup table for a two-dimensional function. Created with 'lookupTable2'.
 data LookupTable2 a = LookupTable2 Grid (Vector (Vector a))
     deriving (Eq, Ord, Show)
+
+instance NFData a => NFData (LookupTable2 a) where
+    rnf (LookupTable2 grid vec) = rnf grid `seq` rnf vec
 
 -- | Build a 2D lookup table, suitable for caching function calls. Values are
 -- initialized lazily, so that only repeated computations are sped up.
@@ -94,11 +98,15 @@ lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
 data IVec2 = IVec2 !Int !Int
     deriving (Eq, Ord, Show)
 
+instance NFData IVec2 where rnf _ = ()
+
 -- | Continuous version of 'IVec2'. Type-wise the same as 'Vec2', but it shows
 -- fractional grid coodrdinates, so we can express the fact that our lookup might
 -- be »between i and i+1« and we can interpolate.
 data CIVec2 = CIVec2 !Double !Double
     deriving (Eq, Ord, Show)
+
+instance NFData CIVec2 where rnf _ = ()
 
 -- | Round a »continuous integral« coordinate to a »proper integral« coordinate.
 roundCIVec2 :: CIVec2 -> IVec2
@@ -116,6 +124,9 @@ data Grid = Grid
     { _range :: (Vec2, Vec2)  -- ^ Range of continuous coordinates
     , _maxIndex :: (Int, Int) -- ^ Maximum index of the grid, i.e. coordinates range from @(0,0)@ to @'_maxIndex'@.
     } deriving (Eq, Ord, Show)
+
+instance NFData Grid where
+    rnf (Grid (a,b) (c,d)) = rnf a `seq` rnf b `seq` rnf c `seq` rnf d
 
 -- | Map a coordinate from the discrete grid to continuous space.
 fromGrid
