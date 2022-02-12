@@ -4,6 +4,7 @@ module Test.Geometry.LookupTable.Lookup2 (tests) where
 
 import Geometry
 import Geometry.LookupTable.Lookup2
+import Control.DeepSeq
 
 import Test.TastyAll
 
@@ -23,6 +24,8 @@ tests = localOption (QuickCheckTests 1000) $ testGroup "2D lookup tables"
         [ testGroup "lookup lut x == f x"
             [ lookupOnGridMatchesFunction_hardcoded
             , lookupOnGridMatchesFunction_random
+            , testPointOutsideDoesNotCrash_lookupNearest
+            , testPointOutsideDoesNotCrash_lookupBilinear
             ]
         ]
     ]
@@ -149,3 +152,28 @@ lookupOnGridMatchesFunction_random = testProperty "With random grid/function" $
             let lut = createLookupTable2 grid f
             pure (lut, Blind f, fromGrid grid gridVec)
     in forAll gen $ \(lut, Blind f, v) -> lookupBilinear lut v ~=== f v
+
+
+
+testPointOutsideDoesNotCrash_lookupNearest :: TestTree
+testPointOutsideDoesNotCrash_lookupNearest = pointOutsideDoesNotCrash "Nearest neighbour: OOB point does not throw" lookupNearest
+
+testPointOutsideDoesNotCrash_lookupBilinear :: TestTree
+testPointOutsideDoesNotCrash_lookupBilinear = pointOutsideDoesNotCrash "Bilinear: OOB point does not throw" lookupBilinear
+
+pointOutsideDoesNotCrash
+    :: (NFData b, Num a)
+    => TestName
+    -> (LookupTable2 a -> Vec2 -> b)
+    -> TestTree
+pointOutsideDoesNotCrash testName lookupFunction = testCase testName $ do
+    let grid = Grid (Vec2 0 0, Vec2 1 1) (100, 100)
+        f _ = 0
+        table = createLookupTable2 grid f
+        values =
+            [ (Vec2 10 10)
+            , (Vec2 (-1) 0.5)
+            , (Vec2 0.5 (-1))
+            ]
+        lookups = map (lookupFunction table) values
+    rnf lookups `seq` pure ()

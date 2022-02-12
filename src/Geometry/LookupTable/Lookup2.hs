@@ -73,12 +73,12 @@ lookupNearest (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
 -- 'lookupBilinear' ('createLookupTable2' grid f) x ≈ f x
 -- @
 lookupBilinear :: LookupTable2 Double -> Vec2 -> Double
-lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
+lookupBilinear (LookupTable2 grid vec) xy =
     let CIVec2 iCont jCont = toGrid grid xy
-        iFloor = max 0 (floor iCont)
-        jFloor = max 0 (floor jCont)
-        iCeil = min iMax (ceiling iCont)
-        jCeil = min jMax (ceiling jCont)
+        iFloor = floor iCont
+        jFloor = floor jCont
+        iCeil = ceiling iCont
+        jCeil = ceiling jCont
 
         lut_iFloor = vec!iFloor
         lut_iCeil = vec!iCeil
@@ -91,7 +91,7 @@ lookupBilinear (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
             | otherwise = lut_iCeil!jFloor
 
         result
-            | iFloorValue /= iCeilValue = linearInterpolate (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
+            | iFloor /= iCeil = linearInterpolate (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
             | otherwise = iFloorValue
 
     in result
@@ -164,11 +164,11 @@ toGrid
     :: Grid
     -> Vec2 -- ^ Continuous coordinate
     -> CIVec2
-            -- ^ Continuous coordinate, scaled to grid dimensions.
-            --   Suitable to be rounded to an 'IVec' with 'roundCIVec2'
+            -- ^ Continuous coordinate, scaled and clamped to grid dimensions.
+            --   Suitable to be rounded to an 'IVec' with 'roundCIVec2'.
 toGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (Vec2 x y) =
-    let iContinuous = linearInterpolate (xMin, xMax) (0, fromIntegral iMax) x
-        jContinuous = linearInterpolate (yMin, yMax) (0, fromIntegral jMax) y
+    let iContinuous = clamp 0 (fromIntegral iMax) (linearInterpolate (xMin, xMax) (0, fromIntegral iMax) x)
+        jContinuous = clamp 0 (fromIntegral jMax) (linearInterpolate (yMin, yMax) (0, fromIntegral jMax) y)
     in CIVec2 iContinuous jContinuous
 
 -- | A raw value table, filled (lazily) by a function applied to the underlying
