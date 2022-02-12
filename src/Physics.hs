@@ -36,11 +36,11 @@ harmonicPotential (w, h) (Vec2 x0 y0) (Vec2 x y) = ((x-x0)/w)^2 + ((y-y0)/h)^2
 coulombPotential :: Double -> Vec2 -> Vec2 -> Double
 coulombPotential charge center particle = charge / norm (particle -. center)
 
-twoBody :: (Vec2 -> Vec2 -> Double) -> (Double, Double) -> (PhaseSpace, PhaseSpace) -> (PhaseSpace, PhaseSpace)
-twoBody interaction (m1, m2) (PhaseSpace p1 q1, PhaseSpace p2 q2) = (PhaseSpace deltaP1 deltaQ1, PhaseSpace deltaP2 deltaQ2)
+twoBody :: (Vec2 -> Double) -> (Vec2 -> Vec2 -> Double) -> (Double, Double) -> (PhaseSpace, PhaseSpace) -> (PhaseSpace, PhaseSpace)
+twoBody potential interaction (m1, m2) (PhaseSpace p1 q1, PhaseSpace p2 q2) = (PhaseSpace deltaP1 deltaQ1, PhaseSpace deltaP2 deltaQ2)
   where
-    deltaP1 = negateV (grad (\q -> interaction q q2) q1)
-    deltaP2 = negateV (grad (\q -> interaction q1 q) q2)
+    deltaP1 = negateV (grad (potential +. interaction q2) q1)
+    deltaP2 = negateV (grad (potential +. interaction q1) q2)
     deltaQ1 = p1 /. m1
     deltaQ2 = p2 /. m2
 
@@ -59,13 +59,20 @@ instance VectorSpace a => VectorSpace (NBody a) where
     (-.) = liftA2 (-.)
     zero = NBody (repeat zero)
 
-nBody :: (Vec2 -> Vec2 -> Double) -> NBody Double -> NBody PhaseSpace -> NBody PhaseSpace
-nBody interaction masses particles = NBody
+nBody
+    :: (Vec2 -> Double)
+    -- ^ External potential, affecting all particles. If you don't require an external potential, use 'zero'.
+    -> (Vec2 -> Vec2 -> Double)
+    -- ^ Interaction term between two particles. Should be symmetric.
+    -> NBody Double
+    -- ^ Particle masses
+    -> NBody PhaseSpace -> NBody PhaseSpace
+nBody potential interaction masses particles = NBody
     [ PhaseSpace deltaP deltaQ
     | (i, m1, PhaseSpace p1 q1) <- zip3 [0..] (getNBody masses) (getNBody particles)
     , let deltaQ = p1 /. m1
-    , let deltaP = vsum
-            [ negateV (grad (interaction q2) q1)
+    , let deltaP = negateV $ grad potential q1 +. vsum
+            [ grad (interaction q2) q1
             | (j, PhaseSpace _ q2) <- zip [0..] (getNBody particles)
             , i /= j
             ]

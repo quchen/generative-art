@@ -41,10 +41,9 @@ testTwoBody :: TestTree
 testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ \_ -> do
     let interactionPotential = harmonicPotential (10, 10)
         externalPotential = harmonicPotential (10, 10) (Vec2 100 100)
-        potential otherParticle particle = externalPotential particle + interactionPotential otherParticle particle
         particle1 = PhaseSpace { p = Vec2 (-8) 2, q = Vec2 100 50 }
         particle2 = PhaseSpace { p = Vec2 10 0, q = Vec2 100 150 }
-        trajectories = rungeKuttaConstantStep (const (twoBody potential (2, 1))) (particle1, particle2) 0 0.1
+        trajectories = rungeKuttaConstantStep (const (twoBody externalPotential interactionPotential (2, 1))) (particle1, particle2) 0 0.1
         (trajectory1, trajectory2) = unzip (snd <$> trajectories)
 
     pathSketch (fmap q (take 1000 trajectory1))
@@ -56,13 +55,13 @@ testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ 
 
 testThreeBody :: TestTree
 testThreeBody = testVisual "Three-Body simulation" 200 200 "docs/physics/threeBody" $ \_ -> do
-    let interactionPotential = harmonicPotential (10, 10)
+    let interactionPotential = coulombPotential (-10000)
         particle1 = PhaseSpace { p = Vec2 (-8) 2, q = Vec2 100 50 }
         particle2 = PhaseSpace { p = Vec2 10 0, q = Vec2 100 150 }
         particle3 = PhaseSpace { p = Vec2 0 0, q = Vec2 100 100 }
         masses = NBody [1, 2, 5]
         particles = NBody [particle1, particle2, particle3]
-        trajectories = traverse snd $ take 1000 $ rungeKuttaConstantStep (const (nBody interactionPotential masses)) particles 0 0.1
+        trajectories = traverse snd $ take 2000 $ rungeKuttaConstantStep (const (nBody zero interactionPotential masses)) particles 0 0.01
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
         pathSketch (fmap q trajectory)
