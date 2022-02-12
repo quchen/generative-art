@@ -26,6 +26,7 @@ import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
 import qualified Test.Geometry.SvgParser.PathParser
 import qualified Test.Geometry.SvgParser.SimpleShapes
+import qualified Test.Physics
 import qualified Test.Uncategorized.Bezier
 import qualified Test.Uncategorized.ConvexHull
 import qualified Test.Uncategorized.DifferentialEquation
@@ -72,6 +73,7 @@ tests = testGroup "Test suite"
     , Test.Geometry.Processes.Penrose.tests
     , Test.Geometry.SvgParser.PathParser.tests
     , Test.Geometry.SvgParser.SimpleShapes.tests
+    , Test.Physics.tests
     , Test.Uncategorized.Bezier.tests
     , Test.Uncategorized.ConvexHull.tests
     , Test.Uncategorized.DifferentialEquation.tests
