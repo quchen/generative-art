@@ -1,6 +1,8 @@
 module Main where
 
+import Data.List (sortBy)
 import Data.Maybe (fromMaybe)
+import Data.Ord (comparing)
 import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import Math.Noise (Perlin (..), perlin, getValue)
@@ -37,6 +39,7 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
             , _maxIndex = (round (picWidth / cellSize + 4), round (picHeight / cellSize + 4))
             }
         isoLine = isoLines grid scalarField
+        isoLineLayers = [ (v, drawIsoLine v (isoLine v)) | v <- [-0.6, -0.55 .. 0.5]]
 
     let costFunction p = exp (8 * scalarField p)
         width = picWidth
@@ -44,28 +47,22 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
         step = 20
         trajectory start end = optimizePath 10000 0.1 costFunction $ simplifyTrajectoryRadial 100 $ dijkstra Dijkstra {..} start end
 
-        trajectories =
-            [ trajectory start end
-            | (start, end) <-
-                [ (Vec2 1400 1440, Vec2 100 0)
-                , (Vec2 1200 1440, Vec2 0 1200)
-                , (Vec2 1800 1440, Vec2 900 0)
-                , (Vec2 600 1440, Vec2 900 0)
+        trajectoryLayers =
+            [ (v, do
+                bezierCurveSketch $ bezierSmoothenOpen path
+                Cairo.setLineWidth 5
+                setColor (white `withOpacity` 0.6)
+                Cairo.stroke)
+            | (v, path) <-
+                [ (-0.05, trajectory (Vec2 1400 1440) (Vec2 100 0))
+                , (0.1, trajectory (Vec2 1200 1440) (Vec2 0 1200))
+                , (0, trajectory (Vec2 1800 1440) (Vec2 900 0))
+                , (0.05, trajectory (Vec2 600 1440) (Vec2 900 0))
                 ]
             ]
 
-
-    for_ [-0.6,-0.55..0.1] $ \v ->
-        drawAtHeight v $ drawIsoLine v (isoLine v)
-
-    drawAtHeight 0 $ for_ trajectories $ \path -> do
-        bezierCurveSketch $ bezierSmoothenOpen path
-        Cairo.setLineWidth 5
-        setColor (white `withOpacity` 0.6)
-        Cairo.stroke
-
-    for_ [0.1,0.15..0.5] $ \v ->
-        drawAtHeight v $ drawIsoLine v (isoLine v)
+    for_ (sortBy (comparing fst) (isoLineLayers ++ trajectoryLayers)) $ \(v, layer) ->
+        drawAtHeight v layer
 
   where
     scaleFactor = 0.39
