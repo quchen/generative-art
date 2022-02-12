@@ -8,7 +8,8 @@ import System.Random.MWC.Distributions
 
 import Draw
 import Geometry
-import Geometry.Algorithms.Dijkstra
+import Geometry.Algorithms.Path.Dijkstra
+import Geometry.Algorithms.Path.Optimize
 import Numerics.VectorAnalysis
 
 import Test.TastyAll
@@ -30,18 +31,14 @@ testMaze = testVisual "Path through maze" 200 200 "docs/dijkstra/maze" $ \_ -> d
         setColor (blend (maze p / 100) (mathematica97 0) (mathematica97 1))
         Cairo.fill
 
-    let path = V.fromList $ dijkstra Dijkstra
+    let path = optimizePath 30000 0.01 maze $ V.fromList $ dijkstra Dijkstra
             { width = 200
             , height = 200
             , step = 5
             , weight = maze
             } (Vec2 30 170) (Vec2 170 170)
 
-    let path' = runST $ do
-            gen <- create
-            iterateM 30000 (optimizeTrajectory maze 0.01 gen) path
-
-    drawPath path'
+    drawPath path
 
 
 maze :: Vec2 -> Double
@@ -81,12 +78,9 @@ testHill = testGroup "Hillclimbing"
     testCase costFunction = do
         drawVectorField
         let weight = costFunction
-            path = dijkstra Dijkstra{..} (Vec2 10 10) (Vec2 190 190)
-            path' = runST $ do
-                gen <- create
-                iterateM 20000 (optimizeTrajectory weight 0.005 gen) (V.fromList path)
+            path = optimizePath 20000 0.005 costFunction $ V.fromList $ dijkstra Dijkstra{..} (Vec2 10 10) (Vec2 190 190)
 
-        drawPath path'
+        drawPath path
 
     hill (Vec2 x _) = exp (-(x-100)^2/2000)
     drawVectorField = for_ [Vec2 x y | x <- [0,5..200], y <- [0,5..200]] $ \p@(Vec2 x y) -> do
@@ -110,27 +104,3 @@ drawPath path = do
         setColor (mathematica97 3)
         Cairo.stroke
 
-optimizeTrajectory :: (Vec2 -> Double) -> Double -> GenST s -> V.Vector Vec2 -> ST s (V.Vector Vec2)
-optimizeTrajectory f d gen ps = do
-    pos <- uniformRM (1, V.length ps - 2) gen
-    nudge <- normal 0 d gen
-    let item = ps V.! pos
-        [a, b, c] = V.toList (V.slice (pos-1) 3 ps)
-        nudgeDirection = let Vec2 x y = (c -. a) /. 2 in Vec2 y (-x)
-        b' = (a+.c) /. 2 +. nudge *. nudgeDirection
-    pure $ if trajectoryLength a b' c < trajectoryLength a b c
-        then ps V.// [(pos, b')]
-        else ps
-  where
-    trajectoryLength a b c = (f a + f b) * norm (b -. a) + (f b + f c) * norm (c -. b)
-
-gaussianVec2
-    :: Vec2 -- ^ Mean
-    -> Double -- ^ Standard deviation
-    -> GenST s
-    -> ST s Vec2
-gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> normal muX sigma gen <*> normal muY sigma gen
-
-iterateM :: Monad m => Int -> (a -> m a) -> a -> m a
-iterateM 0 _ a = pure a
-iterateM n f a = f a >>= iterateM (n-1) f

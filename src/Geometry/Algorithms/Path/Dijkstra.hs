@@ -1,4 +1,4 @@
-module Geometry.Algorithms.Dijkstra (DijkstraParams(..), dijkstra) where
+module Geometry.Algorithms.Path.Dijkstra (DijkstraParams(..), dijkstra) where
 
 import Control.Monad (when)
 import Control.Monad.Trans.State

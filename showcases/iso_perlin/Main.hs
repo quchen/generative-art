@@ -8,7 +8,7 @@ import Math.Noise (Perlin (..), perlin, getValue)
 import System.Random.MWC
 import System.Random.MWC.Distributions
 
-import Geometry.Algorithms.Dijkstra
+import Geometry.Algorithms.Path.Dijkstra
 
 import Draw
 import Geometry
