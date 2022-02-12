@@ -11,7 +11,7 @@ import           Draw
 import           Geometry
 import           Geometry.Chaotic
 import           Geometry.Processes.Geodesics
-import           Graphics.Rendering.Cairo      as Cairo hiding (x, y)
+import           Graphics.Rendering.Cairo      as C hiding (x, y)
 import           Numerics.DifferentialEquation
 import           Numerics.Interpolation
 
@@ -29,6 +29,7 @@ tests = testGroup "Differential equations"
             [ geodesicsHillAndValley
             ]
         ]
+        , particleFollowingShape
     ]
 
 twoBodyProblem :: TestTree
@@ -279,3 +280,37 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
             let colorValue = linearInterpolate angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke
+
+particleFollowingShape :: TestTree
+particleFollowingShape =
+    let tShape = V.fromList ([Vec2 x 0 | x <- [-100..100]] <> [Vec2 0 y | y <- [0..200]])
+        force p = let closestPoint = minimumBy (\x y -> compare (normSquare (p -. x)) (normSquare (p -. y))) tShape
+                  in p -. closestPoint
+
+        ode t (x,v) = (v, (1 + 0.33*sin (t/10)) *. negateV force x)
+
+        solution = rungeKuttaAdaptiveStep ode y0 t0 dt0 tolNorm tol
+
+        trajectory = takeWhile (\(t, _) -> t < 1000) solution
+
+        y0 = (Vec2 10 (-10), Vec2 10 10)
+        t0 = 0
+        dt0 = 10
+        tol = 0.001
+        tolNorm (x,v) = max (norm x) (norm v)
+    in testVisual "Particle following a T shape" 360 360 "out/particle_following_t_shape" $ \_ -> do
+        C.translate 200 100
+
+        -- cairoScope $ do
+        --     for_ tShape $ \p -> do
+        --         setColor (mathematica97 0)
+        --         circleSketch p 1
+        --         fill
+
+        cairoScope $ do
+            setLineWidth 1
+            setColor (mathematica97 1)
+            for_ (zipWith (\(t, (x, _v)) (_, (x', _)) -> (t, Line x x')) trajectory (tail trajectory)) $ \(t, line) -> do
+                setColor (rocket (1-exp (-t / 300)) `withOpacity` exp (-t / 300))
+                lineSketch line
+                stroke
