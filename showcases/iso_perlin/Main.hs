@@ -10,8 +10,6 @@ import Geometry.Algorithms.Path.Optimize
 
 import Draw
 import Geometry
-import Numerics.VectorAnalysis (grad)
-import Numerics.DifferentialEquation (rungeKuttaConstantStep)
 
 
 
@@ -40,24 +38,33 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
             }
         isoLine = isoLines grid scalarField
 
-    for_ [-0.6,-0.55..0] $ \v ->
-        drawAtHeight v $ drawIsoLine v (isoLine v)
-
-    let start = Vec2 1800 1400
-        end = Vec2 200 200
-        costFunction p = exp (10 * scalarField p)
+    let costFunction p = exp (8 * scalarField p)
         width = picWidth
         height = picHeight
         step = 20
-        path = optimizePath 10000 0.1 costFunction $ simplifyTrajectoryRadial 100 $ dijkstra Dijkstra {..} start end
+        trajectory start end = optimizePath 10000 0.1 costFunction $ simplifyTrajectoryRadial 100 $ dijkstra Dijkstra {..} start end
 
-    drawAtHeight 0 $ do
+        trajectories =
+            [ trajectory start end
+            | (start, end) <-
+                [ (Vec2 1400 1440, Vec2 100 0)
+                , (Vec2 1200 1440, Vec2 0 1200)
+                , (Vec2 1800 1440, Vec2 900 0)
+                , (Vec2 600 1440, Vec2 900 0)
+                ]
+            ]
+
+
+    for_ [-0.6,-0.55..0.1] $ \v ->
+        drawAtHeight v $ drawIsoLine v (isoLine v)
+
+    drawAtHeight 0 $ for_ trajectories $ \path -> do
         bezierCurveSketch $ bezierSmoothenOpen path
         Cairo.setLineWidth 5
         setColor (white `withOpacity` 0.6)
         Cairo.stroke
 
-    for_ [0,0.05..0.5] $ \v ->
+    for_ [0.1,0.15..0.5] $ \v ->
         drawAtHeight v $ drawIsoLine v (isoLine v)
 
   where
@@ -102,13 +109,3 @@ scalarField (Vec2 x y)
   where
     noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
     noise2d = fromMaybe 0 $ getValue noise (x, y, 0)
-
-equationOfMotion :: (Vec2, Vec2) -> (Vec2, Vec2)
-equationOfMotion (x0, p0) = (deltaX, deltaP)
-  where
-    m = 4.0
-    deltaX = p0 /. m
-    deltaP = negateV (grad scalarField x0)
-
-trajectory :: Vec2 -> Vec2 -> [(Double, (Vec2, Vec2))]
-trajectory x0 p0 = rungeKuttaConstantStep (const equationOfMotion) (x0, p0) 0 10
