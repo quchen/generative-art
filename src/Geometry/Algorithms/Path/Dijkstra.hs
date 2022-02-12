@@ -13,13 +13,35 @@ import Geometry hiding (Grid)
 
 
 data DijkstraParams = Dijkstra
-    { weight :: Vec2 -> Double
+    { costFunction :: Vec2 -> Double
+    -- ^ Cost function for a step at this point. Should be strictly positive:
+    -- A cost of one is equivalent to the cartesian distance.
+
     , width :: Double
+    -- ^ Width of the area to be sampled
+
     , height :: Double
+    -- ^ Height of the area to be sampled
+
     , step :: Double
+    -- ^ Step size of the sampling grid. With smaller step size, the more,
+    -- solutions will be more accurate, but will take longer to compute.
     }
 
-dijkstra :: DijkstraParams -> Vec2 -> Vec2 -> [Vec2]
+-- The Dijkstra algorithm for finding a path through a field.
+--
+-- It samples the given cost function on a grid, and tries to find the path
+-- with the lowest cost from a starting point to an end point.
+--
+-- Due to the grid structure, the resulting paths will not be straight, but
+-- can contain unnecessary bends, especially through even terrain. You can use
+-- 'Geometry.Algorithms.Path.Optimize.optimizePath' with the same cost function
+-- to smoothen and optimize the path.
+dijkstra
+    :: DijkstraParams
+    -> Vec2 -- ^ Start point
+    -> Vec2 -- ^ End point
+    -> [Vec2]
 dijkstra params a b = flip evalState initialState $ go start
   where
     go p
@@ -54,7 +76,7 @@ neighbours Dijkstra{..} (x, y) =
 
 visit :: DijkstraParams -> (Int, Int) -> State DijkstraState ()
 visit params@Dijkstra{..} p = do
-    let w = weight (toVec2 params p)
+    let w = costFunction (toVec2 params p)
     (currentDistance, currentTrajectory) <- gets ((M.! p) . distanceMap)
     alreadyVisited <- gets visited
     for_ (neighbours params p) $ \p' -> when (p' `S.notMember` alreadyVisited) $ do

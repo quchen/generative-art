@@ -1,10 +1,7 @@
 module Test.Geometry.Algorithms.Dijkstra (tests) where
 
-import Control.Monad.ST
 import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC
-import System.Random.MWC.Distributions
 
 import Draw
 import Geometry
@@ -31,11 +28,11 @@ testMaze = testVisual "Path through maze" 200 200 "docs/dijkstra/maze" $ \_ -> d
         setColor (blend (maze p / 100) (mathematica97 0) (mathematica97 1))
         Cairo.fill
 
-    let path = optimizePath 30000 0.01 maze $ V.fromList $ dijkstra Dijkstra
+    let path = optimizePath 30000 0.01 maze $ dijkstra Dijkstra
             { width = 200
             , height = 200
             , step = 5
-            , weight = maze
+            , costFunction = maze
             } (Vec2 30 170) (Vec2 170 170)
 
     drawPath path
@@ -72,13 +69,12 @@ testHill = testGroup "Hillclimbing"
     height = 200
     step = 5
 
-    avoidsHeights = testCase (const 1 +. 5 *. hill)
-    avoidsGradient = testCase (\p -> 1 + norm (100 *. grad hill p))
+    avoidsHeights = testWith (const 1 +. 5 *. hill)
+    avoidsGradient = testWith (\p -> 1 + norm (100 *. grad hill p))
 
-    testCase costFunction = do
+    testWith costFunction = do
         drawVectorField
-        let weight = costFunction
-            path = optimizePath 20000 0.005 costFunction $ V.fromList $ dijkstra Dijkstra{..} (Vec2 10 10) (Vec2 190 190)
+        let path = optimizePath 20000 0.005 costFunction $ dijkstra Dijkstra{..} (Vec2 10 10) (Vec2 190 190)
 
         drawPath path
 
@@ -87,11 +83,6 @@ testHill = testGroup "Hillclimbing"
         Cairo.rectangle x y 5 5
         setColor (blend (hill p) (mathematica97 0) (mathematica97 1))
         Cairo.fill
-    params = Dijkstra
-        { width = 200
-        , height = 200
-        , step = 10
-        }
 
 drawPath :: Foldable f => f Vec2 -> Cairo.Render ()
 drawPath path = do
