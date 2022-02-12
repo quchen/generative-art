@@ -80,9 +80,11 @@ drawAtHeight v action = cairoScope $ do
     Cairo.scale 2 0.5
     Cairo.rotate (0.25*pi)
     Cairo.translate (-picWidth/2) (-picHeight/2)
-    Cairo.rectangle (0.5 * (picWidth - picHeight)) 0 picHeight picHeight
-    Cairo.clip
-    action
+    let clipped = do
+            Cairo.rectangle (0.5 * (picWidth - picHeight)) 0 picHeight picHeight
+            Cairo.clip
+            Cairo.paint
+    grouped clipped action
 
 drawIsoLine :: Double -> [[Vec2]] -> Cairo.Render ()
 drawIsoLine v ls = do
