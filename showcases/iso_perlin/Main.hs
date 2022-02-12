@@ -1,14 +1,12 @@
 module Main where
 
 import Data.Maybe (fromMaybe)
-import Data.Ord (comparing)
 import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import Math.Noise (Perlin (..), perlin, getValue)
-import System.Random.MWC
-import System.Random.MWC.Distributions
 
 import Geometry.Algorithms.Path.Dijkstra
+import Geometry.Algorithms.Path.Optimize
 
 import Draw
 import Geometry
@@ -47,15 +45,14 @@ main = withSurfaceAuto "out/iso-perlin.png" scaledWidth scaledHeight $ \surface 
 
     let start = Vec2 1800 1400
         end = Vec2 200 200
-        xs = dijkstra Dijkstra
-            { costFunction = \p -> exp (scalarField p * 10)
-            , width = picWidth
-            , height = picHeight
-            , step = cellSize
-            } start end
+        costFunction p = exp (10 * scalarField p)
+        width = picWidth
+        height = picHeight
+        step = 20
+        path = optimizePath 10000 0.1 costFunction $ simplifyTrajectoryRadial 100 $ dijkstra Dijkstra {..} start end
 
     drawAtHeight 0 $ do
-        bezierCurveSketch (V.toList (bezierSmoothenOpen (V.fromList (simplifyTrajectoryRadial 100 (V.fromList xs)))))
+        bezierCurveSketch $ bezierSmoothenOpen path
         Cairo.setLineWidth 5
         setColor (white `withOpacity` 0.6)
         Cairo.stroke
@@ -115,21 +112,3 @@ equationOfMotion (x0, p0) = (deltaX, deltaP)
 
 trajectory :: Vec2 -> Vec2 -> [(Double, (Vec2, Vec2))]
 trajectory x0 p0 = rungeKuttaConstantStep (const equationOfMotion) (x0, p0) 0 10
-
-optimizeTrajectory :: (Vec2 -> Double) -> Double -> GenIO -> V.Vector Vec2 -> IO (V.Vector Vec2)
-optimizeTrajectory f d gen ps = do
-    pos <- uniformRM (0, V.length ps - 1) gen
-    let item = ps V.! pos
-    nudge <- gaussianVec2 item d gen
-    let ps' = ps V.// [(pos, item +. nudge)]
-    pure (minimumBy (comparing trajectoryLength) [ps, ps'])
-  where
-    trajectoryLength = sum . fmap f
-
-
-gaussianVec2
-    :: Vec2 -- ^ Mean
-    -> Double -- ^ Standard deviation
-    -> GenIO
-    -> IO Vec2
-gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> normal muX sigma gen <*> normal muY sigma gen
