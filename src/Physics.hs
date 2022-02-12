@@ -1,4 +1,7 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Physics where
+
+import Control.Applicative (liftA2)
 
 import Geometry
 import Numerics.VectorAnalysis
@@ -41,4 +44,29 @@ twoBody interaction (m1, m2) (PhaseSpace p1 q1, PhaseSpace p2 q2) = (PhaseSpace 
     deltaQ1 = p1 /. m1
     deltaQ2 = p2 /. m2
 
---nBody :: (Vec2 -> Vec2 -> Double) -> [Double] -> [PhaseSpace] -> [PhaseSpace]
+newtype NBody a = NBody { getNBody :: [a] } deriving (Functor, Foldable)
+
+instance Applicative NBody where
+    pure a = NBody (repeat a)
+    liftA2 f (NBody xs) (NBody ys) = NBody (zipWith f xs ys)
+
+instance Traversable NBody where
+    traverse f (NBody xs) = NBody <$> traverse f xs
+
+instance VectorSpace a => VectorSpace (NBody a) where
+    (+.) = liftA2 (+.)
+    a *. xs = fmap (a *.) xs
+    (-.) = liftA2 (-.)
+    zero = NBody (repeat zero)
+
+nBody :: (Vec2 -> Vec2 -> Double) -> NBody Double -> NBody PhaseSpace -> NBody PhaseSpace
+nBody interaction masses particles = NBody
+    [ PhaseSpace deltaP deltaQ
+    | (i, m1, PhaseSpace p1 q1) <- zip3 [0..] (getNBody masses) (getNBody particles)
+    , let deltaQ = p1 /. m1
+    , let deltaP = vsum
+            [ negateV (grad (interaction q2) q1)
+            | (j, PhaseSpace _ q2) <- zip [0..] (getNBody particles)
+            , i /= j
+            ]
+    ]

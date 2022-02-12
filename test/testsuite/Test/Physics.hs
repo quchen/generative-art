@@ -16,6 +16,7 @@ tests :: TestTree
 tests = testGroup "Physics"
     [ testParticle
     , testTwoBody
+    , testThreeBody
     ]
 
 
@@ -40,7 +41,7 @@ testTwoBody :: TestTree
 testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ \_ -> do
     let interactionPotential = harmonicPotential (10, 10)
         externalPotential = harmonicPotential (10, 10) (Vec2 100 100)
-        potential q1 q2 = externalPotential q1 + externalPotential q2 + interactionPotential q1 q2
+        potential otherParticle particle = externalPotential particle + interactionPotential otherParticle particle
         particle1 = PhaseSpace { p = Vec2 (-8) 2, q = Vec2 100 50 }
         particle2 = PhaseSpace { p = Vec2 10 0, q = Vec2 100 150 }
         trajectories = rungeKuttaConstantStep (const (twoBody potential (2, 1))) (particle1, particle2) 0 0.1
@@ -52,3 +53,18 @@ testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ 
     pathSketch (fmap q (take 1000 trajectory2))
     setColor (mathematica97 1)
     Cairo.stroke
+
+testThreeBody :: TestTree
+testThreeBody = testVisual "Three-Body simulation" 200 200 "docs/physics/threeBody" $ \_ -> do
+    let interactionPotential = harmonicPotential (10, 10)
+        particle1 = PhaseSpace { p = Vec2 (-8) 2, q = Vec2 100 50 }
+        particle2 = PhaseSpace { p = Vec2 10 0, q = Vec2 100 150 }
+        particle3 = PhaseSpace { p = Vec2 0 0, q = Vec2 100 100 }
+        masses = NBody [1, 2, 5]
+        particles = NBody [particle1, particle2, particle3]
+        trajectories = traverse snd $ take 1000 $ rungeKuttaConstantStep (const (nBody interactionPotential masses)) particles 0 0.1
+
+    for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
+        pathSketch (fmap q trajectory)
+        setColor (mathematica97 i)
+        Cairo.stroke
