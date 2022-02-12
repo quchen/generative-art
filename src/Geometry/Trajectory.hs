@@ -1,7 +1,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Geometry.Trajectory (
-      pointOnTrajectory
+      trajectoryLength
+    , pointOnTrajectory
 
     , simplifyTrajectory
     , simplifyTrajectoryBy
@@ -50,14 +51,20 @@ trajectoryLut = LookupTable1 . V.fromList . go 0 . pairLines
        = let newPosition = currentDistance +. lineLength currentLine
          in (currentDistance, currentLine) : go newPosition rest
 
+-- | The length of a trajectory is the sum of the lengths of its parts.
+trajectoryLength :: Sequential list => list Vec2 -> Double
+trajectoryLength xsSequential =
+    let xs = toList xsSequential
+    in sum (zipWith (\x y -> norm (x -. y)) xs (tail xs))
+
 -- | Walk a certain 'Distance' on a trajectory defined by its points.
 --
 -- This caches the internal LUT when partially applied, so that the following will
 -- only compute it once for repeated lookups:
 --
 -- @
--- let goto = 'pointOnTrajectory' […]
--- 'print' [goto ('Distance' d) | d <- [0, 0.1 .. 5]]
+-- let walk = 'pointOnTrajectory' […]
+-- 'print' [walk distance | distance <- [0, 0.1 .. 5]]
 -- @
 pointOnTrajectory :: Sequential list => list Vec2 -> Double -> Vec2
 pointOnTrajectory points

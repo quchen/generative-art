@@ -5,6 +5,7 @@ module Test.Uncategorized.DifferentialEquation  where
 
 
 import           Control.Parallel.Strategies
+import           Data.Fixed
 import           Data.Foldable
 import qualified Data.Vector                   as V
 import           Draw
@@ -14,6 +15,7 @@ import           Geometry.Processes.Geodesics
 import           Graphics.Rendering.Cairo      as C hiding (x, y)
 import           Numerics.DifferentialEquation
 import           Numerics.Interpolation
+import           Numerics.VectorAnalysis
 
 import Test.TastyAll
 
@@ -283,34 +285,69 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
 
 particleFollowingShape :: TestTree
 particleFollowingShape =
-    let tShape = V.fromList ([Vec2 x 0 | x <- [-100..100]] <> [Vec2 0 y | y <- [0..200]])
-        force p = let closestPoint = minimumBy (\x y -> compare (normSquare (p -. x)) (normSquare (p -. y))) tShape
-                  in p -. closestPoint
+    let
+        attractingPointSpeed = 0.1
+        potential :: Double -> Vec2 -> Double
+        potential t x = - 75 / (10^2 + norm (x -. pointOnT (t*attractingPointSpeed)))
+                            --  ^^^^ Avoiding divergence by hovering in the Z axis
+          where
+            tTrajectory = [Vec2 0 0, Vec2 0 200, Vec2 0 0, Vec2 (-100) 0, Vec2 100 0, Vec2 0 0]
 
-        ode t (x,v) = (v, (1 + 0.33*sin (t/10)) *. negateV force x)
+            pointOnT :: Double -> Vec2
+            pointOnT d = pointOnTrajectory tTrajectory (d `mod'` trajectoryLength tTrajectory)
 
+
+        attractiveForce :: Double -> Vec2 -> Vec2
+        attractiveForce t x = negateV (grad (potential t) x)
+
+        -- Friction when going over the max speed. Since swing-bys at
+        -- our moving potential violates conservation of energy,
+        -- we use this hack to ger rid of the excess energy again.
+        vMax = 0.7
+        cutoffFriction v
+            | excess <= 0 = zero
+            | otherwise = frictionCoefficient * excess^2 *. frictionDirection
+          where
+            frictionCoefficient = 0.1
+            excess = norm v - vMax
+            frictionDirection = v /. (-norm v)
+
+        ode :: Double -> (Vec2, Vec2) -> (Vec2, Vec2)
+        ode t (x,v) = (v, attractiveForce t x +. cutoffFriction v)
+
+        solution :: [(Double, (Vec2, Vec2))]
         solution = rungeKuttaAdaptiveStep ode y0 t0 dt0 tolNorm tol
 
-        trajectory = takeWhile (\(t, _) -> t < 1000) solution
+        tMax = 10e4
 
-        y0 = (Vec2 10 (-10), Vec2 10 10)
+        y0 = (Vec2 10 10, Vec2 0.2 0.2)
         t0 = 0
         dt0 = 10
         tol = 0.001
         tolNorm (x,v) = max (norm x) (norm v)
-    in testVisual "Particle following a T shape" 360 360 "out/particle_following_t_shape" $ \_ -> do
-        C.translate 200 100
 
-        -- cairoScope $ do
-        --     for_ tShape $ \p -> do
-        --         setColor (mathematica97 0)
-        --         circleSketch p 1
-        --         fill
+    in testVisual "Particle following a T shape" 400 400 "out/particle_following_t_shape" $ \_ -> do
+        C.translate 200 100
+        -- cartesianCoordinateSystem
 
         cairoScope $ do
             setLineWidth 1
-            setColor (mathematica97 1)
-            for_ (zipWith (\(t, (x, _v)) (_, (x', _)) -> (t, Line x x')) trajectory (tail trajectory)) $ \(t, line) -> do
-                setColor (rocket (1-exp (-t / 300)) `withOpacity` exp (-t / 300))
+            let paintMe =
+                      toVector
+                    . simplifyTrajectoryBy 0.5     (\(_t, (x, _v)) -> x)
+                    . simplifyTrajectoryRadialBy 1 (\(_t, (x, _v)) -> x)
+                    . V.reverse -- so we paint earlier stuff in the foreground
+                    . toVector
+                    . takeWhile (\(t, _) -> t <= tMax)
+                    $ solution
+
+                -- Exponential decay parameter so that at tMax, we’re decayed to
+                -- a certain fraction of the original.
+                decayParameter :: Double -> Double
+                decayParameter decayTo = - log decayTo / tMax
+
+            liftIO (print (length paintMe))
+            for_ (V.zipWith (\(t, (x, _v)) (_, (x', _)) -> (t, Line x x')) paintMe (V.tail paintMe)) $ \(t, line) -> do
+                setColor (rocket (1-exp (-t * decayParameter 0.1)) `withOpacity` exp (-t * decayParameter 0.2))
                 lineSketch line
                 stroke
