@@ -53,6 +53,20 @@ packages:
       sha256: d0e5ff709881066cb4fcd27326aa15bd5817e25a1c9ef869d7f845905bfc826c
   original:
     hackage: accelerate-llvm-native-1.3.0.0@sha256:8d0b8fcbce1595cb380ee6bb892efffeb3abffd050550322d8b35b7f23e27481,6329
+- completed:
+    hackage: accelerate-io-JuicyPixels-0.1.0.0@sha256:e0808d6778eb404c663fa9852493f5ce03157eadba8c6d32650fd4b4ddcaf02c,1532
+    pantry-tree:
+      size: 448
+      sha256: e28b07e534fe07539c0bfc477e98607846c14927921c7be7a4d3815d0eee36fd
+  original:
+    hackage: accelerate-io-JuicyPixels-0.1.0.0@sha256:e0808d6778eb404c663fa9852493f5ce03157eadba8c6d32650fd4b4ddcaf02c,1532
+- completed:
+    hackage: accelerate-io-vector-0.1.0.0@sha256:a12013ad55ff5c626f54c44e7aaf1dbd3c9777bf0240eb5d063daa9be16785da,2356
+    pantry-tree:
+      size: 1184
+      sha256: 43331734690fb6017e9979fd1d5340515a2095ea4cf61f619f0b3f21cb45012c
+  original:
+    hackage: accelerate-io-vector-0.1.0.0@sha256:a12013ad55ff5c626f54c44e7aaf1dbd3c9777bf0240eb5d063daa9be16785da,2356
 snapshots:
 - completed:
     size: 586103
