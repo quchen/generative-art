@@ -6,4 +6,10 @@ extra-deps:
     - gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     - data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
+    - accelerate-1.3.0.0@sha256:f19e43687e9a306fddaddfa68a764b157ceb2522d9a821e31bc3353c730fda2b,20995
+    - accelerate-llvm-1.3.0.0@sha256:06dc3779b3577ed41b2ddf2421452b566f290dce53df83d027938d41f2d5ec82,6054
+    - accelerate-llvm-native-1.3.0.0@sha256:8d0b8fcbce1595cb380ee6bb892efffeb3abffd050550322d8b35b7f23e27481,6329
 resolver: lts-18.19
+flags:
+  llvm-hs:
+    shared-llvm: true
