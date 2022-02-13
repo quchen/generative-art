@@ -9,7 +9,7 @@ import Numerics.VectorAnalysis
 data PhaseSpace = PhaseSpace
     { p :: Vec2
     , q :: Vec2
-    }
+    } deriving (Eq, Show)
 
 instance VectorSpace PhaseSpace where
     zero = PhaseSpace zero zero
@@ -44,7 +44,7 @@ twoBody potential interaction (m1, m2) (PhaseSpace p1 q1, PhaseSpace p2 q2) = (P
     deltaQ1 = p1 /. m1
     deltaQ2 = p2 /. m2
 
-newtype NBody a = NBody { getNBody :: [a] } deriving (Functor, Foldable)
+newtype NBody a = NBody { getNBody :: [a] } deriving (Eq, Show, Functor, Foldable)
 
 instance Applicative NBody where
     pure a = NBody (repeat a)
