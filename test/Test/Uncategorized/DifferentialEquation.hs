@@ -288,14 +288,32 @@ particleFollowingShape =
     let
         attractingPointSpeed = 0.1
         potential :: Double -> Vec2 -> Double
-        potential t x = - 75 / (10^2 + norm (x -. pointOnT (t*attractingPointSpeed)))
+        potential t x = - 75 / (10^2 + norm (x -. pointOnA (t*attractingPointSpeed)))
                             --  ^^^^ Avoiding divergence by hovering in the Z axis
-          where
-            tTrajectory = [Vec2 0 0, Vec2 0 200, Vec2 0 0, Vec2 (-100) 0, Vec2 100 0, Vec2 0 0]
 
-            pointOnT :: Double -> Vec2
-            pointOnT d = pointOnTrajectory tTrajectory (d `mod'` trajectoryLength tTrajectory)
+        tTrajectory =
+            [ Vec2 0 0
+            , Vec2 0 200
+            , Vec2 0 0
+            , Vec2 (-100) 0
+            , Vec2 100 0
+            , Vec2 0 0
+            ]
 
+        aTrajectory =
+            [ Vec2 0 0
+            , Vec2 100 200
+            , Vec2 50 100
+            , Vec2 (-50) 100
+            , Vec2 (-100) 200
+            , Vec2 0 0
+            ]
+
+        pointOnA :: Double -> Vec2
+        pointOnA d = pointOnTrajectory aTrajectory (d `mod'` trajectoryLength aTrajectory)
+
+        pointOnT :: Double -> Vec2
+        pointOnT d = pointOnTrajectory tTrajectory (d `mod'` trajectoryLength tTrajectory)
 
         attractiveForce :: Double -> Vec2 -> Vec2
         attractiveForce t x = negateV (grad (potential t) x)
@@ -303,7 +321,7 @@ particleFollowingShape =
         -- Friction when going over the max speed. Since swing-bys at
         -- our moving potential violates conservation of energy,
         -- we use this hack to ger rid of the excess energy again.
-        vMax = 0.7
+        vMax = 0.454
         cutoffFriction v
             | excess <= 0 = zero
             | otherwise = frictionCoefficient * excess^2 *. frictionDirection
@@ -318,7 +336,7 @@ particleFollowingShape =
         solution :: [(Double, (Vec2, Vec2))]
         solution = rungeKuttaAdaptiveStep ode y0 t0 dt0 tolNorm tol
 
-        tMax = 10e4
+        tMax = 12e4
 
         y0 = (Vec2 10 10, Vec2 0.2 0.2)
         t0 = 0
@@ -328,7 +346,12 @@ particleFollowingShape =
 
     in testVisual "Particle following a T shape" 400 400 "out/particle_following_t_shape" $ \_ -> do
         C.translate 200 100
-        -- cartesianCoordinateSystem
+        -- cairoScope $ grouped (paintWithAlpha 0.5) $ cartesianCoordinateSystem
+
+        -- for_ [pointOnA x | x <- [0..10000]] $ \p -> do
+        --     circleSketch p 2
+        --     setColor (mathematica97 0 `withOpacity` 0.1)
+        --     fill
 
         cairoScope $ do
             setLineWidth 1
