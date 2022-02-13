@@ -17,6 +17,7 @@ tests = testGroup "Physics"
     [ testParticle
     , testTwoBody
     , testThreeBody
+    , testCollision
     ]
 
 
@@ -62,6 +63,20 @@ testThreeBody = testVisual "Three-Body simulation" 200 200 "docs/physics/threeBo
         masses = NBody [1, 2, 5]
         particles = NBody [particle1, particle2, particle3]
         trajectories = traverse snd $ take 2000 $ rungeKuttaConstantStep (const (nBody zero interactionPotential masses)) particles 0 0.01
+
+    for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
+        pathSketch (fmap q trajectory)
+        setColor (mathematica97 i)
+        Cairo.stroke
+
+testCollision :: TestTree
+testCollision = testVisual "Particle collision" 200 200 "docs/physics/collision" $ \_ -> do
+    let interactionPotential = coulombPotential (-5000)
+        particle1 = PhaseSpace { p = Vec2 10 0, q = Vec2 0 120 }
+        particle2 = PhaseSpace { p = Vec2 (-10) 0, q = Vec2 200 100 }
+        masses = NBody [1, 4]
+        particles = NBody [particle1, particle2]
+        trajectories = traverse snd $ take 400 $ rungeKuttaConstantStep (const (nBody zero interactionPotential masses)) particles 0 0.05
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
         pathSketch (fmap q trajectory)
