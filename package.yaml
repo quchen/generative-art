@@ -118,6 +118,8 @@ executables:
             - JuicyPixels
             - JuicyPixels-extra
             - Noise
+            - ansi-terminal
+            - time
 
 tests:
     testsuite:

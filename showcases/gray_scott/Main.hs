@@ -6,9 +6,12 @@ import qualified Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.Interpreter as A
 import qualified Data.Array.Accelerate.LLVM.Native as CPU
 import qualified Data.Array.Accelerate.IO.Codec.Picture as A
+import Data.Time.Clock
+import Data.Time.Format
 import Text.Printf (printf)
 import qualified Codec.Picture as P
 import System.Environment (getArgs)
+import qualified System.Console.ANSI as ANSI
 
 import Draw
 import Geometry hiding (Grid)
@@ -23,6 +26,9 @@ spatialResolution, temporalResolution, temporalResolutionWarmup :: Num a => a
 spatialResolution = 3
 temporalResolution = 2
 temporalResolutionWarmup = 6
+
+totalFrames :: Int
+totalFrames = 50
 
 main :: IO ()
 main = do
@@ -67,12 +73,27 @@ initialStateFromScratch = warmup $ planeFromList
     warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
 simulation :: Int -> Grid -> [(Int, Grid)]
-simulation t0 initialState = takeWhile ((< 50) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
+simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
 
 writeOutput :: [(Int, Grid)] -> IO ()
-writeOutput frames = for_ frames $ \(index, grid) -> do
-    P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (\uv -> colorFront uv +.. colorTrail uv +.. colorReaction uv) grid)
-    P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(A.T4 u v _ _) -> A.lift (1-u-v, v, u)) grid)
+writeOutput frames = do
+    putStrLn "Warming up…"
+    startTime <- getCurrentTime
+    for_ frames $ \(index, grid) -> do
+        P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (\uv -> colorFront uv +.. colorTrail uv +.. colorReaction uv) grid)
+        P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(A.T4 u v _ _) -> A.lift (1-u-v, v, u)) grid)
+        printProgress startTime index
+
+printProgress :: UTCTime -> Int -> IO ()
+printProgress startTime frame = do
+    timeNow <- getCurrentTime
+    let elapsedTime = diffUTCTime timeNow startTime
+        eta = addUTCTime (elapsedTime * fromIntegral totalFrames / (fromIntegral frame + 1)) startTime
+        remainingTime = diffUTCTime eta timeNow
+        showDateTime = formatTime defaultTimeLocale "%F %R"
+        showTimeDiff = formatTime defaultTimeLocale "%h:%0M:%0S"
+    ANSI.cursorUpLine 1 >> ANSI.clearLine >> ANSI.setCursorColumn 0
+    putStrLn (show (frame + 1) ++ "/" ++ show totalFrames ++ " Elapsed: " ++ showTimeDiff elapsedTime ++ " Remaining: " ++ showTimeDiff remainingTime ++ " ETA: " ++ showDateTime eta)
 
 scene :: Double -> GrayScott
 scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5
