@@ -3,10 +3,17 @@ module Numerics.Interpolation (
       linearInterpolate
 
     , linearInterpolateDD
+    , linearInterpolateDV
     , linearInterpolateDI
     , linearInterpolateID
     , linearInterpolateII
 ) where
+
+
+
+import Algebra.VectorSpace
+
+
 
 -- | Linearly interpolate the interval \([a,b]\) to \([x,y]\). In computer graphics
 -- lingo, this is often known as /lerp/.
@@ -19,6 +26,11 @@ module Numerics.Interpolation (
 -- 15
 linearInterpolate :: (Double, Double) -> (Double, Double) -> Double -> Double
 linearInterpolate (a, b) (x, y) t = x + (y-x)/(b-a) * (t-a)
+
+-- | Linear interpolation from 'Double' to a 'VectorSpace' (hence: @DV@). This is
+-- the same as 'linearInterpolate' with 'VectorSpace' 'Double'.
+linearInterpolateDV :: VectorSpace vec => (Double, Double) -> (vec, vec) -> Double -> vec
+linearInterpolateDV (a, b) (x, y) t = x +. ((t-a) / (b-a))*.(y-.x)
 
 -- | Linear interpolation from 'Double' to 'Double' (hence: @DD@). This is just a
 -- nomenclature-matching synonym for 'linearInterpolate'.
