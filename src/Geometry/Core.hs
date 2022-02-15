@@ -83,7 +83,10 @@ module Geometry.Core (
     , NoBoundingBox(..)
     , overlappingBoundingBoxes
     , transformBoundingBox
-    , ScalingBehavior(..)
+    , FitDimension(..)
+    , FitAspect(..)
+    , FitAlign(..)
+    , TransformBBSettings(..)
     , boundingBoxPolygon
     , insideBoundingBox
     , boundingBoxCenter
@@ -101,6 +104,7 @@ module Geometry.Core (
 
 import           Algebra.VectorSpace
 import           Control.DeepSeq
+import           Data.Default.Class
 import           Data.Fixed
 import           Data.Foldable
 import           Data.List
@@ -493,57 +497,90 @@ overlappingBoundingBoxes a b = go (boundingBox a) (boundingBox b)
         | hiAy < loBy = False -- A above B
         | otherwise = True
 
-data ScalingBehavior
-    = FitAllMaintainAspect
-        -- ^ Maintain aspect ratio, possibly leaving some margin for one of the
-        -- dimensions
-
-    | FitAllIgnoreAspect
-        -- ^ Fit the target, possibly stretching the source unequally in x/y
-        -- directions
-
-    | FitWidthMaintainAspect
-        -- ^ Fit the entire width, with the height of the geometry potentially
-        -- exceeding the target box.
-
-    | FitHeightMaintainAspect
-        -- ^ Fit the entire height, with the width of the geometry potentially
-        -- exceeding the target box.
-
+data FitDimension
+    = FitWidthHeight -- ^ Fit both width and height
+    | FitWidth       -- ^ Fit width, ignoring what happens to the height (allow y stretching/compression)
+    | FitHeight      -- ^ Fit height, ignoring what happens to the width  (allow x stretching/compression)
     deriving (Eq, Ord, Show)
+
+data FitAspect
+    = MaintainAspect -- ^ Maintain width:height aspect ratio
+    | IgnoreAspect   -- ^ Ignore aspect ratio
+    deriving (Eq, Ord, Show)
+
+data FitAlign
+    = FitAlignCenter      -- ^ Align the centers of the results
+    | FitAlignTopLeft     -- ^ Align the top left of the results
+    | FitAlignTopRight    -- ^ Align the top right of the results
+    | FitAlignBottomLeft  -- ^ Align the bottom left of the results
+    | FitAlignBottomRight -- ^ Align the bottom right of the results
+    deriving (Eq, Ord, Show)
+
+-- | 'transformBoundingBox' settings paramter. If you don’t care for the details, use 'def'.
+data TransformBBSettings = TransformBBSettings
+    { _bbFitDimension :: FitDimension
+    , _bbFitAspect    :: FitAspect
+    , _bbFitAlign     :: FitAlign
+    } deriving (Eq, Ord, Show)
+
+-- | Fit width+height, maintaining aspect ratio, and matching centers.
+instance Default TransformBBSettings where
+    def = TransformBBSettings FitWidthHeight MaintainAspect FitAlignCenter
 
 -- | Generate a transformation that transforms the bounding box of one object to
 -- match the other’s. Canonical use case: transform any part of your graphic to
 -- fill the Cairo canvas.
 transformBoundingBox
     :: (HasBoundingBox source, HasBoundingBox target)
-    => source              -- ^ e.g. drawing coordinate system
-    -> target              -- ^ e.g. Cairo canvas
-    -> ScalingBehavior -- ^ Maintain or ignore aspect ratio
+    => source -- ^ e.g. drawing coordinate system
+    -> target -- ^ e.g. Cairo canvas
+    -> TransformBBSettings
     -> Transformation
-transformBoundingBox source target scalingBehavior
-  = let bbSource = boundingBox source
-        bbTarget = boundingBox target
+transformBoundingBox source target (TransformBBSettings fitDimension fitAspect fitAlign)
+  = let bbSource@(BoundingBox sourceTopLeft sourceBottomRight) = boundingBox source
+        bbTarget@(BoundingBox targetTopLeft targetBottomRight) = boundingBox target
 
         sourceCenter = boundingBoxCenter bbSource
         targetCenter = boundingBoxCenter bbTarget
 
-        translateToMatchCenter = translate (targetCenter -. sourceCenter)
+        sourceBottomLeft =
+            let Vec2 x _ = sourceTopLeft
+                Vec2 _ y = sourceBottomRight
+            in Vec2 x y
+        targetBottomLeft =
+            let Vec2 x _ = targetTopLeft
+                Vec2 _ y = targetBottomRight
+            in Vec2 x y
+        sourceTopRight =
+            let Vec2 x _ = sourceBottomRight
+                Vec2 _ y = sourceTopLeft
+            in Vec2 x y
+        targetTopRight =
+            let Vec2 x _ = targetBottomRight
+                Vec2 _ y = targetTopLeft
+            in Vec2 x y
+
+        (scalePivot, translationOffset) = case fitAlign of
+            FitAlignCenter      -> (targetCenter,      targetCenter      -. sourceCenter)
+            FitAlignTopLeft     -> (targetTopLeft,     targetTopLeft     -. sourceTopLeft)
+            FitAlignTopRight    -> (targetTopRight,    targetTopRight    -. sourceTopRight)
+            FitAlignBottomLeft  -> (targetBottomLeft,  targetBottomLeft  -. sourceBottomLeft)
+            FitAlignBottomRight -> (targetBottomRight, targetBottomRight -. sourceBottomRight)
 
         (sourceWidth, sourceHeight) = boundingBoxSize bbSource
         (targetWidth, targetHeight) = boundingBoxSize bbTarget
         xScaleFactor = targetWidth / sourceWidth
         yScaleFactor = targetHeight / sourceHeight
 
-        scaleToMatchSize = case scalingBehavior of
-            FitAllMaintainAspect ->
-                let scaleFactor = min xScaleFactor yScaleFactor
-                in scaleAround targetCenter scaleFactor
-            FitWidthMaintainAspect -> scaleAround targetCenter xScaleFactor
-            FitHeightMaintainAspect -> scaleAround targetCenter yScaleFactor
-            FitAllIgnoreAspect -> scaleAround' targetCenter xScaleFactor yScaleFactor
+        scaleToMatchSize = case (fitDimension, fitAspect) of
+            (FitWidthHeight, MaintainAspect) -> let scaleFactor = min xScaleFactor yScaleFactor in scaleAround scalePivot scaleFactor
+            (FitWidth,       MaintainAspect) -> scaleAround scalePivot xScaleFactor
+            (FitHeight,      MaintainAspect) -> scaleAround scalePivot yScaleFactor
+            (FitWidthHeight, IgnoreAspect) -> scaleAround' scalePivot xScaleFactor yScaleFactor
+            (FitWidth,       IgnoreAspect) -> scaleAround' scalePivot xScaleFactor 1
+            (FitHeight,      IgnoreAspect) -> scaleAround' scalePivot 1 yScaleFactor
 
-    in  scaleToMatchSize <> translateToMatchCenter
+    in scaleToMatchSize <> translate translationOffset
 
 instance VectorSpace Vec2 where
     Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
