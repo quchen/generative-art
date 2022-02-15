@@ -66,7 +66,11 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
     let graph = [Vec2 x (sin (2*x) / (0.5*x)) | x <- [0.1, 0.2 .. 16]]
         graphBB = boundingBox graph
         fitToBox :: Transform geo => geo -> geo
-        fitToBox = G.transform (transformBoundingBox graphBB (boundingBox (Vec2 10 10, Vec2 (w-10) (h/3-10))) FitAllIgnoreAspect)
+        fitToBox = G.transform
+            (transformBoundingBox
+                graphBB
+                (boundingBox (Vec2 10 10, Vec2 (w-10) (h/3-10)))
+                (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 
     let plotPath points = cairoScope $ do
             setLineWidth 1

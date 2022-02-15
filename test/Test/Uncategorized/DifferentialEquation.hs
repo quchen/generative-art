@@ -62,7 +62,7 @@ renderTwoBodyProblem (w, h) = do
           = let trajectoryBoundingBox = boundingBox [x | (_t, (x,_v)) <- phaseDiagram']
                                      <> boundingBox (Vec2 0 0) -- Don’t forget about the sun :-)
                 canvasBoundingBox = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
-                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox FitAllMaintainAspect
+                scaleToCanvas = transformBoundingBox trajectoryBoundingBox canvasBoundingBox def
             in Geometry.transform scaleToCanvas
         planetTrajectory = [(t, transformNicely x) | (t, (x,_v)) <- phaseDiagram']
         sun = transformNicely (Vec2 0 0)
@@ -207,7 +207,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
         bb = boundingBox (fmap (\(_t, (x,v)) -> Vec2 x v) solution)
         bbCanvas = boundingBox (Vec2 10 10, Vec2 (w-10) (h-10))
         scaleToCanvas :: Transform geo => geo -> geo
-        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas FitAllMaintainAspect)
+        scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas def)
         trajectory = scaleToCanvas
             . simplifyTrajectoryBy 0.01 (\(_t, phaseSpacePoint) -> phaseSpacePoint) -- SVG compression :-)
             . fmap (\(t, (x, v)) -> (NoTransform t, Vec2 x v))
