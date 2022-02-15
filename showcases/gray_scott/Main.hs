@@ -183,26 +183,26 @@ data GrayScott = GS
 type UV = (Double, Double, Double, Double)
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
-grayScott steps GS{..} grid = CPU.run $ repeatF steps (mapNeighbours grayScottStep) (A.use grid)
+grayScott steps GS{..} grid = CPU.run $ go steps $ A.unzip (A.map (\(A.T4 u v du dv) -> A.T2 (A.T2 u v) (A.T2 du dv)) (A.use grid))
   where
-    grayScottStep :: A.Stencil3x3 UV -> A.Exp UV
-    grayScottStep ((uv11, uv12, uv13), (uv21, uv22, uv23), (uv31, uv32, uv33)) = A.lift (u0 A.+ A.constant step A.* deltaU, v0 A.+ A.constant step A.* deltaV, deltaU, deltaV)
+    go :: Int -> (A.Acc (A.Matrix (Double, Double)), A.Acc (A.Matrix (Double, Double))) -> A.Acc Grid
+    go 0 (accUV, accDUDV) = A.zipWith (\(A.T2 u v) (A.T2 du dv) -> A.T4 u v du dv) accUV accDUDV
+    go n (accUV, _      ) = let accDUDV = mapNeighbours grayScottStep accUV in go (n-1) (A.zipWith (\(A.T2 u v) (A.T2 du dv) -> A.T2 (u + A.constant step * du) (v + A.constant step * dv)) accUV accDUDV, accDUDV)
+
+    grayScottStep :: A.Stencil3x3 (Double, Double) -> A.Exp (Double, Double)
+    grayScottStep ((uv11, uv12, uv13), (uv21, uv22, uv23), (uv31, uv32, uv33)) = A.lift (deltaU, deltaV)
       where
-        A.T4 u0  v0  _ _ = uv22
-        A.T4 u11 v11 _ _ = uv11
-        A.T4 u12 v12 _ _ = uv12
-        A.T4 u13 v13 _ _ = uv13
-        A.T4 u21 v21 _ _ = uv21
-        A.T4 u22 v22 _ _ = uv22
-        A.T4 u23 v23 _ _ = uv23
-        A.T4 u31 v31 _ _ = uv31
-        A.T4 u32 v32 _ _ = uv32
-        A.T4 u33 v33 _ _ = uv33
+        A.T2 u0  v0  = uv22
+        A.T2 u11 v11 = uv11
+        A.T2 u12 v12 = uv12
+        A.T2 u13 v13 = uv13
+        A.T2 u21 v21 = uv21
+        A.T2 u22 v22 = uv22
+        A.T2 u23 v23 = uv23
+        A.T2 u31 v31 = uv31
+        A.T2 u32 v32 = uv32
+        A.T2 u33 v33 = uv33
         deltaU = A.constant diffusionRateU * laplaceU - u0 * v0^2 + A.constant feedRateU * (1 - u0)
         deltaV = A.constant diffusionRateV * laplaceV + u0 * v0^2 - A.constant (feedRateU + killRateV) * v0
         laplaceU = (u11 A.+ 2 A.* u12 A.+ u13 A.+ 2 A.* u21 A.- 12 A.* u22 A.+ 2 A.* u23 A.+ u31 A.+ 2 A.* u32 A.+ u33) A./ 4
         laplaceV = (v11 A.+ 2 A.* v12 A.+ v13 A.+ 2 A.* v21 A.- 12 A.* v22 A.+ 2 A.* v23 A.+ v31 A.+ 2 A.* v32 A.+ v33) A./ 4
-
-    repeatF :: A.Arrays a => Int -> (A.Acc a -> A.Acc a) -> A.Acc a -> A.Acc a
-    repeatF 0 _ acc = acc
-    repeatF n f acc = f (repeatF (n A.- 1) f acc)
