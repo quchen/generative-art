@@ -6,8 +6,10 @@ import qualified Data.Array.Accelerate as A
 import qualified Data.Array.Accelerate.Interpreter as A
 import qualified Data.Array.Accelerate.LLVM.Native as CPU
 import qualified Data.Array.Accelerate.IO.Codec.Picture as A
+import Data.Maybe (fromMaybe)
 import Data.Time.Clock
 import Data.Time.Format
+import Math.Noise
 import Text.Printf (printf)
 import qualified Codec.Picture as P
 import System.Environment (getArgs)
@@ -73,7 +75,22 @@ initialStateFromScratch = warmup $ planeFromList
     warmup = grayScott (10 * temporalResolutionWarmup) (scene 0) { step = 10/temporalResolutionWarmup }
 
 simulation :: Int -> Grid -> [(Int, Grid)]
-simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, state) -> (t + 1, grayScott temporalResolution (scene (fromIntegral t)) state)) (t0, initialState))
+simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, state) -> (t + 1, nextFrame t state)) (t0, initialState))
+  where
+    nextFrame t state = let GS{..} = scene (fromIntegral t) in
+        if noiseU == 0
+            then grayScott temporalResolution (scene (fromIntegral t)) state
+            else grayScott temporalResolution (scene (fromIntegral t)) (addNoise (fromIntegral t) noiseU state)
+
+addNoise :: Double -> Double -> Grid -> Grid
+addNoise t noiseU grid = CPU.run $ A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (nu + A.constant noiseU * (1 - u) * nu) v du dv) (A.use noiseGrid) (A.use grid)
+  where
+    sh = runExp (A.shape (A.use grid))
+    noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x, fromIntegral y, t))
+    noise = fromMaybe 0 . getValue perlin { perlinFrequency = 0.1 / spatialResolution }
+
+runExp :: A.Elt e => A.Exp e -> e
+runExp e = A.indexArray (A.run (A.unit e)) A.Z
 
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = do
@@ -108,6 +125,7 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5
         , diffusionRateU = 2 * diffusionRate * spatialResolution^2
         , diffusionRateV = diffusionRate * spatialResolution^2
         , step = 10 / temporalResolution
+        , noiseU = 0
         }
     scene1 = baseParams
     t1 = transition 580 50 t
@@ -140,6 +158,7 @@ interpolate x a b = GS
     , diffusionRateU = x *. diffusionRateU a +. (1-x) *. diffusionRateU b
     , diffusionRateV = x *. diffusionRateV a +. (1-x) *. diffusionRateV b
     , step           = x *. step a           +. (1-x) *. step b
+    , noiseU         = x *. noiseU a         +. (1-x) *. noiseU b
     }
 
 renderImageColor :: (A.Exp (Double, Double, Double, Double) -> A.Exp (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
@@ -147,9 +166,6 @@ renderImageColor f plane = A.imageOfArray (CPU.run (A.map renderPixel (A.use pla
   where
     renderPixel uv = let A.T3 r g b = f uv in A.lift (A.PixelRGB8_ (pixel8 r) (pixel8 g) (pixel8 b))
     pixel8 = A.round . clamp 0 255 . (* 255)
-
-runExp :: A.Elt e => A.Exp e -> e
-runExp e = A.indexArray (A.run (A.unit e)) A.Z
 
 colorFront :: A.Exp (Double, Double, Double, Double) -> A.Exp (Double, Double, Double)
 colorFront (A.T4 _ _ _ dv) = A.tanh (400 * max 0 dv) *.. A.constant (0.4, 0.1, 0)
@@ -181,6 +197,7 @@ data GrayScott = GS
     , diffusionRateU :: Double
     , diffusionRateV :: Double
     , step :: Double
+    , noiseU :: Double
     }
 
 type UV = (Double, Double, Double, Double)
