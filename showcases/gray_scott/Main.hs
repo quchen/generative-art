@@ -78,18 +78,21 @@ simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, st
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = do
     putStrLn "Warming up…"
-    startTime <- getCurrentTime
+    t0 <- getCurrentTime
+    let !(_, !_) = head frames
+    t1 <- getCurrentTime
     for_ frames $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (\uv -> colorFront uv +.. colorTrail uv +.. colorReaction uv) grid)
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(A.T4 u v _ _) -> A.lift (1-u-v, v, u)) grid)
-        printProgress startTime index
+        printProgress t0 t1 index
 
-printProgress :: UTCTime -> Int -> IO ()
-printProgress startTime frame = do
-    timeNow <- getCurrentTime
-    let elapsedTime = diffUTCTime timeNow startTime
-        eta = addUTCTime (elapsedTime * fromIntegral totalFrames / (fromIntegral frame + 1)) startTime
-        remainingTime = diffUTCTime eta timeNow
+printProgress :: UTCTime -> UTCTime -> Int -> IO ()
+printProgress t0 t1 frame = do
+    t <- getCurrentTime
+    let elapsedTime = diffUTCTime t t0
+        elapsedTimeSinceWarmup = diffUTCTime t t1
+        eta = addUTCTime (elapsedTimeSinceWarmup * fromIntegral totalFrames / (fromIntegral frame + 1)) t1
+        remainingTime = diffUTCTime eta t
         showDateTime = formatTime defaultTimeLocale "%F %R"
         showTimeDiff = formatTime defaultTimeLocale "%h:%0M:%0S"
     ANSI.cursorUpLine 1 >> ANSI.clearLine >> ANSI.setCursorColumn 0
