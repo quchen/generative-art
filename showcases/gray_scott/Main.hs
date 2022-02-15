@@ -30,7 +30,7 @@ temporalResolution = 2
 temporalResolutionWarmup = 6
 
 totalFrames :: Int
-totalFrames = 50
+totalFrames = 3000
 
 main :: IO ()
 main = do
@@ -77,17 +77,18 @@ initialStateFromScratch = warmup $ planeFromList
 simulation :: Int -> Grid -> [(Int, Grid)]
 simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, state) -> (t + 1, nextFrame t state)) (t0, initialState))
   where
-    nextFrame t state = let GS{..} = scene (fromIntegral t) in
+    nextFrame t state = let gs@GS{..} = scene (fromIntegral t) in
         if noiseU == 0
             then grayScott temporalResolution (scene (fromIntegral t)) state
-            else grayScott temporalResolution (scene (fromIntegral t)) (addNoise (fromIntegral t) noiseU state)
+            else grayScott temporalResolution (scene (fromIntegral t)) (addNoise (fromIntegral t) gs state)
 
-addNoise :: Double -> Double -> Grid -> Grid
-addNoise t noiseU grid = CPU.run $ A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (nu + A.constant noiseU * (1 - u) * nu) v du dv) (A.use noiseGrid) (A.use grid)
+addNoise :: Double -> GrayScott -> Grid -> Grid
+addNoise t GS{..} grid = CPU.run $ A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + (1 - u) * nu) (v - v * nu) du dv) (A.use noiseGrid) (A.use grid)
   where
     sh = runExp (A.shape (A.use grid))
-    noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x, fromIntegral y, t))
-    noise = fromMaybe 0 . getValue perlin { perlinFrequency = 0.1 / spatialResolution }
+    noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x / spatialResolution, fromIntegral y / spatialResolution, t / 30))
+    noiseStrength = noiseU * step * temporalResolution
+    noise = (noiseStrength *) . fromMaybe 0 . getValue perlin { perlinFrequency = 0.5 }
 
 runExp :: A.Elt e => A.Exp e -> e
 runExp e = A.indexArray (A.run (A.unit e)) A.Z
@@ -116,7 +117,7 @@ printProgress t0 t1 frame = do
     putStrLn (show (frame + 1) ++ "/" ++ show totalFrames ++ " Elapsed: " ++ showTimeDiff elapsedTime ++ " Remaining: " ++ showTimeDiff remainingTime ++ " ETA: " ++ showDateTime eta)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10 `t10` scene11 `t11` end
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -136,6 +137,20 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5
     scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
     t4 = transition 700 50 t
     scene5 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
+    t5 = transition 1200 50 t
+    scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+    t6 = linearTransition 1200 2200 t
+    scene7 = baseParams
+    t7 = transition 2200 50 t
+    scene8 = baseParams { killRateV = 0.065 }
+    t8 = transition 2300 50 t
+    scene9 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+    t9 = linearTransition 2400 2500 t
+    scene10 = baseParams { killRateV = 0.060, feedRateU = 0.040, noiseU = 0.015 }
+    t10 = linearTransition 2500 3000 t
+    scene11 = baseParams { killRateV = 0.060, feedRateU = 0.030, noiseU = 0.015 }
+    t11 = transition 3000 50 t
+    end = baseParams { killRateV = 0.62 }
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration t a b
