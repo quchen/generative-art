@@ -57,12 +57,12 @@ main = do
                     setColor black
                     stroke
 
-    withSurfaceAuto "out/pulsar.svg" w h $ \surface -> renderWith surface render
-    withSurfaceAuto "out/pulsar.png" w h $ \surface -> renderWith surface $ do
-        cairoScope $ do
-            setColor white
-            paint
-        render
+    withSurfaceAuto "showcases/pulsar_cp1919.svg" w h $ \surface -> renderWith surface render
+    -- withSurfaceAuto "out/pulsar.png" w h $ \surface -> renderWith surface $ do
+    --     cairoScope $ do
+    --         setColor white
+    --         paint
+    --     render
 
 
 getPulsarData :: IO (Vector (Vector Vec2))
