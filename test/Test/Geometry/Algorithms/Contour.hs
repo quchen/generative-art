@@ -68,7 +68,7 @@ visualTests = testGroup "Visual"
             isos = isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
             fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
             fitToBox =
-                G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) FitAllMaintainAspect)
+                G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) def)
         cairoScope $ do
             setLineWidth 1
             for_ (fitToBox isos) pathSketch
@@ -83,7 +83,7 @@ visualTests = testGroup "Visual"
                 isos = isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
                 fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 fitToBox =
-                    G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) FitAllMaintainAspect)
+                    G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) def)
             cairoScope $ do
                 setLineWidth 1
                 for_ (fitToBox isos) pathSketch

@@ -105,7 +105,7 @@ gaussianHexagons = testVisual "Gaussian hexagons" 360 360 "docs/hexagonal/gaussi
 
     let polys = M.mapKeys (hexagonPoly cellSize) hexagons
         fitToCanvas :: Transform geo => geo -> geo
-        fitToCanvas = G.transform (G.transformBoundingBox (M.keysSet polys) (Vec2 1 1, Vec2 (width-1) (height-1)) FitAllMaintainAspect)
+        fitToCanvas = G.transform (G.transformBoundingBox (M.keysSet polys) (Vec2 1 1, Vec2 (width-1) (height-1)) def)
 
     sequence_ $ flip M.mapWithKey polys $ \poly value -> cairoScope $ do
         Draw.polygonSketch (fitToCanvas poly)

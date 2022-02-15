@@ -212,7 +212,7 @@ subdivideBezierCurveTest :: TestTree
 subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_bezier_subdivide" $ \_ -> do
     let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
         fitToBox :: (HasBoundingBox a, HasBoundingBox b, Transform geo) => a -> b -> geo -> geo
-        fitToBox bbContents box = G.transform (transformBoundingBox bbContents box FitAllIgnoreAspect)
+        fitToBox bbContents box = G.transform (transformBoundingBox bbContents box (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
         beziers = bezierSmoothen (V.fromList graph)
 
     setLineWidth 1
@@ -254,7 +254,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
 interpolateSingleCurveTest :: TestTree
 interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_single_curve" $ \_ -> do
     let curve = let curveRaw = G.transform (G.rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
-                    fitToBox = G.transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) FitAllIgnoreAspect)
+                    fitToBox = G.transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
                 in fitToBox curveRaw
         evenlySpaced = bezierSubdivideS 16 curve
         unevenlySpaced = bezierSubdivideT 16 curve
@@ -288,7 +288,7 @@ bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_l
     let geometry =
             let points = [Vec2 0.5 0, Vec2 0 1, Vec2 (-0.5) 0, Vec2 0 (-1), Vec2 0.5 0]
                 smoothened = bezierSmoothen (V.fromList points)
-                fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (w-10) (h-10)) FitAllMaintainAspect)
+                fitToBox = G.transform (G.transformBoundingBox smoothened (Vec2 10 10, Vec2 (w-10) (h-10)) def)
             in fitToBox smoothened
 
     for_ geometry $ \bezier -> cairoScope $ do
