@@ -42,7 +42,7 @@ main = do
 
     renderDrawing = do
         gen <- liftIO $ Chaos.initializeMwc shattered
-        let fitToCanvas = G.transform (transformBoundingBox shattered (Vec2 10 10, Vec2 (fromIntegral picWidth-10) (fromIntegral picHeight-10)) FitAllMaintainAspect)
+        let fitToCanvas = G.transform (transformBoundingBox shattered (Vec2 10 10, Vec2 (fromIntegral picWidth-10) (fromIntegral picHeight-10)) def)
         drawing gen (fitToCanvas shattered)
 
 shatterProcess
