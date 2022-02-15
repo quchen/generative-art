@@ -4,8 +4,9 @@ import           Control.Monad
 import           Control.Monad.ST
 import           Control.Parallel.Strategies
 import           Data.Foldable
+import           Data.Ord.Extended
+import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
-import  Data.Vector               (Vector)
 import           Data.Word
 import           Graphics.Rendering.Cairo        as C
 import qualified System.Random.MWC               as Random
@@ -14,8 +15,8 @@ import qualified System.Random.MWC.Distributions as Random
 import Draw
 import Geometry                      as G
 import Numerics.DifferentialEquation
-import Numerics.VectorAnalysis
 import Numerics.Interpolation
+import Numerics.VectorAnalysis
 
 main :: IO ()
 main = do
@@ -112,13 +113,6 @@ systemSetup config@SystemConfig{..} = do
         { _trajectories = trajectoriesNF
         , _potential    = potential
         }
-
--- | Monoid to calculate the min/max at the same time.
-data MinMax = MinMax Double Double
-instance Semigroup MinMax where
-    MinMax a b <> MinMax x y = MinMax (min a x) (max b y)
-instance Monoid MinMax where
-    mempty = MinMax (1/0) (-1/0)
 
 render :: SystemResult -> Render ()
 render SystemResult{..} = do
