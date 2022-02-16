@@ -44,6 +44,7 @@ main1 = do
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
         cairoScope (setColor (magma 0.05) >> paint)
+        C.scale scaleFactor scaleFactor
         for_ voronoiCells drawCell
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -63,6 +64,7 @@ main2 = do
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
         cairoScope (setColor (magma 0.05) >> paint)
+        C.scale scaleFactor scaleFactor
         for_ voronoiCells drawCellColor
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -82,6 +84,7 @@ main3 = do
 
     withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
         cairoScope (setColor (magma 0.05) >> paint)
+        C.scale scaleFactor scaleFactor
         for_ voronoiCells drawColumn
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
