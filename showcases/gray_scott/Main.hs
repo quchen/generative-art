@@ -97,19 +97,19 @@ writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = do
     putStrLn "Warming up…"
     t0 <- getCurrentTime
-    let !(_, !_) = head frames
+    let !(startIndex, !_) = head frames
     t1 <- getCurrentTime
     for_ frames $ \(index, grid) -> do
         P.writePng (printf "out/gray_scott_%06i.png" index) (renderImageColor (\uv -> colorFront uv +.. colorTrail uv +.. colorReaction uv) grid)
         P.writePng (printf "out/uv_gray_scott_%06i.png" index) (renderImageColor (\(A.T4 u v _ _) -> A.lift (1-u-v, v, u)) grid)
-        printProgress t0 t1 index
+        printProgress t0 t1 startIndex index
 
-printProgress :: UTCTime -> UTCTime -> Int -> IO ()
-printProgress t0 t1 frame = do
+printProgress :: UTCTime -> UTCTime -> Int -> Int -> IO ()
+printProgress t0 t1 startFrame frame = do
     t <- getCurrentTime
     let elapsedTime = diffUTCTime t t0
         elapsedTimeSinceWarmup = diffUTCTime t t1
-        eta = addUTCTime (elapsedTimeSinceWarmup * fromIntegral totalFrames / (fromIntegral frame + 1)) t1
+        eta = addUTCTime (elapsedTimeSinceWarmup * fromIntegral (totalFrames - startFrame) / (fromIntegral (frame - startFrame) + 1)) t1
         remainingTime = diffUTCTime eta t
         showDateTime = formatTime defaultTimeLocale "%F %R"
         showTimeDiff = formatTime defaultTimeLocale "%h:%0M:%0S"
