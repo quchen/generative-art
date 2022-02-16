@@ -53,6 +53,7 @@ library
       Geometry.Algorithms.Delaunay
       Geometry.Algorithms.PerlinNoise
       Geometry.Algorithms.Sampling
+      Geometry.Algorithms.Sampling.Vogel
       Geometry.Algorithms.SimplexNoise
       Geometry.Algorithms.Triangulate
       Geometry.Bezier

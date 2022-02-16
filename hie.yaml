@@ -143,17 +143,16 @@ cradle:
         cradle:
           stack:
             stackYaml: ./showcases/vector_fields/stack.yaml
+    - path: ./showcases/vogel_sampling
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/vogel_sampling/stack.yaml
     - path: ./showcases/voronoi_3d
       config:
         cradle:
           stack:
             stackYaml: ./showcases/voronoi_3d/stack.yaml
-
-    - path: ./showcases/truchetti
-      config:
-        cradle:
-          stack:
-            stackYaml: ./showcases/truchetti/stack.yaml
 
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
