@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Main (main) where
+module Main (main, main2, main3) where
 
 
 
@@ -28,14 +28,35 @@ scaleFactor :: Double
 scaleFactor = 1
 
 main :: IO ()
-main = do
+main = main3
+
+main2 :: IO ()
+main2 = do
     let file = "out/voronoi_3d.png"
         count = 500
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
 
-    gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
-    points <- poissonDiscDistribution count gen
+    points <- poissonDiscDistribution count
+
+    let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson extents points)
+        voronoiWithProps = mapWithSeed (\p () -> randomColor p) voronoi
+        voronoiCells = cells voronoiWithProps
+
+    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
+        cairoScope (setColor (magma 0.05) >> paint)
+        for_ voronoiCells drawCellColor
+  where
+    extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
+
+main3 :: IO ()
+main3 = do
+    let file = "out/voronoi_3d.png"
+        count = 500
+        scaledWidth = round (scaleFactor * picWidth)
+        scaledHeight = round (scaleFactor * picHeight)
+
+    points <- poissonDiscDistribution count
 
     let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson extents points)
         voronoiWithProps = mapWithSeed (\p () -> (randomColor p, randomHeight p)) voronoi
@@ -48,8 +69,9 @@ main = do
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
     backToFront (Polygon ps) = minimum (yCoordinate <$> ps)
 
-poissonDiscDistribution :: Int -> GenIO -> IO [Vec2]
-poissonDiscDistribution count gen = do
+poissonDiscDistribution :: Int -> IO [Vec2]
+poissonDiscDistribution count = do
+    gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = 1440 * sqrt (0.75 / fromIntegral count)
         samplingProps = PoissonDisc { width = 1440, height = 1440, radius = adaptiveRadius, k = 4, ..}
@@ -71,6 +93,24 @@ randomColor = \p -> inferno (0.6 + 0.35 * noise2d p)
   where
     noise = perlin { perlinOctaves = 5, perlinFrequency = 0.001, perlinPersistence = 0.65, perlinSeed = 1980166 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
+
+drawCellColor :: VoronoiCell (Color Double) -> Render ()
+drawCellColor Cell{..} = cairoScope $ do
+    let lineColor = blend 0.95 color white
+        topColor = blend 0.7 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
+
+    C.setLineJoin C.LineJoinBevel
+
+    polygonSketch poly
+    setColor topColor
+    fillPreserve
+    setColor lineColor
+    setLineWidth 2
+    stroke
+
+  where
+    poly = G.transform (mempty) region
+    color = props
 
 drawColumn :: VoronoiCell (Color Double, Double) -> Render ()
 drawColumn Cell{..} = cairoScope $ do
