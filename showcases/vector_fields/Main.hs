@@ -1,20 +1,20 @@
-{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 
 
-import           Control.Monad
 import           Data.Maybe
 import qualified Data.Vector              as V
 import qualified Graphics.Rendering.Cairo as C
 import           Math.Noise               (Perlin (..), getValue, perlin)
 import           System.Random.MWC
 
-import Draw
-import Geometry                      as G
-import Geometry.Algorithms.Sampling
-import Graphics.Rendering.Cairo
-import Numerics.DifferentialEquation
+import           Draw
+import           Geometry                      as G
+import           Geometry.Algorithms.Sampling
+import qualified Geometry.Processes.FlowField  as ODE
+import           Graphics.Rendering.Cairo
+import           Numerics.DifferentialEquation
+import           Numerics.VectorAnalysis
 
 
 
@@ -25,15 +25,14 @@ picHeight = 1440
 noiseScale :: Double
 noiseScale = 251
 
--- Randomness seed for reproducible results
-seed :: Int
-seed = 519496
+noiseSeed :: Int
+noiseSeed = 519496
 
 main :: IO ()
 main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
     C.scale scaleFactor scaleFactor
     cairoScope $ do
-        C.setSourceRGB 1 1 1
+        setColor white
         C.paint
 
     gen <- liftIO create
@@ -42,11 +41,12 @@ main = withSurfaceAuto "out/vector_fields.svg" scaledWidth scaledHeight $ \surfa
         , height = picHeight
         , radius = 18
         , k = 4
-        , .. }
-    thicknesses <- liftIO $ replicateM 1000 (uniformR (0.5, 1.5) gen)
+        , gen = gen }
 
-    for_ (zip startPoints (cycle thicknesses)) $ \(p, thickness) -> cairoScope $
-        drawFieldLine thickness $ takeWhile ((<= 200) . fst) (fieldLine compositeField p)
+    cairoScope $ for_ startPoints $ \startPoint -> do
+        thickness <- liftIO (uniformR (0.5, 1.5) gen)
+        let trajectory = takeWhile (\(t, _) -> t <= 200) (fieldLine compositeField startPoint)
+        drawFieldLine thickness trajectory
   where
     scaleFactor = 0.39
     scaledWidth = round (picWidth * scaleFactor)
@@ -66,13 +66,11 @@ drawFieldLine thickness ps = cairoScope $ do
 scalarField :: Vec2 -> Double
 scalarField = noise2d . G.transform (G.scale' 1 2)
   where
-    noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = seed }
+    noise = perlin { perlinFrequency = 1/noiseScale, perlinOctaves = 1, perlinSeed = noiseSeed }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 gradientField :: Vec2 -> Vec2
 gradientField p = noiseScale *. grad scalarField p
-  where
-    grad f v = 100 *. Vec2 (f (v +. Vec2 0.01 0) - f v) (f (v +. Vec2 0 0.01) - f v)
 
 rotationField :: Vec2 -> Vec2
 rotationField = G.transform (G.rotate (deg 90)) . gradientField
@@ -82,10 +80,14 @@ compositeField p@(Vec2 x y) = Vec2 1 0 +. 0.8 * perturbationStrength *. rotation
   where
     perturbationStrength = 0.7 * (1 + tanh (4 * (x / picWidth - 0.6))) * exp (-3 * (y / picHeight - 0.5)^2)
 
-fieldLine :: (Vec2 -> Vec2) -> Vec2 -> [(Double, Vec2)]
-fieldLine vectorField p0 = rungeKuttaConstantStep ode p0 t0 dt
+fieldLine
+    :: (Vec2 -> Vec2)
+    -> Vec2
+    -> [(Double, Vec2)]
+fieldLine f p0 = rungeKuttaAdaptiveStep (ODE.fieldLine f) p0 t0 dt0 tolNorm tol
   where
-    ode _t x = vectorField x
     t0 = 0
-    -- high quality: 10, fast: 50
-    dt = 50
+    dt0 = 1
+    -- Decrease exponent for more accurate results
+    tol = 1e-1
+    tolNorm = norm
