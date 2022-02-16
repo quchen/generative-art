@@ -141,14 +141,14 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
     t6 = linearTransition 1200 2200 t
     scene7 = baseParams
-    t7 = transition 2200 50 t
+    t7 = transition 2200 25 t
     scene8 = baseParams { killRateV = 0.065 }
     t8 = transition 2300 50 t
     scene9 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
     t9 = linearTransition 2400 2500 t
-    scene10 = baseParams { killRateV = 0.060, feedRateU = 0.040, noiseU = 0.015 }
+    scene10 = baseParams { killRateV = 0.060, feedRateU = 0.040, noiseU = 0.020 }
     t10 = linearTransition 2500 3000 t
-    scene11 = baseParams { killRateV = 0.060, feedRateU = 0.030, noiseU = 0.015 }
+    scene11 = baseParams { killRateV = 0.060, feedRateU = 0.030, noiseU = 0.020 }
     t11 = transition 3000 50 t
     end = baseParams { killRateV = 0.62 }
 
