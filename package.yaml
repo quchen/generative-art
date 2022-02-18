@@ -20,6 +20,7 @@ dependencies:
     - data-default-class
     - data-r-tree
     - mwc-random
+    - Noise
     - parallel
     - primitive
     - random

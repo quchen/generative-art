@@ -17,8 +17,7 @@ module Draw (
     , lineToVec
     , curveToVec
     , lineSketch
-    , bezierSegmentSketch
-    , bezierCurveSketch
+    , bezierSketch
     , ArrowSpec(..)
     , arrowSketch
     , circleSketch
@@ -110,16 +109,9 @@ lineSketch (Line start end) = do
     moveToVec start
     lineToVec end
 
--- | Sketch a full, standalone Bezier segment. For connectnig multiple, use
--- 'bezierCurveSketch'.
-bezierSegmentSketch :: Bezier -> Render ()
-bezierSegmentSketch (Bezier start p1 p2 end) = do
-    moveToVec start
-    curveToVec p1 p2 end
-
 -- | Sketch a curve consisting out of multiple Bezier segments.
-bezierCurveSketch :: Foldable f => f Bezier -> Render ()
-bezierCurveSketch = go . toList
+bezierSketch :: Foldable f => f Bezier -> Render ()
+bezierSketch = go . toList
   where
     go [] = pure ()
     go (ps@(Bezier start _ _ _ : _)) = do

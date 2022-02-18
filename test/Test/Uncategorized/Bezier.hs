@@ -220,7 +220,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
         setColor $ mathematica97 0
-        bezierCurveSketch (fit beziers)
+        bezierSketch (fit beziers)
         stroke
         moveTo 200 70
         showText (show (length beziers) ++ " curves")
@@ -246,7 +246,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
         setColor $ mathematica97 3
-        bezierCurveSketch (fit interpolated)
+        bezierSketch (fit interpolated)
         stroke
         moveTo 200 270
         showText (show (length interpolated) ++ " curves")
@@ -266,9 +266,9 @@ interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_si
 
     cairoScope $ do
         setColor $ mathematica97 1
-        bezierCurveSketch [curve]
+        bezierSketch [curve]
         stroke
-        bezierCurveSketch [offsetBelow curve]
+        bezierSketch [offsetBelow curve]
         stroke
 
     for_ (zip evenlySpaced unevenlySpaced) $ \(e, u') -> do
@@ -292,7 +292,7 @@ bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_l
             in fitToBox smoothened
 
     for_ geometry $ \bezier -> cairoScope $ do
-        bezierCurveSketch [bezier]
+        bezierSketch [bezier]
         setColor (mathematica97 0 `withOpacity` 0.5)
         setLineWidth 2
         stroke
