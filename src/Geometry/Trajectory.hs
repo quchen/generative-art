@@ -18,21 +18,19 @@ module Geometry.Trajectory (
 
 
 import           Data.Foldable
-import           Data.Heap       (Entry (..), Heap)
-import qualified Data.Heap       as H
 import           Data.Map        (Map)
 import qualified Data.Map        as M
 import           Data.Ord
 import           Data.Sequence   (Seq, (|>))
 import qualified Data.Sequence   as Seq
 import           Data.Sequential
-import           Data.Vector     (Vector, (!))
+import           Data.Vector     (Vector)
 import qualified Data.Vector     as V
-import           GHC.Stack       (HasCallStack)
 import           Prelude         hiding (lines)
 
 import Geometry.Core
 import Geometry.LookupTable.Lookup1
+import Geometry.Trajectory.VisvalingamWhyattPathSimplifier
 
 
 
@@ -120,187 +118,6 @@ simplifyTrajectoryBy epsilon vec2in = go . toVector
             else let before = V.take (iMax+1) points -- +1 so this includes the iMax point
                      after = V.drop iMax points
                  in go before <> V.drop 1 (go after) -- Don’t add the middle twice
-
--- | __Warning:__ Due to being poorly implemented, this is currently quite slow, is
--- probably at least quadratic (see code comment @BOTTLENECK@).
---
--- Simplify a path by dropping unnecessary points using the the
--- [Visvalingam-Whyatt algorithm]
--- (https://en.wikipedia.org/wiki/Visvalingam%E2%80%93Whyatt_algorithm). The larger
--- the cutoff parameter, the simpler the result will be.
---
--- This is very useful in conjunction with 'bezierSmoothen': first drop the
--- redundancies, then smoothen using Bezier curves again, to yield a result
--- visually similar to the original data, but with a much smaller data footprint
--- (SVGs can become huge!).
---
--- If your trajectory contains more than just the points you want to simplify on,
--- use 'simplifyTrajectoryVWBy'.
---
--- <<docs/interpolation/3_simplify_path_vw.svg>>
-simplifyTrajectoryVW
-    :: Sequential vector
-    => Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
-    -> vector Vec2 -- ^ Trajectory
-    -> Vector Vec2 -- ^ Simplified trajectory
-simplifyTrajectoryVW areaCutoff = simplifyTrajectoryVWBy areaCutoff id . toVector
-
--- | 'simplifyTrajectoryVWBy', but allows specifying a function for how to extract the points
--- to base simplifying on from the input.
---
--- This is useful when your trajectory contains metadata, such as the velocity at
--- each point.
-simplifyTrajectoryVWBy
-    :: forall a vector.
-       (Ord a, Sequential vector)
-    => Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
-    -> (a -> Vec2) -- ^ Extract the relevant 'Vec2' to simplify on
-    -> vector a    -- ^ Trajectory
-    -> Vector a    -- ^ Simplified trajectory
-simplifyTrajectoryVWBy areaCutoff vec2in trajectorySequence =
-    let trajectory = toVector trajectorySequence
-        isCyclic = vec2in (V.head trajectory) == vec2in (V.last trajectory)
-        areaHeap :: Heap (Entry Double Vec2)
-        areaHeap =
-            let vecs = fmap vec2in trajectory
-                vecs' = vecs <> V.take 2 (V.tail vecs)
-                areas
-                    | isCyclic  = V.zipWith3 (\a b c -> Entry (triangleArea a b c) b) (V.drop 1 vecs) (V.drop 2 vecs') (V.drop 3 vecs')
-                    | otherwise = V.zipWith3 (\a b c -> Entry (triangleArea a b c) b) (         vecs) (V.drop 1 vecs ) (V.drop 2 vecs )
-                heap = H.fromList (V.toList areas)
-            in heap
-
-        neighbourMap :: Map Vec2 (LeftRightBoth a)
-        neighbourMap
-            | isCyclic =
-                let trajectory' = trajectory <> V.take 2 trajectory
-                in M.fromList (V.toList (V.zipWith3 (\left center right -> (vec2in center, NBoth left right)) trajectory (V.tail trajectory') (V.tail (V.tail trajectory'))))
-            | otherwise = M.fromList
-                ( (vec2in (V.head trajectory), NRight (trajectory!1))
-                : (vec2in (V.last trajectory), NLeft (trajectory!(V.length trajectory-2)))
-                : V.toList (V.zipWith3 (\left center right -> (vec2in center, NBoth left right)) trajectory (V.tail trajectory) (V.tail (V.tail trajectory)))
-                )
-
-        deleteTrianglesBySize :: Heap (Entry Double Vec2) -> Map Vec2 (LeftRightBoth a) -> Map Vec2 (LeftRightBoth a)
-        deleteTrianglesBySize heap neighbours = case H.viewMin heap of
-            _ | not isCyclic && (H.size areaHeap /= M.size neighbourMap - 2) -> bugErrorVW $
-                "For linear trajectories, the heap should contain the neighbour map’s entries, minus the first+last points."
-                ++ show (H.size areaHeap, M.size neighbourMap)
-            _ | isCyclic && (H.size areaHeap /= M.size neighbourMap) -> bugErrorVW $
-                "For cyclic trajectories, the heap should contain the neighbour map’s entries."
-                ++ show (H.size areaHeap, M.size neighbourMap)
-            Nothing
-                -- Heap is empty, so there are no points left. We could just return mempty here,
-                -- but for better testing we check for consistency.
-                | M.size neighbours <= 2 -> neighbours
-                | otherwise -> bugErrorVW ("Heap is empty, but neighbour map contains more than two elements (i.e. intermeidate points are left unvisited), namely: " ++ show (M.size neighbours))
-            Just (Entry area point, heap')
-                | area > areaCutoff -> neighbours -- The smallest triangle is too large, terminate
-                | M.size neighbours == 1 -> neighbours -- We reduced the trajectory to a single point, terminate
-                | otherwise ->
-                    let newNeighbours = deleteFromDirectionalNeighbourMap vec2in point neighbours
-                        -- BOTTLENECK: this filter takes up most of the computation time. Since it’s
-                        -- being run quite often, and compared to the original algorithm which allows modifying
-                        -- priorities (here: area) within the heap with delete/decreasePrio functions,
-                        -- I suspect this adds a factor of n to the runtime, making this at least O(n²), if
-                        -- not O(n²•log(n)).
-                        heapRemove xs = H.filter (\(Entry _ x) -> x `notElem` xs)
-                        heapUpdateL l = (case M.lookup l newNeighbours of
-                            Just (NBoth ll lr) -> H.insert (Entry (triangleArea (vec2in ll) l (vec2in lr)) l)
-                            _other -> id)
-                        heapUpdateR r = case M.lookup r newNeighbours of
-                            Just (NBoth rl rr) -> H.insert (Entry (triangleArea (vec2in rl) r (vec2in rr)) r)
-                            _other -> id
-                        newHeap = case (fmap.fmap) vec2in (M.lookup point neighbours) of
-                            Nothing -> bugErrorVW "Current point does not have any neighbours"
-                            Just (NLeft l) -> (heapUpdateL l . heapRemove [l]) heap'
-                            Just (NBoth l r) -> (heapUpdateL l . heapUpdateR r . heapRemove [l, r]) heap'
-                            Just (NRight r) -> (heapUpdateR r . heapRemove [r]) heap'
-                    in deleteTrianglesBySize newHeap newNeighbours
-
-        reconstructTrajectory :: a -> a -> Map Vec2 (LeftRightBoth a) -> [a]
-        reconstructTrajectory startingPoint  currentPoint nMap = currentPoint : case M.lookup (vec2in currentPoint) nMap of
-            Nothing
-                | isCyclic -> [startingPoint]
-                | otherwise -> bugErrorVW "The last entry should have a left neighbour instead of being not there"
-            Just (NLeft _)
-                | M.size nMap == 1 -> [] -- The last entry only has a left neighbour
-                | otherwise -> bugErrorVW ("Neighbour map is not sequential, " ++ show (M.size nMap) ++ " entries remain")
-            Just (NRight r) -> reconstructTrajectory startingPoint r (M.delete (vec2in currentPoint) nMap)
-            Just (NBoth _l r) -> reconstructTrajectory startingPoint r (M.delete (vec2in currentPoint) nMap)
-    in (V.fromList . reconstructTrajectory (V.head trajectory) (V.head trajectory) . deleteTrianglesBySize areaHeap) neighbourMap
-
-bugErrorVW :: HasCallStack => String -> error
-bugErrorVW str = bugError ("simplifyVW: " <> str)
-
--- | Neighbours to the left and/or right.
-data LeftRightBoth ty
-    = NLeft ty
-    | NBoth ty ty
-    | NRight ty
-    deriving (Eq, Ord, Show)
-
-instance Functor LeftRightBoth where
-    fmap f (NLeft x) = NLeft (f x)
-    fmap f (NBoth x y) = NBoth (f x) (f y)
-    fmap f (NRight x) = NRight (f x)
-
-deleteFromDirectionalNeighbourMap :: Ord k => (lr -> k) -> k -> Map k (LeftRightBoth lr) -> Map k (LeftRightBoth lr)
-deleteFromDirectionalNeighbourMap vec2in point neighbours =
-  case M.lookup point neighbours of
-    Nothing -> bugErrorVW "Bad neighbour map: expected point not present"
-    Just (NBoth leftOfPoint rightOfPoint) ->
-          M.delete point
-        . updateRightNeighbour (vec2in rightOfPoint) (Just leftOfPoint)
-        . updateLeftNeighbour (vec2in leftOfPoint) (Just rightOfPoint)
-        $ neighbours
-    Just (NLeft leftOfPoint) ->
-          M.delete point
-        . updateLeftNeighbour (vec2in leftOfPoint) Nothing
-        $ neighbours
-    Just (NRight rightOfPoint) ->
-          M.delete point
-        . updateRightNeighbour (vec2in rightOfPoint) Nothing
-        $ neighbours
-
--- | When deleting a node, we have to tell its left neighbour that its right
--- neighbour is now the deleted node’s right neighbour.
-updateLeftNeighbour
-    :: Ord k
-    => k        -- ^ Subject: the node whose neighbour should be updated
-    -> Maybe lr -- ^ New right neighbour (of the node to the left of the subject), if any.
-    -> Map k (LeftRightBoth lr)
-    -> Map k (LeftRightBoth lr)
-updateLeftNeighbour subject newRight neighbours = case M.lookup subject neighbours of
-    Nothing -> bugErrorVW "Bad neighbour map! [Error tag: B]"
-    Just (NLeft _) -> bugErrorVW "Bad neighbour map: a left neighbour always has a right neighbour (the node we’re coming from)! [Error tag: C]"
-    Just (NBoth l _r) -> case newRight of
-        Just newRight' -> M.insert subject (NBoth l newRight') neighbours
-        Nothing -> M.insert subject (NLeft l) neighbours
-    Just (NRight _r) -> case newRight of
-        Just newRight' -> M.insert subject (NRight newRight') neighbours
-        Nothing -> M.delete subject neighbours
-
--- | Like 'updateLeftNeighbour', but for the other side.
-updateRightNeighbour
-    :: Ord k
-    => k
-    -> Maybe lr
-    -> Map k (LeftRightBoth lr)
-    -> Map k (LeftRightBoth lr)
-updateRightNeighbour subject newLeft neighbours = case M.lookup subject neighbours of
-    Nothing -> bugErrorVW "Bad neighbour map! [Error tag: D]"
-    Just (NLeft _l) -> case newLeft of
-        Just newLeft' -> M.insert subject (NLeft newLeft') neighbours
-        Nothing -> M.delete subject neighbours
-    Just (NBoth _l r) -> case newLeft of
-        Just newLeft' -> M.insert subject (NBoth newLeft' r) neighbours
-        Nothing -> M.insert subject (NRight r) neighbours
-    Just (NRight _) -> bugErrorVW "Bad neighbour map: a right neighbour always has a left neighbour (the node we’re coming from)! [Error tag: E]"
-
--- | Area of a triangle, defined by its corners.
-triangleArea :: Vec2 -> Vec2 -> Vec2 -> Double
-triangleArea left center right = abs (det (left -. center) (right -. center))
 
 -- | Simplify a path by dropping points too close to their neighbours. The larger
 -- the cutoff parameter, the simpler the result will be.
