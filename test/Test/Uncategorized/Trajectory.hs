@@ -16,7 +16,6 @@ import Geometry               as G
 import Geometry.Shapes        as G
 import Numerics.Interpolation
 import Util
-import Why
 
 import Test.TastyAll
 
