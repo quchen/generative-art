@@ -134,7 +134,7 @@ render SystemResult{..} = do
     for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
         liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
         for_ isos $ \iso -> cairoScope $ do
-            bezierCurveSketch iso
+            bezierSketch iso
             let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
             setColor (rocket colorValue `withOpacity` 0.3)
             stroke
