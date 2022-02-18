@@ -10,16 +10,16 @@ module Circuits.GrowingProcess (
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Map          (Map)
-import qualified Data.Map          as M
+import           Data.Map             (Map)
+import qualified Data.Map             as M
 import           Data.Maybe
-import           Data.Set          (Set)
-import qualified Data.Set          as S
-import qualified Data.Vector       as V
-import qualified System.Random.MWC as MWC
+import           Data.Set             (Set)
+import qualified Data.Set             as S
+import qualified Data.Vector.Extended as V
+import qualified System.Random.MWC    as MWC
 
 import Geometry.Coordinates.Hexagonal as Hex
-import Why                            (fisherYatesShuffle)
+
 
 
 data ProcessGeometry = ProcessGeometry
@@ -151,7 +151,7 @@ randomFirstStep
     -> ST s (Maybe Hex)
 randomFirstStep gen start knownCircuits constraints = do
     let neighbours = V.fromList (ring 1 start)
-    scrambledNeighbours <- fisherYatesShuffle gen neighbours
+    scrambledNeighbours <- V.fisherYatesShuffle gen neighbours
     pure (V.find (\firstStep -> fieldIsAllowed firstStep knownCircuits constraints) scrambledNeighbours)
 
 fieldIsAllowed :: Hex -> Circuits -> MoveConstraints -> Bool

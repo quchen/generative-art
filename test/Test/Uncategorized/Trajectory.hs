@@ -6,8 +6,8 @@ import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S
-import           Data.Vector              (Vector)
-import qualified Data.Vector              as V
+import           Data.Vector.Extended     (Vector)
+import qualified Data.Vector.Extended     as V
 import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 import qualified System.Random.MWC        as MWC
 
@@ -150,7 +150,7 @@ simplifyKeepsEndPoints testName param simplify = testProperty testName $
 fisherYatesList :: [a] -> [a]
 fisherYatesList xs = runST $ do
     gen <- MWC.initialize (V.fromList [])
-    fmap V.toList (fisherYatesShuffle gen (V.fromList xs))
+    fmap V.toList (V.fisherYatesShuffle gen (V.fromList xs))
 
 reassembleLinesTest :: TestTree
 reassembleLinesTest =
