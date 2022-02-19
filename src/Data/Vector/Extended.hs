@@ -4,24 +4,24 @@ module Data.Vector.Extended (
 ) where
 
 
-import           Control.Monad.ST
+import           Control.Monad.Primitive
 import           Data.Foldable
 import           Data.Vector
-import qualified Data.Vector         as V
-import qualified Data.Vector.Mutable as VMut
+import qualified Data.Vector.Mutable     as VMut
 import           System.Random.MWC
 
 
 
--- | Randomly permute a 'Vector'.
+-- | Randomly permute a mutable 'Vector'.
+--
+-- You can use this via @'V.modify' 'fisherYatesShuffle'@ to permute a mutable vector.
 fisherYatesShuffle
-    :: GenST s
-    -> Vector a
-    -> ST s (Vector a)
+    :: PrimMonad f
+    => Gen (PrimState f)
+    -> MVector (PrimState f) a
+    -> f ()
 fisherYatesShuffle gen vec = do
-    let n = V.length vec
-    v <- V.thaw vec
+    let n = VMut.length vec
     for_ [0..n-2] $ \i -> do
         j <- uniformRM (i, n-1) gen
-        VMut.swap v i j
-    V.unsafeFreeze v
+        VMut.swap vec i j

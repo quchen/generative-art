@@ -2,7 +2,6 @@ module Test.Uncategorized.Trajectory (tests) where
 
 
 
-import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S
@@ -148,9 +147,7 @@ simplifyKeepsEndPoints testName param simplify = testProperty testName $
         in (head simplified, last simplified) === (V.head vecs, V.last vecs)
 
 fisherYatesList :: [a] -> [a]
-fisherYatesList xs = runST $ do
-    gen <- MWC.initialize (V.fromList [])
-    fmap V.toList (V.fisherYatesShuffle gen (V.fromList xs))
+fisherYatesList = V.toList . V.modify (\vec -> MWC.create >>= \gen -> V.fisherYatesShuffle gen vec) . V.fromList
 
 reassembleLinesTest :: TestTree
 reassembleLinesTest =
