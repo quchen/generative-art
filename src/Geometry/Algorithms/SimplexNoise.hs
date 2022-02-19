@@ -2,11 +2,10 @@
 
 -- | Simplex noise functions in various dimensions.
 --
--- Adaptation of https:--weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
---
--- Based on example code by Stefan Gustavson (stegu@itn.liu.se).
--- Optimisations by Peter Eastman (peastman@drizzle.stanford.edu).
--- Better rank ordering method for 4D by Stefan Gustavson in 2012.
+-- Based on
+-- [example Java code by Stefan Gustavson](https://weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java).
+-- Optimisations by Peter Eastman. Better rank ordering method for 4D by Stefan
+-- Gustavson in 2012.
 --
 -- This code was placed in the public domain by its original author,
 -- Stefan Gustavson. You may use it as you see fit, but
@@ -111,7 +110,7 @@ dot4 (Grad4 gx gy gz gw) x y z w = gx*x + gy*y + gz*z + gw*w
 
 -- | Raw 1D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise1
-    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    :: Vector Int -- ^ Permutation of [0..255], concatenated with itself to save us a modulo calculation.
     -> Vector Int -- ^ Permutation table mod 12.
     -> Double     -- ^ x
     -> Double     -- ^ \(\in [-1,1]\)
@@ -119,7 +118,7 @@ rawSimplexNoise1 perm permModX xin = rawSimplexNoise2 perm permModX xin 0
 
 -- | Raw 2D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise2
-    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    :: Vector Int -- ^ Permutation of [0..255], concatenated with itself to save us a modulo calculation.
     -> Vector Int -- ^ Permutation table mod 12.
     -> Double     -- ^ x
     -> Double     -- ^ y
@@ -197,7 +196,7 @@ rawSimplexNoise2 perm permMod12 xin yin =
 
 -- | Raw 3D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise3
-    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    :: Vector Int -- ^ Permutation of [0..255], concatenated with itself to save us a modulo calculation.
     -> Vector Int -- ^ Permutation table mod 12.
     -> Double     -- ^ x
     -> Double     -- ^ y
@@ -298,7 +297,7 @@ rawSimplexNoise3 perm permMod12 xin yin zin =
 
 -- | Raw 4D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise4
-    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    :: Vector Int -- ^ Permutation of [0..255], concatenated with itself to save us a modulo calculation.
     -> Vector Int -- ^ Permutation table mod 32.
     -> Double     -- ^ x
     -> Double     -- ^ y
