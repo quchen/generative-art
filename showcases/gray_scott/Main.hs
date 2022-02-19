@@ -3,8 +3,8 @@
 module Main where
 
 import qualified Data.Array.Accelerate as A
-import qualified Data.Array.Accelerate.Interpreter as A
 import qualified Data.Array.Accelerate.LLVM.Native as CPU
+import qualified Data.Array.Accelerate.LLVM.PTX as GPU
 import qualified Data.Array.Accelerate.IO.Codec.Picture as A
 import Data.Maybe (fromMaybe)
 import Data.Time.Clock
@@ -83,7 +83,7 @@ simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, st
             else grayScott temporalResolution (scene (fromIntegral t)) (addNoise (fromIntegral t) gs state)
 
 addNoise :: Double -> GrayScott -> Grid -> Grid
-addNoise t GS{..} grid = CPU.run $ A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + (1 - u) * nu) (v - v * nu) du dv) (A.use noiseGrid) (A.use grid)
+addNoise t GS{..} grid = GPU.runN (A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + (1 - u) * nu) (v - v * nu) du dv)) noiseGrid grid
   where
     sh = runExp (A.shape (A.use grid))
     noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x / spatialResolution, fromIntegral y / spatialResolution, t / 30))
@@ -91,7 +91,7 @@ addNoise t GS{..} grid = CPU.run $ A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + 
     noise = (noiseStrength *) . fromMaybe 0 . getValue perlin { perlinFrequency = 0.5 }
 
 runExp :: A.Elt e => A.Exp e -> e
-runExp e = A.indexArray (A.run (A.unit e)) A.Z
+runExp e = A.indexArray (CPU.run (A.unit e)) A.Z
 
 writeOutput :: [(Int, Grid)] -> IO ()
 writeOutput frames = do
@@ -177,7 +177,7 @@ interpolate x a b = GS
     }
 
 renderImageColor :: (A.Exp (Double, Double, Double, Double) -> A.Exp (Double, Double, Double)) -> Grid -> P.Image P.PixelRGB8
-renderImageColor f plane = A.imageOfArray (CPU.run (A.map renderPixel (A.use plane)))
+renderImageColor f plane = A.imageOfArray (CPU.run1 (A.map renderPixel) plane)
   where
     renderPixel uv = let A.T3 r g b = f uv in A.lift (A.PixelRGB8_ (pixel8 r) (pixel8 g) (pixel8 b))
     pixel8 = A.round . clamp 0 255 . (* 255)
@@ -218,7 +218,7 @@ data GrayScott = GS
 type UV = (Double, Double, Double, Double)
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
-grayScott steps GS{..} grid = CPU.run $ go steps $ A.unzip (A.map (\(A.T4 u v du dv) -> A.T2 (A.T2 u v) (A.T2 du dv)) (A.use grid))
+grayScott steps GS{..} = GPU.run1 (go steps . A.unzip . A.map (\(A.T4 u v du dv) -> A.T2 (A.T2 u v) (A.T2 du dv)))
   where
     go :: Int -> (A.Acc (A.Matrix (Double, Double)), A.Acc (A.Matrix (Double, Double))) -> A.Acc Grid
     go 0 (accUV, accDUDV) = A.zipWith (\(A.T2 u v) (A.T2 du dv) -> A.T4 u v du dv) accUV accDUDV

@@ -112,6 +112,7 @@ executables:
             - generative-art
             - accelerate
             - accelerate-llvm-native
+            - accelerate-llvm-ptx
             - accelerate-io-JuicyPixels
             - parallel
             - comonad
