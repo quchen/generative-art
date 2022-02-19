@@ -13,6 +13,7 @@
 -- attribution is appreciated.
 module Geometry.Algorithms.SimplexNoise (
       SimplexParameters(..)
+    , simplex1
     , simplex2
     , simplex3
     , simplex4
@@ -107,6 +108,14 @@ dot3 (Grad3 gx gy gz) x y z = gx*x + gy*y + gz*z
 
 dot4 :: Grad4 -> Double -> Double -> Double -> Double -> Double
 dot4 (Grad4 gx gy gz gw) x y z w = gx*x + gy*y + gz*z + gw*w
+
+-- | Raw 1D simplex noise, with ampltude 1 and frequency 1/px.
+rawSimplexNoise1
+    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    -> Vector Int -- ^ Permutation table mod 12.
+    -> Double     -- ^ x
+    -> Double     -- ^ \(\in [-1,1]\)
+rawSimplexNoise1 perm permModX xin = rawSimplexNoise2 perm permModX xin 0
 
 -- | Raw 2D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise2
@@ -464,6 +473,26 @@ createPermutationTable gen = do
     V.fisherYatesShuffle gen vecMut
     vec <- V.unsafeFreeze vecMut
     pure (vec <> vec) -- To remove the need for index wrapping, double the permutation table length
+
+-- | One-dimensional simplex noise. See 'simplex2' for a code example.
+simplex1
+    :: PrimMonad st
+    => SimplexParameters
+    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> st (Double -> Double)
+simplex1 SimplexParameters{..} gen = do
+    let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
+        amplitudes = iterate (* _simplexPersistence) 1
+    perm <- createPermutationTable gen
+    pure $ \x ->
+        sum' (take _simplexOctaves
+                   (zipWith (\freq amp ->
+                                (*) amp
+                                    (rawSimplexNoise1 perm
+                                                      (fmap (`mod` 12) perm)
+                                                      (x*freq)))
+                            frequencies
+                            amplitudes))
 
 -- | Two-dimensional simplex noise.
 --
