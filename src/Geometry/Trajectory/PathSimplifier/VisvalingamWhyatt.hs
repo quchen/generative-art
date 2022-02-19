@@ -16,8 +16,8 @@ import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Heap           (Entry (..), Heap)
 import qualified Data.Heap           as H
-import           Data.Ord.Extended
-import           Data.Vector         (Vector, (!))
+import           Data.Maybe
+import           Data.Vector         (Vector, (!?))
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as VM
 
@@ -46,8 +46,7 @@ mkTriangleAreaPQ vec = H.fromList . toList $ V.izipWith3
 -- | Yield the indices to keep from the original vector.
 vwSimplifyIndices :: Double -> Vector Vec2 -> Vector Int
 vwSimplifyIndices minArea inputPoints = runST $ do
-    adjacentMut <- V.thaw (V.generate (V.length inputPoints+1) (\i -> (i-1, i+1)))
-    let indexInbounds = between (0, length inputPoints-1)
+    adjacentMut <- V.thaw (V.generate (V.length inputPoints) (\i -> (i-1, i+1)))
     let vwLoop heap = case H.uncons heap of
             Nothing -> pure ()
             Just (Entry area smallestTriangle, restOfHeap)
@@ -76,21 +75,16 @@ vwSimplifyIndices minArea inputPoints = runST $ do
                             -- left and right adjacent points
                             let choices = [(ll, left, right), (left, right, rr)]
                                 newHeap = foldl'
-                                    (\acc (ai, currentPoint, bi) ->
-                                        if not (indexInbounds ai) || not (indexInbounds bi)
-                                            then acc
-                                            else H.insert
-                                                (Entry
-                                                    (triangleArea
-                                                        (inputPoints ! ai)
-                                                        (inputPoints ! currentPoint)
-                                                        (inputPoints ! bi))
-                                                    LeftCurrentRight
+                                    (\acc (ai, bi, ci) -> fromMaybe acc $ do
+                                        a <- inputPoints !? ai
+                                        b <- inputPoints !? bi
+                                        c <- inputPoints !? ci
+                                        let newArea = triangleArea a b c
+                                            lcr = LeftCurrentRight
                                                         { _left    = ai
-                                                        , _current = currentPoint
-                                                        , _right   = bi})
-                                                acc
-                                    )
+                                                        , _current = bi
+                                                        , _right   = ci}
+                                        pure (H.insert (Entry newArea lcr) acc))
                                     restOfHeap
                                     choices
 
@@ -109,7 +103,7 @@ vwSimplifyIndices minArea inputPoints = runST $ do
         inputPoints
         adjacent
 
--- Simplify a path by dropping unnecessary points using the the
+-- | Simplify a path by dropping unnecessary points using the the
 -- [Visvalingam-Whyatt algorithm]
 -- (https://en.wikipedia.org/wiki/Visvalingam%E2%80%93Whyatt_algorithm). The larger
 -- the cutoff parameter, the simpler the result will be.
@@ -124,7 +118,7 @@ vwSimplifyIndices minArea inputPoints = runST $ do
 --
 -- <<docs/interpolation/3_simplify_path_vw.svg>>
 simplifyTrajectoryVW
-    :: (Sequential vector)
+    :: Sequential vector
     => Double      -- ^ Cutoff parameter. We remove points that span triangles smaller than this. Larger values yield simpler results.
     -> vector Vec2 -- ^ Trajectory
     -> Vector Vec2 -- ^ Simplified trajectory
