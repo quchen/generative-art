@@ -45,14 +45,14 @@ mkTriangleAreaPQ vec = H.fromList . toList $ V.izipWith3
 
 -- | Yield the indices to keep from the original vector.
 vwSimplifyIndices :: Double -> Vector Vec2 -> Vector Int
-vwSimplifyIndices epsilon inputPoints = runST $ do
+vwSimplifyIndices minArea inputPoints = runST $ do
     adjacentMut <- V.thaw (V.generate (V.length inputPoints+1) (\i -> (i-1, i+1)))
     let indexInbounds = between (0, length inputPoints-1)
     let vwLoop heap = case H.uncons heap of
             Nothing -> pure ()
             Just (Entry area smallestTriangle, restOfHeap)
-                -- The triangle’s area is above epsilon, skip it
-                | area > epsilon -> vwLoop restOfHeap
+                -- The triangle’s area is above epsilon, skip (don’t remove) it
+                | area >= minArea -> vwLoop restOfHeap
                 --  This triangle’s area is below epsilon: eliminate the associated point
                 | otherwise -> do
                     let _ = heap :: Heap (Entry Double LeftCurrentRight)
