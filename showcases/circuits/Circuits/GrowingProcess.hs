@@ -151,7 +151,10 @@ randomFirstStep
     -> ST s (Maybe Hex)
 randomFirstStep gen start knownCircuits constraints = do
     let neighbours = V.fromList (ring 1 start)
-    scrambledNeighbours <- V.fisherYatesShuffle gen neighbours
+    scrambledNeighbours <- do
+        vMut <- V.thaw neighbours
+        V.fisherYatesShuffle gen vMut
+        V.unsafeFreeze vMut
     pure (V.find (\firstStep -> fieldIsAllowed firstStep knownCircuits constraints) scrambledNeighbours)
 
 fieldIsAllowed :: Hex -> Circuits -> MoveConstraints -> Bool
