@@ -53,7 +53,7 @@ trajectoryLut = LookupTable1 . V.fromList . go 0 . pairLines
 --
 -- @
 -- let goto = 'pointOnTrajectory' […]
--- 'print' [goto ('Distance' d) | d <- [0, 0.1 .. 5]]
+-- 'print' [goto d | d <- [0, 0.1 .. 5]]
 -- @
 pointOnTrajectory :: Sequential list => list Vec2 -> Double -> Vec2
 pointOnTrajectory points
