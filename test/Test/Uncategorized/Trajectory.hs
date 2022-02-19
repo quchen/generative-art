@@ -16,7 +16,6 @@ import Geometry               as G
 import Geometry.Shapes        as G
 import Numerics.Interpolation
 import Util
-import Why
 
 import Test.TastyAll
 
@@ -32,8 +31,8 @@ simplifyPathTests :: TestTree
 simplifyPathTests = testGroup "Simplify path"
     [ testGroup "Ramer-Douglas-Peucker"
         [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_rdp"
-            (simplifyFunctionGraphTest reds simplifyTrajectory [ 2**(-e) | e <- [10,9..1]])
-        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectory
+            (simplifyFunctionGraphTest reds simplifyTrajectoryRdp [ 2**(-e) | e <- [10,9..1]])
+        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryRdp
         , simplifyPathRegressionTest
         ]
     , testGroup "Visvalingam-Whyatt"
@@ -44,10 +43,10 @@ simplifyPathTests = testGroup "Simplify path"
             , simplifyClosedTrajectoryTestSmallParameter
             , simplifyClosedTrajectoryTestHuteParameter
             ]
-        ]
         , testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_vw"
             (simplifyFunctionGraphTest blues simplifyTrajectoryVW [ 2**(-e) | e <- [10,9..1]])
         , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryVW
+        ]
     , testGroup "Radial"
         [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_radial"
             (simplifyFunctionGraphTest greens (\param vec -> V.fromList (simplifyTrajectoryRadial param vec)) [ 2**(-e/2) | e <- [10,9..1]])
@@ -105,7 +104,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
 simplifyPathRegressionTest :: TestTree
 simplifyPathRegressionTest = localOption (Timeout (10^5) "100ms") $ testCase "Can handle cyclic paths" $ do
     let cyclicPath = V.fromList [Vec2 1 0, Vec2 1 1, Vec2 1 0]
-        simplified = simplifyTrajectory 100 cyclicPath
+        simplified = simplifyTrajectoryRdp 100 cyclicPath
     assertBool "The algorithm did not terminate" (simplified `seq` True)
 
 simplifyThreePointsSmokeTest :: TestTree
@@ -143,9 +142,10 @@ simplifyKeepsEndPoints testName param simplify = testProperty testName $
                 Gaussian v <- arbitrary
                 pure v
             pure (V.fromList (nubOrd vecs))
-    in forAll gen $ \vecs -> case toList (simplify param vecs) of
-        [start, end] -> (start, end) === (V.head vecs, V.last vecs)
-        xs           -> counterexample ("Points left over after giant simplification: " ++ show xs) False
+        shrinker vec = [V.take n vec | n <- [3..V.length vec-1]]
+    in forAllShrink gen shrinker $ \vecs ->
+        let simplified = toList (simplify param vecs)
+        in (head simplified, last simplified) === (V.head vecs, V.last vecs)
 
 fisherYatesList :: [a] -> [a]
 fisherYatesList xs = runST $ do

@@ -209,7 +209,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
         scaleToCanvas :: Transform geo => geo -> geo
         scaleToCanvas = Geometry.transform (transformBoundingBox bb bbCanvas def)
         trajectory = scaleToCanvas
-            . simplifyTrajectoryBy 0.01 (\(_t, phaseSpacePoint) -> phaseSpacePoint) -- SVG compression :-)
+            . simplifyTrajectoryRdpBy 0.01 (\(_t, phaseSpacePoint) -> phaseSpacePoint) -- SVG compression :-)
             . fmap (\(t, (x, v)) -> (NoTransform t, Vec2 x v))
             $ solution
 
@@ -271,7 +271,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
                 (startingAngle, trajectory) <- geodesics
                 let cutoff = takeWhile (\(_, (x, _v)) -> insideBoundingBox x entireCanvas)
                     justPosition = map (\(_t, (x, _v)) -> x)
-                    simplify = simplifyTrajectory 0.5
+                    simplify = simplifyTrajectoryRdp 0.5
                 pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
