@@ -1,6 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Geometry.Trajectory.VisvalingamWhyattPathSimplifier (
+-- | Thanks a lot to the Rust Geo package for this algorithm. After struggling with
+-- an imperative heap-with-random-access algorithm for a while, this is a very nice
+-- solution that translates somewhat well to Haskell.
+--
+-- Original source (MIT): https://github.com/georust/geo/blob/497d67dfa972faeac756181eb00a0c1962b0beab/geo/src/algorithm/simplifyvw.rs#L71
+module Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt (
       simplifyTrajectoryVW
     , simplifyTrajectoryVWBy
 ) where
@@ -39,12 +44,6 @@ mkTriangleAreaPQ vec = H.fromList . toList $ V.izipWith3
     (V.drop 2 vec)
 
 -- | Yield the indices to keep from the original vector.
---
--- Thanks a lot to the Rust Geo package for this algorithm. After struggling with
--- an imperative heap-with-random-access algorithm for a while, this is a very nice
--- solution that translates somewhat well to Haskell.
---
--- Original source (MIT): https://github.com/georust/geo/blob/497d67dfa972faeac756181eb00a0c1962b0beab/geo/src/algorithm/simplifyvw.rs#L71
 vwSimplifyIndices :: Double -> Vector Vec2 -> Vector Int
 vwSimplifyIndices epsilon inputPoints = runST $ do
     adjacentMut <- V.thaw (V.generate (V.length inputPoints+1) (\i -> (i-1, i+1)))

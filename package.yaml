@@ -67,7 +67,10 @@ ghc-options: [-Wall, -Wno-type-defaults]
 library:
     source-dirs: src
     other-modules:
-        - Geometry.Trajectory.VisvalingamWhyattPathSimplifier
+        - Geometry.Trajectory.PathSimplifier.Radial
+        - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
+        - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
+        - Geometry.Trajectory.ReassembleLines
 
 executables:
     haskell-logo-billard:
