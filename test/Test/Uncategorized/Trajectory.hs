@@ -43,10 +43,10 @@ simplifyPathTests = testGroup "Simplify path"
             , simplifyClosedTrajectoryTestSmallParameter
             , simplifyClosedTrajectoryTestHuteParameter
             ]
-        ]
         , testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_vw"
             (simplifyFunctionGraphTest blues simplifyTrajectoryVW [ 2**(-e) | e <- [10,9..1]])
         , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryVW
+        ]
     , testGroup "Radial"
         [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_radial"
             (simplifyFunctionGraphTest greens (\param vec -> V.fromList (simplifyTrajectoryRadial param vec)) [ 2**(-e/2) | e <- [10,9..1]])
@@ -142,9 +142,10 @@ simplifyKeepsEndPoints testName param simplify = testProperty testName $
                 Gaussian v <- arbitrary
                 pure v
             pure (V.fromList (nubOrd vecs))
-    in forAll gen $ \vecs -> case toList (simplify param vecs) of
-        [start, end] -> (start, end) === (V.head vecs, V.last vecs)
-        xs           -> counterexample ("Points left over after giant simplification: " ++ show xs) False
+        shrinker vec = [V.take n vec | n <- [3..V.length vec-1]]
+    in forAllShrink gen shrinker $ \vecs ->
+        let simplified = toList (simplify param vecs)
+        in (head simplified, last simplified) === (V.head vecs, V.last vecs)
 
 fisherYatesList :: [a] -> [a]
 fisherYatesList xs = runST $ do
