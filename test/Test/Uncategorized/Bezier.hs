@@ -226,7 +226,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
         showText (show (length beziers) ++ " curves")
 
     let subpoints = beziers >>= (V.fromList . bezierSubdivideT 10)
-    let simplified = simplifyTrajectory 0.05 subpoints
+    let simplified = simplifyTrajectoryRdp 0.05 subpoints
     cairoScope $ do
         let fit :: Transform geo => geo -> geo
             fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))

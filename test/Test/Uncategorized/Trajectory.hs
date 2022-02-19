@@ -31,8 +31,8 @@ simplifyPathTests :: TestTree
 simplifyPathTests = testGroup "Simplify path"
     [ testGroup "Ramer-Douglas-Peucker"
         [ testVisual "Simplify function graph" 400 300 "docs/interpolation/3_simplify_path_rdp"
-            (simplifyFunctionGraphTest reds simplifyTrajectory [ 2**(-e) | e <- [10,9..1]])
-        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectory
+            (simplifyFunctionGraphTest reds simplifyTrajectoryRdp [ 2**(-e) | e <- [10,9..1]])
+        , simplifyKeepsEndPoints "End points are always kept" 1000 simplifyTrajectoryRdp
         , simplifyPathRegressionTest
         ]
     , testGroup "Visvalingam-Whyatt"
@@ -104,7 +104,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
 simplifyPathRegressionTest :: TestTree
 simplifyPathRegressionTest = localOption (Timeout (10^5) "100ms") $ testCase "Can handle cyclic paths" $ do
     let cyclicPath = V.fromList [Vec2 1 0, Vec2 1 1, Vec2 1 0]
-        simplified = simplifyTrajectory 100 cyclicPath
+        simplified = simplifyTrajectoryRdp 100 cyclicPath
     assertBool "The algorithm did not terminate" (simplified `seq` True)
 
 simplifyThreePointsSmokeTest :: TestTree

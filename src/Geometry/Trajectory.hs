@@ -6,9 +6,6 @@ module Geometry.Trajectory (
     , Reassemble.reassembleLines
 
     -- * Path simplifiers
-    , simplifyTrajectory
-    , simplifyTrajectoryBy
-
     , SimplifyRdp.simplifyTrajectoryRdp
     , SimplifyRdp.simplifyTrajectoryRdpBy
 
@@ -23,7 +20,6 @@ module Geometry.Trajectory (
 
 import           Data.Foldable
 import           Data.Sequential
-import           Data.Vector     (Vector)
 import qualified Data.Vector     as V
 import           Prelude         hiding (lines)
 
@@ -66,20 +62,3 @@ pointOnTrajectory points
         let (start, line) = lookupBiasLower lut dist
             distLeft = dist -. start
         in moveAlongLine line distLeft
-
-simplifyTrajectory
-    :: Sequential vector
-    => Double
-    -> vector Vec2
-    -> Vector Vec2
-simplifyTrajectory = simplifyTrajectoryRdp
-{-# DEPRECATED simplifyTrajectory "Old name of simplifyTrajectoryRdp" #-}
-
-simplifyTrajectoryBy
-    :: Sequential vector
-    => Double
-    -> (a -> Vec2)
-    -> vector a
-    -> Vector a
-simplifyTrajectoryBy = simplifyTrajectoryRdpBy
-{-# DEPRECATED simplifyTrajectoryBy "Old name of simplifyTrajectoryRdpBy" #-}

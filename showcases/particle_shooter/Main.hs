@@ -105,7 +105,7 @@ systemSetup config@SystemConfig{..} = do
             let getTrajectory sol = [(x, norm v) | (_t, (x, v)) <- sol]
                 timeCutoff = takeWhile (\(t, _) -> t < 3000)
                 spaceCutoff = takeWhile (\(_t, (x, _v)) -> overlappingBoundingBoxes x _boundingBox)
-                simplify = simplifyTrajectoryBy 1 (\(x, _v) -> x)
+                simplify = simplifyTrajectoryRdpBy 1 (\(x, _v) -> x)
             in ((simplify . V.fromList . getTrajectory . timeCutoff . spaceCutoff) odeSolution, ic)
         trajectoriesNF = trajectoryThunks `using` parListChunk 64 rdeepseq
 
@@ -129,7 +129,7 @@ render SystemResult{..} = do
         isosAt = isoLines isoGrid _potential
         isoThresholds = [1.0, 1.05 .. 2.5]
 
-        isosWithThresolds = [(threshold, map (V.toList . bezierSmoothen . simplifyTrajectory 1 . V.fromList) (isosAt threshold)) | threshold <- isoThresholds]
+        isosWithThresolds = [(threshold, map (V.toList . bezierSmoothen . simplifyTrajectoryRdp 1 . V.fromList) (isosAt threshold)) | threshold <- isoThresholds]
             `using` parList (evalTuple2 r0 rdeepseq)
     for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
         liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
