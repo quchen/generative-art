@@ -1,7 +1,14 @@
--- | https://weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
+-- | Adaptation of https://weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
+--
+-- Based on example code by Stefan Gustavson (stegu@itn.liu.se).
+-- Optimisations by Peter Eastman (peastman@drizzle.stanford.edu).
+-- Better rank ordering method for 4D by Stefan Gustavson in 2012.
+--
+-- This code was placed in the public domain by its original author,
+-- Stefan Gustavson. You may use it as you see fit, but
+-- attribution is appreciated.
 module Geometry.Algorithms.SimplexNoise (
       noise2
-    , noise2'
 ) where
 
 
@@ -16,37 +23,6 @@ import Debug.Trace
 
 
 
-data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
-data Vec3 = Vec3 !Double !Double !Double deriving (Eq, Ord, Show)
-data Vec4 = Vec4 !Double !Double !Double !Double deriving (Eq, Ord, Show)
-
-
---   // Inner class to speed up gradient computations
---   // (In Java, array access is a lot slower than member access)
---   private static class Grad
---   {
---     double x, y, z, w;
---
---     Grad(double x, double y, double z)
---     {
---       this.x = x;
---       this.y = y;
---       this.z = z;
---     }
---
---     Grad(double x, double y, double z, double w)
---     {
---       this.x = x;
---       this.y = y;
---       this.z = z;
---       this.w = w;
---     }
---   }
-
--- | To speed up gradient calculations
-data Grad2 = Grad2 !Double !Double
-    deriving (Eq, Ord, Show)
-
 -- | To speed up gradient calculations
 data Grad3 = Grad3 !Double !Double !Double
     deriving (Eq, Ord, Show)
@@ -56,13 +32,6 @@ data Grad4 = Grad4 !Double !Double !Double !Double
     deriving (Eq, Ord, Show)
 
 
-grad2 :: Vector Grad2
-grad2 = V.fromList
-    [ Grad2 1    1
-    , Grad2 (-1) 1
-    , Grad2 1    (-1)
-    , Grad2 (-1) (-1)
-    ]
 
 --   private static Grad grad3[] = {new Grad(1,1,0),new Grad(-1,1,0),new Grad(1,-1,0),new Grad(-1,-1,0),
 --                                  new Grad(1,0,1),new Grad(-1,0,1),new Grad(1,0,-1),new Grad(-1,0,-1),
@@ -188,241 +157,73 @@ f4 = (sqrt 5-1)/4
 g4 = (5-sqrt 5)/20
 
 
---   // This method is a *lot* faster than using (int)Math.floor(x)
---   private static int fastfloor(double x) {
---     int xi = (int)x;
---     return x<xi ? xi-1 : xi;
---   }
---
-
---   private static double dot(Grad g, double x, double y) {
---     return g.x*x + g.y*y; }
-
 dot2 :: Grad3 -> Double -> Double -> Double
 dot2 (Grad3 gx gy _) x y = gx*x + gy*y
-
---   private static double dot(Grad g, double x, double y, double z) {
---     return g.x*x + g.y*y + g.z*z; }
 
 dot3 :: Grad3 -> Double -> Double -> Double -> Double
 dot3 (Grad3 gx gy gz) x y z = gx*x + gy*y + gz*z
 
---   private static double dot(Grad g, double x, double y, double z, double w) {
---     return g.x*x + g.y*y + g.z*z + g.w*w; }
-
 dot4 :: Grad4 -> Double -> Double -> Double -> Double -> Double
 dot4 (Grad4 gx gy gz gw) x y z w = gx*x + gy*y + gz*z + gw*w
 
---
---   // 2D simplex noise
---   public static double noise(double xin, double yin) {
-
+-- | 2D simplex noise
 noise2 :: Double -> Double -> Double
 noise2 xin yin =
     let
---     double n0, n1, n2; // Noise contributions from the three corners
---     // Skew the input space to determine which simplex cell we're in
---     double s = (xin+yin)*F2; // Hairy factor for 2D
-        s = (xin+yin)*f2 :: Double
---     int i = fastfloor(xin+s);
-        i = floor (xin+s) :: Int
---     int j = fastfloor(yin+s);
-        j = floor (yin+s) :: Int
---     double t = (i+j)*G2;
-        t = (fromIntegral (i+j))*g2 :: Double
---     double X0 = i-t; // Unskew the cell origin back to (x,y) space
---     double Y0 = j-t;
-        xx0 = fromIntegral i-t :: Double
-        yy0 = fromIntegral j-t :: Double
---     double x0 = xin-X0; // The x,y distances from the cell origin
---     double y0 = yin-Y0;
-        x0 = xin-xx0
-        y0 = yin-yy0
---     // For the 2D case, the simplex shape is an equilateral triangle.
---     // Determine which simplex we are in.
---     int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
-        i1,j1 :: Int
---     if(x0>y0) {i1=1; j1=0;} // lower triangle, XY order: (0,0)->(1,0)->(1,1)
---     else {i1=0; j1=1;}      // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+        -- Skew the input space to determine which simplex cell we’re in
+        i, j :: Int
+        (i,j) = (floor (xin+s), floor (yin+s))
+          where
+            s = (xin+yin)*f2  -- Hairy factor for 2D
+
+        x0, y0 :: Double
+        (x0, y0) = (xin-xx0, yin-yy0) -- The x,y distances from the cell origin
+          where
+            t = (fromIntegral (i+j))*g2
+            xx0 = fromIntegral i-t -- Unskew the cell origin back to (x,y) space
+            yy0 = fromIntegral j-t
+
+        -- For the 2D case, the simplex shape is an equilateral triangle.
+        -- Determine which simplex we are in.
+        i1, j1 :: Int -- Offsets for second (middle) corner of simplex in (i,j) coords
         (i1, j1)
-            | x0>y0 = (1,0)
-            | otherwise = (0,1)
---     // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
---     // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
---     // c = (3-sqrt(3))/6
---     double x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
---     double y1 = y0 - j1 + G2;
---     double x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
---     double y2 = y0 - 1.0 + 2.0 * G2;
-        x1, y1, x2, y2 :: Double
-        x1 = x0 - fromIntegral i1 + g2
-        y1 = y0 - fromIntegral j1 + g2
-        x2 = x0 - 1 + 2 * g2
-        y2 = y0 - 1 + 2 * g2
---     // Work out the hashed gradient indices of the three simplex corners
---     int ii = i & 255;
---     int jj = j & 255;
-        ii, jj :: Int
-        ii = i .&. 255
-        jj = j .&. 255
---     int gi0 = permMod12[ii+perm[jj]];
---     int gi1 = permMod12[ii+i1+perm[jj+j1]];
---     int gi2 = permMod12[ii+1+perm[jj+1]];
+            | x0>y0 = (1,0) -- lower triangle, XY order: (0,0)->(1,0)->(1,1)
+            | otherwise = (0,1) -- upper triangle, YX order: (0,0)->(0,1)->(1,1)
+
+        -- A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        -- a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where c = (3-sqrt 3)/6
+        x1, y1 :: Double
+        (x1, y1) = (x0 - fromIntegral i1 + g2, y0 - fromIntegral j1 + g2) -- Offsets for middle corner in (x,y) unskewed coords
+
+        x2, y2 :: Double
+        (x2, y2) = (x0 - 1 + 2 * g2, y0 - 1 + 2 * g2) -- Offsets for last corner in (x,y) unskewed coords
+
+        -- Work out the hashed gradient indices of the three simplex corners
         gi0, gi1, gi2 :: Int
-        gi0 = permMod12 ! (ii+   (perm ! jj     ))
-        gi1 = permMod12 ! (ii+i1+(perm ! (jj+j1)))
-        gi2 = permMod12 ! (ii+1+ (perm ! (jj+1) ))
+        (gi0, gi1, gi2) =
+            ( permMod12 ! (ii+   (perm ! jj     ))
+            , permMod12 ! (ii+i1+(perm ! (jj+j1)))
+            , permMod12 ! (ii+1+ (perm ! (jj+1) )))
+          where
+            ii = i .&. 255
+            jj = j .&. 255
 
---     // Calculate the contribution from the three corners
---     double t0 = 0.5 - x0*x0-y0*y0;
---     if(t0<0) n0 = 0.0;
---     else {
---       t0 *= t0;
---       n0 = t0 * t0 * dot(grad3[gi0], x0, y0);  // (x,y) of grad3 used for 2D gradient
---     }
-        n0 =
-            let t0 = 0.5 - x0*x0-y0*y0;
-                t00 = t0^2
-            in if t0 < 0
-                then 0
-                else t00 * t00 * dot2 (grad3!gi0) x0 y0
-
---     double t1 = 0.5 - x1*x1-y1*y1;
---     if(t1<0) n1 = 0.0;
---     else {
---       t1 *= t1;
---       n1 = t1 * t1 * dot(grad3[gi1], x1, y1);
---     }
-        n1 =
-            let t1 = 0.5 - x1*x1-y1*y1
-                t11 = t1^2
+        cornerContribution x y gi =
+            let t1 = 0.5 - x*x - y*y;
+                t2 = t1^2
             in if t1 < 0
                 then 0
-                else t11 * t11 * dot2 (grad3!gi1) x1 y1
+                else t2 * t2 * dot2 (grad3!gi) x y
 
---     double t2 = 0.5 - x2*x2-y2*y2;
---     if(t2<0) n2 = 0.0;
---     else {
---       t2 *= t2;
---       n2 = t2 * t2 * dot(grad3[gi2], x2, y2);
---     }
-        n2 =
-            let t2 = 0.5 - x2*x2-y2*y2
-                t22 = t2^2
-            in if t2 < 0
-                then 0
-                else t22 * t22 * dot2 (grad3!gi2) x2 y2
+        -- Noise contributions from the three corners
+        n0, n1, n2 :: Double
+        [n0, n1, n2] = [cornerContribution x y gi | (x,y,gi) <- [(x0,y0,gi0), (x1,y1,gi1), (x2,y2,gi2)]]
 
---     // Add contributions from each corner to get the final noise value.
---     // The result is scaled to return values in the interval [-1,1].
---     return 70.0 * (n0 + n1 + n2);
---   }
+    in
+        -- Add contributions from each corner to get the final noise value.
+        -- The result is scaled to return values in the interval [-1,1].
+        70 * (n0 + n1 + n2)
 
-    in 70 * (n0 + n1 + n2)
-
-
-noise2' :: Double -> Double -> Double
-noise2' xin yin =
-    let
---     double n0, n1, n2; // Noise contributions from the three corners
---     // Skew the input space to determine which simplex cell we're in
---     double s = (xin+yin)*F2; // Hairy factor for 2D
-        s = (xin+yin)*f2 :: Double
---     int i = fastfloor(xin+s);
-        i = floor (xin+s) :: Int
---     int j = fastfloor(yin+s);
-        j = floor (yin+s) :: Int
---     double t = (i+j)*G2;
-        t = (fromIntegral (i+j))*g2 :: Double
---     double X0 = i-t; // Unskew the cell origin back to (x,y) space
---     double Y0 = j-t;
-        xx0 = fromIntegral i-t :: Double
-        yy0 = fromIntegral j-t :: Double
---     double x0 = xin-X0; // The x,y distances from the cell origin
---     double y0 = yin-Y0;
-        x0 = xin-xx0
-        y0 = yin-yy0
---     // For the 2D case, the simplex shape is an equilateral triangle.
---     // Determine which simplex we are in.
---     int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
-        i1,j1 :: Int
---     if(x0>y0) {i1=1; j1=0;} // lower triangle, XY order: (0,0)->(1,0)->(1,1)
---     else {i1=0; j1=1;}      // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-        (i1, j1)
-            | x0>y0 = (1,0)
-            | otherwise = (0,1)
---     // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
---     // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
---     // c = (3-sqrt(3))/6
---     double x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
---     double y1 = y0 - j1 + G2;
---     double x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
---     double y2 = y0 - 1.0 + 2.0 * G2;
-        x1, y1, x2, y2 :: Double
-        x1 = x0 - fromIntegral i1 + g2
-        y1 = y0 - fromIntegral j1 + g2
-        x2 = x0 - 1 + 2 * g2
-        y2 = y0 - 1 + 2 * g2
---     // Work out the hashed gradient indices of the three simplex corners
---     int ii = i & 255;
---     int jj = j & 255;
-        ii, jj :: Int
-        ii = i .&. 255
-        jj = j .&. 255
---     int gi0 = permMod12[ii+perm[jj]];
---     int gi1 = permMod12[ii+i1+perm[jj+j1]];
---     int gi2 = permMod12[ii+1+perm[jj+1]];
-        gi0, gi1, gi2 :: Int
-        gi0 = permMod12 ! (ii+   (perm ! jj     ))
-        gi1 = permMod12 ! (ii+i1+(perm ! (jj+j1)))
-        gi2 = permMod12 ! (ii+1+ (perm ! (jj+1) ))
-
---     // Calculate the contribution from the three corners
---     double t0 = 0.5 - x0*x0-y0*y0;
---     if(t0<0) n0 = 0.0;
---     else {
---       t0 *= t0;
---       n0 = t0 * t0 * dot(grad3[gi0], x0, y0);  // (x,y) of grad3 used for 2D gradient
---     }
-        n0 =
-            let t0 = 0.5 - x0*x0-y0*y0;
-                t00 = t0^2
-            in if t0 < 0
-                then 0
-                else t00 * t00 * dot2 (grad3!gi0) x0 y0
-
---     double t1 = 0.5 - x1*x1-y1*y1;
---     if(t1<0) n1 = 0.0;
---     else {
---       t1 *= t1;
---       n1 = t1 * t1 * dot(grad3[gi1], x1, y1);
---     }
-        n1 =
-            let t1 = 0.5 - x1*x1-y1*y1
-                t11 = t1^2
-            in if t1 < 0
-                then 0
-                else t11 * t11 * dot2 (grad3!gi1) x1 y1
-
---     double t2 = 0.5 - x2*x2-y2*y2;
---     if(t2<0) n2 = 0.0;
---     else {
---       t2 *= t2;
---       n2 = t2 * t2 * dot(grad3[gi2], x2, y2);
---     }
-        n2 =
-            let t2 = 0.5 - x2*x2-y2*y2
-                t22 = t2^2
-            in if t2 < 0
-                then 0
-                else t22 * t22 * dot2 (grad3!gi2) x2 y2
-
---     // Add contributions from each corner to get the final noise value.
---     // The result is scaled to return values in the interval [-1,1].
---     return 70.0 * (n0 + n1 + n2);
---   }
-
-    in 70 * (n0 + n1 + n2)
 
 
 
@@ -431,7 +232,7 @@ noise2' xin yin =
 --   // 3D simplex noise
 --   public static double noise(double xin, double yin, double zin) {
 --     double n0, n1, n2, n3; // Noise contributions from the four corners
---     // Skew the input space to determine which simplex cell we're in
+--     // Skew the input space to determine which simplex cell we’re in
 --     double s = (xin+yin+zin)*F3; // Very nice and simple skew factor for 3D
 --     int i = fastfloor(xin+s);
 --     int j = fastfloor(yin+s);
@@ -514,7 +315,7 @@ noise2' xin yin =
 --   public static double noise(double x, double y, double z, double w) {
 --
 --     double n0, n1, n2, n3, n4; // Noise contributions from the five corners
---     // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
+--     // Skew the (x,y,z,w) space to determine which cell of 24 simplices we’re in
 --     double s = (x + y + z + w) * F4; // Factor for 4D skewing
 --     int i = fastfloor(x + s);
 --     int j = fastfloor(y + s);
@@ -530,7 +331,7 @@ noise2' xin yin =
 --     double z0 = z - Z0;
 --     double w0 = w - W0;
 --     // For the 4D case, the simplex is a 4D shape I won't even try to describe.
---     // To find out which of the 24 possible simplices we're in, we need to
+--     // To find out which of the 24 possible simplices we’re in, we need to
 --     // determine the magnitude ordering of x0, y0, z0 and w0.
 --     // Six pair-wise comparisons are performed between each possible pair
 --     // of the four coordinates, and the results are used to rank the numbers.
