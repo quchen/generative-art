@@ -21,7 +21,7 @@ data PerlinParameters = PerlinParameters
         --   'def'ault: 1.
 
     , _perlinLacunarity :: Double
-        -- ^ Frequency multiplier between octaves.
+        -- ^ Amplitude factor between octaves.
         --   'def'ault: 2.
 
     , _perlinOctaves :: Int

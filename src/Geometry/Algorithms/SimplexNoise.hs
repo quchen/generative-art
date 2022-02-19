@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 -- | Adaptation of https:--weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
 --
 -- Based on example code by Stefan Gustavson (stegu@itn.liu.se).
@@ -8,19 +10,23 @@
 -- Stefan Gustavson. You may use it as you see fit, but
 -- attribution is appreciated.
 module Geometry.Algorithms.SimplexNoise (
-      noise2
-    , noise3
-    , noise4
+      SimplexParameters(..)
+    , simplex2
+    , simplex3
+    , simplex4
 ) where
 
 
 
 import           Control.Monad.ST
 import           Data.Bits
+import           Data.Default.Class
 import           Data.List
 import           Data.STRef
-import           Data.Vector      (Vector, (!))
-import qualified Data.Vector      as V
+import           Data.Vector        (Vector, (!))
+import qualified Data.Vector        as V
+
+import Geometry.Core
 
 
 
@@ -122,9 +128,12 @@ dot3 (Grad3 gx gy gz) x y z = gx*x + gy*y + gz*z
 dot4 :: Grad4 -> Double -> Double -> Double -> Double -> Double
 dot4 (Grad4 gx gy gz gw) x y z w = gx*x + gy*y + gz*z + gw*w
 
--- | 2D simplex noise
-noise2 :: Double -> Double -> Double
-noise2 xin yin =
+-- | Raw 2D simplex noise, with ampltude 1 and frequency 1/px.
+rawSimplexNoise2
+    :: Double -- ^ x
+    -> Double -- ^ y
+    -> Double -- ^ \(\in [-1,1]\)
+rawSimplexNoise2 xin yin =
     let
         -- Skewing and unskewing factors for 2 dimensions
         f2, g2 :: Double
@@ -195,9 +204,13 @@ noise2 xin yin =
         -- The result is scaled to return values in the interval [-1,1].
         70 * sum' cornerContributions
 
-
-noise3 :: Double -> Double -> Double -> Double
-noise3 xin yin zin =
+-- | Raw 3D simplex noise, with ampltude 1 and frequency 1/px.
+rawSimplexNoise3
+    :: Double -- ^ x
+    -> Double -- ^ y
+    -> Double -- ^ z
+    -> Double -- ^ \(\in [-1,1]\)
+rawSimplexNoise3 xin yin zin =
     let
         -- Skewing and unskewing factors for 2 dimensions
         f3, g3 :: Double
@@ -290,9 +303,14 @@ noise3 xin yin zin =
         -- The result is scaled to stay just inside [-1,1]
         32 * sum' cornerContributions
 
-
-noise4 :: Double -> Double -> Double -> Double -> Double
-noise4 xin yin zin win =
+-- | Raw 4D simplex noise, with ampltude 1 and frequency 1/px.
+rawSimplexNoise4
+    :: Double -- ^ x
+    -> Double -- ^ y
+    -> Double -- ^ z
+    -> Double -- ^ w
+    -> Double -- ^ \(\in [-1,1]\)
+rawSimplexNoise4 xin yin zin win =
     let
         -- Skewing and unskewing factors for 4 dimensions
         f4, g4 :: Double
@@ -426,3 +444,71 @@ noise4 xin yin zin win =
         cornerContributions@[_, _, _, _, _] = [cornerContribution x y z w gi | (x,y,z,w,gi) <- [(x0,y0,z0,w0,gi0), (x1,y1,z1,w1,gi1), (x2,y2,z2,w2,gi2), (x3,y3,z3,w3,gi3), (x4,y4,z4,w4,gi4)]]
 
     in 27 * sum' cornerContributions
+
+-- | Named arguments for 'simplex2', 'simplex3', 'simplex4'.
+data SimplexParameters = SimplexParameters
+    { _simplexFrequency :: Double
+        -- ^ Frequency of the first octave, e.g. \(\frac1{2\text{width}}\) to span the whole width of the picture.
+        --   'def'ault: 1.
+
+    , _simplexLacunarity :: Double
+        -- ^ Frequency multiplier between octaves.
+        --   'def'ault: 2.
+
+    , _simplexOctaves :: Int
+        -- ^ Number of octaves to generate.
+        --   'def'ault: 6.
+
+    , _simplexPersistence :: Double
+        -- ^ Amplitude multiplier between octaves.
+        --   'def'ault: 0.5.
+    } deriving (Eq, Ord, Show)
+
+instance Default SimplexParameters where
+    def = SimplexParameters
+        { _simplexFrequency   = 1
+        , _simplexLacunarity  = 2
+        , _simplexOctaves     = 6
+        , _simplexPersistence = 0.5
+        }
+
+-- | Two-dimensional simplex noise.
+simplex2 :: SimplexParameters -> Vec2 -> Double
+simplex2 SimplexParameters{..} (Vec2 x y) =
+    let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
+        amplitudes = iterate (* _simplexPersistence) 1
+    in sum' (take _simplexOctaves
+                  (zipWith (\freq amp -> amp * rawSimplexNoise2 (x*freq) (y*freq))
+                           frequencies
+                           amplitudes))
+
+-- | Three-dimensional simplex noise.
+simplex3
+    :: SimplexParameters
+    -> Double -- ^ x
+    -> Double -- ^ y
+    -> Double -- ^ z
+    -> Double
+simplex3 SimplexParameters{..} x y z =
+    let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
+        amplitudes = iterate (* _simplexPersistence) 1
+    in sum' (take _simplexOctaves
+                  (zipWith (\freq amp -> amp * rawSimplexNoise3 (x*freq) (y*freq) (z*freq))
+                           frequencies
+                           amplitudes))
+
+-- | Four-dimensional simplex noise.
+simplex4
+    :: SimplexParameters
+    -> Double -- ^ x
+    -> Double -- ^ y
+    -> Double -- ^ z
+    -> Double -- ^ w
+    -> Double
+simplex4 SimplexParameters{..} x y z w =
+    let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
+        amplitudes = iterate (* _simplexPersistence) 1
+    in sum' (take _simplexOctaves
+                  (zipWith (\freq amp -> amp * rawSimplexNoise4 (x*freq) (y*freq) (z*freq) (w*freq))
+                           frequencies
+                           amplitudes))
