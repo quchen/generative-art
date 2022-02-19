@@ -1,6 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
--- | Adaptation of https:--weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
+-- | Simplex noise functions in various dimensions.
+--
+-- Adaptation of https:--weber.itn.liu.se/~stegu/simplexnoise/SimplexNoise.java
 --
 -- Based on example code by Stefan Gustavson (stegu@itn.liu.se).
 -- Optimisations by Peter Eastman (peastman@drizzle.stanford.edu).
@@ -18,13 +20,16 @@ module Geometry.Algorithms.SimplexNoise (
 
 
 
+import           Control.Monad.Primitive
 import           Control.Monad.ST
 import           Data.Bits
 import           Data.Default.Class
 import           Data.List
 import           Data.STRef
-import           Data.Vector        (Vector, (!))
-import qualified Data.Vector        as V
+import           Data.Vector.Extended    (Vector, (!))
+import qualified Data.Vector.Extended    as V
+import qualified Data.Vector.Mutable     as VM
+import qualified System.Random.MWC       as MWC
 
 import Geometry.Core
 
@@ -94,31 +99,6 @@ grad4 = V.fromList
     , Grad4 (-1) (-1) (-1) 0
     ]
 
-perm :: Vector Int
-perm = fmap (.&. 255) (p <> p)
-  -- To remove the need for index wrapping, double the permutation table length
-  where
-    p = V.fromList
-        [ 151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
-        140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
-        120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177,
-        33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71,
-        134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133,
-        230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161,
-        1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130,
-        116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250,
-        124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227,
-        47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44,
-        154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98,
-        108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34,
-        242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14,
-        239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121,
-        50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243,
-        141, 128, 195, 78, 66, 215, 61, 156, 180 ]
-
-permMod12 :: Vector Int
-permMod12 = fmap (`mod` 12) perm
-
 dot2 :: Grad3 -> Double -> Double -> Double
 dot2 (Grad3 gx gy _) x y = gx*x + gy*y
 
@@ -130,10 +110,12 @@ dot4 (Grad4 gx gy gz gw) x y z w = gx*x + gy*y + gz*z + gw*w
 
 -- | Raw 2D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise2
-    :: Double -- ^ x
-    -> Double -- ^ y
-    -> Double -- ^ \(\in [-1,1]\)
-rawSimplexNoise2 xin yin =
+    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    -> Vector Int -- ^ Permutation table mod 12.
+    -> Double     -- ^ x
+    -> Double     -- ^ y
+    -> Double     -- ^ \(\in [-1,1]\)
+rawSimplexNoise2 perm permMod12 xin yin =
     let
         -- Skewing and unskewing factors for 2 dimensions
         f2, g2 :: Double
@@ -206,11 +188,13 @@ rawSimplexNoise2 xin yin =
 
 -- | Raw 3D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise3
-    :: Double -- ^ x
-    -> Double -- ^ y
-    -> Double -- ^ z
-    -> Double -- ^ \(\in [-1,1]\)
-rawSimplexNoise3 xin yin zin =
+    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    -> Vector Int -- ^ Permutation table mod 12.
+    -> Double     -- ^ x
+    -> Double     -- ^ y
+    -> Double     -- ^ z
+    -> Double     -- ^ \(\in [-1,1]\)
+rawSimplexNoise3 perm permMod12 xin yin zin =
     let
         -- Skewing and unskewing factors for 2 dimensions
         f3, g3 :: Double
@@ -305,12 +289,14 @@ rawSimplexNoise3 xin yin zin =
 
 -- | Raw 4D simplex noise, with ampltude 1 and frequency 1/px.
 rawSimplexNoise4
-    :: Double -- ^ x
-    -> Double -- ^ y
-    -> Double -- ^ z
-    -> Double -- ^ w
-    -> Double -- ^ \(\in [-1,1]\)
-rawSimplexNoise4 xin yin zin win =
+    :: Vector Int -- ^ Permutation of [0..256], concatenated with itself to save us a modulo calculation.
+    -> Vector Int -- ^ Permutation table mod 32.
+    -> Double     -- ^ x
+    -> Double     -- ^ y
+    -> Double     -- ^ z
+    -> Double     -- ^ w
+    -> Double     -- ^ \(\in [-1,1]\)
+rawSimplexNoise4 perm permMod32 xin yin zin win =
     let
         -- Skewing and unskewing factors for 4 dimensions
         f4, g4 :: Double
@@ -421,11 +407,11 @@ rawSimplexNoise4 xin yin zin win =
         -- Work out the hashed gradient indices of the five simplex corners
         gi0, gi1, gi2, gi3, gi4 :: Int
         (gi0, gi1, gi2, gi3, gi4) =
-            ( perm ! (ii+   perm ! (jj+   perm ! (kk+   perm ! (ll   )))) `mod` 32
-            , perm ! (ii+i1+perm ! (jj+j1+perm ! (kk+k1+perm ! (ll+l1)))) `mod` 32
-            , perm ! (ii+i2+perm ! (jj+j2+perm ! (kk+k2+perm ! (ll+l2)))) `mod` 32
-            , perm ! (ii+i3+perm ! (jj+j3+perm ! (kk+k3+perm ! (ll+l3)))) `mod` 32
-            , perm ! (ii+1+ perm ! (jj+1+ perm ! (kk+1+ perm ! (ll+1 )))) `mod` 32
+            ( permMod32 ! (ii+   perm ! (jj+   perm ! (kk+   perm ! (ll   ))))
+            , permMod32 ! (ii+i1+perm ! (jj+j1+perm ! (kk+k1+perm ! (ll+l1))))
+            , permMod32 ! (ii+i2+perm ! (jj+j2+perm ! (kk+k2+perm ! (ll+l2))))
+            , permMod32 ! (ii+i3+perm ! (jj+j3+perm ! (kk+k3+perm ! (ll+l3))))
+            , permMod32 ! (ii+1+ perm ! (jj+1+ perm ! (kk+1+ perm ! (ll+1 ))))
             )
           where
             ii = i .&. 255
@@ -472,43 +458,81 @@ instance Default SimplexParameters where
         , _simplexPersistence = 0.5
         }
 
+createPermutationTable :: PrimMonad st => MWC.Gen (PrimState st) -> st (Vector Int)
+createPermutationTable gen = do
+    vecMut <- VM.generate 256 id
+    V.fisherYatesShuffle gen vecMut
+    vec <- V.unsafeFreeze vecMut
+    pure (vec <> vec) -- To remove the need for index wrapping, double the permutation table length
+
 -- | Two-dimensional simplex noise.
-simplex2 :: SimplexParameters -> Vec2 -> Double
-simplex2 SimplexParameters{..} (Vec2 x y) =
+--
+-- @
+-- noiseFunction = 'runST' $ do
+--     gen <- 'MWC.create'
+--     'simplex2' 'def' gen
+-- 'for_' [1..10] $ \x ->
+--     'for_' [1..10] $ \y ->
+--         'print' ('noiseFunction' x y)
+-- @
+simplex2
+    :: PrimMonad st
+    => SimplexParameters
+    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> st (Vec2 -> Double)
+simplex2 SimplexParameters{..} gen = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
-    in sum' (take _simplexOctaves
-                  (zipWith (\freq amp -> amp * rawSimplexNoise2 (x*freq) (y*freq))
-                           frequencies
-                           amplitudes))
+    perm <- createPermutationTable gen
+    pure $ \(Vec2 x y) ->
+        sum' (take _simplexOctaves
+                   (zipWith (\freq amp ->
+                                (*) amp
+                                    (rawSimplexNoise2 perm
+                                                      (fmap (`mod` 12) perm)
+                                                      (x*freq)
+                                                      (y*freq)))
+                            frequencies
+                            amplitudes))
 
--- | Three-dimensional simplex noise.
+-- | Three-dimensional simplex noise. See 'simplex2' for a code example.
 simplex3
-    :: SimplexParameters
-    -> Double -- ^ x
-    -> Double -- ^ y
-    -> Double -- ^ z
-    -> Double
-simplex3 SimplexParameters{..} x y z =
+    :: PrimMonad st
+    => SimplexParameters
+    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> st (Double -> Double -> Double -> Double) -- ^ \(\text{noise}(x,y,z)\)
+simplex3 SimplexParameters{..} gen = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
-    in sum' (take _simplexOctaves
-                  (zipWith (\freq amp -> amp * rawSimplexNoise3 (x*freq) (y*freq) (z*freq))
-                           frequencies
-                           amplitudes))
+    perm <- createPermutationTable gen
+    pure $ \x y z ->
+        sum' (take _simplexOctaves
+                   (zipWith (\freq amp ->
+                                (*) amp
+                                    (rawSimplexNoise3 perm
+                                                      (fmap (`mod` 12) perm)
+                                                      (x*freq)
+                                                      (y*freq) (z*freq)))
+                            frequencies
+                            amplitudes))
 
--- | Four-dimensional simplex noise.
+-- | Four-dimensional simplex noise. See 'simplex2' for a code example.
 simplex4
-    :: SimplexParameters
-    -> Double -- ^ x
-    -> Double -- ^ y
-    -> Double -- ^ z
-    -> Double -- ^ w
-    -> Double
-simplex4 SimplexParameters{..} x y z w =
+    :: PrimMonad st
+    => SimplexParameters
+    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> st (Double -> Double -> Double -> Double -> Double) -- ^ \(\text{noise}(x,y,z,w)\)
+simplex4 SimplexParameters{..} gen = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
-    in sum' (take _simplexOctaves
-                  (zipWith (\freq amp -> amp * rawSimplexNoise4 (x*freq) (y*freq) (z*freq) (w*freq))
-                           frequencies
-                           amplitudes))
+    perm <- createPermutationTable gen
+    pure $ \x y z w ->
+        sum' (take _simplexOctaves
+                   (zipWith (\freq amp ->
+                                (*) amp
+                                    (rawSimplexNoise4 perm
+                                                      (fmap (`mod` 32) perm)
+                                                      (x*freq)
+                                                      (y*freq) (z*freq) (w*freq)))
+                            frequencies
+                            amplitudes))
