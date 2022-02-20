@@ -25,12 +25,12 @@ import AccVectorSpace
 -- * 540p rendering:    spatialResolution = 5,  temporalResolution = 3 (better quality with 5), temporalResolutionWarmup = 10
 -- * Rapid prototyping: spatialResolution = 3,  temporalResolution = 2, temporalResolutionWarmup = 6
 spatialResolution, temporalResolution, temporalResolutionWarmup :: Num a => a
-spatialResolution = 3
-temporalResolution = 2
-temporalResolutionWarmup = 6
+spatialResolution = 10
+temporalResolution = 20
+temporalResolutionWarmup = 20
 
 totalFrames :: Int
-totalFrames = 3000
+totalFrames = 3500
 
 main :: IO ()
 main = do
@@ -83,10 +83,10 @@ simulation t0 initialState = takeWhile ((< totalFrames) . fst) (iterate (\(t, st
             else grayScott temporalResolution (scene (fromIntegral t)) (addNoise (fromIntegral t) gs state)
 
 addNoise :: Double -> GrayScott -> Grid -> Grid
-addNoise t GS{..} grid = GPU.runN (A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + (1 - u) * nu) (v - v * nu) du dv)) noiseGrid grid
+addNoise t GS{..} grid = CPU.runN (A.zipWith (\nu (A.T4 u v du dv) -> A.T4 (u + (1 - u) * nu) (v - v * nu) du dv)) noiseGrid grid
   where
     sh = runExp (A.shape (A.use grid))
-    noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x / spatialResolution, fromIntegral y / spatialResolution, t / 30))
+    noiseGrid = A.fromFunction sh (\(A.Z A.:. y A.:. x) -> noise (fromIntegral x / spatialResolution, fromIntegral y / spatialResolution, t / 100))
     noiseStrength = noiseU * step * temporalResolution
     noise = (noiseStrength *) . fromMaybe 0 . getValue perlin { perlinFrequency = 0.5 }
 
@@ -117,7 +117,7 @@ printProgress t0 t1 startFrame frame = do
     putStrLn (show (frame + 1) ++ "/" ++ show totalFrames ++ " Elapsed: " ++ showTimeDiff elapsedTime ++ " Remaining: " ++ showTimeDiff remainingTime ++ " ETA: " ++ showDateTime eta)
 
 scene :: Double -> GrayScott
-scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10 `t10` scene11 `t11` end
+scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6` scene7 `t7` scene8 `t8` scene9 `t9` scene10 `t10` scene11 --`t11` end
   where
     diffusionRate = 0.004
     baseParams = GS
@@ -129,28 +129,37 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
         , noiseU = 0
         }
     scene1 = baseParams
-    t1 = transition 580 50 t
+    t1 = transition 980 50 t
     scene2 = baseParams { step = 2 / temporalResolution }
-    t2 = transition 600 10 t
+    t2 = transition 1000 10 t
     scene3 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
-    t3 = transition 650 100 t
+    t3 = transition 1050 100 t
     scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
-    t4 = transition 700 50 t
-    scene5 = baseParams { killRateV = 0.062, step = 5 / temporalResolution }
-    t5 = transition 1200 50 t
+    t4 = transition 1100 50 t
+    scene5 = baseParams { killRateV = 0.062, step = 4 / temporalResolution }
+    t5 = transition 1500 50 t
     scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
-    t6 = linearTransition 1200 2200 t
-    scene7 = baseParams
-    t7 = transition 2200 25 t
-    scene8 = baseParams { killRateV = 0.065 }
-    t8 = transition 2300 50 t
-    scene9 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
-    t9 = linearTransition 2400 2500 t
-    scene10 = baseParams { killRateV = 0.060, feedRateU = 0.040, noiseU = 0.020 }
-    t10 = linearTransition 2500 3000 t
-    scene11 = baseParams { killRateV = 0.060, feedRateU = 0.030, noiseU = 0.020 }
-    t11 = transition 3000 50 t
-    end = baseParams { killRateV = 0.62 }
+    t6 = linearTransition 1500 1700 t
+    scene7 = baseParams { killRateV = 0.062, feedRateU = 0.040, noiseU = 0.020 }
+    t7 = linearTransition 1700 2400 t
+    scene8 = baseParams { noiseU = 0.010 }
+    t8 = transition 2500 20 t
+    scene9 = baseParams { killRateV = 0.065 }
+    t9 = transition 2525 50 t
+    scene10 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+    t10 = linearTransition 3000 3500 t
+    scene11 = baseParams { diffusionRateU = 2 * (diffusionRateU baseParams), diffusionRateV = 2 * (diffusionRateV baseParams), step = 5 / temporalResolution }
+
+    --t7 = transition 2200 25 t
+    --scene8 = baseParams { killRateV = 0.065 }
+    --t8 = transition 2300 50 t
+    --scene9 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+    --t9 = linearTransition 2400 2500 t
+    --scene10 = baseParams { killRateV = 0.060, feedRateU = 0.040, noiseU = 0.020 }
+    --t10 = linearTransition 2500 3000 t
+    --scene11 = baseParams { killRateV = 0.060, feedRateU = 0.030, noiseU = 0.020 }
+    --t11 = transition 3000 50 t
+    --end = baseParams { killRateV = 0.62 }
 
 transition :: Double -> Double -> Double -> GrayScott -> GrayScott -> GrayScott
 transition t0 duration t a b
@@ -218,7 +227,7 @@ data GrayScott = GS
 type UV = (Double, Double, Double, Double)
 
 grayScott :: Int -> GrayScott -> Grid -> Grid
-grayScott steps GS{..} = GPU.run1 (go steps . A.unzip . A.map (\(A.T4 u v du dv) -> A.T2 (A.T2 u v) (A.T2 du dv)))
+grayScott steps GS{..} = CPU.run1 (go steps . A.unzip . A.map (\(A.T4 u v du dv) -> A.T2 (A.T2 u v) (A.T2 du dv)))
   where
     go :: Int -> (A.Acc (A.Matrix (Double, Double)), A.Acc (A.Matrix (Double, Double))) -> A.Acc Grid
     go 0 (accUV, accDUDV) = A.zipWith (\(A.T2 u v) (A.T2 du dv) -> A.T4 u v du dv) accUV accDUDV
