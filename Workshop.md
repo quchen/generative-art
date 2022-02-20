@@ -1,27 +1,48 @@
+Zeit: 1.5h
+
+Einleitung (20min, realistisch 30min)
+=====================================
 
 
 
+Übersicht geben
+---------------
 
-Zeit: 1,5h
 
 
-Einleitung (20min, realistisch 30min):
-* Ein kleiner Showcase, Appetizer
-* Ggf. etwas mit Parametern herumspielen
-* Breakdown in Primitive
-* Dabei die Konzepte erklären
-    * Einen Teil des Schaffensprozesses an den Rechner abgeben
-    * Bild aus kleinen Einheiten oder Algorithmen zusammensetzen
-    * Randomness
-* Toolstack
+### Cooler Showcase: Voronoi3D
+
+Haskell-Logo wird zerschnitten.
+
+
+
+### Zu erklärende Konzepte:
+
+    * Rechner ist Werkzeug, der exakt und viel machen kann. Leider ist er völlig unkreativ.
+    * Komplexes Bild = Vervielfachung einfacher Schritte
+    * Zufall
+
+
+
+### Toolstack vorstellen
+
+An sich sprachagnostisch, aber wir verwenden hier:
+
     * Haskell
     * Cairo (Vektorgrafik)
     * Randomness: MWC-Random, Noise (Perlin)
     * Own Library (Geometry, etc.)
-* In principle language–agnostic, could be Python as well
 
-* A few more showcases
-    * Intention: »What a nice picture« -> breakdown -> »I could do that myself«
+### Paar mehr Showcases zeigen
+
+Intention: »Schönes Bild« -> Breakdown -> »Das könnte ich ja selber machen!«
+
+
+
+Mitcoden
+--------
+
+
 
 Ein Showcase zum Mitcoden (ca. 1h, 3x 20min)
 * Block 1:
@@ -40,30 +61,3 @@ Ein Showcase zum Mitcoden (ca. 1h, 3x 20min)
 * Am Ende von jedem Block: Show&Tell, Bilder irgendwo einsenden und zeigen
 * Letzte 5min, falls Zeit: Mögliche weitere Ideen, wie man das Beispiel noch fortsetzen kann
     * Effekte örtlich variieren, zB Zerfall von L->R
-
-
-
-
-
-
-
-
-TODOs:
-* Ein Showcase für die Intro
-* 2–3 Showcases aufbereiten
-* (/) Haupt-Showcase finden: Polygone zerschneiden
-    * TODO: Was zerschneiden wir?
-
-
-
-Potentielle große Themen:
-* Vektorfelder, …
-    * (-) man muss Konzepte erklären
-* Voronoi
-    * (+) Einfach erzeugt (API), recht wandelbar
-    * (-) Konzept schwerer erklärbar
-* Linien schneiden, shattering
-    * (+) Einfach erzeugt (API), recht wandelbar
-* Tiling (Penrose/Truchet)
-    * (-) etwas langweilig
-* Mondrian
