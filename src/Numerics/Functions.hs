@@ -3,7 +3,8 @@ module Numerics.Functions (
     -- * Ramps
     --
     -- | Ramps vary from 0 to 1 over their ramping interval.
-    logisticRamp
+      logisticRamp
+    , smoothstep
 
     -- * Falloffs and bumps
     --
@@ -14,6 +15,11 @@ module Numerics.Functions (
     , cauchyFalloff
     , smoothBump
 ) where
+
+
+
+import Numerics.Interpolation
+import Data.Ord.Extended
 
 
 
@@ -30,6 +36,20 @@ logisticRamp
     -> Double
     -> Double
 logisticRamp center beta x = 1/(1+exp(-(x-center)/beta))
+
+-- | Smoothstep function, varying symmetrically from 0 to 1 between its parameters.
+-- It should be called smoothstepRamp to follow this module’s nomenclature, but the
+-- name /smoothstep/ is very much standard.
+--
+-- https://en.wikipedia.org/wiki/Smoothstep
+smoothstep
+    :: Double -- ^ Start ramping here
+    -> Double -- ^ Finish ramping here
+    -> Double
+    -> Double
+smoothstep lo hi =
+    let smoothstep01 x = x*x*x*(x*(x*6-15)+10)
+    in smoothstep01 . linearInterpolate (lo, hi) (0, 1) . clamp lo hi
 
 -- | Smooth bump function: nonzero between -1 and 1, smooth over all of \(\mathbb R\).
 --
