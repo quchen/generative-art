@@ -5,6 +5,7 @@ import qualified Graphics.Rendering.Cairo as Cairo
 import Steps.A.HelloWorld
 import Steps.B.Squares
 import Steps.C.FlowFields
+import Steps.D.Shatter
 
 -- | Draw a 'Render' to PNG and SVG files.
 drawToFiles
@@ -25,3 +26,7 @@ main = do
     drawToFiles "bob2022/c_simpleVectorField" 400 400 Steps.C.FlowFields.drawSimpleVectorField
     drawToFiles "bob2022/c_fieldLines" 400 400 Steps.C.FlowFields.drawFieldLines
     drawToFiles "bob2022/c_fieldLinesWithRandomness" 400 400 Steps.C.FlowFields.drawFieldLinesWithRandomness
+    drawToFiles "bob2022/d_square" 400 400 Steps.D.Shatter.drawSquare
+    drawToFiles "bob2022/d_square_cut" 400 400 Steps.D.Shatter.drawSquareCut
+    drawToFiles "bob2022/d_square_shards" 400 400 Steps.D.Shatter.drawSquareShards
+    drawToFiles "bob2022/d_square_shattered" 400 400 Steps.D.Shatter.drawSquareShattered
