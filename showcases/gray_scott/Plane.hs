@@ -22,4 +22,4 @@ planeFromList xss = items
     items = fromList (Z :. sizeY :. sizeX) (Prelude.concat xss)
 
 mapNeighbours :: (Elt a, Elt b) => (Stencil3x3 a -> Exp b) -> Acc (Matrix a) -> Acc (Matrix b)
-mapNeighbours f = stencil f wrap
+mapNeighbours f = stencil f clamp
