@@ -3,17 +3,16 @@ module Main (main, main1, main2, main3) where
 
 
 
-import           Data.List
-import           Data.Maybe
-import           Data.Ord
-import qualified Data.Vector              as V
-import           Graphics.Rendering.Cairo as C
-import           Math.Noise               (Perlin (..), getValue, perlin)
-import           Prelude                  hiding ((**))
-import           System.Random.MWC
+import Data.List ( sortOn )
+import Data.Maybe ( fromMaybe )
+import Data.Ord ( comparing )
+import qualified Data.Vector as V
+import Graphics.Rendering.Cairo as C
+import Math.Noise (Perlin (..), getValue, perlin)
+import System.Random.MWC ( initialize )
 
 import Draw
-import Geometry                     as G
+import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
