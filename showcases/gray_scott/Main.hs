@@ -25,9 +25,9 @@ import AccVectorSpace
 -- * 540p rendering:    spatialResolution = 5,  temporalResolution = 3 (better quality with 5), temporalResolutionWarmup = 10
 -- * Rapid prototyping: spatialResolution = 3,  temporalResolution = 2, temporalResolutionWarmup = 6
 spatialResolution, temporalResolution, temporalResolutionWarmup :: Num a => a
-spatialResolution = 10
-temporalResolution = 20
-temporalResolutionWarmup = 20
+spatialResolution = 3
+temporalResolution = 2
+temporalResolutionWarmup = 6
 
 totalFrames :: Int
 totalFrames = 3500
@@ -134,11 +134,11 @@ scene t = scene1 `t1` scene2 `t2` scene3 `t3` scene4 `t4` scene5 `t5` scene6 `t6
     t2 = transition 1000 10 t
     scene3 = baseParams { killRateV = 0.060, step = 2 / temporalResolution }
     t3 = transition 1050 100 t
-    scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution }
+    scene4 = baseParams { killRateV = 0.062, step = 2 / temporalResolution, diffusionRateU = 3 * (diffusionRateU baseParams), diffusionRateV = 3 * (diffusionRateV baseParams) }
     t4 = transition 1100 50 t
-    scene5 = baseParams { killRateV = 0.062, step = 4 / temporalResolution }
+    scene5 = baseParams { killRateV = 0.062, step = 4 / temporalResolution, diffusionRateU = 3 * (diffusionRateU baseParams), diffusionRateV = 3 * (diffusionRateV baseParams) }
     t5 = transition 1500 50 t
-    scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045 }
+    scene6 = baseParams { killRateV = 0.062, feedRateU = 0.045, step = 2 / temporalResolution, diffusionRateU = 3 * (diffusionRateU baseParams), diffusionRateV = 3 * (diffusionRateV baseParams) }
     t6 = linearTransition 1500 1700 t
     scene7 = baseParams { killRateV = 0.062, feedRateU = 0.040, noiseU = 0.020 }
     t7 = linearTransition 1700 2400 t
