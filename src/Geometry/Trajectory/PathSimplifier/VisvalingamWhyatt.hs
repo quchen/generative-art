@@ -20,6 +20,7 @@ import           Data.Maybe
 import           Data.Vector         (Vector, (!?))
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as VM
+import Control.Monad
 
 import Geometry.Core
 
@@ -35,10 +36,35 @@ triangleArea :: Vec2 -> Vec2 -> Vec2 -> Double
 triangleArea left center right = abs (det (left -. center) (right -. center))
 
 mkTriangleAreaPQ :: Vector Vec2 -> Heap (Entry Double Triangle)
-mkTriangleAreaPQ vec = heapFromVector $ V.izipWith3
+mkTriangleAreaPQ vec
+    | isCyclic vec = mkTriangleAreaPQCyclic vec
+    | otherwise = mkTriangleAreaPQLinear vec
+
+mkTriangleAreaPQCyclic :: Vector Vec2 -> Heap (Entry Double Triangle)
+mkTriangleAreaPQCyclic vec = heapFromVector $ V.izipWith3
+    (\i a b c ->
+        let l = V.length vec
+        in Entry
+            (triangleArea a b c)
+            Triangle
+                { _left   =  i    `mod` l
+                , _center = (i+1) `mod` l
+                , _right  = (i+2) `mod` l })
+    vec
+    (vec <> V.take 2 vec)
+    (vec <> V.take 2 vec)
+
+isCyclic :: Eq a => Vector a -> Bool
+isCyclic vec = V.head vec == V.last vec
+
+mkTriangleAreaPQLinear :: Vector Vec2 -> Heap (Entry Double Triangle)
+mkTriangleAreaPQLinear vec = heapFromVector $ V.izipWith3
     (\i a b c -> Entry
         (triangleArea a b c)
-        Triangle { _left=i, _center=i+1, _right=i+2 })
+        Triangle
+            { _left   = i
+            , _center = i+1
+            , _right  = i+2 })
     vec
     (V.drop 1 vec)
     (V.drop 2 vec)
@@ -50,7 +76,13 @@ heapFromVector = V.foldl' (\heap entry -> H.insert entry heap) mempty
 -- | Yield the indices to keep from the original vector.
 vwSimplifyIndices :: Double -> Vector Vec2 -> Vector Int
 vwSimplifyIndices minArea inputPoints = runST $ do
-    adjacentMut <- V.thaw (V.generate (V.length inputPoints) (\i -> (i-1, i+1)))
+    let
+        inputLength = V.length inputPoints
+        ix i
+            | isCyclic inputPoints  = i `mod` inputLength
+            | otherwise = i
+
+    adjacentMut <- V.thaw (V.generate inputLength (\i -> (ix (i-1), ix (i+1))))
     let vwLoop heap = case H.uncons heap of
             -- Adopting a do{;} code style here, otherwise the early returns
             -- make the code run off to the right quite a bit
@@ -107,19 +139,22 @@ vwSimplifyIndices minArea inputPoints = runST $ do
         adjacent
 
 insertNewTriangles
-    :: Vector Vec2 -- ^ All points of the original trajectory, so we can look up coordinates by index
-    -> [Triangle] -- ^ New triangles to insert
+    :: Vector Vec2                  -- ^ All points of the original trajectory, so we can look up coordinates by index
+    -> [Triangle]                   -- ^ New triangles to insert
     -> Heap (Entry Double Triangle) -- ^ Old heap (with the center point removed)
     -> Heap (Entry Double Triangle) -- ^ New heap (with the new triangles inserted)
 insertNewTriangles inputPoints current restOfHeap =
     foldl' (insertNewTriangle inputPoints) restOfHeap current
 
 insertNewTriangle
-    :: Vector Vec2 -- ^ All points of the original trajectory, so we can look up coordinates by index
+    :: Vector Vec2                  -- ^ All points of the original trajectory, so we can look up coordinates by index
     -> Heap (Entry Double Triangle) -- ^ Old heap (with the center point removed)
-    -> Triangle -- ^ New triangle to insert
+    -> Triangle                     -- ^ New triangle to insert
     -> Heap (Entry Double Triangle) -- ^ New heap (with the new triangles inserted)
 insertNewTriangle inputPoints heap triangle@(Triangle ai bi ci) = fromMaybe heap $ do
+        guard (ai /= bi)
+        guard (ai /= ci)
+        guard (bi /= ci)
         a <- inputPoints !? ai
         b <- inputPoints !? bi
         c <- inputPoints !? ci
