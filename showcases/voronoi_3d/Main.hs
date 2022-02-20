@@ -9,7 +9,7 @@ import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
 import Math.Noise (Perlin (..), getValue, perlin)
-import System.Random.MWC ( initialize, Variate (uniform), UniformRange (uniformRM) )
+import System.Random.MWC ( initialize, uniformRM )
 
 import Draw
 import Geometry as G
@@ -25,22 +25,21 @@ picWidth, picHeight :: Num a => a
 picWidth = 2560
 picHeight = 1440
 
-scaleFactor :: Double
-scaleFactor = 1
+file :: FilePath 
+file = "out/voronoi_3d.png"
 
 main :: IO ()
-main = main0
+main = main3
 
 main0 :: IO ()
 main0 = do
-    let file = "out/voronoi_3d.png"
-        count = 500
-
-    points <- uniformDistribution count
-
+    points <- uniformDistribution 500
     withSurfaceAuto file 1440 1440 $ \surface -> renderWith surface $ do
         cairoScope (setColor white >> paint)
-        for_ points $ \point -> circleSketch point 5 >> setColor black >> C.fill
+        for_ points $ \point -> cairoScope $ do
+            circleSketch point 5
+            setColor black
+            fill
 
 uniformDistribution :: Int -> IO [Vec2]
 uniformDistribution count = do
@@ -53,17 +52,17 @@ uniformDistribution count = do
 
 main1 :: IO ()
 main1 = do
-    let file = "out/voronoi_3d.png"
-        count = 500
-
-    points <- uniformDistribution count
+    points <- uniformDistribution 500
 
     let voronoi = toVoronoi (bowyerWatson extents points)
         voronoiCells = cells voronoi
 
     withSurfaceAuto file 1440 1440 $ \surface -> renderWith surface $ do
         cairoScope (setColor white >> paint)
-        for_ voronoiCells $ \cell -> circleSketch (seed cell) 5 >> setColor black >> C.fill
+        for_ voronoiCells $ \cell -> cairoScope $ do
+            circleSketch (seed cell) 5
+            setColor black
+            fill
         for_ voronoiCells drawCell
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -93,20 +92,14 @@ drawCell Cell{..} = cairoScope $ do
 
 main2 :: IO ()
 main2 = do
-    let file = "out/voronoi_3d.png"
-        count = 500
-        scaledWidth = round (scaleFactor * picWidth)
-        scaledHeight = round (scaleFactor * picHeight)
-
-    points <- poissonDiscDistribution count
+    points <- poissonDiscDistribution 500
 
     let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson extents points)
         voronoiWithProps = mapWithSeed (\p () -> randomColor p) voronoi
         voronoiCells = cells voronoiWithProps
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
+    withSurfaceAuto file 1440 1440 $ \surface -> renderWith surface $ do
         cairoScope (setColor (magma 0.05) >> paint)
-        C.scale scaleFactor scaleFactor
         for_ voronoiCells drawCellColor
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -120,11 +113,10 @@ randomColor = \p -> inferno (0.6 + 0.35 * noise2d p)
 drawCellColor :: VoronoiCell (Color Double) -> Render ()
 drawCellColor Cell{..} = cairoScope $ do
     let lineColor = blend 0.95 color white
-        cellColor = blend 0.7 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
+        cellColor = blend 0.60 color black
 
     C.setLineJoin C.LineJoinBevel
 
-    C.translate 560 0
     polygonSketch poly
     setColor cellColor
     fillPreserve
@@ -140,20 +132,14 @@ drawCellColor Cell{..} = cairoScope $ do
 
 main3 :: IO ()
 main3 = do
-    let file = "out/voronoi_3d.png"
-        count = 500
-        scaledWidth = round (scaleFactor * picWidth)
-        scaledHeight = round (scaleFactor * picHeight)
-
-    points <- poissonDiscDistribution count
+    points <- poissonDiscDistribution 500
 
     let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson extents points)
         voronoiWithProps = mapWithSeed (\p () -> (randomColor p, randomHeight p)) voronoi
         voronoiCells = sortOn (backToFront . region) $ cells voronoiWithProps
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
+    withSurfaceAuto file 2560 1440 $ \surface -> renderWith surface $ do
         cairoScope (setColor (magma 0.05) >> paint)
-        C.scale scaleFactor scaleFactor
         for_ voronoiCells drawColumn
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
