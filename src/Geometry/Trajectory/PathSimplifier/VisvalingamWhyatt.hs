@@ -25,70 +25,73 @@ import Geometry.Core
 
 
 
-data LeftCurrentRight = LeftCurrentRight
-    { _current :: Int
-    , _left :: Int
+data Triangle = Triangle
+    { _left :: Int
+    , _center :: Int
     , _right :: Int
     } deriving (Eq, Ord, Show)
 
 triangleArea :: Vec2 -> Vec2 -> Vec2 -> Double
 triangleArea left center right = abs (det (left -. center) (right -. center))
 
-mkTriangleAreaPQ :: Vector Vec2 -> Heap (Entry Double LeftCurrentRight)
-mkTriangleAreaPQ vec = H.fromList . toList $ V.izipWith3
+mkTriangleAreaPQ :: Vector Vec2 -> Heap (Entry Double Triangle)
+mkTriangleAreaPQ vec = heapFromVector $ V.izipWith3
     (\i a b c -> Entry
         (triangleArea a b c)
-        LeftCurrentRight { _left=i, _current=i+1, _right=i+2 })
+        Triangle { _left=i, _center=i+1, _right=i+2 })
     vec
     (V.drop 1 vec)
     (V.drop 2 vec)
+
+-- | @H.fromList . toList@ without the intermediate list.
+heapFromVector :: Ord a => Vector a -> Heap a
+heapFromVector = V.foldl' (\heap entry -> H.insert entry heap) mempty
 
 -- | Yield the indices to keep from the original vector.
 vwSimplifyIndices :: Double -> Vector Vec2 -> Vector Int
 vwSimplifyIndices minArea inputPoints = runST $ do
     adjacentMut <- V.thaw (V.generate (V.length inputPoints) (\i -> (i-1, i+1)))
     let vwLoop heap = case H.uncons heap of
+            -- Adopting a do{;} code style here, otherwise the early returns
+            -- make the code run off to the right quite a bit
+
             Nothing -> pure ()
-            Just (Entry area smallestTriangle, restOfHeap)
+            Just (Entry area triangle, restOfHeap)
                 -- The triangle’s area is above epsilon, skip (don’t remove) it
                 | area >= minArea -> vwLoop restOfHeap
                 --  This triangle’s area is below epsilon: eliminate the associated point
                 | otherwise -> do
-                    let _ = heap :: Heap (Entry Double LeftCurrentRight)
-                    (left, right) <- VM.read adjacentMut (_current smallestTriangle)
-                    if left /= _left smallestTriangle || right /= _right smallestTriangle
-                        then
-                            -- A point in this triangle has been removed since the
-                            -- Entry was created, skip it
-                            vwLoop restOfHeap
-                        else do
-                            -- We’ve got a valid triangle, and its area is smaller
-                            -- than epsilon, so remove it from the simulated
-                            -- »linked list«
-                            (ll, _) <- VM.read adjacentMut (_left smallestTriangle)
-                            (_, rr) <- VM.read adjacentMut (_right smallestTriangle)
-                            VM.write adjacentMut (_left smallestTriangle) (ll, right)
-                            VM.write adjacentMut (_right smallestTriangle) (left, rr)
-                            VM.write adjacentMut (_current smallestTriangle) (0, 0)
 
-                            -- Now recompute the adjacent triangles, using
-                            -- left and right adjacent points
-                            let choices = [(ll, left, right), (left, right, rr)]
-                                newHeap = foldl'
-                                    (\acc (ai, bi, ci) -> fromMaybe acc $ do
-                                        a <- inputPoints !? ai
-                                        b <- inputPoints !? bi
-                                        c <- inputPoints !? ci
-                                        let newArea = triangleArea a b c
-                                            lcr = LeftCurrentRight
-                                                        { _left    = ai
-                                                        , _current = bi
-                                                        , _right   = ci}
-                                        pure (H.insert (Entry newArea lcr) acc))
-                                    restOfHeap
-                                    choices
+            { (left, right) <- VM.read adjacentMut (_center triangle)
 
-                            vwLoop newHeap
+            ; if left /= _left triangle || right /= _right triangle
+                then
+                    -- Something’s off: the actual left (right) does not match the
+                    -- recorded left (right) of our triangle. The only way this can
+                    -- happen is because a point in this triangle has been removed
+                    -- already, and its entry is stale in the heap. (This is the
+                    -- mechanism in this algorithm to remove things from deep
+                    -- inside the heap: don’t actually remove them, but make it
+                    -- detectable so we can do the actual removal step later, i.e.:
+                    -- here.)
+
+                    vwLoop restOfHeap
+                else do
+
+            -- We’ve got a valid triangle, and its area is smaller than epsilon, so
+            -- remove it from the simulated »linked list«. As a result, we get the
+            -- former left-left and right-right neighbours, which will be used to
+            -- calculate the newly created triangles in the next step.
+            { (ll, rr) <- deleteTriangle adjacentMut left triangle right
+
+            -- Now recompute the adjacent triangles, using left and right adjacent
+            -- points
+            ; let
+                newTriangles = [Triangle ll left right, Triangle left right rr]
+                newHeap = insertNewTriangles inputPoints newTriangles restOfHeap
+
+            ; vwLoop newHeap
+            }}
 
     vwLoop (mkTriangleAreaPQ inputPoints)
     adjacent <- V.freeze adjacentMut
@@ -102,6 +105,40 @@ vwSimplifyIndices minArea inputPoints = runST $ do
                 else Nothing)
         inputPoints
         adjacent
+
+insertNewTriangles
+    :: Vector Vec2 -- ^ All points of the original trajectory, so we can look up coordinates by index
+    -> [Triangle] -- ^ New triangles to insert
+    -> Heap (Entry Double Triangle) -- ^ Old heap (with the center point removed)
+    -> Heap (Entry Double Triangle) -- ^ New heap (with the new triangles inserted)
+insertNewTriangles inputPoints current restOfHeap =
+    foldl' (insertNewTriangle inputPoints) restOfHeap current
+
+insertNewTriangle
+    :: Vector Vec2 -- ^ All points of the original trajectory, so we can look up coordinates by index
+    -> Heap (Entry Double Triangle) -- ^ Old heap (with the center point removed)
+    -> Triangle -- ^ New triangle to insert
+    -> Heap (Entry Double Triangle) -- ^ New heap (with the new triangles inserted)
+insertNewTriangle inputPoints heap triangle@(Triangle ai bi ci) = fromMaybe heap $ do
+        a <- inputPoints !? ai
+        b <- inputPoints !? bi
+        c <- inputPoints !? ci
+        let newArea = triangleArea a b c
+        pure (H.insert (Entry newArea triangle) heap)
+
+deleteTriangle
+    :: VM.STVector s (Int, Int) -- ^ Map of index -> (index of left neighbour, index of right neighbour)
+    -> Int                      -- ^ Index of new left neighbour
+    -> Triangle                 -- ^ Triangle whose center is to be removed
+    -> Int                      -- ^ Index of new right neighbour
+    -> ST s (Int, Int)
+deleteTriangle adjacentMut newLeft center newRight = do
+    (ll, _l) <- VM.read adjacentMut (_left center)
+    (_r, rr) <- VM.read adjacentMut (_right center)
+    VM.write adjacentMut (_left center) (ll, newRight)
+    VM.write adjacentMut (_right center) (newLeft, rr)
+    VM.write adjacentMut (_center center) (0, 0)
+    pure (ll, rr)
 
 -- | Simplify a path by dropping unnecessary points using the the
 -- [Visvalingam-Whyatt algorithm]
