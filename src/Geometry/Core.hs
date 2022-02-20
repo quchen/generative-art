@@ -41,6 +41,7 @@ module Geometry.Core (
     , pointInPolygon
     , countEdgeTraversals
     , polygonAverage
+    , polygonCentroid
     , polygonCircumference
     , polygonArea
     , signedPolygonArea
@@ -956,6 +957,13 @@ polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
     in (1/num) *. total
+
+-- | The centroid or center of mass of a polygon
+polygonCentroid :: Polygon -> Vec2
+polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q)) ps (tail (cycle ps)))
+  where
+    totalArea = signedPolygonArea poly
+    weight = 1 / (6 * totalArea)
 
 polygonCircumference :: Polygon -> Double
 polygonCircumference poly = foldl'

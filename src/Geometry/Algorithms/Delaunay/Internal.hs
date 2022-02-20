@@ -156,10 +156,4 @@ voronoiCell Delaunay{..} p qs
 lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
 lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices
   where
-    relaxedVertices = centroid . region <$> cells (toVoronoi delaunay)
-
-centroid :: Polygon -> Vec2
-centroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q)) ps (tail (cycle ps)))
-  where
-    totalArea = polygonArea poly
-    weight = 1 / (6 * totalArea)
+    relaxedVertices = polygonCentroid . region <$> cells (toVoronoi delaunay)
