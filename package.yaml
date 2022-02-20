@@ -67,6 +67,11 @@ ghc-options: [-Wall, -Wno-type-defaults]
 library:
     source-dirs: src
     other-modules:
+        - Draw.Color.Schemes.Internal.ColorBrewer2
+        - Draw.Color.Schemes.Internal.Common
+        - Draw.Color.Schemes.Internal.Haskell
+        - Draw.Color.Schemes.Internal.MatPlotLib
+        - Draw.Color.Schemes.Internal.Seaborn
         - Geometry.Trajectory.PathSimplifier.Radial
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
