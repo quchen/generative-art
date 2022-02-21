@@ -83,7 +83,7 @@ testPolygonCutting = testGroup "Adding polygons"
         Cairo.translate 150 (-120)
         drawVoronoi [cell1'', cell2'', cell3']
     drawArrow start angle len = do
-        arrowSketch (angledLine start angle len) def
+        sketch (Arrow (angledLine start angle len) def)
         stroke
 
 testVoronoi :: TestTree

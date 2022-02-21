@@ -112,16 +112,16 @@ polyCutDraw initialPolygon scissors cutResults = do
         sketch scissors
         stroke
         setDash [] 0
-        arrowSketch scissors def{arrowheadSize = 5, arrowDrawBody = False}
+        sketch (Arrow scissors def{arrowheadSize = 5, arrowDrawBody = False})
         stroke
     drawPolygon i polygon = grouped paint $ do
         setColor $ mathematica97 i
         for_ (polygonEdges polygon) $ \edge -> do
-            arrowSketch edge def
+            sketch (Arrow edge def
                 { arrowheadRelPos   = 0.45
                 , arrowheadSize     = 6
                 , arrowheadDrawLeft = False
-                }
+                })
             stroke
         sketch polygon
         strokePreserve
@@ -331,7 +331,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
 
             setColor $ mathematica97 i
             for_ ends $ \end -> do
-                arrowSketch (nudge (Line start end)) arrowSpec
+                sketch (Arrow (nudge (Line start end)) arrowSpec)
                 stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             setColor $ mathematica97 i

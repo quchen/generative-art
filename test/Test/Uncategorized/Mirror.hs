@@ -63,7 +63,7 @@ mirror1 = do
             stroke
 
             setColor (black `withOpacity` 0.5)
-            arrowSketch (Line p p') def
+            sketch (Arrow (Line p p') def)
             stroke )
 
 mirror2 :: Render ()
@@ -82,8 +82,8 @@ mirror2 = do
     setLineWidth 1
     let mirrorLineTest line = do
             let mirrored = transform (mirrorAlong mirror) line
-            originalC 1 >> arrowSketch line def >> stroke
-            mirroredC 1 >> arrowSketch mirrored def >> stroke
+            originalC 1 >> sketch (Arrow line def) >> stroke
+            mirroredC 1 >> sketch (Arrow mirrored def) >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg 20) 100)
     mirrorLineTest (angledLine (Vec2 150 10) (deg 90) 100)
     mirrorLineTest (angledLine (Vec2 160 10) (deg 90) 150)

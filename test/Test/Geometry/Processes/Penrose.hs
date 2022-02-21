@@ -41,8 +41,8 @@ testSubdivision = testVisual "Subdividing base rhombs" 600 200 "docs/penrose/2_s
         gen1 = subdivide =<< gen0
         gen2 = subdivide =<< gen1
         drawArrows = do
-            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+            sketch (Arrow (Line (Vec2 0 50) (Vec2 30 50)) def) >> stroke
+            sketch (Arrow (Line (Vec2 20 150) (Vec2 50 150)) def) >> stroke
 
     C.translate 10 10
     for_ gen0 drawTileWithConnectors
@@ -68,8 +68,8 @@ testSubdivisionWithInscribedPentagons = testVisual "Subdivision rules with penta
         gen1 = subdivide =<< gen0
         gen2 = subdivide =<< gen1
         drawArrows = do
-            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+            sketch (Arrow (Line (Vec2 0 50) (Vec2 30 50)) def) >> stroke
+            sketch (Arrow (Line (Vec2 20 150) (Vec2 50 150)) def) >> stroke
 
     C.translate 10 10
     for_ gen0 drawInscribedPentagons
