@@ -14,7 +14,6 @@ import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Cut
 import qualified Test.Geometry.Algorithms.Delaunay
 import qualified Test.Geometry.Algorithms.Sampling
-import qualified Test.Geometry.Algorithms.SimplexNoise
 import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Algorithms.Voronoi
 import qualified Test.Geometry.Coordinates.Hexagonal
@@ -57,7 +56,6 @@ tests = testGroup "Test suite"
     , Test.Geometry.Algorithms.Cut.tests
     , Test.Geometry.Algorithms.Delaunay.tests
     , Test.Geometry.Algorithms.Sampling.tests
-    , Test.Geometry.Algorithms.SimplexNoise.tests
     , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Algorithms.Voronoi.tests
     , Test.Geometry.Coordinates.Hexagonal.tests
