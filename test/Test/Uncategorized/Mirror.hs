@@ -93,7 +93,7 @@ mirror2 = do
 
     let mirrorPolygonTest poly = do
             let mirrored = transform (mirrorAlong mirror) poly
-            originalC 1 >> polygonSketch poly >> strokePreserve >> originalC 0.1 >> fill
-            mirroredC 1 >> polygonSketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
+            originalC 1 >> sketch poly >> strokePreserve >> originalC 0.1 >> fill
+            mirroredC 1 >> sketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
     mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])

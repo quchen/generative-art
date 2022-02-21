@@ -98,7 +98,7 @@ drawVoronoi voronoiCells = cairoScope $ do
     for_ voronoiCells $ \(Cell point polygon i) -> do
         cairoScope $ do
             newPath
-            polygonSketch polygon
+            sketch polygon
             setColor $ mathematica97 i
             strokePreserve
             setColor $ mathematica97 i `withOpacity` 0.1

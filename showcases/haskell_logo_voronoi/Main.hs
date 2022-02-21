@@ -104,7 +104,7 @@ drawPoly (Polygon []) _ = pure ()
 drawPoly poly color = do
     let fillColor = color
         lineColor = blend 0.1 white color
-    polygonSketch poly
+    sketch poly
     setColor fillColor
     fillPreserve
     setColor lineColor

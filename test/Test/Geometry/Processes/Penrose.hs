@@ -106,7 +106,7 @@ drawConnectors tile@Tile{..} = cairoScope $ do
         r1 = 0.3 * unitLength
         r2 = 0.2 * unitLength
         r3 = 0.8 * unitLength
-    polygonSketch (asPolygon tile)
+    sketch (asPolygon tile)
     clip
     case tileType of
         Thin -> do
@@ -124,11 +124,11 @@ drawInscribedPentagons :: Tile -> Render ()
 drawInscribedPentagons tile = cairoScope $ do
     drawTile tile
     for_ (inscribedPentagons tile) $ \polygon -> do
-        polygonSketchOpen polygon
+        sketchOpen polygon
         stroke
 
-polygonSketchOpen :: Polygon -> Render ()
-polygonSketchOpen (Polygon []) = pure ()
-polygonSketchOpen (Polygon (Vec2 x y : vecs)) = do
+sketchOpen :: Polygon -> Render ()
+sketchOpen (Polygon []) = pure ()
+sketchOpen (Polygon (Vec2 x y : vecs)) = do
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')

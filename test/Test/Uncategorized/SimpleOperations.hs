@@ -86,7 +86,7 @@ pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_i
         points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
 
     setLineWidth 1
-    polygonSketch square
+    sketch square
     setColor $ mathematica97 0
     strokePreserve
     setColor $ mathematica97 0 `withOpacity` 0.1

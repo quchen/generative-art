@@ -123,7 +123,7 @@ polyCutDraw initialPolygon scissors cutResults = do
                 , arrowheadDrawLeft = False
                 }
             stroke
-        polygonSketch polygon
+        sketch polygon
         strokePreserve
         setColor $ mathematica97 i `withOpacity` 0.1
         fill
@@ -336,7 +336,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             setColor $ mathematica97 i
             cairoScope $ do
-                polygonSketch polygon
+                sketch polygon
                 setDash [2,2] 0
                 strokePreserve
                 setColor $ mathematica97 i `withOpacity` 0.1

@@ -79,7 +79,7 @@ paintTriangulation triangulation = do
     let colors = map mathematica97 [0..]
     for_ (zip3 [1::Int ..] colors triangulation) $ \(i, color, polygon) -> do
         cairoScope $ do
-            polygonSketch polygon
+            sketch polygon
             setColor (color `withOpacity` 0.5)
             fill
         cairoScope $ do

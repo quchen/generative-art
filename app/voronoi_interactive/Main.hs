@@ -88,7 +88,7 @@ drawCellCairo Cell{..} = case region of
     poly -> do
         let fillColor = parseRgbHex "#eeeeee"
             lineColor = parseRgbHex "#5d81b4"
-        polygonSketch poly
+        sketch poly
         setColor fillColor
         Cairo.fillPreserve
         setColor lineColor

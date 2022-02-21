@@ -95,7 +95,7 @@ drawCell poly@(Polygon ps) (color, height) = cairoScope $ do
 
     cairoScope $ do
         C.translate 0 (-height)
-        polygonSketch poly
+        sketch poly
         setColor topColor
         fillPreserve
         setColor lineColor

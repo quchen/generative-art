@@ -31,7 +31,7 @@ testRandomTriangulation = testVisual "Random points" 220 220 "docs/voronoi/delau
     triangulation <- liftIO $ randomDelaunay 200 200
     C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
-        polygonSketch poly
+        sketch poly
         setColor $ mathematica97 0
         C.setLineJoin C.LineJoinBevel
         C.stroke
@@ -46,7 +46,7 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
     let voronoi = toVoronoi triangulation
     C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
-        polygonSketch poly
+        sketch poly
         setColor $ mathematica97 0 `withOpacity` 0.25
         C.setLineJoin C.LineJoinBevel
         C.stroke
@@ -56,7 +56,7 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
             C.fill
     for_ (cells voronoi) $ \Cell{..} -> do
         setColor $ mathematica97 3
-        polygonSketch region
+        sketch region
         C.stroke
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
@@ -76,7 +76,7 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
     for_ triangulations $ \triangulation -> do
         for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
             setColor $ mathematica97 0
-            polygonSketch region
+            sketch region
             C.stroke
             setColor $ mathematica97 3
             arrowSketch (Line seed (polygonCentroid region)) def { arrowheadSize = 4 }

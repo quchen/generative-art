@@ -116,7 +116,7 @@ renderProcessGeometry
 renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do
         for_ _inside $ \hex -> do
-            D.polygonSketch (hexagonPoly cellSize hex)
+            D.sketch (hexagonPoly cellSize hex)
         setColor (insideColor)
         fillPreserve
         setSourceRGB 0 0 0
@@ -125,7 +125,7 @@ renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do
         setColor (edgeColor)
         for_ _edge $ \hex -> do
-            D.polygonSketch (hexagonPoly cellSize hex)
+            D.sketch (hexagonPoly cellSize hex)
         setColor (edgeColor)
         fillPreserve
         setSourceRGB 0 0 0
