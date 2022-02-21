@@ -1,5 +1,7 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE RecordWildCards   #-}
 
+-- | Cairo drawing backend.
 module Draw (
     -- * SVG and PNG file handling
       withSurfaceAuto
@@ -15,7 +17,7 @@ module Draw (
     -- * Drawing presets
     , moveToVec
     , lineToVec
-    , curveToVec
+    , Sketch(..)
     , lineSketch
     , bezierSketch
     , ArrowSpec(..)
@@ -51,16 +53,18 @@ module Draw (
 
 
 
-import           Control.Monad
-import           Data.Default.Class
-import           Data.Foldable
-import           Data.List
-import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import Control.Monad
+import Data.Default.Class
+import Data.Foldable
+import Data.List
+import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw.Color
-import Draw.Color.Schemes.Discrete
 import Draw.Color.Schemes.Continuous
+import Draw.Color.Schemes.Discrete
 import Geometry
+
+
 
 -- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.
 withSurfaceAuto :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
@@ -72,7 +76,7 @@ withSurface
     -> FilePath          -- ^ Output file name
     -> Int               -- ^ Canvas width
     -> Int               -- ^ Canvas height
-    -> (Surface -> IO a) -- ^ Drawing action, see 'Cairo.renderWith'
+    -> (Surface -> IO a) -- ^ Drawing action, see 'C.renderWith'
     -> IO a
 withSurface PNG file w h action = withImageSurface FormatARGB32 w h $ \surface -> do
     result <- action surface
@@ -97,34 +101,32 @@ moveToVec (Vec2 x y) = moveTo x y
 lineToVec :: Vec2 -> Render ()
 lineToVec (Vec2 x y) = lineTo x y
 
--- | Paint a Cairo curve, which is a Bezier curve where the initial point is
--- implicitly given by where the current draw position is.
-curveToVec :: Vec2 -> Vec2 -> Vec2 -> Render ()
-curveToVec (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) = curveTo x1 y1 x2 y2 x3 y3
-
--- | Convenience function to sketch a 'Line'.
 lineSketch :: Line -> Render ()
-lineSketch (Line start end) = do
-    moveToVec start
-    lineToVec end
+lineSketch = sketch
+{-# DEPRECATED lineSketch "use `sketch` instead" #-}
 
--- | Sketch a curve consisting out of multiple Bezier segments.
-bezierSketch :: Foldable f => f Bezier -> Render ()
-bezierSketch = go . toList
-  where
-    go [] = pure ()
-    go (ps@(Bezier start _ _ _ : _)) = do
-        moveToVec start
-        for_ ps $ \(Bezier _ p1 p2 end) -> curveToVec p1 p2 end
+-- | Sketch a continuous curve consisting of multiple Bezier segments. The end of
+-- each segment is assumed to be the start of the next one.
+instance Sequential f => Sketch (f Bezier) where
+    sketch = go . toList
+      where
+        go [] = pure ()
+        go (ps@(Bezier start _ _ _ : _)) = do
+            moveToVec start
+            for_ ps $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> curveTo x1 y1 x2 y2 x3 y3
+
+bezierSketch :: Sequential f => f Bezier -> Render ()
+bezierSketch = sketch
+{-# DEPRECATED bezierSketch "use `sketch` instead" #-}
 
 data ArrowSpec = ArrowSpec
-    { arrowheadRelPos    :: Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center.
-    , arrowheadSize      :: Double -- ^ Length of each of the sides of the arrow head.
-    , arrowDrawBody      :: Bool   -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')?
-    , arrowheadAngle     :: Angle  -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt.
-    , arrowheadDrawRight :: Bool   -- ^ Draw the left part of the arrow head?
-    , arrowheadDrawLeft  :: Bool   -- ^ Draw the right part of the arrow head?
-    }
+    { arrowheadRelPos    :: !Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center. ('def'ault: 1)
+    , arrowheadSize      :: !Double -- ^ Length of each of the sides of the arrow head. ('def'ault: 10)
+    , arrowDrawBody      :: !Bool   -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')? ('def'ault: 'True')
+    , arrowheadAngle     :: !Angle  -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt. ('def'ault: @'rad' 0.5@)
+    , arrowheadDrawRight :: !Bool   -- ^ Draw the left part of the arrow head? ('def'ault: 'True')
+    , arrowheadDrawLeft  :: !Bool   -- ^ Draw the right part of the arrow head? ('def'ault: 'True')
+    } deriving (Eq, Show)
 
 instance Default ArrowSpec where
     def = ArrowSpec
@@ -136,97 +138,139 @@ instance Default ArrowSpec where
         , arrowheadDrawLeft  = True
         }
 
--- | Sketch an arrow shape based on the 'ArrowSpec'.
+-- | For 'sketch'ing arrows.
+data Arrow = Arrow !Line !ArrowSpec
+    deriving (Eq, Show)
+
+instance Sketch Arrow where
+    sketch (Arrow line ArrowSpec{..}) = do
+        when arrowDrawBody (lineSketch line)
+
+        let Line start end = line
+
+            arrowTip = start +. (arrowheadRelPos *. (end -. start))
+
+        let arrowheadHalf (+-) = angledLine arrowTip (angleOfLine line +. rad pi +- arrowheadAngle) arrowheadSize
+            Line _ arrowLeftEnd  = arrowheadHalf (+.)
+            Line _ arrowRightEnd = arrowheadHalf (-.)
+        case (arrowheadDrawRight, arrowheadDrawLeft) of
+            (True, True) -> do
+                moveToVec arrowLeftEnd
+                lineToVec arrowTip
+                lineToVec arrowRightEnd
+            (False, True) -> do
+                moveToVec arrowLeftEnd
+                lineToVec arrowTip
+            (True, False) -> do
+                moveToVec arrowRightEnd
+                lineToVec arrowTip
+            (False, False) -> pure ()
+
 arrowSketch :: Line -> ArrowSpec -> Render ()
-arrowSketch line ArrowSpec{..} = do
-    when arrowDrawBody (lineSketch line)
+arrowSketch line spec = sketch (Arrow line spec)
+{-# DEPRECATED arrowSketch "use `sketch (Arrow line spec)` instead" #-}
 
-    let Line start end = line
+-- | Sketch a shape that can then be made visible by drawing functions such as 'stroke' or 'fill'.
+class Sketch a where
+    sketch :: a -> Render ()
 
-        arrowTip = start +. (arrowheadRelPos *. (end -. start))
+instance Sketch Line where
+    sketch (Line start end) = do
+        moveToVec start
+        lineToVec end
 
-    let arrowheadHalf (+-) = angledLine arrowTip (angleOfLine line +. rad pi +- arrowheadAngle) arrowheadSize
-        Line _ arrowLeftEnd  = arrowheadHalf (+.)
-        Line _ arrowRightEnd = arrowheadHalf (-.)
-    case (arrowheadDrawRight, arrowheadDrawLeft) of
-        (True, True) -> do
-            moveToVec arrowLeftEnd
-            lineToVec arrowTip
-            lineToVec arrowRightEnd
-        (False, True) -> do
-            moveToVec arrowLeftEnd
-            lineToVec arrowTip
-        (True, False) -> do
-            moveToVec arrowRightEnd
-            lineToVec arrowTip
-        (False, False) -> pure ()
+-- | Trajectory given by its points
+instance Sequential f => Sketch (f Vec2) where
+    sketch = go . toList
+      where
+        go [] = pure ()
+        go (Vec2 x0 y0 : vecs) = do
+            moveTo x0 y0
+            for_ vecs (\(Vec2 x y) -> lineTo x y)
 
--- | Convenience function to sketch a circle.
-circleSketch
-    :: Vec2     -- ^ Center
-    -> Double -- ^ Radius
-    -> Render ()
-circleSketch (Vec2 x y) r = arc x y r 0 (2*pi)
+instance Sketch Polygon where
+    sketch (Polygon []) = pure ()
+    sketch (Polygon xs) = sketch xs >> closePath
 
--- | Sketch a cross like ×. Sometimes useful to decorate a line with for e.g.
+-- | For 'sketch'ing circles.
+data Circle = Circle
+    { _circleCenter :: !Vec2
+    , _circleRadius :: !Double
+    } deriving (Eq, Ord, Show)
+
+instance Sketch Circle where
+    sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
+
+circleSketch :: Vec2 -> Double -> Render ()
+circleSketch center r = sketch (Circle center r)
+{-# DEPRECATED circleSketch "use `sketch (Circle center radius)` instead" #-}
+
+-- | 'sketch' a cross like ×. Sometimes useful to decorate a line with for e.g.
 -- strikethrough effects, or to contrast the o in tic tac toe.
 --
--- When drawn with the same radius, it combines to ⨂ with a 'circleSketch'.
+-- When drawn with the same radius, it combines to ⨂ with a 'Circle'.
+data Cross = Cross
+    { _crossCenter :: !Vec2
+    , _crossRadius :: !Double
+    } deriving (Eq, Ord, Show)
+
+instance Sketch Cross where
+    sketch (Cross center r) = do
+        let lowerRight = Geometry.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
+            line1 = angledLine lowerRight (deg (45+180)) (2*r)
+            line2 = Geometry.transform (rotateAround center (deg 90)) line1
+        sketch line1
+        sketch line2
+
 crossSketch
-    :: Vec2     -- ^ Center
-    -> Double -- ^ Radius
+    :: Vec2
+    -> Double
     -> Render ()
-crossSketch center r = do
-    let lowerRight = Geometry.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
-        line1 = angledLine lowerRight (deg (45+180)) (2*r)
-        line2 = Geometry.transform (rotateAround center (deg 90)) line1
-    lineSketch line1
-    lineSketch line2
+crossSketch center r = sketch (Cross center r)
+{-# DEPRECATED crossSketch "use `sketch (Cross center r)` instead" #-}
 
 -- | Sketch part of a circle.
 arcSketch
-    :: Vec2 -- ^ Center
+    :: Vec2   -- ^ Center
     -> Double -- ^ Radius
-    -> Angle -- ^ Starting angle (absolute)
-    -> Angle -- ^ Ending angle (absolute)
+    -> Angle  -- ^ Starting angle (absolute)
+    -> Angle  -- ^ Ending angle (absolute)
     -> Render ()
 arcSketch (Vec2 x y) r angleStart angleEnd
   = arc x y r (getRad angleStart) (getRad angleEnd)
 
 -- | Sketch part of a circle.
 arcSketchNegative
-    :: Vec2 -- ^ Center
+    :: Vec2   -- ^ Center
     -> Double -- ^ Radius
-    -> Angle -- ^ Starting angle (absolute)
-    -> Angle -- ^ Ending angle (absolute)
+    -> Angle  -- ^ Starting angle (absolute)
+    -> Angle  -- ^ Ending angle (absolute)
     -> Render ()
 arcSketchNegative (Vec2 x y) r angleStart angleEnd
   = arcNegative x y r (getRad angleStart) (getRad angleEnd)
 
--- | Sketch the line defined by a sequence of points.
-pathSketch :: Foldable f => f Vec2 -> Render ()
-pathSketch = go . toList
-  where
-    go [] = pure ()
-    go (Vec2 x y : vecs) = do
-        moveTo x y
-        for_ vecs (\(Vec2 x' y') -> lineTo x' y')
+pathSketch :: Sequential f => f Vec2 -> Render ()
+pathSketch = sketch
+{-# DEPRECATED pathSketch "use `sketch` instead" #-}
 
--- | Sketch a 'Polygon'.
 polygonSketch :: Polygon -> Render ()
-polygonSketch (Polygon []) = pure ()
-polygonSketch (Polygon xs) = pathSketch xs >> closePath
+polygonSketch = sketch
+{-# DEPRECATED polygonSketch "use `sketch` instead" #-}
 
--- | Sketch a 'BoundingBox', which is sometimes useful for debugging.
+-- | Sketches a ectangle with a diagonal cross through it. Useful for debugging.
+instance Sketch BoundingBox where
+    sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
+        let w = xhi - xlo
+            h = yhi - ylo
+        rectangle xlo ylo w h
+        moveTo xlo ylo
+        lineTo xhi yhi
+        moveTo xhi ylo
+        lineTo xlo yhi
+
 boundingBoxSketch :: BoundingBox -> Render ()
-boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
-    let w = xhi - xlo
-        h = yhi - ylo
-    rectangle xlo ylo w h
-    moveTo xlo ylo
-    lineTo xhi yhi
-    moveTo xhi ylo
-    lineTo xlo yhi
+boundingBoxSketch = sketch
+{-# DEPRECATED boundingBoxSketch "use `sketch` instead" #-}
 
 data CartesianParams = CartesianParams
     { _cartesianMinX :: !Int
@@ -366,9 +410,9 @@ cairoScope render = save *> render <* restore
 -- @
 -- do
 --     'setSourceRGBA' 0 0 0 0.5
---     'circleSketch' ('Vec2' 0 0) ('Distance' 10)
+--     'sketch' ('Circle' ('Vec2' 0 0) 10)
 --     'fill'
---     'circleSketch' ('Vec2' 7 0) ('Distance' 10)
+--     'sketch' ('Circle' ('Vec2' 7 0) 10)
 --     'fill'
 -- @
 --
@@ -378,9 +422,9 @@ cairoScope render = save *> render <* restore
 -- @
 -- 'grouped' ('paintWithAlpha' 0.5) $ do
 --     'setSourceRGBA' 0 0 0 1
---     'circleSketch' ('Vec2' 0 0) ('Distance' 10)
+--     'sketch' ('Circle' ('Vec2' 0 0) 10)
 --     'fill'
---     'circleSketch' ('Vec2' 7 0) ('Distance' 10)
+--     'sketch' ('Circle' ('Vec2' 7 0) 10)
 --     'fill'
 -- @
 grouped :: Render after -> Render a -> Render a
