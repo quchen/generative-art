@@ -79,7 +79,7 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
             sketch region
             C.stroke
             setColor $ mathematica97 3
-            sketch (Arrow (Line seed (polygonCentroid region)) def { arrowheadSize = 4 })
+            sketch (Arrow (Line seed (polygonCentroid region)) def { _arrowheadSize = 4 })
             C.stroke
             setColor $ mathematica97 1
             sketch (D.Circle seed 4)

@@ -257,7 +257,7 @@ testDiscrete testName file colorF maxSwatches =
             let lastCellCenter = Vec2 (fromIntegral numColors*tileWidth - tileWidth/2) (tileHeight/2)
             sketch (Arrow
                 (angledLine (lastCellCenter +. Vec2 2 0) (deg 0) 10)
-                def {arrowheadSize = 5 })
+                def {_arrowheadSize = 5 })
             stroke
             for_ [-10, -6, -2] $ \offset -> do
                 sketch (Circle (lastCellCenter +. Vec2 offset 0) 1)

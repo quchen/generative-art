@@ -44,8 +44,8 @@ visualTest = testVisual "Visual" 210 180 "docs/geometry/convex_hull" $ \_ -> do
     setLineWidth 1
     for_ (polygonEdges hull) $ \edge@(Line start _) -> cairoScope $ do
         setColor $ mathematica97 1
-        sketch (Arrow edge def{ arrowheadRelPos = 0.5
-                              , arrowheadSize   = 5 })
+        sketch (Arrow edge def{ _arrowheadRelPos = 0.5
+                              , _arrowheadSize   = 5 })
         stroke
         setColor $ mathematica97 3
         sketch (Circle start 2)

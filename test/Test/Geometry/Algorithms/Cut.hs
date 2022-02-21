@@ -112,15 +112,15 @@ polyCutDraw initialPolygon scissors cutResults = do
         sketch scissors
         stroke
         setDash [] 0
-        sketch (Arrow scissors def{arrowheadSize = 5, arrowDrawBody = False})
+        sketch (Arrow scissors def{_arrowheadSize = 5, _arrowDrawBody = False})
         stroke
     drawPolygon i polygon = grouped paint $ do
         setColor $ mathematica97 i
         for_ (polygonEdges polygon) $ \edge -> do
             sketch (Arrow edge def
-                { arrowheadRelPos   = 0.45
-                , arrowheadSize     = 6
-                , arrowheadDrawLeft = False
+                { _arrowheadRelPos   = 0.45
+                , _arrowheadSize     = 6
+                , _arrowheadDrawLeft = False
                 })
             stroke
         sketch polygon
@@ -317,7 +317,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
   where
     moveRight d line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
     nudge = moveRight 2.5 . resizeLineSymmetric (\d -> 0.85*d)
-    arrowSpec = def{arrowheadSize = 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
+    arrowSpec = def{_arrowheadSize = 7, _arrowheadRelPos = 0.5, _arrowheadDrawLeft = False}
 
     drawCutEdgeGraph orientation ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons orientation ceg

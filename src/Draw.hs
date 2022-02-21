@@ -125,22 +125,22 @@ bezierSketch = sketch
 {-# DEPRECATED bezierSketch "use `sketch` instead" #-}
 
 data ArrowSpec = ArrowSpec
-    { arrowheadRelPos    :: !Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center. ('def'ault: 1)
-    , arrowheadSize      :: !Double -- ^ Length of each of the sides of the arrow head. ('def'ault: 10)
-    , arrowDrawBody      :: !Bool   -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')? ('def'ault: 'True')
-    , arrowheadAngle     :: !Angle  -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt. ('def'ault: @'rad' 0.5@)
-    , arrowheadDrawRight :: !Bool   -- ^ Draw the left part of the arrow head? ('def'ault: 'True')
-    , arrowheadDrawLeft  :: !Bool   -- ^ Draw the right part of the arrow head? ('def'ault: 'True')
+    { _arrowheadRelPos    :: !Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center. ('def'ault: 1)
+    , _arrowheadSize      :: !Double -- ^ Length of each of the sides of the arrow head. ('def'ault: 10)
+    , _arrowDrawBody      :: !Bool   -- ^ Draw the arrow’s main body line ('True'), or just the tip ('False')? ('def'ault: 'True')
+    , _arrowheadAngle     :: !Angle  -- ^ How pointy should the arrow be? 10° is very pointy, 80° very blunt. ('def'ault: @'rad' 0.5@)
+    , _arrowheadDrawRight :: !Bool   -- ^ Draw the left part of the arrow head? ('def'ault: 'True')
+    , _arrowheadDrawLeft  :: !Bool   -- ^ Draw the right part of the arrow head? ('def'ault: 'True')
     } deriving (Eq, Show)
 
 instance Default ArrowSpec where
     def = ArrowSpec
-        { arrowheadRelPos    = 1
-        , arrowheadSize      = 10
-        , arrowDrawBody      = True
-        , arrowheadAngle     = rad 0.5
-        , arrowheadDrawRight = True
-        , arrowheadDrawLeft  = True
+        { _arrowheadRelPos    = 1
+        , _arrowheadSize      = 10
+        , _arrowDrawBody      = True
+        , _arrowheadAngle     = rad 0.5
+        , _arrowheadDrawRight = True
+        , _arrowheadDrawLeft  = True
         }
 
 -- | For 'sketch'ing arrows.
@@ -149,16 +149,16 @@ data Arrow = Arrow !Line !ArrowSpec
 
 instance Sketch Arrow where
     sketch (Arrow line ArrowSpec{..}) = do
-        when arrowDrawBody (lineSketch line)
+        when _arrowDrawBody (lineSketch line)
 
         let Line start end = line
 
-            arrowTip = start +. (arrowheadRelPos *. (end -. start))
+            arrowTip = start +. (_arrowheadRelPos *. (end -. start))
 
-        let arrowheadHalf (+-) = angledLine arrowTip (angleOfLine line +. rad pi +- arrowheadAngle) arrowheadSize
+        let arrowheadHalf (+-) = angledLine arrowTip (angleOfLine line +. rad pi +- _arrowheadAngle) _arrowheadSize
             Line _ arrowLeftEnd  = arrowheadHalf (+.)
             Line _ arrowRightEnd = arrowheadHalf (-.)
-        case (arrowheadDrawRight, arrowheadDrawLeft) of
+        case (_arrowheadDrawRight, _arrowheadDrawLeft) of
             (True, True) -> do
                 moveToVec arrowLeftEnd
                 lineToVec arrowTip
