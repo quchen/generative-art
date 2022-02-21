@@ -94,5 +94,5 @@ drawCellCairo Cell{..} = case region of
         setColor lineColor
         Cairo.setLineWidth 1
         Cairo.stroke
-        circleSketch seed 5
+        sketch (Circle seed 5)
         Cairo.fill

@@ -76,7 +76,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
             sketch points
             stroke
         plotPoints points = for_ points $ \p -> cairoScope $ do
-            circleSketch p 1.2
+            sketch (Circle p 1.2)
             fillPreserve
             setSourceRGBA 0 0 0 1
             setColor (darken 0.8 (colorScheme 0.9))

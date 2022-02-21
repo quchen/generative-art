@@ -240,11 +240,11 @@ pathologicalCornerCutsTests = do
                 (placeCut cutResult)
             setColor $ mathematica97 0
             for_ (let Polygon corners = polygon in corners) $ \corner -> do
-                circleSketch (placeOriginal corner) 2.5
+                sketch (Circle (placeOriginal corner) 2.5)
                 stroke
             for_ cutResult $ \cutPoly ->
                 for_ (let Polygon corners = cutPoly in corners) $ \corner -> do
-                    circleSketch (placeCut corner) 2.5
+                    sketch (Circle (placeCut corner) 2.5)
                     stroke
         let renderDescription = do
                 setColor $ mathematica97 1
@@ -324,7 +324,7 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             setColor $ mathematica97 0
-            circleSketch start 3
+            sketch (Circle start 3)
             strokePreserve
             setColor $ mathematica97 0 `withOpacity` 0.3
             fill

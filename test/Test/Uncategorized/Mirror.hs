@@ -59,7 +59,7 @@ mirror1 = do
             sketch (Cross p 5)
             stroke
             originalC 1
-            circleSketch p' 5
+            sketch (Circle p' 5)
             stroke
 
             setColor (black `withOpacity` 0.5)

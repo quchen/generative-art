@@ -74,7 +74,7 @@ drawPoints :: Foldable f => f Vec2 -> C.Render ()
 drawPoints points = cairoScope $ do
     setColor $ mathematica97 0
     for_ points $ \point -> do
-        circleSketch point 2
+        sketch (Circle point 2)
         C.fill
 
 drawExplanation :: String -> C.Render ()

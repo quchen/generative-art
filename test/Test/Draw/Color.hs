@@ -260,7 +260,7 @@ testDiscrete testName file colorF maxSwatches =
                 def {arrowheadSize = 5 })
             stroke
             for_ [-10, -6, -2] $ \offset -> do
-                circleSketch (lastCellCenter +. Vec2 offset 0) 1
+                sketch (Circle (lastCellCenter +. Vec2 offset 0) 1)
                 fill
 
 assertReproducesMathematica :: Assertion

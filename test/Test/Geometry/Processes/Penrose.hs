@@ -110,14 +110,14 @@ drawConnectors tile@Tile{..} = cairoScope $ do
     clip
     case tileType of
         Thin -> do
-            circleSketch tileP0 r1
+            sketch (Circle tileP0 r1)
             stroke
-            circleSketch tileP2 r2
+            sketch (Circle tileP2 r2)
             stroke
         Thick -> do
-            circleSketch tileP0 r3
+            sketch (Circle tileP0 r3)
             stroke
-            circleSketch tileP2 r1
+            sketch (Circle tileP2 r1)
             stroke
 
 drawInscribedPentagons :: Tile -> Render ()

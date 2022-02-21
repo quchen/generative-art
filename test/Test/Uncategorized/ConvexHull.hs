@@ -48,7 +48,7 @@ visualTest = testVisual "Visual" 210 180 "docs/geometry/convex_hull" $ \_ -> do
                               , arrowheadSize   = 5 })
         stroke
         setColor $ mathematica97 3
-        circleSketch start 2
+        sketch (Circle start 2)
         fill
 
     cairoScope $ do
@@ -61,7 +61,7 @@ visualTest = testVisual "Visual" 210 180 "docs/geometry/convex_hull" $ \_ -> do
         setColor $ mathematica97 0 `withOpacity` 0.5
         let Polygon hullPoints = hull
         for_ (points \\ hullPoints) $ \p -> do
-            circleSketch p 2
+            sketch (Circle p 2)
             fill
 
     liftIO $

@@ -69,7 +69,7 @@ renderTwoBodyProblem (w, h) = do
 
     let paintSun = cairoScope $ do
             newPath
-            circleSketch sun 16
+            sketch (Circle sun 16)
             setLineWidth 2
             setColor $ mathematica97 1
             fillPreserve
@@ -83,7 +83,7 @@ renderTwoBodyProblem (w, h) = do
 
         paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
-            circleSketch planet 8
+            sketch (Circle planet 8)
             setColor $ mathematica97 3
             fillPreserve
             setSourceRGB 0 0 0
@@ -255,7 +255,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
     cairoScope $ do
         for_ hills $ \(height, center) -> do
             setColor (icefire (if height > 0 then 0.75 else 0.25))
-            circleSketch center 2
+            sketch (Circle center 2)
             fill
 
     cairoScope $

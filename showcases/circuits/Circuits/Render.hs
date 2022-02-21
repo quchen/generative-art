@@ -48,7 +48,7 @@ renderSingleWire cellSize allKnownCells start = do
                             Line _ targetVecShortened = resizeLine (\d -> d - circleRadius) (Line currentPosVec circleCenterVec)
                         lineToVec targetVecShortened
                         stroke
-                        circleSketch circleCenterVec circleRadius
+                        sketch (Circle circleCenterVec circleRadius)
                         stroke
                     _other -> lineToVec (toVec2 cellSize target)
                 go target

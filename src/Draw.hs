@@ -23,6 +23,7 @@ module Draw (
     , Arrow(..)
     , ArrowSpec(..)
     , arrowSketch
+    , Circle(..)
     , circleSketch
     , Cross(..)
     , crossSketch
@@ -346,13 +347,13 @@ radialCoordinateSystem :: PolarParams -> Render ()
 radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1
     setColor (hsv 0 0 0)
-    sequence_ [ circleSketch center (fromIntegral r) >> stroke
+    sequence_ [ sketch (Circle center (fromIntegral r)) >> stroke
               | r <- [100, 200 .. ceiling maxR :: Int] ]
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
               | angle <- init [0, 45 .. 360 :: Int] ]
 
     setColor (hsva 0 0 0 0.5)
-    sequence_ [ circleSketch center (fromIntegral r) >> stroke
+    sequence_ [ sketch (Circle center (fromIntegral r)) >> stroke
               | r <- [25, 50 .. ceiling maxR :: Int]
               , mod r 100 /= 0 ]
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke

@@ -69,7 +69,7 @@ perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250
     setColor $ mathematica97 0
     sketch line
     stroke
-    circleSketch point 3
+    sketch (Circle point 3)
     stroke
     setColor $ mathematica97 1
     sketch line'
@@ -94,7 +94,7 @@ pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_i
 
     setColor $ mathematica97 1
     for_ points (\point -> do
-        circleSketch point 3
+        sketch (Circle point 3)
         if pointInPolygon point square
             then fill
             else stroke )

@@ -73,7 +73,7 @@ renderBillard table startPoint startAngle numReflections = do
     cairoScope $ do
         setColor $ mathematica97 0
         for_ billardPoints (\point -> do
-            circleSketch point 3
+            sketch (Circle point 3)
             stroke )
 
     cairoScope $ do

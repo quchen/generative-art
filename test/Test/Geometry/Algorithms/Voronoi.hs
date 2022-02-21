@@ -116,5 +116,5 @@ drawPoint :: Vec2 -> MathematicaColor -> Render ()
 drawPoint point color = cairoScope $ do
     newPath
     setColor $ mathematica97 color
-    circleSketch point 3
+    sketch (Circle point 3)
     fill

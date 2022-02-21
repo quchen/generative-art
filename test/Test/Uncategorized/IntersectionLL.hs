@@ -105,7 +105,7 @@ testDraw line1@(Line start _) line2 = do
 
             cairoScope $ do
                 setColor $ mathematica97 3
-                circleSketch point 3
+                sketch (Circle point 3)
                 fill
 
             cairoScope $ do
