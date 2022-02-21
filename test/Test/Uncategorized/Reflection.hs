@@ -22,7 +22,7 @@ tests = testVisual "Reflection of rays on a mirror" 520 300 "docs/geometry/refle
     cairoScope $ do
         setLineWidth 2
         setColor (black `withOpacity` 0.5)
-        lineSketch mirrorSurface
+        sketch mirrorSurface
         stroke
 
     cairoScope $ do
@@ -36,8 +36,8 @@ tests = testVisual "Reflection of rays on a mirror" 520 300 "docs/geometry/refle
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             setColor (hsva colorDeg 1 0.7 0.7)
-            lineSketch ray
-            lineSketch ray'
+            sketch ray
+            sketch ray'
             stroke )
     cairoScope $ do
         let rayOrigin = Vec2 350 30
@@ -50,6 +50,6 @@ tests = testVisual "Reflection of rays on a mirror" 520 300 "docs/geometry/refle
                 ray = Line rayOrigin iPoint
                 ray' = Line iPoint reflectedRayEnd
             setColor (hsva colorDeg 1 0.7 0.7)
-            lineSketch ray
-            lineSketch ray'
+            sketch ray
+            sketch ray'
             stroke )

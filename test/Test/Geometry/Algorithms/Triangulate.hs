@@ -92,5 +92,5 @@ paintTriangulation triangulation = do
         let allEdges = polygonEdges =<< triangulation
             uniqueEdges = nubLines allEdges
         for_ uniqueEdges $ \edge -> do
-            lineSketch edge
+            sketch edge
             stroke

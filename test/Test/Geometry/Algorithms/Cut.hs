@@ -81,16 +81,16 @@ lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_lin
     setLineWidth 1
     setColor black
     setDash [2,4] 0
-    lineSketch scissors
+    sketch scissors
     stroke
     setDash [] 0
 
     setLineWidth 3
     setColor $ mathematica97 0
-    lineSketch (Line paperStart p)
+    sketch (Line paperStart p)
     stroke
     setColor $ mathematica97 3
-    lineSketch (Line p paperEnd)
+    sketch (Line p paperEnd)
     stroke
 
     setColor $ mathematica97 1
@@ -109,7 +109,7 @@ polyCutDraw initialPolygon scissors cutResults = do
         setLineWidth 1
         setColor black
         setDash [2,4] 0
-        lineSketch scissors
+        sketch scissors
         stroke
         setDash [] 0
         arrowSketch scissors def{arrowheadSize = 5, arrowDrawBody = False}

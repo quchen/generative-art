@@ -216,7 +216,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
     setLineWidth 1
     cairoScope $ do
         for_ (V.zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (V.tail trajectory)) $ \(t, line) -> do
-            lineSketch line
+            sketch line
             let val = linearInterpolate (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val/1))
             stroke

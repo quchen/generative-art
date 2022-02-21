@@ -52,7 +52,7 @@ drawing = do
             for_ billardLines (\line ->
                 let alpha = let d = lineLength line
                             in min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
-                in setColor (color alpha) >> lineSketch line >> stroke)
+                in setColor (color alpha) >> sketch line >> stroke)
 
     Cairo.translate 10 10
 

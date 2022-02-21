@@ -32,7 +32,7 @@ rotateLineTest = testVisual "Rotate line" 300 90 "docs/geometry/rotate_line" $ \
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do
         setColor $ flare (i/8)
-        lineSketch line
+        sketch line
         stroke )
 
     setColor $ flare 0.5
@@ -48,10 +48,10 @@ perpendicularBisectorTest = testVisual "Perpendicular bisector" 190 60 "docs/geo
 
     setLineWidth 1
     setColor $ mathematica97 0
-    lineSketch line
+    sketch line
     stroke
     setColor $ mathematica97 1
-    lineSketch bisector
+    sketch bisector
     stroke
 
     setFontSize 12
@@ -67,12 +67,12 @@ perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250
 
     setLineWidth 1
     setColor $ mathematica97 0
-    lineSketch line
+    sketch line
     stroke
     circleSketch point 3
     stroke
     setColor $ mathematica97 1
-    lineSketch line'
+    sketch line'
     stroke
 
     setFontSize 12

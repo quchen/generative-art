@@ -49,7 +49,7 @@ mirror1 = do
 
         cairoScope $ do
             setMirrorStyle
-            lineSketch mirror
+            sketch mirror
             stroke
 
         for_ ps (\p -> do
@@ -72,7 +72,7 @@ mirror2 = do
 
     cairoScope $ do
         setMirrorStyle
-        lineSketch mirror
+        sketch mirror
         stroke
 
     setFontSize 12

@@ -276,7 +276,7 @@ interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_si
         let circle p = newPath >> circleSketch p 3 >> stroke
             connect p q = do
                 let line = resizeLineSymmetric (*0.8) (Line p q)
-                lineSketch line
+                sketch line
                 setDash [1,1] 0
                 stroke
         cairoScope (setColor (mathematica97 0) >> circle e)

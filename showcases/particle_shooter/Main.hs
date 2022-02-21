@@ -147,7 +147,7 @@ render SystemResult{..} = do
         for_ (V.zip trajectory (V.tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
             let colorValue = linearInterpolate (minSpeed, maxSpeed) (0,1) speed
             setColor (mako colorValue `withOpacity` 0.3)
-            lineSketch (Line a b)
+            sketch (Line a b)
             stroke
 
 gaussianVec2
