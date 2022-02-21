@@ -158,7 +158,7 @@ renderDoublePendulum (w,h) = do
         setLineWidth 1
         for_ (V.zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
             setColor $ rocket (1-exp (-t / 500)) `withOpacity` exp (-t / 500)
-            bezierSketch [bezier]
+            sketch [bezier]
             stroke
 
 doublePendulumTrajectory :: DoublePendulum -> [(Double, Vec2)]
