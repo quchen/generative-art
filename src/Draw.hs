@@ -20,9 +20,11 @@ module Draw (
     , Sketch(..)
     , lineSketch
     , bezierSketch
+    , Arrow(..)
     , ArrowSpec(..)
     , arrowSketch
     , circleSketch
+    , Cross(..)
     , crossSketch
     , arcSketch
     , arcSketchNegative

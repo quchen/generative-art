@@ -56,7 +56,7 @@ mirror1 = do
             let p' = transform (mirrorAlong mirror) p
 
             mirroredC 1
-            crossSketch p 5
+            sketch (Cross p 5)
             stroke
             originalC 1
             circleSketch p' 5

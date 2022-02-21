@@ -38,7 +38,7 @@ renderSingleWire cellSize allKnownCells start = do
     fix (\go currentPosHex -> case M.lookup currentPosHex allKnownCells of
             Nothing -> do
                 stroke
-                crossSketch (toVec2 cellSize currentPosHex) (cellSize/2)
+                sketch (Cross (toVec2 cellSize currentPosHex) (cellSize/2))
             Just (WireTo target) -> do
                 case M.lookup target allKnownCells of
                     Just WireEnd -> do
