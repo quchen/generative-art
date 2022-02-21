@@ -32,9 +32,6 @@ module Draw (
     , cartesianCoordinateSystem
     , radialCoordinateSystem
 
-    -- * Canvas utilities
-    , getSurfaceDimensions
-
     -- * Temporary Cairo modifications
     , withOperator
     , cairoScope
@@ -287,13 +284,6 @@ radialCoordinateSystem center maxR = cairoScope $ do
     sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
-
--- | (width, height) of the current surface.
-getSurfaceDimensions :: Num int => Render (int, int)
-getSurfaceDimensions = withTargetSurface $ \s -> do
-    w <- imageSurfaceGetWidth s
-    h <- imageSurfaceGetHeight s
-    pure (fromIntegral w,fromIntegral h)
 
 -- | Temporarily draw using a different composition operator, such as
 -- 'OperatorClear' to delete part of an image.
