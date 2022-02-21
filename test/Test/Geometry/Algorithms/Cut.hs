@@ -81,16 +81,16 @@ lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_lin
     setLineWidth 1
     setColor black
     setDash [2,4] 0
-    lineSketch scissors
+    sketch scissors
     stroke
     setDash [] 0
 
     setLineWidth 3
     setColor $ mathematica97 0
-    lineSketch (Line paperStart p)
+    sketch (Line paperStart p)
     stroke
     setColor $ mathematica97 3
-    lineSketch (Line p paperEnd)
+    sketch (Line p paperEnd)
     stroke
 
     setColor $ mathematica97 1
@@ -109,21 +109,21 @@ polyCutDraw initialPolygon scissors cutResults = do
         setLineWidth 1
         setColor black
         setDash [2,4] 0
-        lineSketch scissors
+        sketch scissors
         stroke
         setDash [] 0
-        arrowSketch scissors def{arrowheadSize = 5, arrowDrawBody = False}
+        sketch (Arrow scissors def{_arrowheadSize = 5, _arrowDrawBody = False})
         stroke
     drawPolygon i polygon = grouped paint $ do
         setColor $ mathematica97 i
         for_ (polygonEdges polygon) $ \edge -> do
-            arrowSketch edge def
-                { arrowheadRelPos   = 0.45
-                , arrowheadSize     = 6
-                , arrowheadDrawLeft = False
-                }
+            sketch (Arrow edge def
+                { _arrowheadRelPos   = 0.45
+                , _arrowheadSize     = 6
+                , _arrowheadDrawLeft = False
+                })
             stroke
-        polygonSketch polygon
+        sketch polygon
         strokePreserve
         setColor $ mathematica97 i `withOpacity` 0.1
         fill
@@ -240,11 +240,11 @@ pathologicalCornerCutsTests = do
                 (placeCut cutResult)
             setColor $ mathematica97 0
             for_ (let Polygon corners = polygon in corners) $ \corner -> do
-                circleSketch (placeOriginal corner) 2.5
+                sketch (Circle (placeOriginal corner) 2.5)
                 stroke
             for_ cutResult $ \cutPoly ->
                 for_ (let Polygon corners = cutPoly in corners) $ \corner -> do
-                    circleSketch (placeCut corner) 2.5
+                    sketch (Circle (placeCut corner) 2.5)
                     stroke
         let renderDescription = do
                 setColor $ mathematica97 1
@@ -317,26 +317,26 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
   where
     moveRight d line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
     nudge = moveRight 2.5 . resizeLineSymmetric (\d -> 0.85*d)
-    arrowSpec = def{arrowheadSize = 7, arrowheadRelPos = 0.5, arrowheadDrawLeft = False}
+    arrowSpec = def{_arrowheadSize = 7, _arrowheadRelPos = 0.5, _arrowheadDrawLeft = False}
 
     drawCutEdgeGraph orientation ceg@(CutEdgeGraph graph) = do
         let reconstructedPolygons = reconstructPolygons orientation ceg
         setLineWidth 1
         for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
             setColor $ mathematica97 0
-            circleSketch start 3
+            sketch (Circle start 3)
             strokePreserve
             setColor $ mathematica97 0 `withOpacity` 0.3
             fill
 
             setColor $ mathematica97 i
             for_ ends $ \end -> do
-                arrowSketch (nudge (Line start end)) arrowSpec
+                sketch (Arrow (nudge (Line start end)) arrowSpec)
                 stroke
         for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
             setColor $ mathematica97 i
             cairoScope $ do
-                polygonSketch polygon
+                sketch polygon
                 setDash [2,2] 0
                 strokePreserve
                 setColor $ mathematica97 i `withOpacity` 0.1

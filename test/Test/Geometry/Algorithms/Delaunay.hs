@@ -3,17 +3,17 @@ module Test.Geometry.Algorithms.Delaunay (tests) where
 
 
 
-import Control.Monad.IO.Class
-import Data.List (scanl')
+import           Control.Monad.IO.Class
+import           Data.List                (scanl')
 import qualified Graphics.Rendering.Cairo as C
-import System.Random.MWC (create)
+import           System.Random.MWC        (create)
 
-import Geometry.Algorithms.Delaunay
-import Geometry.Algorithms.Delaunay.Internal
-import Draw
-import Geometry
-import Geometry.Algorithms.Sampling
-import Geometry.Algorithms.Voronoi
+import           Draw                                  hiding (Circle)
+import qualified Draw                                  as D
+import           Geometry
+import           Geometry.Algorithms.Delaunay
+import           Geometry.Algorithms.Sampling
+import           Geometry.Algorithms.Voronoi
 
 import Test.TastyAll
 
@@ -31,13 +31,13 @@ testRandomTriangulation = testVisual "Random points" 220 220 "docs/voronoi/delau
     triangulation <- liftIO $ randomDelaunay 200 200
     C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
-        polygonSketch poly
+        sketch poly
         setColor $ mathematica97 0
         C.setLineJoin C.LineJoinBevel
         C.stroke
         setColor $ mathematica97 1
         for_ ps $ \p -> do
-            circleSketch p 4
+            sketch (D.Circle p 4)
             C.fill
 
 testConversionToVoronoi :: TestTree
@@ -46,17 +46,17 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
     let voronoi = toVoronoi triangulation
     C.translate 10 10
     for_ (getPolygons triangulation) $ \poly@(Polygon ps) -> cairoScope $ do
-        polygonSketch poly
+        sketch poly
         setColor $ mathematica97 0 `withOpacity` 0.25
         C.setLineJoin C.LineJoinBevel
         C.stroke
         setColor $ mathematica97 1
         for_ ps $ \p -> do
-            circleSketch p 4
+            sketch (D.Circle p 4)
             C.fill
     for_ (cells voronoi) $ \Cell{..} -> do
         setColor $ mathematica97 3
-        polygonSketch region
+        sketch region
         C.stroke
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
@@ -76,12 +76,12 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
     for_ triangulations $ \triangulation -> do
         for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
             setColor $ mathematica97 0
-            polygonSketch region
+            sketch region
             C.stroke
             setColor $ mathematica97 3
-            arrowSketch (Line seed (polygonCentroid region)) def { arrowheadSize = 4 }
+            sketch (Arrow (Line seed (polygonCentroid region)) def { _arrowheadSize = 4 })
             C.stroke
             setColor $ mathematica97 1
-            circleSketch seed 4
+            sketch (D.Circle seed 4)
             C.fill
         C.translate 210 0

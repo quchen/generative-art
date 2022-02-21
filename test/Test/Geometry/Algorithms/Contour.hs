@@ -71,12 +71,12 @@ visualTests = testGroup "Visual"
                 G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) def)
         cairoScope $ do
             setLineWidth 1
-            for_ (fitToBox isos) pathSketch
+            for_ (fitToBox isos) sketch
             setColor (mathematica97 0)
             stroke
 
     ,  testVisual "Concentric circles" 100 100 "docs/iso_lines/circles" $ \(w, h) -> do
-        cartesianCoordinateSystem
+        cartesianCoordinateSystem def
         for_ (zip [1..] [1,2..20]) $ \(colorIndex, r) -> do
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 gridResolution = (32, 32)
@@ -86,7 +86,7 @@ visualTests = testGroup "Visual"
                     G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) def)
             cairoScope $ do
                 setLineWidth 1
-                for_ (fitToBox isos) pathSketch
+                for_ (fitToBox isos) sketch
                 setColor (mathematica97 colorIndex)
                 stroke
 
@@ -117,6 +117,6 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 setColor (mathematica97 colorIx `withOpacity` threshold)
-                for_ isos $ \path -> pathSketch (simplifyTrajectoryRdp 0.4 (V.fromList path))
+                for_ isos $ \path -> sketch (simplifyTrajectoryRdp 0.4 (V.fromList path))
                 stroke
     ]

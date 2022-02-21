@@ -5,10 +5,11 @@ module Test.Geometry.Processes.ApollonianGasket (tests) where
 import Data.Foldable
 import Graphics.Rendering.Cairo as C
 
-import Draw
-import Geometry as G
-import Geometry.Processes.ApollonianGasket
-import Numerics.Interpolation
+import           Draw                                hiding (Circle)
+import qualified Draw                                as D
+import           Geometry                            as G
+import           Geometry.Processes.ApollonianGasket
+import           Numerics.Interpolation
 
 import Test.TastyAll
 
@@ -35,7 +36,7 @@ correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classica
     for_ (zip [1..] gasket) $ \(i, (Circle center r)) -> cairoScope $ do
         setLineWidth 1
         setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
-        circleSketch center r
+        sketch (D.Circle center r)
         stroke
 
 spacedGasket :: TestTree
@@ -49,7 +50,7 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
     for_ (zip [1..] gasket) $ \(i, (Circle center r)) -> cairoScope $ do
         setLineWidth 1
         setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
-        circleSketch center r
+        sketch (D.Circle center r)
         stroke
 
 forgettingGen0 :: TestTree
@@ -74,7 +75,7 @@ forgettingGen0 = testVisual "Forgetting to use the gen0 circles" 300 300 "docs/a
 
         apoCircleSketch c =
             let Circle center radius = toCircle c
-            in circleSketch center (abs radius)
+            in sketch (D.Circle center (abs radius))
 
         apoCircles = concat
             [ []
@@ -113,7 +114,7 @@ missingTheMinus = testVisual "Missing that one minus" 300 300 "docs/apollonian_g
 
         apoCircleSketch c =
             let Circle center radius = toCircle c
-            in circleSketch center (abs radius)
+            in sketch (D.Circle center (abs radius))
 
         apoCircles = concat
             [ []

@@ -52,24 +52,24 @@ drawing = do
             for_ billardLines (\line ->
                 let alpha = let d = lineLength line
                             in min 1 (max 0.4 (abs (d - meanLength) / (3*sigmaLength)))
-                in setColor (color alpha) >> lineSketch line >> stroke)
+                in setColor (color alpha) >> sketch line >> stroke)
 
     Cairo.translate 10 10
 
     setLineWidth 1
     billardSketch billardLeft (hsva 257 0.40 0.38) >> stroke
     setColor $ hsva 257 0.40 0.38 1
-    polygonSketch left >> stroke
+    sketch left >> stroke
 
     billardSketch billardLambda (hsva 256 0.40 0.50)
     setColor $ hsva 256 0.40 0.50 1
-    polygonSketch lambda >> stroke
+    sketch lambda >> stroke
 
     billardSketch billardUpper (hsva 304 0.45 0.56)
     billardSketch billardLower (hsva 304 0.45 0.56)
     setColor $ hsva 304 0.45 0.56 1
-    polygonSketch upper >> stroke
-    polygonSketch lower >> stroke
+    sketch upper >> stroke
+    sketch lower >> stroke
 
 -- | Mean and standard deviation, calculated in a single pass. 😎
 meanStddev :: [Double] -> (Double, Double)

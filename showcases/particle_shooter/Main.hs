@@ -134,7 +134,7 @@ render SystemResult{..} = do
     for_ (zip [1..] isosWithThresolds) $ \(i, (isoThreshold, isos)) -> do
         liftIO (putStrLn ("Paint iso line threshold " ++ show i ++ "/" ++ show (length isosWithThresolds) ++ ", threshold = " ++ show isoThreshold))
         for_ isos $ \iso -> cairoScope $ do
-            bezierSketch iso
+            sketch iso
             let colorValue = linearInterpolate (minimum isoThresholds, maximum isoThresholds) (0,1) isoThreshold
             setColor (rocket colorValue `withOpacity` 0.3)
             stroke
@@ -147,7 +147,7 @@ render SystemResult{..} = do
         for_ (V.zip trajectory (V.tail trajectory)) $ \((a, speed), (b, _)) -> cairoScope $ grouped (paintWithAlpha 0.5) $ do
             let colorValue = linearInterpolate (minSpeed, maxSpeed) (0,1) speed
             setColor (mako colorValue `withOpacity` 0.3)
-            lineSketch (Line a b)
+            sketch (Line a b)
             stroke
 
 gaussianVec2

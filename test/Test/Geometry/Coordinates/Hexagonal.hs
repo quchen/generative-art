@@ -77,14 +77,14 @@ lineAndCircle = testVisual "Line and circle" 380 350 "docs/hexagonal/1_line_and_
         hexagonalCoordinateSystem sideLength 3
 
     for_ (Hex.line (Hex (-1) 0 1) (Hex 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
-        Draw.polygonSketch (hexagonPoly sideLength hexLineSegment)
+        Draw.sketch (hexagonPoly sideLength hexLineSegment)
         setColor (mathematica97 0 `withOpacity` 0.3)
         fillPreserve
         setColor (mathematica97 0 `withOpacity` 0.5)
         stroke
 
     for_ (ring 2 (Hex (-1) 1 0)) $ \hex -> cairoScope $ do
-        Draw.polygonSketch (hexagonPoly sideLength hex)
+        Draw.sketch (hexagonPoly sideLength hex)
         setColor (mathematica97 1 `withOpacity` 0.3)
         fillPreserve
         setColor (mathematica97 1 `withOpacity` 0.5)
@@ -108,7 +108,7 @@ gaussianHexagons = testVisual "Gaussian hexagons" 360 360 "docs/hexagonal/gaussi
         fitToCanvas = G.transform (G.transformBoundingBox (M.keysSet polys) (Vec2 1 1, Vec2 (width-1) (height-1)) def)
 
     sequence_ $ flip M.mapWithKey polys $ \poly value -> cairoScope $ do
-        Draw.polygonSketch (fitToCanvas poly)
+        Draw.sketch (fitToCanvas poly)
         setColor (viridis (linearInterpolate (fromIntegral (minimum polys), fromIntegral (maximum polys)) (0, 1) (fromIntegral value)))
         setLineWidth 1
         fillPreserve

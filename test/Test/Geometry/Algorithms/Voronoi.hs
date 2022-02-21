@@ -83,7 +83,7 @@ testPolygonCutting = testGroup "Adding polygons"
         Cairo.translate 150 (-120)
         drawVoronoi [cell1'', cell2'', cell3']
     drawArrow start angle len = do
-        arrowSketch (angledLine start angle len) def
+        sketch (Arrow (angledLine start angle len) def)
         stroke
 
 testVoronoi :: TestTree
@@ -98,7 +98,7 @@ drawVoronoi voronoiCells = cairoScope $ do
     for_ voronoiCells $ \(Cell point polygon i) -> do
         cairoScope $ do
             newPath
-            polygonSketch polygon
+            sketch polygon
             setColor $ mathematica97 i
             strokePreserve
             setColor $ mathematica97 i `withOpacity` 0.1
@@ -116,5 +116,5 @@ drawPoint :: Vec2 -> MathematicaColor -> Render ()
 drawPoint point color = cairoScope $ do
     newPath
     setColor $ mathematica97 color
-    circleSketch point 3
+    sketch (Circle point 3)
     fill

@@ -49,21 +49,21 @@ mirror1 = do
 
         cairoScope $ do
             setMirrorStyle
-            lineSketch mirror
+            sketch mirror
             stroke
 
         for_ ps (\p -> do
             let p' = transform (mirrorAlong mirror) p
 
             mirroredC 1
-            crossSketch p 5
+            sketch (Cross p 5)
             stroke
             originalC 1
-            circleSketch p' 5
+            sketch (Circle p' 5)
             stroke
 
             setColor (black `withOpacity` 0.5)
-            arrowSketch (Line p p') def
+            sketch (Arrow (Line p p') def)
             stroke )
 
 mirror2 :: Render ()
@@ -72,7 +72,7 @@ mirror2 = do
 
     cairoScope $ do
         setMirrorStyle
-        lineSketch mirror
+        sketch mirror
         stroke
 
     setFontSize 12
@@ -82,8 +82,8 @@ mirror2 = do
     setLineWidth 1
     let mirrorLineTest line = do
             let mirrored = transform (mirrorAlong mirror) line
-            originalC 1 >> arrowSketch line def >> stroke
-            mirroredC 1 >> arrowSketch mirrored def >> stroke
+            originalC 1 >> sketch (Arrow line def) >> stroke
+            mirroredC 1 >> sketch (Arrow mirrored def) >> stroke
     mirrorLineTest (angledLine (Vec2 50 10) (deg 20) 100)
     mirrorLineTest (angledLine (Vec2 150 10) (deg 90) 100)
     mirrorLineTest (angledLine (Vec2 160 10) (deg 90) 150)
@@ -93,7 +93,7 @@ mirror2 = do
 
     let mirrorPolygonTest poly = do
             let mirrored = transform (mirrorAlong mirror) poly
-            originalC 1 >> polygonSketch poly >> strokePreserve >> originalC 0.1 >> fill
-            mirroredC 1 >> polygonSketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
+            originalC 1 >> sketch poly >> strokePreserve >> originalC 0.1 >> fill
+            mirroredC 1 >> sketch mirrored >> strokePreserve >> mirroredC 0.1 >> fill
     mirrorPolygonTest (Polygon [Vec2 350 200, Vec2 400 220, Vec2 380 240, Vec2 420 220, Vec2 420 200])
     mirrorPolygonTest (Polygon [Vec2 339 56, Vec2 310 110, Vec2 370 82, Vec2 300 70, Vec2 348 118])

@@ -68,17 +68,17 @@ renderBillard table startPoint startAngle numReflections = do
     cairoScope $ do
         setColor $ mathematica97 0
         setDash [2,4] 0
-        for_ table (\edge -> lineSketch edge >> stroke)
+        for_ table (\edge -> sketch edge >> stroke)
 
     cairoScope $ do
         setColor $ mathematica97 0
         for_ billardPoints (\point -> do
-            circleSketch point 3
+            sketch (Circle point 3)
             stroke )
 
     cairoScope $ do
         setColor $ mathematica97 1
         let billardArrows = zipWith Line billardPoints (tail billardPoints)
         for_ billardArrows (\arr -> do
-            lineSketch arr
+            sketch arr
             stroke )

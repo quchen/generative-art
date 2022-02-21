@@ -41,8 +41,8 @@ testSubdivision = testVisual "Subdividing base rhombs" 600 200 "docs/penrose/2_s
         gen1 = subdivide =<< gen0
         gen2 = subdivide =<< gen1
         drawArrows = do
-            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+            sketch (Arrow (Line (Vec2 0 50) (Vec2 30 50)) def) >> stroke
+            sketch (Arrow (Line (Vec2 20 150) (Vec2 50 150)) def) >> stroke
 
     C.translate 10 10
     for_ gen0 drawTileWithConnectors
@@ -68,8 +68,8 @@ testSubdivisionWithInscribedPentagons = testVisual "Subdivision rules with penta
         gen1 = subdivide =<< gen0
         gen2 = subdivide =<< gen1
         drawArrows = do
-            arrowSketch (Line (Vec2 0 50) (Vec2 30 50)) def >> stroke
-            arrowSketch (Line (Vec2 20 150) (Vec2 50 150)) def >> stroke
+            sketch (Arrow (Line (Vec2 0 50) (Vec2 30 50)) def) >> stroke
+            sketch (Arrow (Line (Vec2 20 150) (Vec2 50 150)) def) >> stroke
 
     C.translate 10 10
     for_ gen0 drawInscribedPentagons
@@ -106,29 +106,29 @@ drawConnectors tile@Tile{..} = cairoScope $ do
         r1 = 0.3 * unitLength
         r2 = 0.2 * unitLength
         r3 = 0.8 * unitLength
-    polygonSketch (asPolygon tile)
+    sketch (asPolygon tile)
     clip
     case tileType of
         Thin -> do
-            circleSketch tileP0 r1
+            sketch (Circle tileP0 r1)
             stroke
-            circleSketch tileP2 r2
+            sketch (Circle tileP2 r2)
             stroke
         Thick -> do
-            circleSketch tileP0 r3
+            sketch (Circle tileP0 r3)
             stroke
-            circleSketch tileP2 r1
+            sketch (Circle tileP2 r1)
             stroke
 
 drawInscribedPentagons :: Tile -> Render ()
 drawInscribedPentagons tile = cairoScope $ do
     drawTile tile
     for_ (inscribedPentagons tile) $ \polygon -> do
-        polygonSketchOpen polygon
+        sketchOpen polygon
         stroke
 
-polygonSketchOpen :: Polygon -> Render ()
-polygonSketchOpen (Polygon []) = pure ()
-polygonSketchOpen (Polygon (Vec2 x y : vecs)) = do
+sketchOpen :: Polygon -> Render ()
+sketchOpen (Polygon []) = pure ()
+sketchOpen (Polygon (Vec2 x y : vecs)) = do
     moveTo x y
     for_ vecs (\(Vec2 x' y') -> lineTo x' y')

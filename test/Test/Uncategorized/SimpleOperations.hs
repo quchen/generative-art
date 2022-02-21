@@ -32,7 +32,7 @@ rotateLineTest = testVisual "Rotate line" 300 90 "docs/geometry/rotate_line" $ \
     setLineWidth 1
     for_ (zip [0..8] rotated) (\(i, line) -> do
         setColor $ flare (i/8)
-        lineSketch line
+        sketch line
         stroke )
 
     setColor $ flare 0.5
@@ -48,10 +48,10 @@ perpendicularBisectorTest = testVisual "Perpendicular bisector" 190 60 "docs/geo
 
     setLineWidth 1
     setColor $ mathematica97 0
-    lineSketch line
+    sketch line
     stroke
     setColor $ mathematica97 1
-    lineSketch bisector
+    sketch bisector
     stroke
 
     setFontSize 12
@@ -67,12 +67,12 @@ perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250
 
     setLineWidth 1
     setColor $ mathematica97 0
-    lineSketch line
+    sketch line
     stroke
-    circleSketch point 3
+    sketch (Circle point 3)
     stroke
     setColor $ mathematica97 1
-    lineSketch line'
+    sketch line'
     stroke
 
     setFontSize 12
@@ -86,7 +86,7 @@ pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_i
         points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
 
     setLineWidth 1
-    polygonSketch square
+    sketch square
     setColor $ mathematica97 0
     strokePreserve
     setColor $ mathematica97 0 `withOpacity` 0.1
@@ -94,7 +94,7 @@ pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_i
 
     setColor $ mathematica97 1
     for_ points (\point -> do
-        circleSketch point 3
+        sketch (Circle point 3)
         if pointInPolygon point square
             then fill
             else stroke )

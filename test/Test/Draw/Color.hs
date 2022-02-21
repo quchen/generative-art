@@ -255,11 +255,12 @@ testDiscrete testName file colorF maxSwatches =
             setColor black
             setLineWidth 1
             let lastCellCenter = Vec2 (fromIntegral numColors*tileWidth - tileWidth/2) (tileHeight/2)
-            arrowSketch (angledLine (lastCellCenter +. Vec2 2 0) (deg 0) 10)
-                def {arrowheadSize = 5 }
+            sketch (Arrow
+                (angledLine (lastCellCenter +. Vec2 2 0) (deg 0) 10)
+                def {_arrowheadSize = 5 })
             stroke
             for_ [-10, -6, -2] $ \offset -> do
-                circleSketch (lastCellCenter +. Vec2 offset 0) 1
+                sketch (Circle (lastCellCenter +. Vec2 offset 0) 1)
                 fill
 
 assertReproducesMathematica :: Assertion

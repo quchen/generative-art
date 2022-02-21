@@ -98,7 +98,7 @@ drawing gen shattered = do
         let value = 1
         let alpha = 1
         setColor (hsva hue saturation value alpha)
-        polygonSketch polygon
+        sketch polygon
         fillPreserve
         setColor black
         stroke

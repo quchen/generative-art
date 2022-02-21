@@ -93,7 +93,7 @@ paintBezierOpenPicture points smoothed = do
     let circle r = cairoScope $ do
             (x,y) <- getCurrentPoint
             newPath
-            circleSketch (Vec2 x y) r
+            sketch (Circle (Vec2 x y) r)
             closePath
         prettyBezier (Bezier (Vec2 x0 y0) (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3) ) = do
             do -- Paint actual curve
@@ -141,16 +141,16 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
             cairoScope . grouped (paintWithAlpha 0.7) $ do
                     setColor $ mathematica97 3
-                    circleSketch c1 2 >> fill
+                    sketch (Circle c1 2) >> fill
                     moveToVec start >> lineToVec c1 >> stroke
             cairoScope . grouped (paintWithAlpha 0.7) $ do
                     setColor $ mathematica97 1
-                    circleSketch c2 2 >> fill
+                    sketch (Circle c2 2) >> fill
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
         setSourceRGB 0 0 0
         for_ (mconcat [face, ear, back, tail1, tail2, foot]) $ \p -> do
-            circleSketch p 2.5 >> fill
+            sketch (Circle p 2.5) >> fill
 
 
 
@@ -220,7 +220,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
         setColor $ mathematica97 0
-        bezierSketch (fit beziers)
+        sketch (fit beziers)
         stroke
         moveTo 200 70
         showText (show (length beziers) ++ " curves")
@@ -233,12 +233,12 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
 
         cairoScope $ for_ (fit subpoints) $ \p -> do
             setColor $ mathematica97 1 `withOpacity` 0.1
-            circleSketch p 2
+            sketch (Circle p 2)
             fill
 
         cairoScope $ for_ (fit simplified) $ \p -> do
             newPath
-            circleSketch p 2
+            sketch (Circle p 2)
             setSourceRGB 0 0 0
             stroke
 
@@ -246,7 +246,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
         setColor $ mathematica97 3
-        bezierSketch (fit interpolated)
+        sketch (fit interpolated)
         stroke
         moveTo 200 270
         showText (show (length interpolated) ++ " curves")
@@ -266,17 +266,17 @@ interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_si
 
     cairoScope $ do
         setColor $ mathematica97 1
-        bezierSketch [curve]
+        sketch [curve]
         stroke
-        bezierSketch [offsetBelow curve]
+        sketch [offsetBelow curve]
         stroke
 
     for_ (zip evenlySpaced unevenlySpaced) $ \(e, u') -> do
         let u = offsetBelow u'
-        let circle p = newPath >> circleSketch p 3 >> stroke
+        let circle p = newPath >> sketch (Circle p 3) >> stroke
             connect p q = do
                 let line = resizeLineSymmetric (*0.8) (Line p q)
-                lineSketch line
+                sketch line
                 setDash [1,1] 0
                 stroke
         cairoScope (setColor (mathematica97 0) >> circle e)
@@ -292,7 +292,7 @@ bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_l
             in fitToBox smoothened
 
     for_ geometry $ \bezier -> cairoScope $ do
-        bezierSketch [bezier]
+        sketch [bezier]
         setColor (mathematica97 0 `withOpacity` 0.5)
         setLineWidth 2
         stroke

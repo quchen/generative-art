@@ -8,7 +8,7 @@ import System.Random.MWC (uniformRM, GenIO, initialize)
 
 import Draw
 import Geometry
-import Geometry.Coordinates.Hexagonal hiding (Polygon, polygonSketch, rotateAround)
+import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
 
 
@@ -65,7 +65,7 @@ main = do
             tiling <- Cairo.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
 
             let paintOnHexagonalCanvas = do
-                    polygonSketch (hexagon zero (canvasSize - 16))
+                    sketch (hexagon zero (canvasSize - 16))
                     Cairo.fillPreserve -- expects the content to be set as source
                     setColor (colorScheme 9)
                     Cairo.setLineWidth 8

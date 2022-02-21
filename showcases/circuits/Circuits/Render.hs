@@ -38,7 +38,7 @@ renderSingleWire cellSize allKnownCells start = do
     fix (\go currentPosHex -> case M.lookup currentPosHex allKnownCells of
             Nothing -> do
                 stroke
-                crossSketch (toVec2 cellSize currentPosHex) (cellSize/2)
+                sketch (Cross (toVec2 cellSize currentPosHex) (cellSize/2))
             Just (WireTo target) -> do
                 case M.lookup target allKnownCells of
                     Just WireEnd -> do
@@ -48,7 +48,7 @@ renderSingleWire cellSize allKnownCells start = do
                             Line _ targetVecShortened = resizeLine (\d -> d - circleRadius) (Line currentPosVec circleCenterVec)
                         lineToVec targetVecShortened
                         stroke
-                        circleSketch circleCenterVec circleRadius
+                        sketch (Circle circleCenterVec circleRadius)
                         stroke
                     _other -> lineToVec (toVec2 cellSize target)
                 go target
@@ -116,7 +116,7 @@ renderProcessGeometry
 renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do
         for_ _inside $ \hex -> do
-            D.polygonSketch (hexagonPoly cellSize hex)
+            D.sketch (hexagonPoly cellSize hex)
         setColor (insideColor)
         fillPreserve
         setSourceRGB 0 0 0
@@ -125,7 +125,7 @@ renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do
         setColor (edgeColor)
         for_ _edge $ \hex -> do
-            D.polygonSketch (hexagonPoly cellSize hex)
+            D.sketch (hexagonPoly cellSize hex)
         setColor (edgeColor)
         fillPreserve
         setSourceRGB 0 0 0

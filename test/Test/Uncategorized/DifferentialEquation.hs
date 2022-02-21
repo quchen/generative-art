@@ -69,7 +69,7 @@ renderTwoBodyProblem (w, h) = do
 
     let paintSun = cairoScope $ do
             newPath
-            circleSketch sun 16
+            sketch (Circle sun 16)
             setLineWidth 2
             setColor $ mathematica97 1
             fillPreserve
@@ -83,7 +83,7 @@ renderTwoBodyProblem (w, h) = do
 
         paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
-            circleSketch planet 8
+            sketch (Circle planet 8)
             setColor $ mathematica97 3
             fillPreserve
             setSourceRGB 0 0 0
@@ -158,7 +158,7 @@ renderDoublePendulum (w,h) = do
         setLineWidth 1
         for_ (V.zip transformedTrajectory bezierSmoothTrajectory) $ \((t, _), bezier) -> do
             setColor $ rocket (1-exp (-t / 500)) `withOpacity` exp (-t / 500)
-            bezierSketch [bezier]
+            sketch [bezier]
             stroke
 
 doublePendulumTrajectory :: DoublePendulum -> [(Double, Vec2)]
@@ -216,7 +216,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
     setLineWidth 1
     cairoScope $ do
         for_ (V.zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (V.tail trajectory)) $ \(t, line) -> do
-            lineSketch line
+            sketch line
             let val = linearInterpolate (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val/1))
             stroke
@@ -255,13 +255,13 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
     cairoScope $ do
         for_ hills $ \(height, center) -> do
             setColor (icefire (if height > 0 then 0.75 else 0.25))
-            circleSketch center 2
+            sketch (Circle center 2)
             fill
 
     cairoScope $
         for_ isos $ \(threshold, isosAtThreshold) ->
             for_ isosAtThreshold $ \singleIso -> do
-                pathSketch singleIso
+                sketch singleIso
                 let colorValue= linearInterpolate (-30, 30) (0,1) threshold
                 setColor (icefire colorValue `withOpacity` 0.07)
                 stroke
@@ -275,7 +275,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
                 pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
-            pathSketch trajectory
+            sketch trajectory
             let colorValue = linearInterpolate angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke

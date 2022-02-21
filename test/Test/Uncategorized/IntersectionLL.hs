@@ -80,12 +80,12 @@ testDraw line1@(Line start _) line2 = do
 
     cairoScope $ do
         setColor $ mathematica97 0
-        arrowSketch line1 def{arrowheadSize = 8}
+        sketch (Arrow line1 def{_arrowheadSize = 8})
         stroke
 
     cairoScope $ do
         setColor $ mathematica97 1
-        arrowSketch line2 def{arrowheadSize = 8}
+        sketch (Arrow line2 def{_arrowheadSize = 8})
         stroke
 
     let ty = intersectionLL line1 line2
@@ -105,7 +105,7 @@ testDraw line1@(Line start _) line2 = do
 
             cairoScope $ do
                 setColor $ mathematica97 3
-                circleSketch point 3
+                sketch (Circle point 3)
                 fill
 
             cairoScope $ do
@@ -136,6 +136,4 @@ angleSketch point angle1 angle2 = do
         arrowAngleTweak = rad (-0.2)
         tangentStart = transform (translate (polar (angle2 -. rad (pi/2) +. arrowAngleTweak) radius)) arcEnd
         tangent = Line tangentStart arcEnd
-    arrowSketch tangent def
-        { arrowheadSize = 6
-        , arrowDrawBody = False }
+    sketch (Arrow tangent def { _arrowheadSize = 6, _arrowDrawBody = False })
