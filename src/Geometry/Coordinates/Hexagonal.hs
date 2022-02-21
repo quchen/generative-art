@@ -50,8 +50,8 @@ import           Data.Maybe
 import           Data.Set                 (Set)
 import qualified Data.Set                 as S
 import           Draw                     hiding (polygonSketch)
-import qualified Draw                     as D
-import           Geometry.Core            as G hiding (Polygon, pointInPolygon, rotateAround)
+import           Geometry.Core            as G hiding
+    (Polygon, pointInPolygon, rotateAround)
 import qualified Geometry.Core            as G
 import           Graphics.Rendering.Cairo as C hiding (x, y)
 
@@ -229,20 +229,20 @@ hexagonalCoordinateSystem sideLength range = do
                 corner i = G.transform (rotateCW (i*60)) bottomCorner
             if
                 -- Rightmost corner: the only full hexagon, woo!
-                | q == range && s == -range -> pathSketch [corner i | i <- [0, 1, 2, 3, 4, 5]] >> closePath
+                | q == range && s == -range -> sketch [corner i | i <- [0, 1, 2, 3, 4, 5]] >> closePath
                 -- Upper right boundary
-                | q == range                -> pathSketch [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                | q == range                -> sketch [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Lower right boundary
-                | s == -range               -> pathSketch [corner i | i <- [(-2), (-1), 0, 1, 2, 3]]
+                | s == -range               -> sketch [corner i | i <- [(-2), (-1), 0, 1, 2, 3]]
                 -- Upper boundary
-                | r == -range               -> pathSketch [corner i | i <- [0, 1, 2, 3, 4]]
+                | r == -range               -> sketch [corner i | i <- [0, 1, 2, 3, 4]]
                 -- Lower boundary
-                | r == range                -> pathSketch [corner i | i <- [(-1), 0, 1, 2, 3]]
-                | otherwise                 -> pathSketch [corner i | i <- [0, 1, 2, 3]]
+                | r == range                -> sketch [corner i | i <- [(-1), 0, 1, 2, 3]]
+                | otherwise                 -> sketch [corner i | i <- [0, 1, 2, 3]]
             when (hexCoord == Hex 0 0 0) $ do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
-                D.polygonSketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
-                D.polygonSketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
+                sketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
+                sketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
 
     cairoScope $ grouped (paintWithAlpha 0.5) $ do
@@ -333,7 +333,7 @@ polygonSketch
     -> Render ()
 polygonSketch cellSize polygon =
     for_ (edgePoints polygon) $ \hex -> do
-        D.polygonSketch (hexagonPoly cellSize hex)
+        sketch (hexagonPoly cellSize hex)
 
 -- | Fill all neighbours of a point, and their neighbours, and…
 
