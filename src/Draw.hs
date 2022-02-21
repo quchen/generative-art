@@ -18,20 +18,12 @@ module Draw (
     , moveToVec
     , lineToVec
     , Sketch(..)
-    , lineSketch
-    , bezierSketch
     , Arrow(..)
     , ArrowSpec(..)
-    , arrowSketch
     , Circle(..)
-    , circleSketch
     , Cross(..)
-    , crossSketch
     , arcSketch
     , arcSketchNegative
-    , polygonSketch
-    , pathSketch
-    , boundingBoxSketch
 
     -- * Orientation helpers
     , cartesianCoordinateSystem
@@ -52,6 +44,16 @@ module Draw (
     -- * Convenience
     , module Data.Default.Class
     , module Data.Foldable
+
+    -- * Deprecated
+    , lineSketch
+    , bezierSketch
+    , arrowSketch
+    , circleSketch
+    , crossSketch
+    , pathSketch
+    , polygonSketch
+    , boundingBoxSketch
 ) where
 
 
