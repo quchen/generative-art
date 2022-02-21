@@ -323,34 +323,42 @@ withOperator op render = do
     setOperator formerOp
     pure result
 
--- | Render something with a new Cairo state, restoring the old one afterwards.
--- The state includes things like current color, line width, dashing, and
--- transformation matrix.
+-- | Open a new Cairo scope to allow local parameter changes. When the scope
+-- closes, the parameters are reset. Cairo documentation hides what actually is in
+-- the parameter state remarkably well; the state thus includes
+-- [(source)](https://github.com\/freedesktop\/cairo\/blob\/2ec0a874031fdb2f3d7a4eaf1d63740a0e25b268\/src\/cairo-gstate-private.h#L41):
 --
--- This function is often used to introduce a kind of scope for Cairo drawing
--- subsections, so the changes made there don’t leak into subseeuqnt parts of
--- the drawing.
+--   * Drawing operator ('withOperator')
+--   * Tolerance ('setTolerance')
+--   * Antialiasing ('setAntialias')
+--   * Line style ('setLineWidth', 'setLineCap', 'setLineJoin', 'setMiterLimit', 'setDash')
+--   * Fill rule ('setFillRule')
+--   * Font face, scaling, options
+--   * Clipping ('clip')
+--   * Pattern (includes colors\/'setColor', gradients\/'withLinearPattern' etc.)
+--   * Tranformation matrix ('C.translate' etc.)
 --
 -- For example, the following sets the line width to 2 temporarily; after the
 -- inner block, it is reset to 1.
 --
 -- @
--- do
---     'setLineWidth' 1
---     'cairoScope' $ do
---         'setLineWidth' 2
---         'moveTo' 0 0 >> 'lineTo' 100 0  -- drawn with line width 1
---         'stroke'
---     'moveTo' 0 10 >> 'lineTo' 100 10    -- drawn with line width 1
+-- 'setLineWidth' 1
+--
+-- 'cairoScope' $ do
+--     'setLineWidth' 2
+--     'sketch' ('Line' ('Vec2' 0 0) ('Vec2' 100 0)) -- drawn with line width 2
 --     'stroke'
+--
+-- 'sketch' ('Line' ('Vec2' 0 10) ('Vec2' 100 10))   -- drawn with line width 1
+-- 'stroke'
 -- @
 cairoScope :: Render a -> Render a
 cairoScope render = save *> render <* restore
 
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
--- 'popGroupToSource'.
+-- 'popGroupToSource'. This function semantically includes a call 'cairoScope'.
 --
--- This is commonly used to avoid a less transparent area when overlapping two
+-- 'grouped' is commonly used to avoid a less transparent area when overlapping two
 -- transparent areas.
 --
 -- The naive way has the intersection of the two circles darker,
@@ -368,7 +376,7 @@ cairoScope render = save *> render <* restore
 -- drawn with 0.5 alpha:
 --
 -- @
--- 'grouped' ('paintWithAlpha' 0.5)
+-- 'grouped' ('paintWithAlpha' 0.5) $ do
 --     'setSourceRGBA' 0 0 0 1
 --     'circleSketch' ('Vec2' 0 0) ('Distance' 10)
 --     'fill'
@@ -378,8 +386,11 @@ cairoScope render = save *> render <* restore
 grouped :: Render after -> Render a -> Render a
 grouped afterwards render = pushGroup *> render <* popGroupToSource <* afterwards
 
-data VAlign = VTop | VCenter | VBottom
-data HAlign = HLeft | HCenter | HRight
+-- | Vertical alignment
+data VAlign = VTop | VCenter | VBottom deriving (Eq, Ord, Show)
+
+-- | Horizontal alignment
+data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
 
 -- | Like Cairo’s 'showText', but with alignment parameters.
 showTextAligned
