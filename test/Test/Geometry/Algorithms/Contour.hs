@@ -71,7 +71,7 @@ visualTests = testGroup "Visual"
                 G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) def)
         cairoScope $ do
             setLineWidth 1
-            for_ (fitToBox isos) pathSketch
+            for_ (fitToBox isos) sketch
             setColor (mathematica97 0)
             stroke
 
@@ -86,7 +86,7 @@ visualTests = testGroup "Visual"
                     G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) def)
             cairoScope $ do
                 setLineWidth 1
-                for_ (fitToBox isos) pathSketch
+                for_ (fitToBox isos) sketch
                 setColor (mathematica97 colorIndex)
                 stroke
 
@@ -117,6 +117,6 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 setColor (mathematica97 colorIx `withOpacity` threshold)
-                for_ isos $ \path -> pathSketch (simplifyTrajectoryRdp 0.4 (V.fromList path))
+                for_ isos $ \path -> sketch (simplifyTrajectoryRdp 0.4 (V.fromList path))
                 stroke
     ]
