@@ -76,7 +76,7 @@ visualTests = testGroup "Visual"
             stroke
 
     ,  testVisual "Concentric circles" 100 100 "docs/iso_lines/circles" $ \(w, h) -> do
-        cartesianCoordinateSystem
+        cartesianCoordinateSystem def
         for_ (zip [1..] [1,2..20]) $ \(colorIndex, r) -> do
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 gridResolution = (32, 32)

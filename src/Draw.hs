@@ -30,7 +30,9 @@ module Draw (
 
     -- * Orientation helpers
     , cartesianCoordinateSystem
+    , CartesianParams(..)
     , radialCoordinateSystem
+    , PolarParams(..)
 
     -- * Temporary Cairo modifications
     , withOperator
@@ -226,14 +228,29 @@ boundingBoxSketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
     moveTo xhi ylo
     lineTo xlo yhi
 
+data CartesianParams = CartesianParams
+    { _cartesianMinX :: !Int
+    , _cartesianMaxX :: !Int
+    , _cartesianMinY :: !Int
+    , _cartesianMaxY :: !Int
+    } deriving (Eq, Ord, Show)
+
+instance Default CartesianParams where
+    def = CartesianParams
+        { _cartesianMinX = -1000
+        , _cartesianMaxX =  1000
+        , _cartesianMinY = -1000
+        , _cartesianMaxY =  1000
+        }
+
 -- | Draw a caresian coordinate system in range (x,x') (y,y'). Very useful for
 -- prototyping.
-cartesianCoordinateSystem :: Render ()
-cartesianCoordinateSystem = cairoScope $ do
-    let minMax :: (Int, Int)
-        minMax = (-1000, 1000)
-        (minX, maxX) = minMax
-        (minY, maxY) = minMax
+--
+-- @
+-- 'cartesianCoordinateSystem' 'def'
+-- @
+cartesianCoordinateSystem :: CartesianParams -> Render ()
+cartesianCoordinateSystem CartesianParams{_cartesianMinX=minX, _cartesianMaxX=maxX, _cartesianMinY=minY, _cartesianMaxY=maxY} = cairoScope $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
 
@@ -266,22 +283,33 @@ cartesianCoordinateSystem = cairoScope $ do
               | x <- [minX, minX+100 .. maxX]
               , y <- [minY, minY+100 .. maxY] ]
 
+data PolarParams = PolarParams
+    { _polarCenter :: !Vec2
+    , _polarMaxRadius :: !Double
+    } deriving (Eq, Ord, Show)
+
+instance Default PolarParams where
+    def = PolarParams zero 1000
+
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
-radialCoordinateSystem :: Vec2 -> Int -> Render ()
-radialCoordinateSystem center maxR = cairoScope $ do
-    let distance = fromIntegral
+--
+-- @
+-- 'radialCoordinateSystem' 'def'
+-- @
+radialCoordinateSystem :: PolarParams -> Render ()
+radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1
     setColor (hsv 0 0 0)
-    sequence_ [ circleSketch center (distance r) >> stroke
-              | r <- [100, 200 .. maxR] ]
-    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
+    sequence_ [ circleSketch center (fromIntegral r) >> stroke
+              | r <- [100, 200 .. ceiling maxR :: Int] ]
+    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
               | angle <- init [0, 45 .. 360 :: Int] ]
 
     setColor (hsva 0 0 0 0.5)
-    sequence_ [ circleSketch center (distance r) >> stroke
-              | r <- [25, 50 .. maxR]
+    sequence_ [ circleSketch center (fromIntegral r) >> stroke
+              | r <- [25, 50 .. ceiling maxR :: Int]
               , mod r 100 /= 0 ]
-    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) (distance maxR)) >> stroke
+    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
 
