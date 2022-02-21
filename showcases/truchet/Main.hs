@@ -8,7 +8,7 @@ import System.Random.MWC (uniformRM, GenIO, initialize)
 
 import Draw
 import Geometry
-import Geometry.Coordinates.Hexagonal hiding (Polygon, sketch, rotateAround)
+import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
 
 

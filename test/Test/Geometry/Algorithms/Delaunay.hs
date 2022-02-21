@@ -12,7 +12,6 @@ import           Draw                                  hiding (Circle)
 import qualified Draw                                  as D
 import           Geometry
 import           Geometry.Algorithms.Delaunay
-import           Geometry.Algorithms.Delaunay.Internal
 import           Geometry.Algorithms.Sampling
 import           Geometry.Algorithms.Voronoi
 
