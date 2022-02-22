@@ -168,12 +168,12 @@ transformationTest = testGroup "Affine transformations"
     [ testGroup "Algebraic properties"
         [ testProperty "Multiple rotations add angles" $ \a1 a2 ->
             approxEqual (Tolerance 1e-5)
-                (transformationProduct (rotate a1) (rotate a2))
+                (rotate a1 <> rotate a2)
                 (rotate (a1 +. a2))
         ]
     , testGroup "Invertibility"
         [ invertibilityTest "Identity"
-            (pure [identityTransformation])
+            (pure [mempty])
         , invertibilityTest "Translation"
             (do x <- choose (-1000,1000); y <- choose (-1000,1000); pure [translate (Vec2 x y)])
         , invertibilityTest "Scaling"
@@ -190,7 +190,7 @@ transformationTest = testGroup "Affine transformations"
             size <- getSize
             n <- choose (2, min size 10)
             Test.TastyAll.vectorOf n (frequency
-                [ (1, pure identityTransformation)
+                [ (1, pure mempty)
                 , (3, rotate <$> arbitrary)
                 , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
                 , (3, Geometry.scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
@@ -201,7 +201,7 @@ transformationTest = testGroup "Affine transformations"
     invertibilityTest name trafosGen
       = let gen = do
                 trafos <- trafosGen
-                let transformation = foldr transformationProduct identityTransformation trafos
+                let transformation = mconcat trafos
                 vec <- arbitrary
                 pure (vec :: Vec2, transformation)
             test (vec, transformation) = approxEqual (Tolerance 1e-5)

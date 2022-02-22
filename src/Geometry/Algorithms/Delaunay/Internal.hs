@@ -24,16 +24,9 @@ data DelaunayTriangle = DT
     } deriving (Eq)
 
 data Triangle = Triangle {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 deriving (Eq, Ord, Show)
-data Circle = Circle { center :: {-# UNPACK #-} !Vec2, radius :: {-# UNPACK #-} !Double } deriving (Eq, Ord, Show)
 
 instance HasBoundingBox Triangle where
     boundingBox = boundingBox . toPolygon
-
-instance HasBoundingBox Circle where
-    boundingBox Circle{ radius = r, ..} = BoundingBox bbMin bbMax
-      where
-        bbMin = center -. Vec2 r r
-        bbMax = center +. Vec2 r r
 
 instance HasBoundingBox DelaunayTriangle where
     boundingBox (DT _ cc) = boundingBox cc
@@ -102,14 +95,14 @@ bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = fol
 
 circumcircle :: Triangle -> Maybe Circle
 circumcircle (Triangle p1 p2 p3) = case maybeCenter of
-    Just center -> Just Circle { radius = norm (center -. p1), .. }
+    Just center -> Just (Circle center (norm (center -. p1)))
     Nothing -> bugError ("Circumcircle of triangle: Bad intersection " ++ show intersectionOfBisectors)
   where
     intersectionOfBisectors = intersectionLL (perpendicularBisector (Line p1 p2)) (perpendicularBisector (Line p1 p3))
     maybeCenter = intersectionPoint intersectionOfBisectors
 
 inside :: Vec2 -> Circle -> Bool
-point `inside` Circle {..} = norm (center -. point) <= radius
+point `inside` Circle center radius = norm (center -. point) <= radius
 
 toVoronoi :: DelaunayTriangulation -> Voronoi'
 toVoronoi delaunay@Delaunay{..} = Voronoi {..}

@@ -52,6 +52,7 @@ extra-doc-files:
     - docs/differential_equations/geodesic_hill_and_valley.svg
     - docs/geometry/convex_hull.svg
     - docs/geometry/cut/3_complicated.svg
+    - docs/geometry/ellipses.svg
     - docs/geometry/point_in_polygon.svg
     - docs/hexagonal/gaussian_hexagons.svg
     - docs/interpolation/1_bezier_open.svg

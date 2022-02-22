@@ -19,10 +19,6 @@ import Geometry.Core as G
 
 
 
--- | A circle with center and radius. Easy to work with.
-data Circle = Circle Vec2 Double
-    deriving (Eq, Ord, Show)
-
 -- | A circle, but in a format more suitable for Descartes’ Theorem, which the
 -- gasket algorithm is based on.
 --
@@ -33,9 +29,6 @@ data Circle = Circle Vec2 Double
 -- 'toApoCircle'.
 data ApoCircle = ApoCircle (Complex Double) Double
     deriving (Eq, Show)
-
-instance HasBoundingBox Circle where
-    boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
 
 instance HasBoundingBox ApoCircle where
     boundingBox = boundingBox . toCircle

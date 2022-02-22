@@ -60,6 +60,10 @@ repeatedly.
 
 ![](reflection.svg)
 
+## Ellipses
+
+![](ellipses.svg)
+
 ## Cutting polygons
 
 Cutting a square along a line is rather simple:
