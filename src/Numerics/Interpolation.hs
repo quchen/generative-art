@@ -2,8 +2,6 @@
 module Numerics.Interpolation (
       linearInterpolate
 
-    , linearInterpolateDD
-    , linearInterpolateDV
     , linearInterpolateDI
     , linearInterpolateID
     , linearInterpolateII
@@ -24,32 +22,20 @@ import Algebra.VectorSpace
 --
 -- >>> linearInterpolate (0,1) (10,20) 0.5
 -- 15
-linearInterpolate :: (Double, Double) -> (Double, Double) -> Double -> Double
-linearInterpolate (a, b) (x, y) t = x + (y-x)/(b-a) * (t-a)
-
--- | Linear interpolation from 'Double' to a 'VectorSpace' (hence: @DV@). This is
--- the same as 'linearInterpolate' with 'VectorSpace' 'Double'.
-linearInterpolateDV :: VectorSpace vec => (Double, Double) -> (vec, vec) -> Double -> vec
-linearInterpolateDV (a, b) (x, y) t = x +. ((t-a) / (b-a))*.(y-.x)
-
--- | Linear interpolation from 'Double' to 'Double' (hence: @DD@). This is just a
--- nomenclature-matching synonym for 'linearInterpolate'.
-linearInterpolateDD :: (Double, Double) -> (Double, Double) -> Double -> Double
-linearInterpolateDD = linearInterpolate
+linearInterpolate :: VectorSpace vec => (Double, Double) -> (vec, vec) -> Double -> vec
+linearInterpolate (a, b) (x, y) t = x +. ((t-a) / (b-a))*.(y-.x)
 
 -- | Linear interpolation from 'Double' to 'Integral' (hence: @DI@).
 linearInterpolateDI :: Integral int => (Double, Double) -> (int, int) -> Double -> int
-linearInterpolateDI ab xy = round . linearInterpolate ab (both fromIntegral xy)
+linearInterpolateDI ab xy = round . linearInterpolate ab (doubles xy)
 
 -- | Linear interpolation from 'Integral' to 'Double' (hence: @ID@).
 linearInterpolateID :: Integral int => (int, int) -> (Double, Double) -> int -> Double
-linearInterpolateID ab xy t = linearInterpolate (both fromIntegral ab) xy (fromIntegral t)
+linearInterpolateID ab xy t = linearInterpolate (doubles ab) xy (fromIntegral t)
 
 -- | Linear interpolation from 'Integral' to 'Integral' (hence: @II@).
 linearInterpolateII :: (Integral intA, Integral intB) => (intA, intA) -> (intB, intB) -> intA -> intB
-linearInterpolateII ab xy t = round (linearInterpolate (both fromIntegral ab) (both fromIntegral xy) (fromIntegral t))
+linearInterpolateII ab xy t = round (linearInterpolate (doubles ab) (doubles xy) (fromIntegral t))
 
--- | Apply a function to both elements of a tuple.
-both :: (a -> b) -> (a, a) -> (b, b)
-both f (a,b) = (f a, f b)
-{-# INLINE both #-}
+doubles :: Integral a => (a, a) -> (Double, Double)
+doubles (a,b) = (fromIntegral a, fromIntegral b)
