@@ -889,6 +889,8 @@ toEllipse :: Circle -> Ellipse
 toEllipse = Ellipse mempty
 
 -- | An 'Ellipse' is a 'Circle' to which an affine 'Transformation' has been applied.
+--
+-- <<docs/geometry/ellipses.svg>>
 data Ellipse = Ellipse !Transformation !Circle
     deriving (Show)
 
