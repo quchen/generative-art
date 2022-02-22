@@ -894,6 +894,7 @@ toEllipse = Ellipse mempty
 data Ellipse = Ellipse !Transformation !Circle
     deriving (Show)
 
+-- | Currently not minimal!
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse t c) = transform t (boundingBox c)
 
