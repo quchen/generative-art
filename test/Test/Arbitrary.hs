@@ -33,6 +33,13 @@ instance Arbitrary Angle where
             -- For non-normalized angles, normalize them
             | otherwise -> [normalizeAngle (rad 0) x]
 
+-- | Non-singular transformation
+instance Arbitrary Transformation where
+    arbitrary = suchThatMap arbitrary (\(a,b,c,d,e,f) -> if det (Vec2 a b) (Vec2 d e) == 0 then Nothing else Just (Transformation a b c d e f))
+    shrink trafo
+        | trafo /= mempty = [mempty]
+        | otherwise = []
+
 instance Arbitrary Hex where
     arbitrary = do
         q <- arbitrary

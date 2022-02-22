@@ -36,6 +36,10 @@ module Draw (
     , cairoScope
     , grouped
 
+    -- * Transformations
+    , fromCairoMatrix
+    , toCairoMatrix
+
     -- * Text
     , showTextAligned
     , HAlign(..)
@@ -62,7 +66,8 @@ import Control.Monad
 import Data.Default.Class
 import Data.Foldable
 import Data.List
-import Graphics.Rendering.Cairo as C hiding (x, y)
+import Graphics.Rendering.Cairo        as C hiding (x, y)
+import Graphics.Rendering.Cairo.Matrix as C
 
 import Draw.Color
 import Draw.Color.Schemes.Continuous
@@ -184,7 +189,7 @@ instance Sketch Line where
         moveToVec start
         lineToVec end
 
--- | Trajectory given by its points
+-- | Polyline, i.e. a sequence of lines given by their joints
 instance Sequential f => Sketch (f Vec2) where
     sketch = go . toList
       where
@@ -463,3 +468,64 @@ showTextAligned hAlign vAlign str = do
     showText str
     newPath -- The text API is wonky, it kinda-sorta moves the pointer but not really.
             -- newPath clears the path, so we get no leaks from the text.
+
+-- | Translate between Cairo and our matrix representation for transformations.
+--
+-- Cairo does its transformation in inverse: we transform the geometry, Cairo
+-- transforms the canvas. 'fromCairoMatrix' and 'toCairoMatrix' translate between
+-- the worlds, so that conceptually both of these yield the same output:
+--
+-- @
+-- trafo :: 'Transformation'
+--
+-- 'sketch' ('transform' trafo geometry)
+-- --
+-- 'C.transform' ('fromCairoMatrix' trafo) '>>' 'sketch' geometry
+-- @
+--
+-- __Note__ that Cairo’s 'C.transform' does more than just moving around lines: it
+-- also scales other properties such as line width, so the pictures described above
+-- might have some differences.
+--
+-- Useful Cairo functions for working with this are
+--
+-- @
+-- 'C.transform' :: 'C.Matrix' -> 'C.Render' ()
+-- 'C.setMatrix' :: 'C.Matrix' -> 'C.Render' ()
+-- 'C.getMatrix' :: 'C.Render' 'C.Matrix'
+-- @
+fromCairoMatrix :: C.Matrix -> Transformation
+fromCairoMatrix (C.Matrix ca cb cc cd ce cf) =
+    -- According to the Haskell Cairo docs:
+    --
+    -- > Matrix a b c d e f:
+    -- >   / x' \  =  / a c \  / x \  + / e \
+    -- >   \ y' /     \ b d /  \ y /    \ f /
+    --
+    -- Our matrix representation is (copied from the 'Transformation' doc
+    -- block in "Geometry.Core"):
+    --
+    -- > transformation a b c
+    -- >                d e f
+    -- >
+    -- >   / x' \  =  / a b \  / x \  + / c \
+    -- >   \ y' /     \ d e /  \ y /    \ f /
+    let a = ca
+        b = cc
+        c = ce
+        d = cb
+        e = cd
+        f = cf
+    in id (Transformation a b c d e f)
+
+-- | See  'fromCairoMatrix'’ documentation, of which 'toCairoMatrix' is the inverse.
+toCairoMatrix :: Transformation -> C.Matrix
+toCairoMatrix trafo =
+    let Transformation a b c d e f = id trafo
+        ca = a
+        cc = b
+        ce = c
+        cb = d
+        cd = e
+        cf = f
+    in C.Matrix ca cb cc cd ce cf
