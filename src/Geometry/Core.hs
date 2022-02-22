@@ -52,6 +52,11 @@ module Geometry.Core (
     , PolygonOrientation(..)
     , polygonOrientation
 
+    -- ** Circles and ellipses
+    , Circle(..)
+    , toEllipse
+    , Ellipse(..)
+
     -- ** Angles
     , Angle
     , deg
@@ -869,6 +874,25 @@ polygonOrientation :: Polygon -> PolygonOrientation
 polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
     | otherwise                      = PolygonNegative
+
+-- | Circles are not an instance of 'Transform', because e.g. 'scale'ing a circle
+-- yields an 'Ellipse'. To transform circles, convert them to an ellipse first with
+-- 'toEllipse'.
+data Circle = Circle
+    { _circleCenter :: !Vec2
+    , _circleRadius :: !Double
+    } deriving (Eq, Ord, Show)
+
+-- | Embedding of 'Circle' as a special case of an 'Ellipse'.
+toEllipse :: Circle -> Ellipse
+toEllipse = Ellipse mempty
+
+-- | An 'Ellipse' is a 'Circle' to which an affine 'Transformation' has been applied.
+data Ellipse = Ellipse !Transformation !Circle
+    deriving (Show)
+
+instance Transform Ellipse where
+    transform t (Ellipse t' c) = Ellipse (t <> t') c
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.

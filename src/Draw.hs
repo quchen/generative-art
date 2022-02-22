@@ -202,12 +202,6 @@ instance Sketch Polygon where
     sketch (Polygon []) = pure ()
     sketch (Polygon xs) = sketch xs >> closePath
 
--- | For 'sketch'ing circles.
-data Circle = Circle
-    { _circleCenter :: !Vec2
-    , _circleRadius :: !Double
-    } deriving (Eq, Ord, Show)
-
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
