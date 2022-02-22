@@ -67,8 +67,6 @@ module Geometry.Core (
 
     -- * Transformations
     , Transformation(..)
-    , identityTransformation
-    , transformationProduct
     , inverse
     , Transform(..)
     , NoTransform(..)
