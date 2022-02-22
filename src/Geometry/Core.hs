@@ -883,6 +883,9 @@ data Circle = Circle
     , _circleRadius :: !Double
     } deriving (Eq, Ord, Show)
 
+instance HasBoundingBox Circle where
+    boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
+
 -- | Embedding of 'Circle' as a special case of an 'Ellipse'.
 toEllipse :: Circle -> Ellipse
 toEllipse = Ellipse mempty
@@ -890,6 +893,9 @@ toEllipse = Ellipse mempty
 -- | An 'Ellipse' is a 'Circle' to which an affine 'Transformation' has been applied.
 data Ellipse = Ellipse !Transformation !Circle
     deriving (Show)
+
+instance HasBoundingBox Ellipse where
+    boundingBox (Ellipse t c) = transform t (boundingBox c)
 
 instance Transform Ellipse where
     transform t (Ellipse t' c) = Ellipse (t <> t') c
