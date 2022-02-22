@@ -19,6 +19,9 @@ dependencies:
     - containers
     - data-default-class
     - data-r-tree
+    - deepseq
+    - heaps
+    - megaparsec
     - mwc-random
     - Noise
     - parallel
@@ -28,9 +31,6 @@ dependencies:
     - tf-random
     - transformers
     - vector
-    - deepseq
-    - heaps
-    - megaparsec
 
 default-extensions:
     - BangPatterns
