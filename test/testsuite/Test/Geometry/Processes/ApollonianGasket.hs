@@ -26,10 +26,13 @@ tests = testGroup "Apollonian gasket"
     ]
 
 correctGasket :: TestTree
-correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classical_gasket" $ \_ -> do
-    let gen0L = Circle (Vec2 100 100) 50
-        gen0R = Circle (Vec2 200 100) 50
-        gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
+correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classical_gasket" $ \(w,h) -> do
+    let canvasCenter = Vec2 w h /. 2
+        radius = w/4.5
+        [gen0L, gen0R, gen0B] = do
+            angle <- [deg 90, deg (90+120), deg (90+120+120)]
+            let center = canvasCenter +. polar angle (2*radius/sqrt 3)
+            pure (Circle center radius)
 
         gasket = createGasket 1 gen0L gen0R gen0B
 
@@ -41,10 +44,14 @@ correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classica
         stroke
 
 spacedGasket :: TestTree
-spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 "docs/apollonian_gasket/spaced_gasket" $ \_ -> do
-    let gen0L = Circle (Vec2 100 100) 42
-        gen0R = Circle (Vec2 200 100) 42
-        gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 42
+spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 "docs/apollonian_gasket/spaced_gasket" $ \(w,h) -> do
+    let canvasCenter = Vec2 w h /. 2
+        radius = w/4.5
+        [gen0L, gen0R, gen0B] = do
+            angle <- [deg 90, deg (90+120), deg (90+120+120)]
+            let center = canvasCenter +. polar angle (2*radius/sqrt 3)
+                spacedRadius = radius*0.75
+            pure (Circle center spacedRadius)
 
         gasket = createGasket 1 gen0L gen0R gen0B
 
