@@ -3,13 +3,13 @@ module Test.Geometry.Processes.ApollonianGasket (tests) where
 
 
 import Data.Foldable
+import Data.Tree.Extended
 import Graphics.Rendering.Cairo as C
 
-import           Draw                                hiding (Circle)
-import qualified Draw                                as D
-import           Geometry                            as G
-import           Geometry.Processes.ApollonianGasket
-import           Numerics.Interpolation
+import Draw                                as D
+import Geometry                            as G
+import Geometry.Processes.ApollonianGasket
+import Numerics.Interpolation
 
 import Test.TastyAll
 
@@ -31,11 +31,12 @@ correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classica
         gen0R = Circle (Vec2 200 100) 50
         gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50
 
-        gasket = createGasket 0.5 gen0L gen0R gen0B
+        gasket = createGasket 1 gen0L gen0R gen0B
 
-    for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
+    for_ (zip [1..] (depthFirst gasket)) $ \(i, Circle center r) -> do
         setLineWidth 1
-        setColor (rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i))
+        let colorValue = rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i)
+        setColor colorValue
         sketch (D.Circle center r)
         stroke
 
@@ -45,11 +46,12 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
         gen0R = Circle (Vec2 200 100) 42
         gen0B = Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 42
 
-        gasket = createGasket 0.5 gen0L gen0R gen0B
+        gasket = createGasket 1 gen0L gen0R gen0B
 
-    for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
+    for_ (zip [1..] (depthFirst gasket)) $ \(i, Circle center r) -> do
         setLineWidth 1
-        setColor (rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i))
+        let colorValue = rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i)
+        setColor colorValue
         sketch (D.Circle center r)
         stroke
 

@@ -15,6 +15,7 @@ module Geometry.Processes.ApollonianGasket (
 
 
 import Data.Complex
+import Data.Tree
 
 import Geometry.Core as G
 
@@ -126,7 +127,7 @@ createGasket
     -> Circle -- ^ Initial left circle
     -> Circle -- ^ Initial right circle
     -> Circle -- ^ Initial bottom circle
-    -> [Circle]
+    -> Tree Circle
 createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
     let gen0L = toApoCircle gen0LCirc
         gen0R = toApoCircle gen0RCirc
@@ -135,28 +136,21 @@ createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
         large = newCircle (-) (-) gen0L gen0R gen0B
         small = newCircle (+) (+) gen0L gen0R gen0B
 
-        step cA c1 c2 c3 =
-            let cB@(ApoCircle _ k) = fifthCircle cA c1 c2 c3
-            in if k < 1/minRadius
-                then Just cB
-                else Nothing
+        recurse :: ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle -> Tree Circle
+        recurse cA c1 c2 c3 =
+            let cB@(ApoCircle _ kB) = fifthCircle cA c1 c2 c3
+            in Node (toCircle cB)
+                (if kB < 1/minRadius
+                    then
+                        [ recurse c3 cB c1 c2
+                        , recurse c2 c3 cB c1
+                        , recurse c1 c2 c3 cB
+                        ]
+                    else [])
 
-        recStep cA c1 c2 c3 = case step cA c1 c2 c3 of
-            Nothing -> []
-            Just cB -> cB : recurse cB c1 c2 c3
-
-        recurse c1 c2 c3 c4 = mconcat
-            [ recStep c2 c3 c4 c1
-            , recStep c3 c4 c1 c2
-            , recStep c4 c1 c2 c3
-            ]
-
-        apoCircles = concat
-            [ []
-            , [gen0B, gen0L, gen0R]
-            , [small]
-            , recurse small gen0L gen0R gen0B
-            , [large]
+        circles :: Tree Circle
+        circles = Node (toCircle small)
+            [ recurse small gen0L gen0R gen0B
             , recurse large gen0L gen0R gen0B
             ]
-    in map toCircle apoCircles
+    in circles
