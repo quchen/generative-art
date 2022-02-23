@@ -23,13 +23,8 @@ traverseTree put get memory = case get memory of
     Just (Node x children, rest) ->
         x : traverseTree put get (foldl' (\acc y -> put y acc) rest children)
 
--- | Depth-first 'toList'. Probably the same as 'Foldable' 'Tree'.
 depthFirst :: Tree a -> [a]
-depthFirst tree = traverseTree putLeft getLeft (putLeft tree mempty)
-  where
-    putLeft = (:)
-    getLeft [] = Nothing
-    getLeft (x:xs) = Just (x,xs)
+depthFirst (Node x xs) = x : (xs >>= depthFirst)
 
 -- | Breadth-first 'toList'.
 breadthFirst :: Tree a -> [a]
