@@ -913,11 +913,14 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 data Ellipse = Ellipse !Transformation
     deriving (Show)
 
--- | Currently not minimal!
 instance HasBoundingBox Ellipse where
-    boundingBox (Ellipse t) =
-        let unitCircle = Circle zero 1
-        in transform t (boundingBox unitCircle)
+    boundingBox (Ellipse (Transformation a11 a12 b1 a21 a22 b2)) =
+        let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
+            x_plus  = b1 + sqrt (a11^2+a12^2)
+            x_minus = b1 - sqrt (a11^2+a12^2)
+            y_plus = b2 + sqrt(a21^2+a22^2)
+            y_minus = b2 - sqrt(a21^2+a22^2)
+        in boundingBox (Vec2 x_plus y_plus, Vec2 x_minus y_minus)
 
 instance Transform Ellipse where
     transform t (Ellipse t') = Ellipse (t <> t')
