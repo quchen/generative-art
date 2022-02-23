@@ -886,20 +886,22 @@ instance HasBoundingBox Circle where
 
 -- | Embedding of 'Circle' as a special case of an 'Ellipse'.
 toEllipse :: Circle -> Ellipse
-toEllipse = Ellipse mempty
+toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 
--- | An 'Ellipse' is a 'Circle' to which an affine 'Transformation' has been applied.
+-- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'.
 --
 -- <<docs/geometry/ellipses.svg>>
-data Ellipse = Ellipse !Transformation !Circle
+data Ellipse = Ellipse !Transformation
     deriving (Show)
 
 -- | Currently not minimal!
 instance HasBoundingBox Ellipse where
-    boundingBox (Ellipse t c) = transform t (boundingBox c)
+    boundingBox (Ellipse t) =
+        let unitCircle = Circle zero 1
+        in transform t (boundingBox unitCircle)
 
 instance Transform Ellipse where
-    transform t (Ellipse t' c) = Ellipse (t <> t') c
+    transform t (Ellipse t') = Ellipse (t <> t')
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.

@@ -206,9 +206,9 @@ instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
 instance Sketch Ellipse where
-    sketch (Ellipse trafo circle) = cairoScope $ do
-        C.transform (toCairoMatrix trafo)
-        sketch circle
+    sketch (Ellipse t) = cairoScope $ do
+        C.transform (toCairoMatrix t)
+        sketch (Circle zero 1)
 
 circleSketch :: Vec2 -> Double -> Render ()
 circleSketch center r = sketch (Circle center r)

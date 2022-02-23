@@ -183,6 +183,8 @@ over quickly.
 
 ![Missing image!](../../docs/geometry/cut/random_cut_square.svg)
 
+![Missing image!](../../docs/geometry/ellipses.svg)
+
 ![Missing image!](../../docs/geometry/intersection/almost_parallel.svg)
 
 ![Missing image!](../../docs/geometry/intersection/half_virtual.svg)
