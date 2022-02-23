@@ -273,7 +273,6 @@ instance Transform Line where
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
 
--- | Identical to the 'Monoid' instance of 'Transformation'; see there for documentation.
 instance Transform Transformation where
     transform = transformationProduct
 
@@ -927,7 +926,8 @@ instance HasBoundingBox Circle where
 toEllipse :: Circle -> Ellipse
 toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 
--- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'.
+-- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'. Create them
+-- using 'toEllipse' and by then applying 'Transformation's to it.
 --
 -- <<docs/geometry/ellipses.svg>>
 newtype Ellipse = Ellipse Transformation
@@ -940,7 +940,7 @@ instance HasBoundingBox Ellipse where
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
             x_plus  = b1 + sqrt (a11^2+a12^2)
             x_minus = b1 - sqrt (a11^2+a12^2)
-            y_plus = b2 + sqrt(a21^2+a22^2)
+            y_plus  = b2 + sqrt(a21^2+a22^2)
             y_minus = b2 - sqrt(a21^2+a22^2)
         in boundingBox (Vec2 x_plus y_plus, Vec2 x_minus y_minus)
 
