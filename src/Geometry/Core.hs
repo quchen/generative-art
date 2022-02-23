@@ -918,6 +918,8 @@ data Circle = Circle
 instance Default Circle where
     def = Circle zero 1
 
+instance NFData Circle where rnf _ = ()
+
 instance HasBoundingBox Circle where
     boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
 
@@ -928,8 +930,10 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 -- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'.
 --
 -- <<docs/geometry/ellipses.svg>>
-data Ellipse = Ellipse !Transformation
+newtype Ellipse = Ellipse Transformation
     deriving (Show)
+
+instance NFData Ellipse where rnf _ = ()
 
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation a11 a12 b1 a21 a22 b2)) =
