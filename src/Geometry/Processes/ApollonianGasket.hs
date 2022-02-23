@@ -2,6 +2,7 @@
 module Geometry.Processes.ApollonianGasket (
     -- * The classical shape
       createGasket
+    , fifthCircle
     , Circle(..)
 
     -- * For playing around
@@ -67,7 +68,9 @@ newCenter (+-) (ApoCircle c1 k1) (ApoCircle c2 k2) (ApoCircle c3 k3) k4 =
   where
     [k1', k2', k3', k4'] = map (:+ 0) [k1, k2, k3, k4]
 
--- | Create a new Apollonian circle, based on three existing ones.
+-- | Create a new Apollonian circle, based on three existing ones. This is the raw
+-- application of Descartes’ theorem. For something with less pitfalls, use
+-- 'fifthCircle'.
 --
 -- The choice of sign is a mystery to me. For the Apollonian Gasket, the rule is:
 --
@@ -91,6 +94,15 @@ newCircle plusMinusCurvature plusMinusCenter circ1@(ApoCircle _ k1) circ2@(ApoCi
     let k4 = newCurvature plusMinusCurvature k1 k2 k3
         c4 = newCenter plusMinusCenter circ1 circ2 circ3 k4
     in ApoCircle c4 k4
+
+-- | Given four mutually tangent circles, find »the other one« than the first argument.
+-- This resolves the »\((+,-)\)« ambiguity of 'newCircle'.
+fifthCircle :: ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle
+fifthCircle (ApoCircle c1 k1) (ApoCircle c2 k2) (ApoCircle c3 k3) (ApoCircle c4 k4) =
+    let [k1', k2', k3', k4', k5'] = map (:+ 0) [k1, k2, k3, k4, k5]
+        k5 = 2*(k2+k3+k4) - k1
+        c5 = (2*(k2'*c2+k3'*c3+k4'*c4) - k1'*c1) / k5'
+    in ApoCircle c5 k5
 
 -- | The simple workhorse function. Given three mutually touching, equally sized
 -- circles, it calculates the classical Apollonian Gasket:
