@@ -133,28 +133,30 @@ createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
         gen0B = toApoCircle gen0BCirc
 
         large = newCircle (-) (-) gen0L gen0R gen0B
+        small = newCircle (+) (+) gen0L gen0R gen0B
 
-        gen1T = newCircle (+) (+) large gen0L gen0R
-        gen1L = newCircle (+) (-) large gen0L gen0B
-        gen1R = newCircle (+) (+) large gen0R gen0B
+        step cA c1 c2 c3 =
+            let cB@(ApoCircle _ k) = fifthCircle cA c1 c2 c3
+            in if k < 1/minRadius
+                then Just cB
+                else Nothing
 
-        recurse [] = []
-        recurse ((c1, c2, c3) : rest) =
-            let new@(ApoCircle _ k) = newCircle (+) (+) c1 c2 c3
-            in if k > 1/minRadius
-                then recurse rest
-                else new : recurse ((c1, c2, new) : (c1, c3, new) : (c2, c3, new) : rest)
+        recStep cA c1 c2 c3 = case step cA c1 c2 c3 of
+            Nothing -> []
+            Just cB -> cB : recurse cB c1 c2 c3
+
+        recurse c1 c2 c3 c4 = mconcat
+            [ recStep c2 c3 c4 c1
+            , recStep c3 c4 c1 c2
+            , recStep c4 c1 c2 c3
+            ]
 
         apoCircles = concat
             [ []
-            , [large]
             , [gen0B, gen0L, gen0R]
-            , recurse [(gen0L, gen0R, gen0B)]
-            , gen1T : recurse [(gen1T, gen0L, large)]
-            , gen1T : recurse [(gen1T, gen0R, large)]
-            , gen1R : recurse [(gen1R, gen0R, large)]
-            , gen1R : recurse [(gen1R, gen0B, large)]
-            , gen1L : recurse [(gen1L, gen0B, large)]
-            , gen1L : recurse [(gen1L, gen0L, large)]
+            , [small]
+            , recurse small gen0L gen0R gen0B
+            , [large]
+            , recurse large gen0L gen0R gen0B
             ]
     in map toCircle apoCircles
