@@ -175,19 +175,24 @@ data Line = Line !Vec2 !Vec2 deriving (Eq, Ord, Show)
 
 instance NFData Line where rnf _ = ()
 
--- | Affine transformation,
+-- | Affine transformation. Typically these are not written using the constructor
+-- directly, but by combining functions such as 'translate' or 'rotateAround' using
+-- '<>'.
 --
--- > transformation a b c
--- >                d e f
--- > ==>
--- > / a b \ + / c \
--- > \ d e /   \ f /
---
--- Transformations can be chained using '<>', but in general it’s often more
--- convenient to use the predefined functions such as 'rotateT with '.' as composition.
-data Transformation = Transformation !Double !Double !Double
-                                     !Double !Double !Double
-                                     deriving (Eq, Ord, Show)
+-- \[
+-- \begin{pmatrix}\mathbf{x'}\\1\end{pmatrix}
+-- = \begin{pmatrix} A \mathbf x + \mathbf b\\1\end{pmatrix}
+-- = \left(\begin{array}{c|c} \mathbf A & \mathbf b \\ \hline 0 & 1\end{array}\right)
+--   \begin{pmatrix}\mathbf x\\ 1\end{pmatrix}
+-- \]
+data Transformation =
+    Transformation !Double !Double !Double
+                   !Double !Double !Double
+                    -- ^
+                    -- > transformation a11 a12 b1
+                    -- >                a21 a22 b2
+                    -- \(= \left(\begin{array}{cc|c} a_{11} & a_{12} & b_1 \\ a_{21} & a_{22} & b_2 \\ \hline 0 & 0 & 1\end{array}\right)\)
+    deriving (Eq, Ord, Show)
 
 instance NFData Transformation where rnf _ = ()
 
@@ -208,8 +213,8 @@ inverse :: Transformation -> Transformation
 inverse (Transformation a b c
                         d e f)
     = let x = 1 / (a*e - b*d)
-      in Transformation (x*e) (x*(-b)) (x*(-e*c + b*f))
-                        (x*(-d)) (x*a) (x*(d*c - a*f))
+      in Transformation (x*e)    (x*(-b)) (x*(-e*c + b*f))
+                        (x*(-d)) (x*a)    (x*( d*c - a*f))
 
 -- | The order transformations are applied in function order:
 --
@@ -293,7 +298,12 @@ instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,
 instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
     transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
--- | Translate the argument by an offset given by the vector.
+-- | Translate the argument by an offset given by the vector. @'translate' ('Vec2' 0 0) = 'mempty'@.
+--
+-- \[
+-- \text{translate}\begin{pmatrix}\Delta_x\\\Delta_y\end{pmatrix}
+--     = \left(\begin{array}{cc|c} 1 & 0 & \Delta_x \\ 0 & 1 & \Delta_y \\ \hline 0 & 0 & 1\end{array}\right)
+-- \]
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
 translate :: Vec2 -> Transformation
@@ -301,7 +311,11 @@ translate (Vec2 dx dy) = Transformation
     1 0 dx
     0 1 dy
 
--- | Rotate around zero in mathematically positive direction (counter-clockwise).
+-- | Rotate around zero in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
+--
+-- \[
+-- \text{rotate}(\alpha) = \left(\begin{array}{cc|c} \cos(\alpha) & -\sin(\alpha) & 0 \\ \sin(\alpha) & \cos(\alpha) & 0 \\ \hline 0 & 0 & 1\end{array}\right)
+-- \]
 --
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
@@ -317,10 +331,14 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 scale :: Double -> Transformation
 scale x = scale' x x
 
--- | Scale the geometry with adjustable aspect ratio.
+-- | Scale the geometry with adjustable aspect ratio. @'scale\'' 1 1 = 'mempty'@.
 --
--- While being more general and mathematically more natural, this function is used
--- less in practice, hence it gets the prime in the name.
+-- \[
+-- \text{scale'}(s_x,s_y) = \left(\begin{array}{cc|c} s_x & 0 & 0 \\ 0 & s_y & 0 \\ \hline 0 & 0 & 1\end{array}\right)
+-- \]
+--
+-- While being more general and mathematically more natural than 'scale', this
+-- function is used less in practice, hence it gets the prime in the name.
 scale' :: Double -> Double -> Transformation
 scale' x y = Transformation
     x 0 0
@@ -888,7 +906,7 @@ polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
     | otherwise                      = PolygonNegative
 
--- | Circles are not an instance of 'Transform', because e.g. 'scale'ing a circle
+-- | Circles are not an instance of 'Transform', because 'scale\''ing a circle
 -- yields an 'Ellipse'. To transform circles, convert them to an ellipse first with
 -- 'toEllipse'.
 data Circle = Circle
