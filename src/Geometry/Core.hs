@@ -80,6 +80,7 @@ module Geometry.Core (
     , mirrorAlong
     , mirrorXCoords
     , mirrorYCoords
+    , shear
 
     -- * Bounding Box
     , HasBoundingBox(..)
@@ -356,6 +357,20 @@ mirrorXCoords = scale' (-1) 1
 -- | Invert all Y coordinates.
 mirrorYCoords :: Transformation
 mirrorYCoords = scale' 1 (-1)
+
+-- | Shear with a factor along x/y axis. @'shear' 0 0 = 'mempty'@.
+--
+-- \[
+-- \text{shear}(k,\ell)
+--     = \left(\begin{array}{cc|c} 1 & k & 0 \\ \ell & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
+-- \]
+shear
+    :: Double
+    -> Double
+    -> Transformation
+shear k l = Transformation
+    1    (-k) 0
+    (-l)    1 0
 
 -- | This type simply wraps its contents, and makes 'transform' do nothing.
 -- It’s a very useful type when you want to e.g. resize the whole geometry given to
