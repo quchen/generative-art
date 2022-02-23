@@ -10,9 +10,10 @@ geometry and you get this:
 ![](classical_gasket.svg)
 
 What’s nice about the Gasket is that you can also do it wrong, and it yields
-other pretty pictures. Here I did _not_ let the initial circles touch:
+other pretty pictures. Here I skipped the first generation, starting with three
+not at all touching circles:
 
-![](forgetting_gen0.svg)
+![](skip_gen0.svg)
 
 The prettiest variation on the classical gasket is if the initial circles have
 some space between them; here the initial radius is 42 units, with 50 being the

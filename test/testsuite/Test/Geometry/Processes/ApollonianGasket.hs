@@ -19,6 +19,7 @@ tests :: TestTree
 tests = testGroup "Apollonian gasket"
     [ correctGasket
     , spacedGasket
+    , skipGen0
     , testGroup "Pretty bugs :-D"
         [ forgettingGen0
         , missingTheMinus
@@ -62,8 +63,37 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
         sketch (D.Circle center r)
         stroke
 
+    let Circle center r = breadthFirst gasket !! 3
+    circleSketch center (abs r)
+    setColor (rgb 0 0 1)
+    stroke
+
+skipGen0 :: TestTree
+skipGen0 = testVisual "Omitting the generation 0 circles" 300 300 "docs/apollonian_gasket/skip_gen0" $ \(w,h) -> do
+    let canvasCenter = Vec2 w h /. 2
+        radius = w/4.5
+        [gen0L, gen0R, gen0B] = do
+            angle <- [deg 90, deg (90+120), deg (90+120+120)]
+            let center = canvasCenter +. polar angle (2*radius/sqrt 3)
+            pure (Circle center radius)
+
+        large = toCircle (newCircle (-) (-) (toApoCircle gen0L) (toApoCircle gen0R) (toApoCircle gen0B))
+        gen1T = toCircle (newCircle (+) (+) (toApoCircle large) (toApoCircle gen0L) (toApoCircle gen0R))
+        gen1L = toCircle (newCircle (+) (-) (toApoCircle large) (toApoCircle gen0L) (toApoCircle gen0B))
+        gen1R = toCircle (newCircle (+) (+) (toApoCircle large) (toApoCircle gen0R) (toApoCircle gen0B))
+
+        (a:b:c:_) = drop 5 $ breadthFirst (createGasket 0 gen0L gen0R gen0B)
+        gasket = createGasket 1 a b c
+
+    for_ (zip [1..] (depthFirst gasket)) $ \(i, Circle center r) -> do
+        setLineWidth 1
+        let colorValue = rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i)
+        setColor colorValue
+        circleSketch center (abs r)
+        stroke
+
 forgettingGen0 :: TestTree
-forgettingGen0 = testVisual "Forgetting to use the gen0 circles" 300 300 "docs/apollonian_gasket/forgetting_gen0" $ \_ -> do
+forgettingGen0 = testVisual "Forgetting to use the gen0 circles" 300 300 "out/forgetting_gen0" $ \_ -> do
     let gen0L = toApoCircle $ Circle (Vec2 100 100) 50
         gen0R = toApoCircle $ Circle (Vec2 200 100) 50
         gen0B = toApoCircle $ Circle (G.transform (rotateAround (Vec2 100 100) (deg 60)) (Vec2 200 100)) 50

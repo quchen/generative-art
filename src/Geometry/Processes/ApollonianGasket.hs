@@ -140,7 +140,7 @@ createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
         recurse cA c1 c2 c3 =
             let cB@(ApoCircle _ kB) = fifthCircle cA c1 c2 c3
             in Node (toCircle cB)
-                (if kB < 1/minRadius
+                (if abs kB < 1/minRadius
                     then
                         [ recurse c3 cB c1 c2
                         , recurse c2 c3 cB c1
@@ -149,7 +149,7 @@ createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
                     else [])
 
         circles :: Tree Circle
-        circles = Node (toCircle small)
+        circles = Node (toCircle large)
             [ recurse small gen0L gen0R gen0B
             , recurse large gen0L gen0R gen0B
             ]
