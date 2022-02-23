@@ -881,6 +881,10 @@ data Circle = Circle
     , _circleRadius :: !Double
     } deriving (Eq, Ord, Show)
 
+-- | Unit circle
+instance Default Circle where
+    def = Circle zero 1
+
 instance HasBoundingBox Circle where
     boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
 
