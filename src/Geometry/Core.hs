@@ -68,10 +68,11 @@ module Geometry.Core (
     -- * Matrices
     , Mat2(..)
     , det
+    , mulMV
+    , mulVTM
 
     -- * Transformations
     , Transformation(..)
-    , inverse
     , Transform(..)
     , NoTransform(..)
     , translate
@@ -107,10 +108,12 @@ module Geometry.Core (
     , direction
     , bugError
     , module Data.Sequential
+    , Group(..)
 ) where
 
 
 
+import           Algebra.Group
 import           Algebra.VectorSpace
 import           Control.DeepSeq
 import           Data.Default.Class
@@ -184,6 +187,42 @@ data Mat2 = Mat2 !Double !Double !Double !Double
     -- ^ @'Mat2' a11 a12 a21 a22@ \(= \begin{pmatrix}a_{11} & a_{12}\\ a_{21} & a_{22}\end{pmatrix}\)
     deriving (Eq, Ord, Show)
 
+-- | Multiply a matrix \(A\) with a (column) vector \(\mathbf b\).
+--
+-- \[
+-- \sum_i\mathbf e_i c_i = \sum_i\mathbf e_i a_{ij} b_j
+-- \quad\Leftrightarrow\quad
+-- \begin{pmatrix}c_1\\c_2\end{pmatrix}
+-- = \begin{pmatrix}a_{11}&a_{12}\\ a_{21}&a_{22}\end{pmatrix}
+--       \begin{pmatrix}b_1\\ b_2\end{pmatrix}
+-- = \begin{pmatrix}
+--       a_{11}b_1+a_{12}b_2 \\
+--       a_{21}b_1+a_{22}b_2
+--   \end{pmatrix}
+-- \]
+mulMV :: Mat2 -> Vec2 -> Vec2
+mulMV (Mat2 a11 a12 a21 a22) (Vec2 b1 b2) =
+    Vec2 (a11*b1 + a12*b2)
+         (a21*b1 + a22*b2)
+
+-- | Multiply a (row) vector \(\mathbf a^\top\) with a matrix \(A\).
+--
+-- \[
+-- \sum_i\mathbf e_i c_i = \sum_i b_i a_{ij} \mathbf e_j
+-- \quad\Leftrightarrow\quad
+-- \begin{pmatrix}c_1&c_2\end{pmatrix}
+-- = \begin{pmatrix}b_1&b_2\end{pmatrix}
+--       \begin{pmatrix}a_{11}&a_{12}\\ a_{21}&a_{22}\end{pmatrix}
+-- = \begin{pmatrix}
+--       b_1a_{11}+b_2a_{21} &
+--       b_1a_{12}+b_2a_{22}
+--   \end{pmatrix}
+-- \]
+mulVTM :: Vec2 -> Mat2 -> Vec2
+mulVTM (Vec2 b1 b2) (Mat2 a11 a12 a21 a22) =
+    Vec2 (b1*a11 + b2*a21)
+         (b1*a12 + b2*a22)
+
 instance Semigroup Mat2 where
     Mat2   a11 a12
            a21 a22
@@ -198,6 +237,19 @@ instance Monoid Mat2 where
     mempty = Mat2 1 0
                   0 1
 
+instance Group Mat2 where
+    inverse (Mat2 a b
+                    d e)
+        = let x = 1 / (a*e - b*d)
+        in  (Mat2 (x*e)    (x*(-b))
+                  (x*(-d)) (x*a))
+
+instance VectorSpace Mat2 where
+    Mat2 a11 a12 a21 a22 +. Mat2 b11 b12 b21 b22 = Mat2 (a11+b11) (a12+b12) (a21+b21) (a22+b22)
+    Mat2 a11 a12 a21 a22 -. Mat2 b11 b12 b21 b22 = Mat2 (a11-b11) (a12-b12) (a21-b21) (a22-b22)
+    s *. Mat2 a11 a12 a21 a22 = Mat2 (s *. a11) (s *. a12) (s *. a21) (s *. a22)
+    zero = Mat2 0 0 0 0
+
 instance NFData Mat2 where rnf _ = ()
 
 -- | Affine transformation. Typically these are not written using the constructor
@@ -207,7 +259,7 @@ instance NFData Mat2 where rnf _ = ()
 -- \[
 -- \begin{pmatrix}\mathbf{x'}\\1\end{pmatrix}
 -- = \begin{pmatrix} A \mathbf x + \mathbf b\\1\end{pmatrix}
--- = \left(\begin{array}{c|c} \mathbf A & \mathbf b \\ \hline 0 & 1\end{array}\right)
+-- = \left(\begin{array}{c|c} A & \mathbf b \\ \hline 0 & 1\end{array}\right)
 --   \begin{pmatrix}\mathbf x\\ 1\end{pmatrix}
 -- \]
 data Transformation =
@@ -220,15 +272,6 @@ data Transformation =
     deriving (Eq, Ord, Show)
 
 instance NFData Transformation where rnf _ = ()
-
-inverse :: Transformation -> Transformation
-inverse (Transformation (Mat2 a b
-                              d e)
-                        (Vec2 c f))
-    = let x = 1 / (a*e - b*d)
-      in Transformation (Mat2 (x*e)    (x*(-b))
-                              (x*(-d)) (x*a))
-                        (Vec2 (x*(-e*c + b*f)) (x*( d*c - a*f)))
 
 -- | The order transformations are applied in function order:
 --
@@ -243,21 +286,20 @@ inverse (Transformation (Mat2 a b
 -- in Cairo you do not move the geometry, but the coordinate system. If you wrap a
 -- transformation in 'inverse', you get the Cairo behavior.
 instance Semigroup Transformation where
-    (Transformation m1@(Mat2 a1 b1
-                          d1 e1)
-                    (Vec2 c1 f1))
-     <>
-      (Transformation m2@(Mat2 a2 b2
-                            d2 e2)
-                         (Vec2 c2 f2))
-
-     = Transformation (Mat2 (a1*a2 + b1*d2) (a1*b2 + b1*e2)
-                            (d1*a2 + e1*d2) (d1*b2 + e1*e2))
-                      (Vec2 (a1*c2 + b1*f2 + c1)
-                            (d1*c2 + e1*f2 + f1))
+    Transformation m1 v1 <> Transformation m2 v2 = Transformation (m1 <> m2) (m1 `mulMV` v2 +. v1)
 
 instance Monoid Transformation where
     mempty = Transformation mempty zero
+
+instance Group Transformation where
+    inverse (Transformation (Mat2 a b
+                                  d e)
+                            (Vec2 c f))
+        = let x = 1 / (a*e - b*d)
+        in Transformation (Mat2 (x*e)    (x*(-b))
+                                (x*(-d)) (x*a))
+                          (Vec2 (x*(-e*c + b*f))
+                                (x*( d*c - a*f)))
 
 -- | Transform geometry using an affine transformation.
 --
