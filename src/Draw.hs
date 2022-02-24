@@ -515,12 +515,12 @@ fromCairoMatrix (C.Matrix ca cb cc cd ce cf) =
         d = cb
         e = cd
         f = cf
-    in id (Transformation a b c d e f)
+    in Transformation (Mat2 a b d e) (Vec2 c f)
 
 -- | See  'fromCairoMatrix'’ documentation, of which 'toCairoMatrix' is the inverse.
 toCairoMatrix :: Transformation -> C.Matrix
 toCairoMatrix trafo =
-    let Transformation a b c d e f = id trafo
+    let Transformation (Mat2 a b d e) (Vec2 c f) = trafo
         ca = a
         cc = b
         ce = c

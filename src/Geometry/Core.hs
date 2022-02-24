@@ -65,6 +65,9 @@ module Geometry.Core (
     , getRad
     , normalizeAngle
 
+    -- * Matrices
+    , Mat2(..)
+
     -- * Transformations
     , Transformation(..)
     , inverse
@@ -175,6 +178,27 @@ data Line = Line !Vec2 !Vec2 deriving (Eq, Ord, Show)
 
 instance NFData Line where rnf _ = ()
 
+-- | \(2\times2\) matrix.
+data Mat2 = Mat2 !Double !Double !Double !Double
+    -- ^ @'Mat2' a11 a12 a21 a22@ \(= \begin{pmatrix}a_{11} & a_{12}\\ a_{21} & a_{22}\end{pmatrix}\)
+    deriving (Eq, Ord, Show)
+
+instance Semigroup Mat2 where
+    Mat2   a11 a12
+           a21 a22
+     <>
+      Mat2 b11 b12
+           b21 b22
+
+     = Mat2 (a11*b11 + a12*b21) (a11*b12 + a12*b22)
+            (a21*b11 + a22*b21) (a21*b12 + a22*b22)
+
+instance Monoid Mat2 where
+    mempty = Mat2 1 0
+                  0 1
+
+instance NFData Mat2 where rnf _ = ()
+
 -- | Affine transformation. Typically these are not written using the constructor
 -- directly, but by combining functions such as 'translate' or 'rotateAround' using
 -- '<>'.
@@ -186,35 +210,24 @@ instance NFData Line where rnf _ = ()
 --   \begin{pmatrix}\mathbf x\\ 1\end{pmatrix}
 -- \]
 data Transformation =
-    Transformation !Double !Double !Double
-                   !Double !Double !Double
+    Transformation !Mat2 !Vec2
                     -- ^
-                    -- > transformation a11 a12 b1
-                    -- >                a21 a22 b2
+                    -- > transformation (Mat2 a11 a12
+                    -- >                      a21 a22)
+                    -- >                (Vec2 b1 b2)
                     -- \(= \left(\begin{array}{cc|c} a_{11} & a_{12} & b_1 \\ a_{21} & a_{22} & b_2 \\ \hline 0 & 0 & 1\end{array}\right)\)
     deriving (Eq, Ord, Show)
 
 instance NFData Transformation where rnf _ = ()
 
-identityTransformation :: Transformation
-identityTransformation = Transformation
-    1 0 0
-    0 1 0
-
-transformationProduct :: Transformation -> Transformation -> Transformation
-transformationProduct (Transformation a1 b1 c1
-                                      d1 e1 f1)
-                      (Transformation a2 b2 c2
-                                      d2 e2 f2)
-                    =  Transformation (a1*a2 + b1*d2) (a1*b2 + b1*e2) (a1*c2 + b1*f2 + c1)
-                                      (d1*a2 + e1*d2) (d1*b2 + e1*e2) (d1*c2 + e1*f2 + f1)
-
 inverse :: Transformation -> Transformation
-inverse (Transformation a b c
-                        d e f)
+inverse (Transformation (Mat2 a b
+                              d e)
+                        (Vec2 c f))
     = let x = 1 / (a*e - b*d)
-      in Transformation (x*e)    (x*(-b)) (x*(-e*c + b*f))
-                        (x*(-d)) (x*a)    (x*( d*c - a*f))
+      in Transformation (Mat2 (x*e)    (x*(-b))
+                              (x*(-d)) (x*a))
+                        (Vec2 (x*(-e*c + b*f)) (x*( d*c - a*f)))
 
 -- | The order transformations are applied in function order:
 --
@@ -229,10 +242,21 @@ inverse (Transformation a b c
 -- in Cairo you do not move the geometry, but the coordinate system. If you wrap a
 -- transformation in 'inverse', you get the Cairo behavior.
 instance Semigroup Transformation where
-    (<>) = transformationProduct
+    (Transformation m1@(Mat2 a1 b1
+                          d1 e1)
+                    (Vec2 c1 f1))
+     <>
+      (Transformation m2@(Mat2 a2 b2
+                            d2 e2)
+                         (Vec2 c2 f2))
+
+     = Transformation (Mat2 (a1*a2 + b1*d2) (a1*b2 + b1*e2)
+                            (d1*a2 + e1*d2) (d1*b2 + e1*e2))
+                      (Vec2 (a1*c2 + b1*f2 + c1)
+                            (d1*c2 + e1*f2 + f1))
 
 instance Monoid Transformation where
-    mempty = identityTransformation
+    mempty = Transformation mempty zero
 
 -- | Transform geometry using an affine transformation.
 --
@@ -262,8 +286,9 @@ instance Transform b => Transform (a -> b) where
     transform t f = transform t . f
 
 instance Transform Vec2 where
-    transform (Transformation a b c
-                              d e f)
+    transform (Transformation (Mat2 a b
+                                    d e)
+                              (Vec2 c f))
               (Vec2 x y)
             = Vec2 (a*x + b*y + c) (d*x + e*y + f)
 
@@ -274,7 +299,7 @@ instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
 
 instance Transform Transformation where
-    transform = transformationProduct
+    transform = (<>)
 
 instance Transform a => Transform [a] where
     transform t = map (transform t)
@@ -306,9 +331,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
 translate :: Vec2 -> Transformation
-translate (Vec2 dx dy) = Transformation
-    1 0 dx
-    0 1 dy
+translate = Transformation mempty
 
 -- | Rotate around zero in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
 --
@@ -318,9 +341,10 @@ translate (Vec2 dx dy) = Transformation
 --
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
-rotate (Rad a) = Transformation
-    (cos a) (-sin a) 0
-    (sin a) ( cos a) 0
+rotate (Rad a) = Transformation m zero
+  where
+    m = Mat2 (cos a) (-sin a)
+             (sin a) ( cos a)
 
 -- | Rotate around a point.
 rotateAround :: Vec2 -> Angle -> Transformation
@@ -339,9 +363,10 @@ scale x = scale' x x
 -- While being more general and mathematically more natural than 'scale', this
 -- function is used less in practice, hence it gets the prime in the name.
 scale' :: Double -> Double -> Transformation
-scale' x y = Transformation
-    x 0 0
-    0 y 0
+scale' x y = Transformation m zero
+  where
+    m = Mat2 x 0
+             0 y
 
 -- | Scale the geometry relative to a point, maintaining aspect ratio.
 scaleAround :: Vec2 -> Double -> Transformation
@@ -385,9 +410,10 @@ shear
     :: Double
     -> Double
     -> Transformation
-shear k l = Transformation
-    1    (-k) 0
-    (-l)    1 0
+shear k l = Transformation m zero
+  where
+    m = Mat2 1    (-k)
+             (-l)    1
 
 -- | This type simply wraps its contents, and makes 'transform' do nothing.
 -- It’s a very useful type when you want to e.g. resize the whole geometry given to
@@ -936,12 +962,12 @@ newtype Ellipse = Ellipse Transformation
 instance NFData Ellipse where rnf _ = ()
 
 instance HasBoundingBox Ellipse where
-    boundingBox (Ellipse (Transformation a11 a12 b1 a21 a22 b2)) =
+    boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
             x_plus  = b1 + sqrt (a11^2+a12^2)
             x_minus = b1 - sqrt (a11^2+a12^2)
-            y_plus  = b2 + sqrt(a21^2+a22^2)
-            y_minus = b2 - sqrt(a21^2+a22^2)
+            y_plus  = b2 + sqrt (a21^2+a22^2)
+            y_minus = b2 - sqrt (a21^2+a22^2)
         in boundingBox (Vec2 x_plus y_plus, Vec2 x_minus y_minus)
 
 instance Transform Ellipse where

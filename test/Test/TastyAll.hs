@@ -180,8 +180,8 @@ instance EqApprox Angle where
 
 instance EqApprox Transformation where
     approxEqual tol
-        (Transformation a1 b1 c1 d1 e1 f1)
-        (Transformation a2 b2 c2 d2 e2 f2)
+        (Transformation (Mat2 a1 b1 d1 e1) (Vec2 c1 f1))
+        (Transformation (Mat2 a2 b2 d2 e2) (Vec2 c2 f2))
       = all (\(x,y) -> approxEqual tol x y)
             [ (a1, a2)
             , (b1, b2)

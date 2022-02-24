@@ -33,9 +33,20 @@ instance Arbitrary Angle where
             -- For non-normalized angles, normalize them
             | otherwise -> [normalizeAngle (rad 0) x]
 
+instance Arbitrary Mat2 where
+    arbitrary = Mat2 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary NonSingularMat2 where
+    arbitrary = suchThatMap arbitrary (\(a,b,c,d) -> if det (Vec2 a b) (Vec2 c d) == 0 then Nothing else Just (NonSingular (Mat2 a b c d)))
+
+newtype NonSingularMat2 = NonSingular Mat2
+
 -- | Non-singular transformation
 instance Arbitrary Transformation where
-    arbitrary = suchThatMap arbitrary (\(a,b,c,d,e,f) -> if det (Vec2 a b) (Vec2 d e) == 0 then Nothing else Just (Transformation a b c d e f))
+    arbitrary = do
+        NonSingular m <- arbitrary
+        b <- arbitrary
+        pure (Transformation m b)
     shrink trafo
         | trafo /= mempty = [mempty]
         | otherwise = []
