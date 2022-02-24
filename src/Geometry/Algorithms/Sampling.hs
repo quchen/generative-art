@@ -11,16 +11,16 @@ module Geometry.Algorithms.Sampling (
 
 
 import           Control.Applicative
-import           Control.Monad
 import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
+import           Control.Monad.Trans.Reader
 import           Data.Default.Class
+import           Data.Heap                       (Entry, Heap)
+import qualified Data.Heap                       as H
 import           Data.Map                        (Map)
 import qualified Data.Map                        as M
 import           Data.Maybe
-import           Data.Set                        (Set)
-import qualified Data.Set                        as S
 import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
 import           System.Random.MWC
@@ -35,7 +35,8 @@ data PoissonDiscParams = PoissonDiscParams
     { _poissonWidth  :: Int    -- ^ 'def'ault 256.
     , _poissonHeight :: Int    -- ^ 'def'ault 256.
     , _poissonRadius :: Double -- ^ Minimum distance between points. 'def'ault 100.
-    , _poissonK      :: Int    -- ^ Point density. Per known point, how many random points in the vicinity should be tried? 'def'ault 32.
+    , _poissonK      :: Int    -- ^ How many attempts to find a neighbouring point should be made?
+                               --   The higher this is, the denser the resulting point set will be.
     }
 
 instance Default PoissonDiscParams where
@@ -45,6 +46,41 @@ instance Default PoissonDiscParams where
         , _poissonRadius = 100
         , _poissonK      = 32
         }
+
+newtype PoissonT m a = PoissonT {runPoissonT :: ReaderT PoissonDiscParams (StateT (PoissonDiscState (PrimState m)) m) a}
+
+instance Monad m => Functor (PoissonT m) where
+    fmap f (PoissonT a) = PoissonT (fmap f a)
+
+instance Monad m => Applicative (PoissonT m) where
+    pure x = PoissonT (pure x)
+    PoissonT mf <*> PoissonT mx = PoissonT (mf <*> mx)
+
+instance Monad m => Monad (PoissonT m) where
+    PoissonT a >>= g = PoissonT (a >>= runPoissonT . g)
+
+instance MonadTrans PoissonT where
+    lift = PoissonT . lift . lift
+
+execPoissonT
+    :: Monad m
+    => PoissonT m a                   -- ^ Action
+    -> PoissonDiscParams              -- ^ Config
+    -> PoissonDiscState (PrimState m) -- ^ Initial state
+    -> m (PoissonDiscState (PrimState m))
+execPoissonT (PoissonT action) params initialState = execStateT (runReaderT action params) initialState
+
+asksParams :: Monad m => (PoissonDiscParams -> a) -> PoissonT m a
+asksParams f = PoissonT (asks f)
+
+getsState :: Monad m => (PoissonDiscState (PrimState m) -> a) -> PoissonT m a
+getsState proj = PoissonT (lift (gets proj))
+
+modifyState
+    :: Monad m
+    => (PoissonDiscState (PrimState m) -> PoissonDiscState (PrimState m))
+    -> PoissonT m ()
+modifyState f = PoissonT (lift (modify f))
 
 -- | Sample points using the Poisson Disc algorithm, which yields a visually
 -- uniform distribution. This is opposed to uniformly distributed points yield
@@ -72,66 +108,62 @@ poissonDisc
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
     -> PoissonDiscParams
     -> m [Vec2]
-poissonDisc gen properties = _result <$> execStateT poissonDiscInternal initialState
-  where
-    initialState = PoissonDiscState
-        { _properties    = properties
-        , _gen           = gen
-        , _grid          = mempty
-        , _activeSamples = mempty
-        , _result        = mempty
-        }
+poissonDisc gen params = do
+    let PoissonDiscParams{..} = params
+    initialSample <- do
+        x <- uniformRM (0, fromIntegral _poissonWidth) gen
+        y <- uniformRM (0, fromIntegral _poissonWidth) gen
+        pure (Vec2 x y)
+    let initialState = PoissonDiscState
+            { _gen           = gen
+            , _grid          = mempty
+            , _activeSamples = mempty
+            , _result        = mempty
+            , _initialPoint  = initialSample
+            }
+
+    _result <$> execPoissonT (addSample initialSample >> sampleLoop) params initialState
 
 data PoissonDiscState s = PoissonDiscState
-    { _properties    :: PoissonDiscParams
-    , _gen           :: Gen s
+    { _gen           :: Gen s
     , _grid          :: Map (Int, Int) Vec2
-    , _activeSamples :: Set Vec2
+    , _activeSamples :: Heap (Entry Double Vec2)
     , _result        :: [Vec2]
+    , _initialPoint  :: Vec2
     }
 
-poissonDiscInternal :: PrimMonad m => StateT (PoissonDiscState (PrimState m)) m ()
-poissonDiscInternal = do
-    PoissonDiscState{..} <- get
-    let PoissonDiscParams{..} = _properties
-    initialSample <- lift $ do
-        x <- uniformRM (0, fromIntegral _poissonWidth) _gen
-        y <- uniformRM (0, fromIntegral _poissonWidth) _gen
-        pure (Vec2 x y)
-    addSample initialSample
-    nextSample
+sampleLoop :: PrimMonad m => PoissonT m ()
+sampleLoop = do
+    heap <- getsState _activeSamples
+    case H.uncons heap of
+        Nothing -> pure ()
+        Just (H.Entry _ closestActiveSample, heap') -> do
+            r <- asksParams _poissonRadius
 
-nextSample :: PrimMonad m => StateT (PoissonDiscState (PrimState m)) m ()
-nextSample = do
-    numActiveSamples <- gets (S.size . _activeSamples)
-    when (numActiveSamples > 0) $ do
-        randomSampleIndex <- gets _gen >>= uniformRM (0, numActiveSamples - 1)
-        randomSample <- gets (S.elemAt randomSampleIndex . _activeSamples)
-        r <- gets (_poissonRadius . _properties)
+            candidates <- nextCandidates closestActiveSample
 
-        candidates <- nextCandidates randomSample
+            let validPoint candidate = do
+                    neighbours <- neighbouringSamples candidate
+                    pure (not (any (\p -> norm (candidate -. p) <= r) neighbours))
 
-        let loop [] = pure Nothing
-            loop (candidate:cs) = do
-                neighbours <- neighbouringSamples candidate
-                let distance p q = norm (q -. p)
-                if any (\p -> distance candidate p <= r) neighbours
-                    then loop cs
-                    else pure (Just candidate)
+            newSample <- findM validPoint candidates
 
-        newSample <- loop candidates
+            case newSample of
+                Nothing -> do
+                    modifyState (\s -> s { _activeSamples = heap' })
+                    modifyState (\s -> s { _result = closestActiveSample : _result s })
+                Just sample -> addSample sample
 
-        case newSample of
-            Nothing -> retireSample randomSample
-            Just sample -> addSample sample
+            sampleLoop
 
-        nextSample
+findM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m (Maybe a)
+findM p = foldr (\x xs -> p x >>= \u -> if u then pure (Just x) else xs) (pure Nothing)
 
 -- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
-nextCandidates :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m [Vec2]
+nextCandidates :: PrimMonad m => Vec2 -> PoissonT m [Vec2]
 nextCandidates v = do
-    PoissonDiscState{..} <- get
-    let PoissonDiscParams{..} = _properties
+    PoissonDiscState{..} <- getsState id
+    PoissonDiscParams{..} <- asksParams id
     phi0 <- lift (rad <$> uniformRM (0, 2*pi) _gen)
     let deltaPhi = rad (2*pi / fromIntegral _poissonK)
         candidates = filter (isWithinBounds _poissonWidth _poissonHeight)
@@ -143,20 +175,18 @@ nextCandidates v = do
   where
     isWithinBounds w h (Vec2 x y) = x >= 0 && x <= fromIntegral w && y >= 0 && y <= fromIntegral h
 
-addSample :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m ()
+addSample :: Monad m => Vec2 -> PoissonT m ()
 addSample sample = do
     cell <- gridCell sample
-    modify (\s -> s { _grid = M.insert cell sample (_grid s)})
-    modify (\s -> s { _activeSamples = S.insert sample (_activeSamples s) })
-
-retireSample :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m ()
-retireSample sample = do
-    modify (\s -> s { _activeSamples = S.delete sample (_activeSamples s) })
-    modify (\s -> s { _result = sample : _result s })
+    modifyState (\s -> s { _grid = M.insert cell sample (_grid s)})
+    distanceFromInitial <- do
+        initial <- getsState _initialPoint
+        pure (norm (sample -. initial))
+    modifyState (\s -> s { _activeSamples = H.insert (H.Entry distanceFromInitial sample) (_activeSamples s) })
 
 -- A cell in the grid has a side length of r/sqrt(2). Therefore, to detect
 -- collisions, we need to search a space of 5x5 cells at max.
-neighbouringSamples :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m [Vec2]
+neighbouringSamples :: Monad m => Vec2 -> PoissonT m [Vec2]
 neighbouringSamples v = do
     (x, y) <- gridCell v
     let minX = x - 2
@@ -166,12 +196,12 @@ neighbouringSamples v = do
     neighbours <- sequence $ do
         cellX <- [minX..maxX]
         cellY <- [minY..maxY]
-        pure (maybeToList . M.lookup (cellX, cellY) <$> gets _grid)
+        pure (maybeToList . M.lookup (cellX, cellY) <$> getsState _grid)
     pure (concat neighbours)
 
-gridCell :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m (Int, Int)
+gridCell :: Monad m => Vec2 -> PoissonT m (Int, Int)
 gridCell (Vec2 x y) = do
-    r <- gets (_poissonRadius . _properties)
+    r <- asksParams _poissonRadius
     let gridSize = r / sqrt 2
     pure (floor (x/gridSize), floor (y/gridSize))
 
