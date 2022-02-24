@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 -- | Thanks a lot to the Rust Geo package for this algorithm. After struggling with
 -- an imperative heap-with-random-access algorithm for a while, this is a very nice
 -- solution that translates somewhat well to Haskell.

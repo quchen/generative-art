@@ -100,7 +100,7 @@ convexHullIsConvexTest = testProperty "Convex hull is convex" $
             replicateM n $ do
                 Gaussian v <- arbitrary
                 pure v
-    in forAll gen $ \points -> isConvex (convexHull (points ))
+    in forAll gen $ \points -> isConvex (convexHull points)
 
 isNotSelfIntersecting :: TestTree
 isNotSelfIntersecting = testProperty "Result is satisfies polygon invariants" $

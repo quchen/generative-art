@@ -1,5 +1,5 @@
 -- | Solve \(f(x) = 0\) for \(x\).
-module Numerics.FindRoot where
+module Numerics.FindRoot (newtonStep) where
 
 -- | Single step for Newton’s method for root finding.
 --

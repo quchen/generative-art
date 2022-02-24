@@ -171,7 +171,7 @@ rawSimplexNoise2 perm permMod12 xin yin =
         -- Work out the hashed gradient indices of the three simplex corners
         gi0, gi1, gi2 :: Int
         (gi0, gi1, gi2) =
-            ( permMod12 ! (ii+   (perm ! (jj)   ))
+            ( permMod12 ! (ii+   (perm !  jj    ))
             , permMod12 ! (ii+i1+(perm ! (jj+j1)))
             , permMod12 ! (ii+1+ (perm ! (jj+1) )))
           where
@@ -270,7 +270,7 @@ rawSimplexNoise3 perm permMod12 xin yin zin =
         -- Work out the hashed gradient indices of the four simplex corners
         gi0, gi1, gi2, gi3 :: Int
         (gi0, gi1, gi2, gi3) =
-            ( permMod12 ! (ii+   (perm ! (jj+   (perm ! (kk   )))))
+            ( permMod12 ! (ii+   (perm ! (jj+   (perm !  kk    ))))
             , permMod12 ! (ii+i1+(perm ! (jj+j1+(perm ! (kk+k1)))))
             , permMod12 ! (ii+i2+(perm ! (jj+j2+(perm ! (kk+k2)))))
             , permMod12 ! (ii+1+ (perm ! (jj+1+ (perm ! (kk+1 )))))
@@ -415,7 +415,7 @@ rawSimplexNoise4 perm permMod32 xin yin zin win =
         -- Work out the hashed gradient indices of the five simplex corners
         gi0, gi1, gi2, gi3, gi4 :: Int
         (gi0, gi1, gi2, gi3, gi4) =
-            ( permMod32 ! (ii+   perm ! (jj+   perm ! (kk+   perm ! (ll   ))))
+            ( permMod32 ! (ii+   perm ! (jj+   perm ! (kk+   perm !  ll    )))
             , permMod32 ! (ii+i1+perm ! (jj+j1+perm ! (kk+k1+perm ! (ll+l1))))
             , permMod32 ! (ii+i2+perm ! (jj+j2+perm ! (kk+k2+perm ! (ll+l2))))
             , permMod32 ! (ii+i3+perm ! (jj+j3+perm ! (kk+k3+perm ! (ll+l3))))

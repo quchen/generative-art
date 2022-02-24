@@ -1,12 +1,15 @@
 {-# LANGUAGE DeriveFunctor #-}
-module Main where
 
-import Data.Traversable (for)
-import Data.List (permutations, inits, partition)
-import Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC (uniformRM, GenIO, initialize)
-import qualified Data.Map.Strict as M
-import qualified Data.Vector as V
+module Main (main) where
+
+
+
+import           Data.List
+import qualified Data.Map                 as M
+import           Data.Traversable
+import qualified Data.Vector              as V
+import           Graphics.Rendering.Cairo as C
+import           System.Random.MWC
 
 import Draw
 import Geometry
@@ -34,9 +37,9 @@ main = do
     gen <- initialize (V.fromList [123, 988])
     tiling <- indexStrands <$> randomTiling gen plane
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
-        Cairo.scale scaleFactor scaleFactor
-        cairoScope (setColor backgroundColor >> Cairo.paint)
+    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
+        C.scale scaleFactor scaleFactor
+        cairoScope (setColor backgroundColor >> C.paint)
         for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
 
 colorScheme :: Int -> Color Double
@@ -114,20 +117,20 @@ strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawTile :: (Int -> Color Double) -> Hex -> Tile Int -> Cairo.Render ()
+drawTile :: (Int -> Color Double) -> Hex -> Tile Int -> C.Render ()
 drawTile colors hex (Tile as) = for_ as $ drawArc colors hex
 
-drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> Cairo.Render ()
+drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> C.Render ()
 drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
-    Cairo.setLineWidth (cellSize / 2)
+    C.setLineWidth (cellSize / 2)
     setColor (backgroundColor `withOpacity` 0.7)
-    Cairo.stroke
+    C.stroke
     sketchArc d1 d2
-    Cairo.setLineWidth (3/8 * cellSize)
-    Cairo.setLineCap Cairo.LineCapRound
+    C.setLineWidth (3/8 * cellSize)
+    C.setLineCap C.LineCapRound
     setColor (colors i)
-    Cairo.stroke
+    C.stroke
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
@@ -155,4 +158,3 @@ drawArc colors hex ((d1, d2), i) = cairoScope $ do
     sketchArc d  d' | d == d' = error ("Illegal tile " ++ show (d, d'))
 
     sketchArc d  d' = sketchArc d' d
-

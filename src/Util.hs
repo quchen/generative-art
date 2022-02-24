@@ -1,4 +1,6 @@
-module Util where
+module Util (
+    nubOrd
+) where
 
 
 

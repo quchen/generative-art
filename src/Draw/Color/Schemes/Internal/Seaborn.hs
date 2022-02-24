@@ -1,7 +1,9 @@
 -- | Seaborn’s color palettes
 --
 -- https://seaborn.pydata.org/
-module Draw.Color.Schemes.Internal.Seaborn where
+module Draw.Color.Schemes.Internal.Seaborn (
+    module Draw.Color.Schemes.Internal.Seaborn
+) where
 
 
 
@@ -13,7 +15,7 @@ import Draw.Color.Schemes.Internal.Common
 
 -- | Perceptually uniform, sequential
 rocket :: Vector RGB
-rocket = V.fromList $
+rocket = V.fromList
     [ RGB 0.01060815 0.01808215 0.10018654
     , RGB 0.01428972 0.02048237 0.10374486
     , RGB 0.01831941 0.0229766  0.10738511
@@ -274,7 +276,7 @@ rocket = V.fromList $
 
 -- | Perceptually uniform, sequential
 mako :: Vector RGB
-mako = V.fromList $
+mako = V.fromList
     [ RGB 0.04503935 0.01482344 0.02092227
     , RGB 0.04933018 0.01709292 0.02535719
     , RGB 0.05356262 0.01950702 0.03018802
@@ -535,7 +537,7 @@ mako = V.fromList $
 
 -- | Perceptually uniform, diverging
 vlag :: Vector RGB
-vlag = V.fromList $
+vlag = V.fromList
     [ RGB 0.13850039 0.41331206 0.74052025
     , RGB 0.15077609 0.41762684 0.73970427
     , RGB 0.16235219 0.4219191  0.7389667
@@ -796,7 +798,7 @@ vlag = V.fromList $
 
 -- | Perceptually uniform, diverging
 icefire :: Vector RGB
-icefire = V.fromList $
+icefire = V.fromList
     [ RGB 0.73936227 0.90443867 0.85757238
     , RGB 0.72888063 0.89639109 0.85488394
     , RGB 0.71834255 0.88842162 0.8521605
@@ -1057,7 +1059,7 @@ icefire = V.fromList $
 
 -- | Perceptually uniform, sequential
 flare :: Vector RGB
-flare = V.fromList $
+flare = V.fromList
     [ RGB 0.92907237 0.68878959 0.50411509
     , RGB 0.92891402 0.68494686 0.50173994
     , RGB 0.92864754 0.68116207 0.4993754
@@ -1319,7 +1321,7 @@ flare = V.fromList $
 
 -- | Perceptually uniform, sequential
 crest :: Vector RGB
-crest = V.fromList $
+crest = V.fromList
     [ RGB 0.6468274  0.80289262 0.56592265
     , RGB 0.64233318 0.80081141 0.56639461
     , RGB 0.63791969 0.7987162  0.56674976

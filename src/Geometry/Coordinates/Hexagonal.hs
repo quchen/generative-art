@@ -81,12 +81,12 @@ data Direction
 -- | Move x steps in a direction
 move :: Direction -> Int -> Hex -> Hex
 move dir x (Hex q r s) = case dir of
-    R  -> Hex (q+x) (r  )  (s-x)
-    UR -> Hex (q+x) (r-x)  (s  )
-    UL -> Hex (q  ) (r-x)  (s+x)
-    L  -> Hex (q-x) (r  )  (s+x)
-    DL -> Hex (q-x) (r+x)  (s  )
-    DR -> Hex (q  ) (r+x)  (s-x)
+    R  -> Hex (q+x)  r     (s-x)
+    UR -> Hex (q+x) (r-x)   s
+    UL -> Hex  q    (r-x)  (s+x)
+    L  -> Hex (q-x)  r     (s+x)
+    DL -> Hex (q-x) (r+x)   s
+    DR -> Hex  q    (r+x)  (s-x)
 
 -- | Add two 'Hex' coordinates.
 hexAdd :: Hex -> Hex -> Hex
@@ -149,8 +149,8 @@ toVec2
 toVec2 size (Hex q r _) =
     let q' = fromIntegral q
         r' = fromIntegral r
-        x = size * (sqrt(3)*q' + sqrt(3)/2*r')
-        y = size * (                   3/2*r')
+        x = size * (sqrt 3*q' + sqrt 3/2*r')
+        y = size * (                 3/2*r')
     in Vec2 x y
 
 -- | Convert a Euclidean 'Vec2' to the coordiante of the hexagon it is in.
@@ -160,8 +160,8 @@ fromVec2
     -> Hex
 fromVec2 size (Vec2 x y) =
     let q', r', s' :: Double
-        q' = (sqrt(3)/3 * x - 1/3 * y) / size
-        r' = (                2/3 * y) / size
+        q' = (sqrt 3/3 * x - 1/3 * y) / size
+        r' = (               2/3 * y) / size
         s' = -q'-r'
     in cubeRound q' r' s'
 
@@ -233,11 +233,11 @@ hexagonalCoordinateSystem sideLength range = do
                 -- Upper right boundary
                 | q == range                -> sketch [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Lower right boundary
-                | s == -range               -> sketch [corner i | i <- [(-2), (-1), 0, 1, 2, 3]]
+                | s == -range               -> sketch [corner i | i <- [-2, -1, 0, 1, 2, 3]]
                 -- Upper boundary
                 | r == -range               -> sketch [corner i | i <- [0, 1, 2, 3, 4]]
                 -- Lower boundary
-                | r == range                -> sketch [corner i | i <- [(-1), 0, 1, 2, 3]]
+                | r == range                -> sketch [corner i | i <- [-1, 0, 1, 2, 3]]
                 | otherwise                 -> sketch [corner i | i <- [0, 1, 2, 3]]
             when (hexCoord == Hex 0 0 0) $ do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
@@ -245,8 +245,8 @@ hexagonalCoordinateSystem sideLength range = do
                 sketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
 
-    cairoScope $ grouped (paintWithAlpha 0.5) $ do
-        for_ hexagons $ \hexCoord@(Hex q r s) -> do
+    cairoScope $ grouped (paintWithAlpha 0.5) $
+        for_ hexagons $ \hexCoord@(Hex q r s) ->
             for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
                     coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
@@ -332,7 +332,7 @@ polygonSketch
     -> Polygon
     -> Render ()
 polygonSketch cellSize polygon =
-    for_ (edgePoints polygon) $ \hex -> do
+    for_ (edgePoints polygon) $ \hex ->
         sketch (hexagonPoly cellSize hex)
 
 -- | Fill all neighbours of a point, and their neighbours, and…

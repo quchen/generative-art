@@ -1,5 +1,11 @@
 -- | Not sure why I wanted these functions, but here they are.
-module Why where
+module Why (
+    fareyApproximate
+  , divideOnIndex
+  , bhattacharyyaDistance
+  , bhattacharyyaCoefficient
+  , hellingerDistance
+) where
 
 
 

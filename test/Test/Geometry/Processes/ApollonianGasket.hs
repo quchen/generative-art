@@ -33,7 +33,7 @@ correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classica
 
         gasket = createGasket 0.5 gen0L gen0R gen0B
 
-    for_ (zip [1..] gasket) $ \(i, (Circle center r)) -> cairoScope $ do
+    for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
         setLineWidth 1
         setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
         sketch (D.Circle center r)
@@ -47,7 +47,7 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
 
         gasket = createGasket 0.5 gen0L gen0R gen0B
 
-    for_ (zip [1..] gasket) $ \(i, (Circle center r)) -> cairoScope $ do
+    for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
         setLineWidth 1
         setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
         sketch (D.Circle center r)

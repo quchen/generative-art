@@ -18,7 +18,7 @@ import           Prelude       hiding (lines)
 --
 -- It is undirected in the sense that we don’t know where the neighbours are (left
 -- or right), only that they’re there.
-data UndirectedNeighbourMap a = UndirectedNeighbourMap !(Map a (OneTwo a))
+newtype UndirectedNeighbourMap a = UndirectedNeighbourMap (Map a (OneTwo a))
     deriving (Eq, Ord, Show)
 
 data OneTwo a = One !a | Two !a !a
@@ -104,7 +104,7 @@ reassembleLines neighbour = fmap toList . extractAllTrajectories . buildUndirect
 buildUndirectedNeighbourMap :: (Foldable f, Ord point) => (line -> (point, point)) -> f line -> UndirectedNeighbourMap point
 buildUndirectedNeighbourMap neighbours = foldMap $ \line ->
     let (a,b) = neighbours line
-    in UndirectedNeighbourMap (M.fromList [(a, (One b)), (b, One a)])
+    in UndirectedNeighbourMap (M.fromList [(a, One b), (b, One a)])
 
 -- | Follow the entries in a neighbour map, starting at a point.
 -- Doing this twice will grow the trajectory in both directions.

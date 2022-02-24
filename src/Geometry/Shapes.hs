@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 -- | Predefined shapes.
 module Geometry.Shapes (
       haskellLogo

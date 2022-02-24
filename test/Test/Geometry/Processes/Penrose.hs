@@ -56,7 +56,7 @@ testSubdivision = testVisual "Subdividing base rhombs" 600 200 "docs/penrose/2_s
     for_ gen2 drawTileWithConnectors
 
 testInscribedPentagons :: TestTree
-testInscribedPentagons = testVisual "Switch to pentagons & stars" 200 200 "docs/penrose/3_inscribed_pentagons" $ \_ -> do
+testInscribedPentagons = testVisual "Switch to pentagons & stars" 200 200 "docs/penrose/3_inscribed_pentagons" $ \_ ->
         for_ (decagonRose (Vec2 100 100) 100) drawInscribedPentagons
 
 testSubdivisionWithInscribedPentagons :: TestTree

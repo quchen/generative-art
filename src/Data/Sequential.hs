@@ -1,4 +1,4 @@
-module Data.Sequential where
+module Data.Sequential (Sequential(..)) where
 
 
 

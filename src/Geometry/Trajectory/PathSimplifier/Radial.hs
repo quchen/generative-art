@@ -1,4 +1,6 @@
-module Geometry.Trajectory.PathSimplifier.Radial where
+module Geometry.Trajectory.PathSimplifier.Radial (
+    module Geometry.Trajectory.PathSimplifier.Radial
+) where
 
 
 

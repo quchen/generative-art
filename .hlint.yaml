@@ -26,6 +26,10 @@
 - ignore: {name: "Use infix"}
 - ignore: {name: "Redundant compare"} # suggests infinite loops
 
+- ignore: {name: "Redundant flip"}
+- ignore: {name: "Use snd"}
+- ignore: {name: "Use fst"}
+
 # AMP fallout
 - error:
     name: generalize mapM

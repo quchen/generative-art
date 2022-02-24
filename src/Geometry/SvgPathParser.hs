@@ -8,6 +8,7 @@ module Geometry.SvgPathParser (parse) where
 import           Control.Applicative
 import           Control.Monad.Trans.State
 import           Data.Foldable
+import           Data.Functor
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import qualified Text.Megaparsec            as MP
@@ -27,7 +28,7 @@ double = MP.label "number" $ lexeme $ MPCLex.signed (pure ()) $
     MP.try MPCLex.float <|> fmap fromIntegral MPCLex.decimal
 
 char_ :: Ord err => Char -> MP.Parsec err Text ()
-char_ c = lexeme (MPC.char c) *> pure ()
+char_ c = lexeme (MPC.char c) $> ()
 
 vec2 :: Ord err => MP.Parsec err Text Vec2
 vec2 = Vec2 <$> double <*> double
@@ -109,19 +110,19 @@ bezier = MP.label "cubical bezier (cC)" $ do
 bezierCubic :: MP.Parsec Text Text a
 bezierCubic = MP.label "" $ do
     _cubicChar <- asum (map char_ "qQtT")
-    MP.customFailure ("Quadratic bezier curves are not supported by the parser")
+    MP.customFailure "Quadratic bezier curves are not supported by the parser"
 
 ellipticalArc :: MP.Parsec Text Text a
 ellipticalArc = MP.label "" $ do
     _cubicChar <- asum (map char_ "aA")
-    MP.customFailure ("Elliptical arc curves are not supported by the parser")
+    MP.customFailure "Elliptical arc curves are not supported by the parser"
 
 closePath :: Ord err => MP.Parsec err Text (State DrawState Line)
 closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
     pure $ do
         DrawState (Start start) (Current current) <- get
-        put (DrawState (Start start) (Current start)) *> pure (Line current start)
+        put (DrawState (Start start) (Current start)) $> Line current start
 
 instance MP.ShowErrorComponent Text where
     showErrorComponent = show

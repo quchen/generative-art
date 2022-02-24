@@ -197,10 +197,10 @@ zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
         cutResult = cutPolygon scissors polygon
 
-    (polyCutDraw
+    polyCutDraw
         (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
         (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult)
 
 cutThroughCornerTest :: TestTree
 cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut/5_through_corner" $ \_ -> do
@@ -208,10 +208,10 @@ cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    (polyCutDraw
+    polyCutDraw
         (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
         (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult))
+        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult)
 
     liftIO $ do
         assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))

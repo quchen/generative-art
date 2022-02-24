@@ -169,7 +169,7 @@ growCircuit
     -> Hex
     -> MoveConstraints
     -> Circuits
-    -> ST s (Circuits)
+    -> ST s Circuits
 growCircuit gen start firstStep constraints knownCircuits = do
     let knownCircuitsBeforeProcess = insertStart start (insertNode start (WireTo firstStep) knownCircuits)
         loop newKnownCircuits lastPos currentPos = do

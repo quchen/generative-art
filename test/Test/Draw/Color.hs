@@ -164,7 +164,7 @@ parserTest = testGroup "Parser"
             , testCase "Failure: input too long"  $ assertThrowsError ("input too long" `isInfixOf`)            (parseRgbHex "abcdefgh")
             ]
         ]
-    , testGroup "parseRgbaHex" $
+    , testGroup "parseRgbaHex"
         [ testProperty "Success" $
             let gen = do
                     r <- choose (0, 255 :: Int)
@@ -216,7 +216,7 @@ renderColorTable file table = renderAllFormats width height file $ do
     height = 20 * length table
 
 testContinuous :: TestName -> FilePath -> (Double -> Color Double) -> (Double, Double) -> TestTree
-testContinuous testName file colorF (lo,hi) = testVisual testName 480 32 file $ \(w,h) -> do
+testContinuous testName file colorF (lo,hi) = testVisual testName 480 32 file $ \(w,h) ->
     for_ [-10..w+10] $ \x -> do
         C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral h)
         setColor (colorF (linearInterpolate (0,fromIntegral w-1) (lo,hi) (fromIntegral x)))

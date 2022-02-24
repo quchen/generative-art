@@ -1,4 +1,6 @@
-module Geometry.Algorithms.Contour.Internal where
+module Geometry.Algorithms.Contour.Internal (
+    module Geometry.Algorithms.Contour.Internal
+) where
 
 
 
@@ -209,8 +211,8 @@ classificationsToContourEdgeSegments classifiedCells = fold.fold $ linewiseDeeps
 
         CellClassification X O
                            O X -> S.fromList $ disambiguateSaddle
-                                    [(LineBetweenEdges left top), (LineBetweenEdges bottom right)]
-                                    [(LineBetweenEdges left bottom), (LineBetweenEdges top right)]
+                                    [LineBetweenEdges left top, LineBetweenEdges bottom right]
+                                    [LineBetweenEdges left bottom, LineBetweenEdges top right]
 
         CellClassification X O
                            O O -> S.singleton (LineBetweenEdges left top)
@@ -220,8 +222,8 @@ classificationsToContourEdgeSegments classifiedCells = fold.fold $ linewiseDeeps
 
         CellClassification O X
                            X O -> S.fromList $ disambiguateSaddle
-                                    [(LineBetweenEdges left top), (LineBetweenEdges bottom right)]
-                                    [(LineBetweenEdges left bottom), (LineBetweenEdges top right)]
+                                    [LineBetweenEdges left top, LineBetweenEdges bottom right]
+                                    [LineBetweenEdges left bottom, LineBetweenEdges top right]
 
         CellClassification O X
                            O X -> S.singleton (LineBetweenEdges top bottom)

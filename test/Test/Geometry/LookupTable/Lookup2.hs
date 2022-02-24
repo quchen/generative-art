@@ -171,9 +171,9 @@ pointOutsideDoesNotCrash testName lookupFunction = testCase testName $ do
         f _ = 0
         table = createLookupTable2 grid f
         values =
-            [ (Vec2 10 10)
-            , (Vec2 (-1) 0.5)
-            , (Vec2 0.5 (-1))
+            [ Vec2 10 10
+            , Vec2 (-1) 0.5
+            , Vec2 0.5 (-1)
             ]
         lookups = map (lookupFunction table) values
     rnf lookups `seq` pure ()

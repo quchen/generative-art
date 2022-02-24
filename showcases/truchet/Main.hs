@@ -1,10 +1,12 @@
-module Main where
+module Main (main) where
 
-import qualified Data.Map.Strict as M
-import Data.Traversable (for)
-import qualified Data.Vector as V
-import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC (uniformRM, GenIO, initialize)
+
+
+import qualified Data.Map.Strict          as M
+import           Data.Traversable
+import qualified Data.Vector              as V
+import qualified Graphics.Rendering.Cairo as C
+import           System.Random.MWC
 
 import Draw
 import Geometry
@@ -53,26 +55,26 @@ main = do
             , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
             ]
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> Cairo.renderWith surface $ do
-        Cairo.scale scaleFactor scaleFactor
-        Cairo.translate (picWidth / 2) (picHeight / 2)
-        cairoScope (setColor backgroundColor >> Cairo.paint)
+    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
+        C.scale scaleFactor scaleFactor
+        C.translate (picWidth / 2) (picHeight / 2)
+        cairoScope (setColor backgroundColor >> C.paint)
 
         for_ configurations $ \(hex, tiles) -> cairoScope $ do
-            let Vec2 x y = toVec2 canvasSize hex in Cairo.translate x y
+            let Vec2 x y = toVec2 canvasSize hex in C.translate x y
 
-            gen <- Cairo.liftIO $ initialize (V.fromList [123, 987])
-            tiling <- Cairo.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
+            gen <- C.liftIO $ initialize (V.fromList [123, 987])
+            tiling <- C.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
 
             let paintOnHexagonalCanvas = do
                     sketch (hexagon zero (canvasSize - 16))
-                    Cairo.fillPreserve -- expects the content to be set as source
+                    C.fillPreserve -- expects the content to be set as source
                     setColor (colorScheme 9)
-                    Cairo.setLineWidth 8
-                    Cairo.stroke
+                    C.setLineWidth 8
+                    C.stroke
                 drawTiling = do
                     setColor (blend 0.5 backgroundColor white)
-                    Cairo.paint
+                    C.paint
                     for_ (strands tiling) drawStrand
 
             grouped paintOnHexagonalCanvas drawTiling
@@ -198,17 +200,17 @@ reverseStrand = fmap (\(h, (d1, i, d2)) -> (h, (d2, 4-i, d1))) . reverse
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawStrand :: [(Hex, (Direction, Int, Direction))] -> Cairo.Render ()
+drawStrand :: [(Hex, (Direction, Int, Direction))] -> C.Render ()
 drawStrand [] = pure ()
 drawStrand xs@((_, (_, n, _)):_) = do
     let c = n `mod` 2
     for_ xs $ uncurry drawArc
-    Cairo.setLineWidth (3/16 * cellSize)
-    Cairo.setLineCap Cairo.LineCapRound
+    C.setLineWidth (3/16 * cellSize)
+    C.setLineCap C.LineCapRound
     setColor (colorScheme c)
-    Cairo.stroke
+    C.stroke
 
-drawArc :: Hex -> (Direction, Int, Direction) -> Cairo.Render ()
+drawArc :: Hex -> (Direction, Int, Direction) -> C.Render ()
 drawArc hex (d1, n, d2) = cairoScope $ do
     let i = if cyclic d1 d2 then n else 4-n
     sketchArc (fromIntegral i) d1 d2

@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Geometry.Core (
     -- * Primitives
@@ -241,8 +242,8 @@ instance Group Mat2 where
     inverse (Mat2 a b
                     d e)
         = let x = 1 / (a*e - b*d)
-        in  (Mat2 (x*e)    (x*(-b))
-                  (x*(-d)) (x*a))
+        in  Mat2 (x*e)    (x*(-b))
+                 (x*(-d)) (x*a)
 
 instance VectorSpace Mat2 where
     Mat2 a11 a12 a21 a22 +. Mat2 b11 b12 b21 b22 = Mat2 (a11+b11) (a12+b12) (a21+b21) (a22+b22)

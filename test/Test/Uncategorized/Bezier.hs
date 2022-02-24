@@ -130,7 +130,7 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
     cairoScope $ do -- Paint squirrel outline
         moveToVec (V.head face)
         setSourceRGB 0 0 0
-        for_ beziers $ \bezier -> for_ bezier $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> do
+        for_ beziers $ \bezier -> for_ bezier $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) ->
             curveTo x1 y1 x2 y2 x3 y3
         let Line _ end = lineFoot
         lineToVec end
@@ -149,7 +149,7 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
         setSourceRGB 0 0 0
-        for_ (mconcat [face, ear, back, tail1, tail2, foot]) $ \p -> do
+        for_ (mconcat [face, ear, back, tail1, tail2, foot]) $ \p ->
             sketch (Circle p 2.5) >> fill
 
 
@@ -210,7 +210,7 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
 
 subdivideBezierCurveTest :: TestTree
 subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_bezier_subdivide" $ \_ -> do
-    let graph = [Vec2 x (exp(-x/20) * sin(x)) | x <- [0,0.5..50]]
+    let graph = [Vec2 x (exp(-x/20) * sin x) | x <- [0,0.5..50]]
         fitToBox :: (HasBoundingBox a, HasBoundingBox b, Transform geo) => a -> b -> geo -> geo
         fitToBox bbContents box = G.transform (transformBoundingBox bbContents box (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
         beziers = bezierSmoothen (V.fromList graph)

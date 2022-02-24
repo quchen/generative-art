@@ -88,7 +88,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
         plotPath (fitToBox graph)
         plotPoints (fitToBox graph)
 
-    cairoScope $ do
+    cairoScope $
         for_ (zip [1..] parameters) $ \(i, parameter) -> do
             Cairo.translate 0 20
             let simplified = f parameter (V.fromList graph)

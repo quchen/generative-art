@@ -1,5 +1,7 @@
 -- | Raw color vectors.
-module Draw.Color.Schemes.Internal.MatPlotLib where
+module Draw.Color.Schemes.Internal.MatPlotLib (
+    module Draw.Color.Schemes.Internal.MatPlotLib
+) where
 
 
 

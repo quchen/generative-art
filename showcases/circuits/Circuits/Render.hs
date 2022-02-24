@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Circuits.Render (
       renderCircuits
     , renderProcessGeometry
@@ -115,18 +113,16 @@ renderProcessGeometry
     -> Render ()
 renderProcessGeometry insideColor edgeColor cellSize ProcessGeometry{..} = do
     cairoScope $ do
-        for_ _inside $ \hex -> do
-            D.sketch (hexagonPoly cellSize hex)
-        setColor (insideColor)
+        for_ _inside $ \hex -> D.sketch (hexagonPoly cellSize hex)
+        setColor insideColor
         fillPreserve
         setSourceRGB 0 0 0
         stroke
 
     cairoScope $ do
-        setColor (edgeColor)
-        for_ _edge $ \hex -> do
-            D.sketch (hexagonPoly cellSize hex)
-        setColor (edgeColor)
+        setColor edgeColor
+        for_ _edge $ \hex -> D.sketch (hexagonPoly cellSize hex)
+        setColor edgeColor
         fillPreserve
         setSourceRGB 0 0 0
         stroke

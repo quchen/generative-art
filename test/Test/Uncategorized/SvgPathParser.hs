@@ -82,9 +82,9 @@ assertFailsToParse path expectedSubstr = case parse path of
         | not (null (T.breakOnAll expectedSubstr err)) -> pure ()
         | otherwise -> assertFailure (unlines
             [ "There was an error, but it did not contain the expected section:"
-            , T.unpack $ indent $ expectedSubstr
+            , T.unpack (indent expectedSubstr)
             , "What we got was:"
-            , T.unpack $ indent $ err
+            , T.unpack (indent err)
             ])
 
 indent :: Text -> Text

@@ -52,5 +52,5 @@ integrateSimpson13 f a b n =
           + f b
           )
   where
-    x i = a + (fromIntegral (i :: Int))*h
+    x i = a + fromIntegral (i :: Int)*h
     h = (b-a)/fromIntegral n

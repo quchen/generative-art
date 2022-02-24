@@ -38,7 +38,7 @@ testPolygonCutting = testGroup "Adding polygons"
     cell1'' = updateCell point3 cell1'
     cell2' = updateCell point1 cell2
     cell2'' = updateCell point3 cell2'
-    cell3' = updateCell point2 $ updateCell point1 $ cell3
+    cell3' = updateCell point2 $ updateCell point1 cell3
     test1 = testVisual "Cutting a polygon" 420 240 "docs/voronoi/1_cut_polygon" $ \_ -> do
         Cairo.translate 10 10
         drawVoronoi [cell1]

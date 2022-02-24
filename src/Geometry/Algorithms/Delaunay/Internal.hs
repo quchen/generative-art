@@ -1,11 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
-module Geometry.Algorithms.Delaunay.Internal where
+module Geometry.Algorithms.Delaunay.Internal (
+    module Geometry.Algorithms.Delaunay.Internal
+) where
 
-import Data.List (foldl', intersect, sortOn)
+
+
+import           Data.List
 import qualified Data.Map.Strict as M
-import Data.Maybe (maybeToList, catMaybes, fromJust)
-import qualified Data.Set as S
-import qualified Util.RTree as RT
+import           Data.Maybe
+import qualified Data.Set        as S
+import qualified Util.RTree      as RT
 
 import Geometry
 import Geometry.Algorithms.Voronoi

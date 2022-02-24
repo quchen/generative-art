@@ -1,4 +1,6 @@
-module Draw.Color.Schemes.Internal.ColorBrewer2 where
+module Draw.Color.Schemes.Internal.ColorBrewer2 (
+    module Draw.Color.Schemes.Internal.ColorBrewer2
+) where
 
 
 
@@ -10,7 +12,7 @@ import Draw.Color.Schemes.Internal.Common
 
 
 divisive_Spectral :: Vector RGB
-divisive_Spectral = V.fromList $
+divisive_Spectral = V.fromList
     [ rgbFF 158 1   66
     , rgbFF 213 62  79
     , rgbFF 244 109 67
@@ -25,7 +27,7 @@ divisive_Spectral = V.fromList $
     ]
 
 divisive_RdYlGn :: Vector RGB
-divisive_RdYlGn = V.fromList $
+divisive_RdYlGn = V.fromList
     [ rgbFF 165 0   38
     , rgbFF 215 48  39
     , rgbFF 244 109 67
@@ -40,7 +42,7 @@ divisive_RdYlGn = V.fromList $
     ]
 
 divisive_RdBu :: Vector RGB
-divisive_RdBu = V.fromList $
+divisive_RdBu = V.fromList
     [ rgbFF 103 0   31
     , rgbFF 178 24  43
     , rgbFF 214 96  77
@@ -55,7 +57,7 @@ divisive_RdBu = V.fromList $
     ]
 
 divisive_PiYG :: Vector RGB
-divisive_PiYG = V.fromList $
+divisive_PiYG = V.fromList
     [ rgbFF 142 1   82
     , rgbFF 197 27  125
     , rgbFF 222 119 174
@@ -70,7 +72,7 @@ divisive_PiYG = V.fromList $
     ]
 
 divisive_PRGn :: Vector RGB
-divisive_PRGn = V.fromList $
+divisive_PRGn = V.fromList
     [ rgbFF 64  0   75
     , rgbFF 118 42  131
     , rgbFF 153 112 171
@@ -85,7 +87,7 @@ divisive_PRGn = V.fromList $
     ]
 
 divisive_RdYlBu :: Vector RGB
-divisive_RdYlBu = V.fromList $
+divisive_RdYlBu = V.fromList
     [ rgbFF 165 0   38
     , rgbFF 215 48  39
     , rgbFF 244 109 67
@@ -100,7 +102,7 @@ divisive_RdYlBu = V.fromList $
     ]
 
 divisive_BrBG :: Vector RGB
-divisive_BrBG = V.fromList $
+divisive_BrBG = V.fromList
     [ rgbFF 84  48  5
     , rgbFF 140 81  10
     , rgbFF 191 129 45
@@ -115,7 +117,7 @@ divisive_BrBG = V.fromList $
     ]
 
 divisive_RdGy :: Vector RGB
-divisive_RdGy = V.fromList $
+divisive_RdGy = V.fromList
     [ rgbFF 103 0   31
     , rgbFF 178 24  43
     , rgbFF 214 96  77
@@ -130,7 +132,7 @@ divisive_RdGy = V.fromList $
     ]
 
 divisive_PuOr :: Vector RGB
-divisive_PuOr = V.fromList $
+divisive_PuOr = V.fromList
     [ rgbFF 127 59  8
     , rgbFF 179 88  6
     , rgbFF 224 130 20
@@ -145,7 +147,7 @@ divisive_PuOr = V.fromList $
     ]
 
 qualitative_Set2 :: Vector RGB
-qualitative_Set2 = V.fromList $
+qualitative_Set2 = V.fromList
     [ rgbFF 102 194 165
     , rgbFF 252 141 98
     , rgbFF 141 160 203
@@ -157,7 +159,7 @@ qualitative_Set2 = V.fromList $
     ]
 
 qualitative_Accent :: Vector RGB
-qualitative_Accent = V.fromList $
+qualitative_Accent = V.fromList
     [ rgbFF 127 201 127
     , rgbFF 190 174 212
     , rgbFF 253 192 134
@@ -169,7 +171,7 @@ qualitative_Accent = V.fromList $
     ]
 
 qualitative_Set1 :: Vector RGB
-qualitative_Set1 = V.fromList $
+qualitative_Set1 = V.fromList
     [ rgbFF 228 26  28
     , rgbFF 55  126 184
     , rgbFF 77  175 74
@@ -182,7 +184,7 @@ qualitative_Set1 = V.fromList $
     ]
 
 qualitative_Set3 :: Vector RGB
-qualitative_Set3 = V.fromList $
+qualitative_Set3 = V.fromList
     [ rgbFF 141 211 199
     , rgbFF 255 255 179
     , rgbFF 190 186 218
@@ -198,7 +200,7 @@ qualitative_Set3 = V.fromList $
     ]
 
 qualitative_Dark2 :: Vector RGB
-qualitative_Dark2 = V.fromList $
+qualitative_Dark2 = V.fromList
     [ rgbFF 27  158 119
     , rgbFF 217 95  2
     , rgbFF 117 112 179
@@ -210,7 +212,7 @@ qualitative_Dark2 = V.fromList $
     ]
 
 qualitative_Paired :: Vector RGB
-qualitative_Paired = V.fromList $
+qualitative_Paired = V.fromList
     [ rgbFF 166 206 227
     , rgbFF 31  120 180
     , rgbFF 178 223 138
@@ -226,7 +228,7 @@ qualitative_Paired = V.fromList $
     ]
 
 qualitative_Pastel2 :: Vector RGB
-qualitative_Pastel2 = V.fromList $
+qualitative_Pastel2 = V.fromList
     [ rgbFF 179 226 205
     , rgbFF 253 205 172
     , rgbFF 203 213 232
@@ -238,7 +240,7 @@ qualitative_Pastel2 = V.fromList $
     ]
 
 qualitative_Pastel1 :: Vector RGB
-qualitative_Pastel1 = V.fromList $
+qualitative_Pastel1 = V.fromList
     [ rgbFF 251 180 174
     , rgbFF 179 205 227
     , rgbFF 204 235 197
@@ -251,7 +253,7 @@ qualitative_Pastel1 = V.fromList $
     ]
 
 sequential_OrRd :: Vector RGB
-sequential_OrRd = V.fromList $
+sequential_OrRd = V.fromList
     [ rgbFF 255 247 236
     , rgbFF 254 232 200
     , rgbFF 253 212 158
@@ -264,7 +266,7 @@ sequential_OrRd = V.fromList $
     ]
 
 sequential_PuBu :: Vector RGB
-sequential_PuBu = V.fromList $
+sequential_PuBu = V.fromList
     [ rgbFF 255 247 251
     , rgbFF 236 231 242
     , rgbFF 208 209 230
@@ -277,7 +279,7 @@ sequential_PuBu = V.fromList $
     ]
 
 sequential_BuPu :: Vector RGB
-sequential_BuPu = V.fromList $
+sequential_BuPu = V.fromList
     [ rgbFF 247 252 253
     , rgbFF 224 236 244
     , rgbFF 191 211 230
@@ -290,7 +292,7 @@ sequential_BuPu = V.fromList $
     ]
 
 sequential_Oranges :: Vector RGB
-sequential_Oranges = V.fromList $
+sequential_Oranges = V.fromList
     [ rgbFF 255 245 235
     , rgbFF 254 230 206
     , rgbFF 253 208 162
@@ -303,7 +305,7 @@ sequential_Oranges = V.fromList $
     ]
 
 sequential_BuGn :: Vector RGB
-sequential_BuGn = V.fromList $
+sequential_BuGn = V.fromList
     [ rgbFF 247 252 253
     , rgbFF 229 245 249
     , rgbFF 204 236 230
@@ -316,7 +318,7 @@ sequential_BuGn = V.fromList $
     ]
 
 sequential_YlOrBr :: Vector RGB
-sequential_YlOrBr = V.fromList $
+sequential_YlOrBr = V.fromList
     [ rgbFF 255 255 229
     , rgbFF 255 247 188
     , rgbFF 254 227 145
@@ -329,7 +331,7 @@ sequential_YlOrBr = V.fromList $
     ]
 
 sequential_YlGn :: Vector RGB
-sequential_YlGn = V.fromList $
+sequential_YlGn = V.fromList
     [ rgbFF 255 255 229
     , rgbFF 247 252 185
     , rgbFF 217 240 163
@@ -342,7 +344,7 @@ sequential_YlGn = V.fromList $
     ]
 
 sequential_Reds :: Vector RGB
-sequential_Reds = V.fromList $
+sequential_Reds = V.fromList
     [ rgbFF 255 245 240
     , rgbFF 254 224 210
     , rgbFF 252 187 161
@@ -355,7 +357,7 @@ sequential_Reds = V.fromList $
     ]
 
 sequential_RdPu :: Vector RGB
-sequential_RdPu = V.fromList $
+sequential_RdPu = V.fromList
     [ rgbFF 255 247 243
     , rgbFF 253 224 221
     , rgbFF 252 197 192
@@ -368,7 +370,7 @@ sequential_RdPu = V.fromList $
     ]
 
 sequential_Greens :: Vector RGB
-sequential_Greens = V.fromList $
+sequential_Greens = V.fromList
     [ rgbFF 247 252 245
     , rgbFF 229 245 224
     , rgbFF 199 233 192
@@ -381,7 +383,7 @@ sequential_Greens = V.fromList $
     ]
 
 sequential_YlGnBu :: Vector RGB
-sequential_YlGnBu = V.fromList $
+sequential_YlGnBu = V.fromList
     [ rgbFF 255 255 217
     , rgbFF 237 248 177
     , rgbFF 199 233 180
@@ -394,7 +396,7 @@ sequential_YlGnBu = V.fromList $
     ]
 
 sequential_Purples :: Vector RGB
-sequential_Purples = V.fromList $
+sequential_Purples = V.fromList
     [ rgbFF 252 251 253
     , rgbFF 239 237 245
     , rgbFF 218 218 235
@@ -407,7 +409,7 @@ sequential_Purples = V.fromList $
     ]
 
 sequential_GnBu :: Vector RGB
-sequential_GnBu = V.fromList $
+sequential_GnBu = V.fromList
     [ rgbFF 247 252 240
     , rgbFF 224 243 219
     , rgbFF 204 235 197
@@ -420,7 +422,7 @@ sequential_GnBu = V.fromList $
     ]
 
 sequential_Greys :: Vector RGB
-sequential_Greys = V.fromList $
+sequential_Greys = V.fromList
     [ rgbFF 255 255 255
     , rgbFF 240 240 240
     , rgbFF 217 217 217
@@ -433,7 +435,7 @@ sequential_Greys = V.fromList $
     ]
 
 sequential_YlOrRd :: Vector RGB
-sequential_YlOrRd = V.fromList $
+sequential_YlOrRd = V.fromList
     [ rgbFF 255 255 204
     , rgbFF 255 237 160
     , rgbFF 254 217 118
@@ -445,7 +447,7 @@ sequential_YlOrRd = V.fromList $
     ]
 
 sequential_PuRd :: Vector RGB
-sequential_PuRd = V.fromList $
+sequential_PuRd = V.fromList
     [ rgbFF 247 244 249
     , rgbFF 231 225 239
     , rgbFF 212 185 218
@@ -458,7 +460,7 @@ sequential_PuRd = V.fromList $
     ]
 
 sequential_Blues :: Vector RGB
-sequential_Blues = V.fromList $
+sequential_Blues = V.fromList
     [ rgbFF 247 251 255
     , rgbFF 222 235 247
     , rgbFF 198 219 239
@@ -471,7 +473,7 @@ sequential_Blues = V.fromList $
     ]
 
 sequential_PuBuGn :: Vector RGB
-sequential_PuBuGn = V.fromList $
+sequential_PuBuGn = V.fromList
     [ rgbFF 255 247 251
     , rgbFF 236 226 240
     , rgbFF 208 209 230

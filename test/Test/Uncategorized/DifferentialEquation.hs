@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Test.Uncategorized.DifferentialEquation  where
+module Test.Uncategorized.DifferentialEquation (tests) where
 
 
 
@@ -150,7 +150,7 @@ renderDoublePendulum (w,h) = do
     let trajectory = takeWhile (\(t, _x) -> t < 2000) (doublePendulumTrajectory system)
         scaleToCanvas = Geometry.transform (Geometry.translate (Vec2 (w/2) (h/2)))
         transformedTrajectory = V.fromList [(t, scaleToCanvas x) | (t,x) <- trajectory]
-        bezierSmoothTrajectory = bezierSmoothen (fmap (\(_, x) -> x) transformedTrajectory)
+        bezierSmoothTrajectory = bezierSmoothen (fmap snd transformedTrajectory)
 
     cairoScope $ do
         let (_t0, start) = V.head transformedTrajectory
@@ -214,11 +214,11 @@ renderPhaseSpace solutionInfinite (w, h) = do
             $ solution
 
     setLineWidth 1
-    cairoScope $ do
+    cairoScope $
         for_ (V.zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (V.tail trajectory)) $ \(t, line) -> do
             sketch line
             let val = linearInterpolate (tMin, tMax) (0,1) t
-            setColor (icefire val `withOpacity` exp (-val/1))
+            setColor (icefire val `withOpacity` exp (-val))
             stroke
 
 geodesicsHillAndValley :: TestTree
@@ -252,7 +252,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
             in [(threshold, computeIso threshold) | threshold <- thresholds]
 
     setLineWidth 1
-    cairoScope $ do
+    cairoScope $
         for_ hills $ \(height, center) -> do
             setColor (icefire (if height > 0 then 0.75 else 0.25))
             sketch (Circle center 2)

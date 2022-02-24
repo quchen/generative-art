@@ -1,6 +1,13 @@
-module Algebra.VectorSpace where
+module Algebra.VectorSpace (
+      VectorSpace(..)
+    , vsum
+) where
+
+
 
 import Data.Foldable (foldl')
+
+
 
 -- | A generic vector space. Not only classic vectors like 'Vec2' form a vector
 -- space, but also concepts like 'Angle's – anything that can be added, inverted,

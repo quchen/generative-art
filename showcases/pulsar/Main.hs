@@ -43,19 +43,18 @@ main = do
 
         pulsarDataScaled = fitToCanvas (layoutEvenlySpacedToCanvasSize (resizeToWidth pulsarData))
 
-        render = do
-            V.iforM_ pulsarDataScaled $ \i signal -> do
-                cairoScope $ do
-                    sketch (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h))
-                    closePath
-                    let colorValue = linearInterpolateID (0, length pulsarData-1) (0.2,0.8) i
-                    setColor (inferno colorValue)
-                    fill
-                cairoScope $ do
-                    setLineWidth 1
-                    sketch signal
-                    setColor black
-                    stroke
+        render = V.iforM_ pulsarDataScaled $ \i signal -> do
+            cairoScope $ do
+                sketch (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h))
+                closePath
+                let colorValue = linearInterpolateID (0, length pulsarData-1) (0.2,0.8) i
+                setColor (inferno colorValue)
+                fill
+            cairoScope $ do
+                setLineWidth 1
+                sketch signal
+                setColor black
+                stroke
 
     withSurfaceAuto "showcases/pulsar_cp1919.svg" w h $ \surface -> renderWith surface render
     -- withSurfaceAuto "out/pulsar.png" w h $ \surface -> renderWith surface $ do
