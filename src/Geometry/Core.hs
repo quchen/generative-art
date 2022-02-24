@@ -461,10 +461,10 @@ shear
     :: Double
     -> Double
     -> Transformation
-shear k l = Transformation m zero
+shear p q = Transformation m zero
   where
-    m = Mat2 1    (-k)
-             (-l)    1
+    m = Mat2 1 p
+             q 1
 
 -- | This type simply wraps its contents, and makes 'transform' do nothing.
 -- It’s a very useful type when you want to e.g. resize the whole geometry given to
@@ -493,7 +493,7 @@ instance Transform (NoTransform a) where transform _ x = x
 -- =
 -- \underbrace{\left(\begin{array}{cc|c} 1 & & \Delta_x \\ & 1 & \Delta_y \\ \hline & & 1\end{array}\right)}                                    _{\text{translate}(\Delta_x, \Delta_y)}
 -- \underbrace{\left(\begin{array}{cc|c} s_x & & \\ & s_y & \\ \hline & & 1\end{array}\right)}                                                  _{\text{scale}'(s_x,s_y)}
--- \underbrace{\left(\begin{array}{cc|c} 1 & & \\ -\sigma_y & 1 & \\ \hline & & 1\end{array}\right)}                                            _{\text{shear}(0, \sigma_y)}
+-- \underbrace{\left(\begin{array}{cc|c} 1 & & \\ \sigma_y & 1 & \\ \hline & & 1\end{array}\right)}                                            _{\text{shear}(0, \sigma_y)}
 -- \underbrace{\left(\begin{array}{cc|c} \cos(\varphi) & -\sin(\varphi) & \\ \sin(\varphi) & \cos(\varphi) & \\ \hline & & 1\end{array}\right)} _{\text{rotatate}(\varphi)}
 -- \]
 decomposeTransformation
@@ -504,8 +504,8 @@ decomposeTransformation (Transformation m@(Mat2 a b d e) cf) =
     let p = sqrt (a^2 + b^2)
         detM = det m
         r = detM / p
-        q = - (a*d + b*e) / detM
-        phi = - atan2 b a
+        q = (a*d + b*e) / detM
+        phi = - atan2 b a -- minus because of left-handed Cairo coordinates
     in (cf, (p,r), q, rad phi)
 
 -- | The bounding box, with the minimum and maximum vectors.
