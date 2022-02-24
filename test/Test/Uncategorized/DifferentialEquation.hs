@@ -215,7 +215,7 @@ renderPhaseSpace solutionInfinite (w, h) = do
     cairoScope $
         for_ (V.zipWith (\(NoTransform t, p) (_t', p') -> (t, Line p p')) trajectory (V.tail trajectory)) $ \(t, line) -> do
             sketch line
-            let val = linearInterpolate (tMin, tMax) (0,1) t
+            let val = lerp (tMin, tMax) (0,1) t
             setColor (icefire val `withOpacity` exp (-val))
             stroke
 
@@ -260,7 +260,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
         for_ isos $ \(threshold, isosAtThreshold) ->
             for_ isosAtThreshold $ \singleIso -> do
                 sketch singleIso
-                let colorValue= linearInterpolate (-30, 30) (0,1) threshold
+                let colorValue= lerp (-30, 30) (0,1) threshold
                 setColor (icefire colorValue `withOpacity` 0.07)
                 stroke
 
@@ -274,6 +274,6 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
             sketch trajectory
-            let colorValue = linearInterpolate angles (1,0) (getDeg startingAngle)
+            let colorValue = lerp angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke

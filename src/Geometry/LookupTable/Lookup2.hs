@@ -84,14 +84,14 @@ lookupBilinear (LookupTable2 grid vec) xy =
         lut_iCeil = vec!iCeil
 
         iFloorValue
-            | jFloor /= jCeil = linearInterpolate (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor!jFloor, lut_iFloor!jCeil) jCont
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor!jFloor, lut_iFloor!jCeil) jCont
             | otherwise = lut_iFloor!jFloor
         iCeilValue
-            | jFloor /= jCeil = linearInterpolate (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil !jFloor, lut_iCeil !jCeil) jCont
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil !jFloor, lut_iCeil !jCeil) jCont
             | otherwise = lut_iCeil!jFloor
 
         result
-            | iFloor /= iCeil = linearInterpolate (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
+            | iFloor /= iCeil = lerp (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
             | otherwise = iFloorValue
 
     in result
@@ -156,8 +156,8 @@ fromGrid
     -> IVec2 -- ^ Discrete coordinate
     -> Vec2  -- ^ Continuous coordinate
 fromGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (IVec2 i j) =
-    let x = linearInterpolate (0, fromIntegral iMax) (xMin, xMax) (fromIntegral i)
-        y = linearInterpolate (0, fromIntegral jMax) (yMin, yMax) (fromIntegral j)
+    let x = lerp (0, fromIntegral iMax) (xMin, xMax) (fromIntegral i)
+        y = lerp (0, fromIntegral jMax) (yMin, yMax) (fromIntegral j)
     in Vec2 x y
 
 toGrid
@@ -167,8 +167,8 @@ toGrid
             -- ^ Continuous coordinate, scaled and clamped to grid dimensions.
             --   Suitable to be rounded to an 'IVec' with 'roundCIVec2'.
 toGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (Vec2 x y) =
-    let iContinuous = clamp 0 (fromIntegral iMax) (linearInterpolate (xMin, xMax) (0, fromIntegral iMax) x)
-        jContinuous = clamp 0 (fromIntegral jMax) (linearInterpolate (yMin, yMax) (0, fromIntegral jMax) y)
+    let iContinuous = clamp 0 (fromIntegral iMax) (lerp (xMin, xMax) (0, fromIntegral iMax) x)
+        jContinuous = clamp 0 (fromIntegral jMax) (lerp (yMin, yMax) (0, fromIntegral jMax) y)
     in CIVec2 iContinuous jContinuous
 
 -- | A raw value table, filled (lazily) by a function applied to the underlying

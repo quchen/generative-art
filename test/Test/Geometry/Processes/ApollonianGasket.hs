@@ -35,7 +35,7 @@ correctGasket = testVisual "The Gasket" 300 300 "docs/apollonian_gasket/classica
 
     for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
         setLineWidth 1
-        setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
+        setColor (rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i))
         sketch (D.Circle center r)
         stroke
 
@@ -49,7 +49,7 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
 
     for_ (zip [1..] gasket) $ \(i, Circle center r) -> cairoScope $ do
         setLineWidth 1
-        setColor (rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i))
+        setColor (rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i))
         sketch (D.Circle center r)
         stroke
 
@@ -90,7 +90,7 @@ forgettingGen0 = testVisual "Forgetting to use the gen0 circles" 300 300 "docs/a
 
     for_ (zip [1..] apoCircles) $ \(i, apo) -> cairoScope $ do
         setLineWidth 1
-        setColor (rocket (linearInterpolate (1, fromIntegral (length apoCircles)) (1, 0) i))
+        setColor (rocket (lerp (1, fromIntegral (length apoCircles)) (1, 0) i))
         apoCircleSketch apo
         stroke
 
@@ -128,6 +128,6 @@ missingTheMinus = testVisual "Missing that one minus" 300 300 "docs/apollonian_g
 
     for_ (zip [0..] apoCircles) $ \(i, apo) -> cairoScope $ do
         setLineWidth 1
-        setColor (rocket (linearInterpolate (1, fromIntegral (length apoCircles)) (1, 0) i))
+        setColor (rocket (lerp (1, fromIntegral (length apoCircles)) (1, 0) i))
         apoCircleSketch apo
         stroke

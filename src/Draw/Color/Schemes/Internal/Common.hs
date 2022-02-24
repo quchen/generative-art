@@ -57,7 +57,7 @@ linearColorInterpolation
 linearColorInterpolation picker xs = \query ->
     let nColors = V.length xs
 
-        indexContinuous = linearInterpolate (0,1) (0, fromIntegral nColors - 1) query
+        indexContinuous = lerp (0,1) (0, fromIntegral nColors - 1) query
         indexLo = floor indexContinuous
         indexHi = ceiling indexContinuous
 
@@ -68,7 +68,7 @@ linearColorInterpolation picker xs = \query ->
             (channelLo, channelHi) <- [(rLo, rHi), (gLo, gHi), (bLo, bHi)]
             pure $ case compare channelLo channelHi of
                 EQ -> channelLo
-                _  -> linearInterpolate
+                _  -> lerp
                     (fromIntegral indexLo, fromIntegral indexHi)
                     (channelLo, channelHi)
                     indexContinuous

@@ -96,7 +96,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
                 setColor (black `withOpacity` 0.2)
                 plotPath (fitToBox graph)
             cairoScope $ do
-                setColor (colorScheme (linearInterpolate (1, fromIntegral (length parameters)) (0.8, 0.5) i))
+                setColor (colorScheme (lerp (1, fromIntegral (length parameters)) (0.8, 0.5) i))
                 plotPath (fitToBox simplified)
                 plotPoints (fitToBox simplified)
 

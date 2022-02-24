@@ -219,7 +219,7 @@ testContinuous :: TestName -> FilePath -> (Double -> Color Double) -> (Double, D
 testContinuous testName file colorF (lo,hi) = testVisual testName 480 32 file $ \(w,h) ->
     for_ [-10..w+10] $ \x -> do
         C.rectangle (fromIntegral x) 0 (fromIntegral x+1) (fromIntegral h)
-        setColor (colorF (linearInterpolate (0,fromIntegral w-1) (lo,hi) (fromIntegral x)))
+        setColor (colorF (lerp (0,fromIntegral w-1) (lo,hi) (fromIntegral x)))
         fill
 
 -- | Render discrete swatches until a color repeats, or until a maximum number is reached.

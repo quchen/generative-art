@@ -109,7 +109,7 @@ gaussianHexagons = testVisual "Gaussian hexagons" 360 360 "docs/hexagonal/gaussi
 
     sequence_ $ flip M.mapWithKey polys $ \poly value -> cairoScope $ do
         Draw.sketch (fitToCanvas poly)
-        setColor (viridis (linearInterpolate (fromIntegral (minimum polys), fromIntegral (maximum polys)) (0, 1) (fromIntegral value)))
+        setColor (viridis (lerp (fromIntegral (minimum polys), fromIntegral (maximum polys)) (0, 1) (fromIntegral value)))
         setLineWidth 1
         fillPreserve
         stroke

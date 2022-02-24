@@ -47,7 +47,7 @@ main = do
             cairoScope $ do
                 sketch (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h))
                 closePath
-                let colorValue = linearInterpolateID (0, length pulsarData-1) (0.2,0.8) i
+                let colorValue = lerpID (0, length pulsarData-1) (0.2,0.8) i
                 setColor (inferno colorValue)
                 fill
             cairoScope $ do
@@ -98,7 +98,7 @@ groupLines
         let MinMax tMin tMax = (foldMap.foldMap) (\(Vec2 t _) -> MinMax t t) xs
             tSignalMin signal = let Vec2 t _ = V.head signal in t
             tSignalMax signal = let Vec2 t _ = V.last signal in t
-        in V.map (\signal -> V.map (\(Vec2 t y) -> Vec2 (linearInterpolate (tSignalMin signal, tSignalMax signal) (tMin, tMax) t) y) signal) xs
+        in V.map (\signal -> V.map (\(Vec2 t y) -> Vec2 (lerp (tSignalMin signal, tSignalMax signal) (tMin, tMax) t) y) signal) xs
     alignOnZero vec =
         let BoundingBox topLeft _bottomRight = boundingBox vec
         in G.transform (G.translate (negateV topLeft)) vec

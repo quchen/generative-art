@@ -62,9 +62,9 @@ interpolate :: LookupTable1 Double Double -> Double -> Int -> Double
 interpolate (LookupTable1 lut) needle pivotIndex = case (lut V.!? (pivotIndex-1), lut V.! pivotIndex, lut V.!? (pivotIndex+1)) of
     -- Interpolate between pivot and left neighbour?
     (Just (leftS, leftT), (pivotS, pivotT), _)
-        | between (leftS, pivotS) needle -> linearInterpolate (leftS, pivotS) (leftT, pivotT) needle
+        | between (leftS, pivotS) needle -> lerp (leftS, pivotS) (leftT, pivotT) needle
     -- Interpolate between pivot and right neighbour?
     (_, (pivotS, pivotT), Just (rightS, rightT))
-        | between (pivotS, rightS) needle -> linearInterpolate (pivotS, rightS) (pivotT, rightT) needle
+        | between (pivotS, rightS) needle -> lerp (pivotS, rightS) (pivotT, rightT) needle
     -- Fallback: don’t interpolate
     (_, (_, pivotT), _) -> pivotT

@@ -36,7 +36,7 @@ main = do
         let BoundingBox (Vec2 xMin _) (Vec2 xMax _) = boundingBox cutUpLogoParts
         for (concat cutUpLogoParts) $ \polygon -> do
             let Vec2 x _ = polygonCenter polygon
-                wiggleAmount = linearInterpolate (xMin, xMax) (0, 40) x
+                wiggleAmount = lerp (xMin, xMax) (0, 40) x
             angle <- fmap deg (MWC.uniformRM (-wiggleAmount, wiggleAmount) gen)
             pure (G.transform (G.rotateAround (polygonCenter polygon) angle) polygon)
 

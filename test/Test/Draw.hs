@@ -35,7 +35,7 @@ scaleEllipseTest = testVisual "Scale" 300 300 "docs/geometry/ellipses" $ \(w,h) 
 
     let actions =
             [ for_ (take 10 [0..]) $ \i -> cairoScope $ do
-                let scaleFactor = linearInterpolateID (0,9) (0.1, 1) i
+                let scaleFactor = lerpID (0,9) (0.1, 1) i
                 grid 0 0
                 sketch (G.transform (G.scaleAround center scaleFactor) ellipse)
                 stroke
@@ -43,53 +43,53 @@ scaleEllipseTest = testVisual "Scale" 300 300 "docs/geometry/ellipses" $ \(w,h) 
             , do
                 grid 1 0
                 for_ (take 10 [0..]) $ \i -> cairoScope $ do
-                    let scaleFactor = linearInterpolateID (0,9) (0.1, 1) i
+                    let scaleFactor = lerpID (0,9) (0.1, 1) i
                     sketch (G.transform (G.scaleAround' center scaleFactor 1) ellipse)
                     stroke
 
             , do
                 grid 2 0
                 for_ [0..9] $ \i -> cairoScope $ do
-                    let scaleFactor1 = linearInterpolate (0, 9) (1, 0.1) (fromIntegral i)
-                        scaleFactor2 = linearInterpolate (0, 9) (0.1, 1) (fromIntegral i)
+                    let scaleFactor1 = lerp (0, 9) (1, 0.1) (fromIntegral i)
+                        scaleFactor2 = lerp (0, 9) (0.1, 1) (fromIntegral i)
                     sketch (G.transform (G.scaleAround' center scaleFactor1 scaleFactor2) ellipse)
                     stroke
 
             , do
                 grid 0 1
                 for_ (take 10 [0..]) $ \i -> do
-                    let scaleX = scaleAround' center (linearInterpolateID (0,9) (0.5,1) (fromIntegral i)) 1
-                        scaleY = scaleAround' center 1 (linearInterpolateID (0,9) (0.1,1) (fromIntegral i))
+                    let scaleX = scaleAround' center (lerpID (0,9) (0.5,1) (fromIntegral i)) 1
+                        scaleY = scaleAround' center 1 (lerpID (0,9) (0.1,1) (fromIntegral i))
                     sketch (G.transform (scaleX <> scaleY) ellipse)
                     stroke
 
             , do
                 grid 1 1
                 for_ (take 10 [0..]) $ \i -> cairoScope $ do
-                    let angle = deg (linearInterpolateID (0,9) (0, 90) i)
+                    let angle = deg (lerpID (0,9) (0, 90) i)
                     sketch (G.transform (G.rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
                     stroke
 
             , do
                 grid 2 1
                 for_ (take 19 [0..]) $ \i -> cairoScope $ do
-                    let angle = deg (linearInterpolateID (0,19) (0, 180) i)
+                    let angle = deg (lerpID (0,19) (0, 180) i)
                     sketch (G.transform (G.rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
                     stroke
 
             , do
                 grid 0 2
                 for_ (take 9 [0..]) $ \i -> cairoScope $ do
-                    let scaleFactor = linearInterpolateID (0,9) (1,0.1) i
-                        angle = deg (linearInterpolateID (0,9) (90,0) i)
+                    let scaleFactor = lerpID (0,9) (1,0.1) i
+                        angle = deg (lerpID (0,9) (90,0) i)
                     sketch (G.transform (G.rotateAround center angle <> G.scaleAround' center 1 scaleFactor) ellipse)
                     stroke
 
             , do
                 grid 1 2
                 for_ (take 9 [0..]) $ \i -> do
-                    let scaleFactor = linearInterpolateID (0,9) (1,0.1) i
-                        angle = deg (linearInterpolateID (0,9) (0,90) i)
+                    let scaleFactor = lerpID (0,9) (1,0.1) i
+                        angle = deg (lerpID (0,9) (0,90) i)
                     sketch (G.transform (scaleAround center scaleFactor <> G.rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
                     stroke
 
@@ -97,8 +97,8 @@ scaleEllipseTest = testVisual "Scale" 300 300 "docs/geometry/ellipses" $ \(w,h) 
                 grid 2 2
                 for_ (take 9 [0..]) $ \i -> do
                     let BoundingBox topLeft _ = boundingBox ellipse
-                        scaleFactor = linearInterpolateID (0,9) (1,0.1) i
-                        angle = deg (linearInterpolateID (0,9) (0,90) i)
+                        scaleFactor = lerpID (0,9) (1,0.1) i
+                        angle = deg (lerpID (0,9) (0,90) i)
                     sketch (G.transform (rotateAround center angle <> scaleAround (0.5 *. (topLeft -. center)) scaleFactor) ellipse)
                     stroke
             ]
