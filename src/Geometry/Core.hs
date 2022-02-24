@@ -493,7 +493,7 @@ instance Transform (NoTransform a) where transform _ x = x
 -- =
 -- \underbrace{\left(\begin{array}{cc|c} 1 & & \Delta_x \\ & 1 & \Delta_y \\ \hline & & 1\end{array}\right)}                                    _{\text{translate}(\Delta_x, \Delta_y)}
 -- \underbrace{\left(\begin{array}{cc|c} s_x & & \\ & s_y & \\ \hline & & 1\end{array}\right)}                                                  _{\text{scale}'(s_x,s_y)}
--- \underbrace{\left(\begin{array}{cc|c} 1 & & \\ \sigma_y & 1 & \\ \hline & & 1\end{array}\right)}                                            _{\text{shear}(0, \sigma_y)}
+-- \underbrace{\left(\begin{array}{cc|c} 1 & & \\ \sigma_y & 1 & \\ \hline & & 1\end{array}\right)}                                             _{\text{shear}(0, \sigma_y)}
 -- \underbrace{\left(\begin{array}{cc|c} \cos(\varphi) & -\sin(\varphi) & \\ \sin(\varphi) & \cos(\varphi) & \\ \hline & & 1\end{array}\right)} _{\text{rotatate}(\varphi)}
 -- \]
 decomposeTransformation

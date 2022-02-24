@@ -197,13 +197,21 @@ transformationTest = testGroup "Affine transformations"
                                <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
         ]
     , testGroup "Affine decomposition"
-        [ testProperty "Decomposition reapplied matches original" $ \trafo ->
+        [ testProperty "Decomposition of arbitrary non-singular transformation" $ \trafo ->
             let (dx, (sx,sy), q, phi) = decomposeTransformation trafo
                 scaling = G.scale' sx sy
                 shearing = G.shear 0 q
                 rotation = rotate phi
                 translation = G.translate dx
             in trafo ~=== translation <> scaling <> shearing <> rotation
+        , testProperty "Decomposing rotateAround" $ \center angle ->
+            let trafo = rotateAround center angle
+                recomposed =
+                    let (dx, _, _, phi) = decomposeTransformation trafo
+                        rotation = rotate phi
+                        translation = G.translate dx
+                    in translation <> rotation
+            in trafo ~=== recomposed
         ]
     ]
   where
