@@ -199,7 +199,7 @@ extractSinglePolygon orientation = go Nothing S.empty
                                 rightness end = negateV (leftness end)
                                 pickNextVertex = minimumBy $ comparing $ case orientation of
                                     -- TODO: comparing by angles is flaky because of their modular arithmetic.
-                                    -- leftness/rightness should be rewritten in terms of 'det', which allows
+                                    -- leftness/rightness should be rewritten in terms of 'cross', which allows
                                     -- judging whether a vector is left/right of another much better.
                                     -- The 'getRad' was just put here quickly so the 'Ord Angle' instance
                                     -- could be removed.
@@ -305,7 +305,7 @@ endPoint (Cut _ _ q) = q
 
 sideOfScissors :: Line -> Vec2 -> SideOfLine
 sideOfScissors scissors@(Line scissorsStart _) p
-  = let scissorsCrossPoint = det (vectorOf scissors) (vectorOf (Line scissorsStart p))
+  = let scissorsCrossPoint = cross (vectorOf scissors) (vectorOf (Line scissorsStart p))
     in case compare scissorsCrossPoint 0 of
         LT -> RightOfLine
         EQ -> DirectlyOnLine

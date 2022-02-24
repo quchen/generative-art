@@ -19,7 +19,7 @@ tests = testGroup "Properties"
     , areaTest
     , intersectionLLTest
     , lengthOfAngledLineTest
-    , detCrossTest
+    , crossTest
     , dotProductTest
     , polygonInstancesTest
     , transformationTest
@@ -95,21 +95,21 @@ lengthOfAngledLineTest = testProperty "Length of angled line" (forAll
     coord = choose (-100, 100 :: Double)
     vec2 = liftA2 Vec2 coord coord
 
-detCrossTest :: TestTree
-detCrossTest = testGroup "Determinant/cross product"
-    [ testCase "Positive" (assertBool "Positive" (det (Vec2 1 0) (Vec2 0   1)  > 0))
-    , testCase "Negative" (assertBool "Negative" (det (Vec2 1 0) (Vec2 0 (-1)) < 0))
+crossTest :: TestTree
+crossTest = testGroup "Determinant/cross product"
+    [ testCase "Positive" (assertBool "Positive" (cross (Vec2 1 0) (Vec2 0   1)  > 0))
+    , testCase "Negative" (assertBool "Negative" (cross (Vec2 1 0) (Vec2 0 (-1)) < 0))
     , testProperty "Antisymmetric" $ \v1 v2 ->
         let Vec2 x1 y1 = v1
             Vec2 x2 y2 = v2
-            detA  = det v1 v2
-            detA' = det v2 v1
+            detA  = cross v1 v2
+            detA' = cross v2 v1
         in counterexample (printf " det (%f,%f) (%f,%f) =  %f,\n-det (%f,%f) (%f,%f) = %f"
                                         x1 y1   x2 y2    detA        x2 y2   x1 y1    detA')
                           (detA ~== -detA')
     , testProperty "Invariant: transposition" $ \x1 y1 x2 y2 ->
-        let detA  = det (Vec2 x1 y1) (Vec2 x2 y2)
-            detAT = det (Vec2 x1 x2) (Vec2 y1 y2)
+        let detA  = cross (Vec2 x1 y1) (Vec2 x2 y2)
+            detAT = cross (Vec2 x1 x2) (Vec2 y1 y2)
         in counterexample (printf "det (%f,%f) (%f,%f) = %f,\ndet (%f,%f) (%f,%f) = %f"
                                         x1 y1   x2 y2    detA      x1 x2   y1 y2    detAT)
                           (detA ~== detAT)

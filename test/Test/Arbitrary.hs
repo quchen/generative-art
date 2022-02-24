@@ -37,7 +37,7 @@ instance Arbitrary Mat2 where
     arbitrary = Mat2 <$> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
 
 instance Arbitrary NonSingularMat2 where
-    arbitrary = suchThatMap arbitrary (\(a,b,c,d) -> if det (Vec2 a b) (Vec2 c d) == 0 then Nothing else Just (NonSingular (Mat2 a b c d)))
+    arbitrary = suchThatMap arbitrary (\m -> if det m == 0 then Nothing else Just (NonSingular m))
 
 newtype NonSingularMat2 = NonSingular Mat2
 

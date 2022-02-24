@@ -67,6 +67,7 @@ module Geometry.Core (
 
     -- * Matrices
     , Mat2(..)
+    , det
 
     -- * Transformations
     , Transformation(..)
@@ -102,7 +103,7 @@ module Geometry.Core (
 
     -- * Useful stuff
     , vectorOf
-    , det
+    , cross
     , direction
     , bugError
     , module Data.Sequential
@@ -844,7 +845,7 @@ intersectionLL lineL lineR
     = intersectionType
   where
     intersectionType
-        | discriminant == 0 && det (v1 -. v2) (v1 -. v3) /= 0
+        | discriminant == 0 && cross (v1 -. v2) (v1 -. v3) /= 0
           = Parallel
         | discriminant == 0
           = Collinear $ case fmap forwardness [v2, v3, v4] of
@@ -873,15 +874,15 @@ intersectionLL lineL lineR
     Line v1 v2 = lineL
     Line v3 v4 = lineR
 
-    discriminant = det (v1 -. v2) (v3 -. v4)
+    discriminant = cross (v1 -. v2) (v3 -. v4)
 
-    iPoint = (det v1 v2 *. (v3 -. v4) -. det v3 v4 *. (v1 -. v2)) /. discriminant
+    iPoint = (cross v1 v2 *. (v3 -. v4) -. cross v3 v4 *. (v1 -. v2)) /. discriminant
 
     intersectionInsideL = sideOfLine lineR v1 /= sideOfLine lineR v2 || sideOfLine lineR v1 == EQ || sideOfLine lineR v2 == EQ
     intersectionInsideR = sideOfLine lineL v3 /= sideOfLine lineL v4 || sideOfLine lineL v3 == EQ || sideOfLine lineL v4 == EQ
 
     sideOfLine :: Line -> Vec2 -> Ordering
-    sideOfLine (Line u v) p = compare (det (v -. u) (p -. u)) 0
+    sideOfLine (Line u v) p = compare (cross (v -. u) (p -. u)) 0
 
     forwardness :: Vec2 -> Double
     forwardness v = dotProduct
@@ -911,7 +912,7 @@ convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
   = let pointsSorted = sort (toList points)
-        angleSign a b c = signum (det (b -. a) (c -. b))
+        angleSign a b c = signum (cross (b -. a) (c -. b))
         go :: (Double -> Double -> Bool) -> [Vec2] -> [Vec2] -> [Vec2]
         go cmp [] (p:ps) = go cmp [p] ps
         go cmp [s] (p:ps) = go cmp [p,s] ps
@@ -1063,7 +1064,7 @@ polygonAverage (Polygon corners)
 
 -- | The centroid or center of mass of a polygon
 polygonCentroid :: Polygon -> Vec2
-polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> det p q *. (p +. q)) ps (tail (cycle ps)))
+polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
     totalArea = signedPolygonArea poly
     weight = 1 / (6 * totalArea)
@@ -1074,25 +1075,26 @@ polygonCircumference poly = foldl'
     0
     (polygonEdges poly)
 
--- | Determinant of the matrix
---
--- > / x1 x2 \
--- > \ y1 y2 /
+-- | Two-dimensional cross product.
 --
 -- This is useful to calculate the (signed) area of the parallelogram spanned by
 -- two vectors, or to check whether a vector is to the left or right of another
 -- vector.
 --
--- >>> det (Vec2 1 0) (Vec2 1 0) -- Colinear
+-- >>> cross (Vec2 1 0) (Vec2 1 0) -- Colinear
 -- 0
 --
--- >>> det (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec to the right of 1st (in Cairo coordinates)
+-- >>> cross (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec to the right of 1st (in Cairo coordinates)
 -- 0.1
 --
--- >>> det (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec to the left of 1st (in Cairo coordinates)
+-- >>> cross (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec to the left of 1st (in Cairo coordinates)
 -- -0.1
-det :: Vec2 -> Vec2 -> Double
-det (Vec2 x1 y1) (Vec2 x2 y2) = x1*y2 - y1*x2
+cross :: Vec2 -> Vec2 -> Double
+cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
+
+-- | Determinant a matrix.
+det :: Mat2 -> Double
+det (Mat2 a11 a12 a21 a22) = a11*a22 - a12*a21
 
 -- http://mathworld.wolfram.com/PolygonArea.html
 polygonArea :: Polygon -> Double
@@ -1101,7 +1103,7 @@ polygonArea = abs . signedPolygonArea
 -- | Sign depends on orientation.
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
-  = let determinants = zipWith det ps (tail (cycle ps))
+  = let determinants = zipWith cross ps (tail (cycle ps))
     in sum determinants / 2
 
 isConvex :: Polygon -> Bool
@@ -1114,7 +1116,7 @@ isConvex (Polygon ps)
             (\p q r ->
                 let lineBeforeAngle = Line p q
                     lineAfterAngle  = Line q r
-                in det (vectorOf lineBeforeAngle) (vectorOf lineAfterAngle) )
+                in cross (vectorOf lineBeforeAngle) (vectorOf lineAfterAngle) )
             ps
             (tail (cycle ps))
             (tail (tail (cycle ps)))

@@ -33,7 +33,7 @@ data Triangle = Triangle
     } deriving (Eq, Ord, Show)
 
 triangleArea :: Vec2 -> Vec2 -> Vec2 -> Double
-triangleArea left center right = abs (det (left -. center) (right -. center))
+triangleArea left center right = abs (cross (left -. center) (right -. center))
 
 mkTriangleAreaPQ :: Vector Vec2 -> Heap (Entry Double Triangle)
 mkTriangleAreaPQ vec
