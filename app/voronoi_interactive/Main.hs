@@ -45,12 +45,13 @@ setup tmpDir window = do
             ]
         ]
 
-    let initialState = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral w) (fromIntegral h))) []
+    let bb = boundingBox (Vec2 0 0, Vec2 (fromIntegral w) (fromIntegral h))
+        initialState = bowyerWatson bb []
 
     eAddPointsGaussian <- do
         (eAddPoints, triggerAddPoints) <- liftIO newEvent
         on UI.click btnAddPointsGaussian $ \() -> liftIO $ do
-            points <- gaussianDistributedPoints gen (w, 380) (h, 380) 100
+            points <- gaussianDistributedPoints gen bb (Mat2 380 0 0 380) 100
             triggerAddPoints (\delaunay -> foldl' bowyerWatsonStep delaunay points)
         pure eAddPoints
     eAddPointsUniform <- do

@@ -15,6 +15,7 @@ import           Control.Monad
 import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.State
+import           Data.Default.Class
 import           Data.Map                        (Map)
 import qualified Data.Map                        as M
 import           Data.Maybe
@@ -24,7 +25,6 @@ import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
 import           System.Random.MWC
 import           System.Random.MWC.Distributions
-import Data.Default.Class
 
 import Geometry
 
@@ -198,9 +198,9 @@ uniformlyDistributedPoints gen width height count = V.replicateM count randomPoi
     randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
     randomCoordinate mx = uniformR (0, fromIntegral mx) gen
 
--- | @'uniformlyDistributedPoints' gen (width, sigmaX) (height, sigmaY) count@
+-- | @'gaussianDistributedPoints' gen mu sigma (width,height) count@
 -- generates @count@ normal distributed random points within a rectangle of
--- @width@ x @height@, with the given standard deviations.
+-- @width@ \(\times\) @height@, with the given standard deviations.
 --
 -- Note: This is a rejection algorithm. If you choose the standard deviation much
 -- higher than the height or width, performance will deteriorate as more and more
@@ -212,20 +212,23 @@ uniformlyDistributedPoints gen width height count = V.replicateM count randomPoi
 -- points :: 'Vector' 'Vec2'
 -- points = 'Control.Monad.ST.runST' $ do
 --     gen <- 'create'
---     'uniformlyDistributedPoints' gen (64, 10) (64, 10) 100
+--     'uniformlyDistributedPoints' gen ('Vec2' 0 0, 'Vec2' 64 64) ('Mat2' 10 0 0 10) 100
 -- @
 gaussianDistributedPoints
-    :: PrimMonad m
+    :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    -> (Int, Double)     -- ^ Width, \(\sigma_x\)
-    -> (Int, Double)     -- ^ Height, \(\sigma_y\)
-    -> Int               -- ^ Number of points
+    -> boundingBox       -- ^ Determines width and height. The center of this is the mean \(\mathbf\mu\).
+    -> Mat2              -- ^ Covariance matrix \(\mathbf\Sigma\).
+    -> Int               -- ^ Number of points.
     -> m (Vector Vec2)
-gaussianDistributedPoints gen (width, sigmaX) (height, sigmaY) count = V.replicateM count randomPoint
+gaussianDistributedPoints gen container covariance count = V.replicateM count randomPoint
   where
-    randomPoint = liftA2 Vec2 (randomCoordinate width sigmaX) (randomCoordinate height sigmaY)
-    randomCoordinate mx sigma = do
-        coord <- normal (fromIntegral mx/2) sigma gen
-        if coord < 0 || coord > fromIntegral mx
-            then randomCoordinate mx sigma
-            else pure coord
+    bb = boundingBox container
+    center = boundingBoxCenter bb
+
+    randomPoint = do
+        let t = Transformation covariance center
+        vec <- (transform t . Vec2) <$> standard gen <*> standard gen
+        if vec `insideBoundingBox` bb
+            then randomPoint
+            else pure vec
