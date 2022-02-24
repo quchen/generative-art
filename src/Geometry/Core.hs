@@ -330,7 +330,7 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 scale :: Double -> Transformation
 scale x = scale' x x
 
--- | Scale the geometry with adjustable aspect ratio. @'scale\'' 1 1 = 'mempty'@.
+-- | Scale the geometry with adjustable aspect ratio. @'scale'' 1 1 = 'mempty'@.
 --
 -- \[
 -- \text{scale'}(s_x,s_y) = \left(\begin{array}{cc|c} s_x & 0 & 0 \\ 0 & s_y & 0 \\ \hline 0 & 0 & 1\end{array}\right)

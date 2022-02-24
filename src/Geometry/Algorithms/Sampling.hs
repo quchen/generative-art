@@ -30,12 +30,13 @@ import Geometry
 
 
 
+-- | Configuration for 'poissonDisc' sampling.
 data PoissonDiscProperties s = PoissonDisc
     { width  :: Int
     , height :: Int
     , radius :: Double -- ^ Minimum distance between points.
     , gen    :: Gen s  -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    , k      :: Int    -- ^ Point density. Higher 'k' yields tighter packings.
+    , k      :: Int    -- ^ Point density. Per known point, how many random points in the vicinity should be tried?
     }
 
 -- | Sample points using the Poisson Disc algorithm, which yields a visually
