@@ -7,7 +7,7 @@ module Test.Uncategorized.Properties (tests) where
 import Control.Applicative
 import Text.Printf
 
-import Geometry
+import Geometry as G
 
 import Test.TastyAll
 
@@ -183,7 +183,7 @@ transformationTest = testGroup "Affine transformations"
                 ySign <- sign
                 xScale <- factor
                 yScale <- factor
-                pure [Geometry.scale' (xSign*xScale) (ySign*yScale)])
+                pure [G.scale' (xSign*xScale) (ySign*yScale)])
         , invertibilityTest "Rotation"
             (do angle <- arbitrary; pure [rotate angle])
         , invertibilityTest "Combination of transformations" $ do
@@ -193,8 +193,17 @@ transformationTest = testGroup "Affine transformations"
                 [ (1, pure mempty)
                 , (3, rotate <$> arbitrary)
                 , (3, translate <$> liftA2 Vec2 (choose (-100,100)) (choose (-100,100)))
-                , (3, Geometry.scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
-                                      <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
+                , (3, G.scale' <$> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))
+                               <*> liftA2 (*) (elements [-1,1]) (choose (0.2, 5))) ])
+        ]
+    , testGroup "Affine decomposition"
+        [ testProperty "Decomposition reapplied matches original" $ \trafo ->
+            let (dx, (sx,sy), q, phi) = decomposeTransformation trafo
+                scaling = G.scale' sx sy
+                shearing = G.shear 0 q
+                rotation = rotate phi
+                translation = G.translate dx
+            in trafo ~=== translation <> scaling <> shearing <> rotation
         ]
     ]
   where

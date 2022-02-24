@@ -86,6 +86,7 @@ module Geometry.Core (
     , mirrorXCoords
     , mirrorYCoords
     , shear
+    , decomposeTransformation
 
     -- * Bounding Box
     , HasBoundingBox(..)
@@ -382,6 +383,11 @@ translate = Transformation mempty
 -- \text{rotate}(\alpha) = \left(\begin{array}{cc|c} \cos(\alpha) & -\sin(\alpha) & 0 \\ \sin(\alpha) & \cos(\alpha) & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
+-- Note that this rotation is understood in Cairo coordinates, which uses a
+-- left-handed coordinate system, hence the minus sign compared to the standard
+-- mathematical rotation matrix.
+--
+--
 -- To rotate around a different point, use 'rotateAround'.
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
@@ -446,9 +452,11 @@ mirrorYCoords = scale' 1 (-1)
 -- | Shear with a factor along x/y axis. @'shear' 0 0 = 'mempty'@.
 --
 -- \[
--- \text{shear}(k,\ell)
---     = \left(\begin{array}{cc|c} 1 & k & 0 \\ \ell & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
+-- \text{shear}(p,q)
+--     = \left(\begin{array}{cc|c} 1 & -p & 0 \\ -q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
+--
+-- (The minus signs are probably because of Cairo’s left-handed coordinate system. Or because I haven’t tested this enough…)
 shear
     :: Double
     -> Double
@@ -475,8 +483,30 @@ instance Monoid a => Monoid (NoTransform a) where mempty = NoTransform mempty
 -- | The key instance: don’t transform a 'NoTransform'.
 instance Transform (NoTransform a) where transform _ x = x
 
-
-
+-- | Decompose an affine transformation into scale, shear, rotation and translation parts.
+-- This composition is not unique, since scale, shear and rotating can be done in different orders.
+--
+-- Our choice of decomposition is:
+--
+-- \[
+-- \left(\begin{array}{cc|c} a_{11} & a_{12} & b_1 \\ a_{21} & a_{22} & b_2 \\ \hline & & 1\end{array}\right)
+-- =
+-- \underbrace{\left(\begin{array}{cc|c} 1 & & \Delta_x \\ & 1 & \Delta_y \\ \hline & & 1\end{array}\right)}                                    _{\text{translate}(\Delta_x, \Delta_y)}
+-- \underbrace{\left(\begin{array}{cc|c} s_x & & \\ & s_y & \\ \hline & & 1\end{array}\right)}                                                  _{\text{scale}'(s_x,s_y)}
+-- \underbrace{\left(\begin{array}{cc|c} 1 & & \\ -\sigma_y & 1 & \\ \hline & & 1\end{array}\right)}                                            _{\text{shear}(0, \sigma_y)}
+-- \underbrace{\left(\begin{array}{cc|c} \cos(\varphi) & -\sin(\varphi) & \\ \sin(\varphi) & \cos(\varphi) & \\ \hline & & 1\end{array}\right)} _{\text{rotatate}(\varphi)}
+-- \]
+decomposeTransformation
+    :: Transformation
+    -> (Vec2, (Double, Double), Double, Angle) -- ^ \(\Delta\mathbf v, (\text{scale}_x,\text{scale}_y), \text{shear}_y, \varphi\)
+decomposeTransformation (Transformation m@(Mat2 a b d e) cf) =
+    -- Source: https://math.stackexchange.com/a/78165/21079
+    let p = sqrt (a^2 + b^2)
+        detM = det m
+        r = detM / p
+        q = - (a*d + b*e) / detM
+        phi = - atan2 b a
+    in (cf, (p,r), q, rad phi)
 
 -- | The bounding box, with the minimum and maximum vectors.
 --
