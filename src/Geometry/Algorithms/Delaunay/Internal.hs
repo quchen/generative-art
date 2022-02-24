@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Geometry.Algorithms.Delaunay.Internal (
     module Geometry.Algorithms.Delaunay.Internal
 ) where

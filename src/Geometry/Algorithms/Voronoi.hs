@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Geometry.Algorithms.Voronoi
 (
 -- * Types

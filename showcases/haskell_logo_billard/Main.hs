@@ -1,6 +1,3 @@
-{-# LANGUAGE BangPatterns    #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module Main (main) where
 
 

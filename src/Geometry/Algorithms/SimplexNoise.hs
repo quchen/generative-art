@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 -- | Simplex noise functions in various dimensions.
 --
 -- Based on

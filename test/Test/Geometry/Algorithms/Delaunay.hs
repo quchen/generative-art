@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Test.Geometry.Algorithms.Delaunay (tests) where
 
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Test.Geometry.Processes.Penrose (tests) where
 
 

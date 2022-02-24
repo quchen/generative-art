@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 module Geometry.Processes.Penrose
 (
 -- * Types

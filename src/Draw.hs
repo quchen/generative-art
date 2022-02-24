@@ -1,6 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RecordWildCards   #-}
-
 -- | Cairo drawing backend.
 module Draw (
     -- * SVG and PNG file handling

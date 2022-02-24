@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 -- We can’t provide a type sig for 'initializeMwc' without adding another explicit
 -- dependency, so we disable warnings for this module.
 {-# OPTIONS_GHC -Wno-missing-signatures #-}

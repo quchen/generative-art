@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Geometry.Core (

@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Test.Uncategorized.DifferentialEquation (tests) where
 
 
