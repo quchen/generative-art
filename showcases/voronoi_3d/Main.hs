@@ -37,9 +37,14 @@ main = do
     gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = 1440 * sqrt (0.75 / count)
-        samplingProps = PoissonDisc { width = 1440, height = 1440, radius = adaptiveRadius, k = 4, ..}
+        samplingProps = PoissonDiscParams
+            { _poissonWidth  = 1440
+            , _poissonHeight = 1440
+            , _poissonRadius = adaptiveRadius
+            , _poissonK      = 4
+            }
 
-    points <- poissonDisc samplingProps
+    points <- poissonDisc gen samplingProps
     print (length points)
     let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points)
         voronoiWithProps = mapWithSeed (\p () -> (randomColor p, randomHeight p)) voronoi

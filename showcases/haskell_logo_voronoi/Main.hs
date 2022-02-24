@@ -65,9 +65,14 @@ mainHaskellLogo = do
     gen <- initialize (V.fromList (map (fromIntegral . ord) (show count)))
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
-        samplingProps = PoissonDisc { width = picWidth, height = picHeight, radius = adaptiveRadius, k = 4, ..}
-    points <- poissonDisc samplingProps
-    ditheringPoints <- RT.fromList <$> poissonDisc samplingProps { radius = adaptiveRadius / 4 }
+        samplingProps = PoissonDiscParams
+            { _poissonWidth  = picWidth
+            , _poissonHeight = picHeight
+            , _poissonRadius = adaptiveRadius
+            , _poissonK      = 4
+            }
+    points <- poissonDisc gen samplingProps
+    ditheringPoints <- RT.fromList <$> poissonDisc gen samplingProps{ _poissonRadius = adaptiveRadius / 4 }
     print (length points)
     let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
         voronoiColorized = mapWithRegion (colorizePolygon ditheringPoints) voronoi

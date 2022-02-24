@@ -62,7 +62,12 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
 randomDelaunay width height = do
     gen <- liftIO create
-    randomPoints <- liftIO $ poissonDisc PoissonDisc { radius = fromIntegral (width * height) / 1000, k = 4, .. }
+    randomPoints <- liftIO $ poissonDisc gen PoissonDiscParams
+        { _poissonRadius = fromIntegral (width * height) / 1000
+        , _poissonK      = 4
+        , _poissonWidth  = width
+        , _poissonHeight = height
+        }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
 
 testLloydRelaxation :: TestTree

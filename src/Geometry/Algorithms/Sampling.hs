@@ -1,7 +1,6 @@
-{-# LANGUAGE RecordWildCards #-}
 module Geometry.Algorithms.Sampling (
     -- * Poisson-Disc sampling
-    PoissonDiscProperties(..)
+    PoissonDiscParams(..)
     , poissonDisc
 
     -- * Other distributions
@@ -25,19 +24,27 @@ import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
 import           System.Random.MWC
 import           System.Random.MWC.Distributions
+import Data.Default.Class
 
 import Geometry
 
 
 
 -- | Configuration for 'poissonDisc' sampling.
-data PoissonDiscProperties s = PoissonDisc
-    { width  :: Int
-    , height :: Int
-    , radius :: Double -- ^ Minimum distance between points.
-    , gen    :: Gen s  -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    , k      :: Int    -- ^ Point density. Per known point, how many random points in the vicinity should be tried?
+data PoissonDiscParams = PoissonDiscParams
+    { _poissonWidth  :: Int    -- ^ 'def'ault 256.
+    , _poissonHeight :: Int    -- ^ 'def'ault 256.
+    , _poissonRadius :: Double -- ^ Minimum distance between points. 'def'ault 100.
+    , _poissonK      :: Int    -- ^ Point density. Per known point, how many random points in the vicinity should be tried? 'def'ault 32.
     }
+
+instance Default PoissonDiscParams where
+    def = PoissonDiscParams
+        { _poissonWidth  = 256
+        , _poissonHeight = 256
+        , _poissonRadius = 100
+        , _poissonK      = 32
+        }
 
 -- | Sample points using the Poisson Disc algorithm, which yields a visually
 -- uniform distribution. This is opposed to uniformly distributed points yield
@@ -47,49 +54,60 @@ data PoissonDiscProperties s = PoissonDisc
 --
 -- === Example code
 --
--- The \(r=8\), \(k=80\) picture is based on the following code:
+-- The \(r=8\) picture is based on the following code:
 --
 -- @
 -- points :: ['Vec2']
 -- points = 'Control.Monad.ST.runST' $ do
 --     gen <- 'create'
---     'poissonDisc' 'PoissonDiscProperties'
---         { 'width'  = 80
---         , 'height' = 80
---         , 'radius' = 8
---         , 'gen'    = gen
---         , 'k'      = 80
+--     'poissonDisc' gen 'PoissonDiscParams'
+--         { '_poissonWidth'  = 80
+--         , '_poissonHeight' = 80
+--         , '_poissonRadius' = 8
+--         , '_poissonK'      = 4
 --         }
 -- @
-poissonDisc :: PrimMonad m => PoissonDiscProperties (PrimState m) -> m [Vec2]
-poissonDisc properties = result <$> execStateT poissonDiscInternal initialState
+poissonDisc
+    :: PrimMonad m
+    => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -> PoissonDiscParams
+    -> m [Vec2]
+poissonDisc gen properties = _result <$> execStateT poissonDiscInternal initialState
   where
-    initialState = State { grid = mempty, activeSamples = mempty, result = mempty, ..}
+    initialState = PoissonDiscState
+        { _properties    = properties
+        , _gen           = gen
+        , _grid          = mempty
+        , _activeSamples = mempty
+        , _result        = mempty
+        }
 
-data PoissonDiscState s = State
-    { properties    :: PoissonDiscProperties s
-    , grid          :: Map (Int, Int) Vec2
-    , activeSamples :: Set Vec2
-    , result        :: [Vec2]
+data PoissonDiscState s = PoissonDiscState
+    { _properties    :: PoissonDiscParams
+    , _gen           :: Gen s
+    , _grid          :: Map (Int, Int) Vec2
+    , _activeSamples :: Set Vec2
+    , _result        :: [Vec2]
     }
 
 poissonDiscInternal :: PrimMonad m => StateT (PoissonDiscState (PrimState m)) m ()
 poissonDiscInternal = do
-    PoissonDisc{..} <- gets properties
+    PoissonDiscState{..} <- get
+    let PoissonDiscParams{..} = _properties
     initialSample <- lift $ do
-        x <- uniformRM (0, fromIntegral width) gen
-        y <- uniformRM (0, fromIntegral height) gen
+        x <- uniformRM (0, fromIntegral _poissonWidth) _gen
+        y <- uniformRM (0, fromIntegral _poissonWidth) _gen
         pure (Vec2 x y)
     addSample initialSample
     nextSample
 
 nextSample :: PrimMonad m => StateT (PoissonDiscState (PrimState m)) m ()
 nextSample = do
-    numActiveSamples <- gets (S.size . activeSamples)
+    numActiveSamples <- gets (S.size . _activeSamples)
     when (numActiveSamples > 0) $ do
-        randomSampleIndex <- gets (gen . properties) >>= uniformRM (0, numActiveSamples - 1)
-        randomSample <- gets (S.elemAt randomSampleIndex . activeSamples)
-        r <- gets (radius . properties)
+        randomSampleIndex <- gets _gen >>= uniformRM (0, numActiveSamples - 1)
+        randomSample <- gets (S.elemAt randomSampleIndex . _activeSamples)
+        r <- gets (_poissonRadius . _properties)
 
         candidates <- nextCandidates randomSample
 
@@ -112,13 +130,14 @@ nextSample = do
 -- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
 nextCandidates :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m [Vec2]
 nextCandidates v = do
-    PoissonDisc{..} <- gets properties
-    phi0 <- lift (rad <$> uniformRM (0, 2*pi) gen)
-    let deltaPhi = rad (2*pi / fromIntegral k)
-        candidates = filter (isWithinBounds width height)
+    PoissonDiscState{..} <- get
+    let PoissonDiscParams{..} = _properties
+    phi0 <- lift (rad <$> uniformRM (0, 2*pi) _gen)
+    let deltaPhi = rad (2*pi / fromIntegral _poissonK)
+        candidates = filter (isWithinBounds _poissonWidth _poissonHeight)
             [ v +. polar (phi0 +. i *. deltaPhi) r
-            | let r = radius + 0.000001
-            , i <- [1..fromIntegral k] ]
+            | let r = _poissonRadius + 0.000001
+            , i <- [1..fromIntegral _poissonK] ]
     pure candidates
 
   where
@@ -127,13 +146,13 @@ nextCandidates v = do
 addSample :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m ()
 addSample sample = do
     cell <- gridCell sample
-    modify (\s -> s { grid = M.insert cell sample (grid s)})
-    modify (\s -> s { activeSamples = S.insert sample (activeSamples s) })
+    modify (\s -> s { _grid = M.insert cell sample (_grid s)})
+    modify (\s -> s { _activeSamples = S.insert sample (_activeSamples s) })
 
 retireSample :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m ()
 retireSample sample = do
-    modify (\s -> s { activeSamples = S.delete sample (activeSamples s) })
-    modify (\s -> s { result = sample : result s })
+    modify (\s -> s { _activeSamples = S.delete sample (_activeSamples s) })
+    modify (\s -> s { _result = sample : _result s })
 
 -- A cell in the grid has a side length of r/sqrt(2). Therefore, to detect
 -- collisions, we need to search a space of 5x5 cells at max.
@@ -147,12 +166,12 @@ neighbouringSamples v = do
     neighbours <- sequence $ do
         cellX <- [minX..maxX]
         cellY <- [minY..maxY]
-        pure (maybeToList . M.lookup (cellX, cellY) <$> gets grid)
+        pure (maybeToList . M.lookup (cellX, cellY) <$> gets _grid)
     pure (concat neighbours)
 
 gridCell :: PrimMonad m => Vec2 -> StateT (PoissonDiscState (PrimState m)) m (Int, Int)
 gridCell (Vec2 x y) = do
-    r <- gets (radius . properties)
+    r <- gets (_poissonRadius . _properties)
     let gridSize = r / sqrt 2
     pure (floor (x/gridSize), floor (y/gridSize))
 
