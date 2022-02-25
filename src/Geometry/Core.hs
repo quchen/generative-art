@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Geometry.Core (
     -- * Primitives
@@ -123,7 +123,6 @@ import           Data.Foldable
 import           Data.List
 import qualified Data.Map            as M
 import qualified Data.Set            as S
-import qualified Data.Vector         as V
 import qualified System.Random.MWC   as MWC
 import           Text.Printf
 
@@ -345,25 +344,23 @@ instance Transform Polygon where
 instance Transform Transformation where
     transform = (<>)
 
-instance Transform a => Transform [a] where
-    transform t = map (transform t)
+instance {-# OVERLAPPABLE #-} (Transform a, Functor f) => Transform (f a) where
+    transform t = fmap (transform t)
 
-instance Transform a => Transform (V.Vector a) where
-    transform t = V.map (transform t)
-
+-- | Points mapped to the same point will unify to a single entry
 instance (Ord a, Transform a) => Transform (S.Set a) where
     transform t = S.map (transform t)
 
-instance (Transform a, Transform b) => Transform (a,b) where
+instance {-# OVERLAPPING #-} (Transform a, Transform b) => Transform (a,b) where
     transform t (a,b) = (transform t a, transform t b)
 
-instance (Transform a, Transform b, Transform c) => Transform (a,b,c) where
+instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c) => Transform (a,b,c) where
     transform t (a,b,c) = (transform t a, transform t b, transform t c)
 
-instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
+instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
     transform t (a,b,c,d) = (transform t a, transform t b, transform t c, transform t d)
 
-instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
+instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
     transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
 -- | Translate the argument by an offset given by the vector. @'translate' ('Vec2' 0 0) = 'mempty'@.
@@ -586,33 +583,24 @@ instance HasBoundingBox BoundingBox where
 instance HasBoundingBox Vec2 where
     boundingBox v = BoundingBox v v
 
-instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
+instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
     boundingBox (a,b) = boundingBox a <> boundingBox b
 
-instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
+instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
     boundingBox (a,b,c) = boundingBox a <> boundingBox b <> boundingBox c
 
-instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
+instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
     boundingBox (a,b,c,d) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d
 
-instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
+instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
     boundingBox (a,b,c,d,e) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d <> boundingBox e
 
-instance HasBoundingBox a => HasBoundingBox (Maybe a) where
-    boundingBox = foldMap boundingBox
-
-instance HasBoundingBox a => HasBoundingBox [a] where
-    boundingBox = foldMap boundingBox
-
-instance HasBoundingBox a => HasBoundingBox (V.Vector a) where
-    boundingBox = foldMap boundingBox
-
-instance HasBoundingBox a => HasBoundingBox (S.Set a) where
+instance {-# OVERLAPPABLE #-} (Foldable f, HasBoundingBox a) => HasBoundingBox (f a) where
     boundingBox = foldMap boundingBox
 
 -- | The bounding box takes both keys and values into account. To ignore one or the
 -- other, use 'NoBoundingBox'.
-instance (HasBoundingBox k, HasBoundingBox a) => HasBoundingBox (M.Map k a) where
+instance {-# OVERLAPPING #-} (HasBoundingBox k, HasBoundingBox a) => HasBoundingBox (M.Map k a) where
     boundingBox = M.foldMapWithKey (\k v -> boundingBox k <> boundingBox v)
 
 instance HasBoundingBox Line where
