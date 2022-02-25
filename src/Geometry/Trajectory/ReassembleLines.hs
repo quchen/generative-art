@@ -30,9 +30,9 @@ instance Ord a => Semigroup (UndirectedNeighbourMap a) where
         M.unionWith
             (\a b -> case (a,b) of
                 (One a', One b') -> Two a' b'
-                _otherwise -> error
-                    "Insertion of more than two neighbours in a UndirectedNeighbourMap.\
-                    \ Are you sure all your points have at most two neighbours?"
+                _otherwise -> error . unwords $
+                    [ "Insertion of more than two neighbours in a UndirectedNeighbourMap."
+                    , "Are you sure all your points have at most two neighbours?" ]
             )
             x
             y

@@ -5,7 +5,7 @@ module Draw (
       withSurfaceAuto
     , withSurface
     , OutputFormat(..)
-    , fromExtension
+    , haddockRender
 
     -- * Colors
     , module Draw.Color
@@ -65,16 +65,16 @@ import Data.Default.Class
 import Data.Foldable
 import Data.List
 import Graphics.Rendering.Cairo        as C hiding (x, y)
-import Graphics.Rendering.Cairo.Matrix as C
+import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 
 import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
-import Geometry
+import Geometry as G
 
 
 
--- | Renders the drawing as PNG or SVG, depending on the file extension. See 'fromExtension'.
+-- | Renders the drawing as PNG or SVG, depending on the file extension.
 withSurfaceAuto :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
 withSurfaceAuto filePath = withSurface (fromExtension filePath) filePath
 
@@ -101,6 +101,20 @@ fromExtension filePath
     | ".svg" `isSuffixOf` filePath = SVG
     | otherwise = error ("Unknown file extension: " <> filePath <> ", expecting .png or .svg")
 
+-- | Usable by doctests for rendering explanatory little pictures in Haddock.
+haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
+haddockRender filename w h actions = do
+    let filepath = "docs/haddock/Draw.hs/" ++ filename
+    withSurfaceAuto filepath w h $ \surface -> renderWith surface $ do
+        cartesianCoordinateSystem def
+            { _cartesianAlpha = 0.5
+            , _renderAxisLabels=False
+            , _renderHundreds=False
+            }
+        setColor (mathematica97 0)
+        actions
+    putStrLn filepath
+
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
 moveToVec :: Vec2 -> Render ()
 moveToVec (Vec2 x y) = moveTo x y
@@ -119,7 +133,7 @@ instance Sequential f => Sketch (f Bezier) where
     sketch = go . toList
       where
         go [] = pure ()
-        go (ps@(Bezier start _ _ _ : _)) = do
+        go ps@(Bezier start _ _ _ : _) = do
             moveToVec start
             for_ ps $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> curveTo x1 y1 x2 y2 x3 y3
 
@@ -147,15 +161,21 @@ instance Default ArrowSpec where
         }
 
 -- | For 'sketch'ing arrows.
---
--- >>> 1+1
--- 2
 data Arrow = Arrow !Line !ArrowSpec
     deriving (Eq, Show)
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Arrow.svg" 150 100 $ do
+--     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Arrow.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Arrow.svg>>
 instance Sketch Arrow where
     sketch (Arrow line ArrowSpec{..}) = do
-        when _arrowDrawBody (lineSketch line)
+        when _arrowDrawBody (sketch line)
 
         let Line start end = line
 
@@ -185,12 +205,30 @@ arrowSketch line spec = sketch (Arrow line spec)
 class Sketch a where
     sketch :: a -> Render ()
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Line.svg" 150 100 $ do
+--     sketch (Line (Vec2 10 10) (Vec2 140 90))
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Line.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Line.svg>>
 instance Sketch Line where
     sketch (Line start end) = do
         moveToVec start
         lineToVec end
 
--- | Polyline, i.e. a sequence of lines given by their joints
+-- | Polyline, i.e. a sequence of lines given by their joints.
+--
+-- >>> :{
+-- haddockRender "instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+--     sketch [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg>>
 instance Sequential f => Sketch (f Vec2) where
     sketch = go . toList
       where
@@ -199,13 +237,41 @@ instance Sequential f => Sketch (f Vec2) where
             moveTo x0 y0
             for_ vecs (\(Vec2 x y) -> lineTo x y)
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Polygon.svg" 100 100 $ do
+--     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Polygon.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Polygon.svg>>
 instance Sketch Polygon where
     sketch (Polygon []) = pure ()
     sketch (Polygon xs) = sketch xs >> closePath
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Circle.svg" 100 100 $ do
+--     sketch (Circle (Vec2 50 50) 45)
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Circle.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Circle.svg>>
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Ellipse.svg" 150 100 $ do
+--     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
+--                         (toEllipse (Circle zero 45)))
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Ellipse.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Ellipse.svg>>
 instance Sketch Ellipse where
     sketch (Ellipse t) = cairoScope $ do
         C.transform (toCairoMatrix t)
@@ -224,11 +290,21 @@ data Cross = Cross
     , _crossRadius :: !Double
     } deriving (Eq, Ord, Show)
 
+-- |
+-- >>> :{
+-- haddockRender "instance_Sketch_Cross.svg" 90 40 $ do
+--     sketch (Cross  (Vec2 20 20) 15) >> stroke
+--     sketch (Cross  (Vec2 60 20) 15) >> stroke
+--     sketch (Circle (Vec2 60 20) 15) >> stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Cross.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Cross.svg>>
 instance Sketch Cross where
     sketch (Cross center r) = do
-        let lowerRight = Geometry.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
+        let lowerRight = G.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
             line1 = angledLine lowerRight (deg (45+180)) (2*r)
-            line2 = Geometry.transform (rotateAround center (deg 90)) line1
+            line2 = G.transform (rotateAround center (deg 90)) line1
         sketch line1
         sketch line2
 
@@ -268,6 +344,17 @@ polygonSketch = sketch
 {-# DEPRECATED polygonSketch "use `sketch` instead" #-}
 
 -- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
+--
+-- >>> :{
+-- haddockRender "instance_Sketch_BoundingBox.svg" 100 100 $ do
+--     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
+--     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mathematica97 1) >> setDash [4,6] 0 >> stroke)
+--     sketch (boundingBox geometry)
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg>>
 instance Sketch BoundingBox where
     sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
         let w = xhi - xlo
@@ -283,73 +370,98 @@ boundingBoxSketch = sketch
 {-# DEPRECATED boundingBoxSketch "use `sketch` instead" #-}
 
 data CartesianParams = CartesianParams
-    { _cartesianMinX :: !Int
-    , _cartesianMaxX :: !Int
-    , _cartesianMinY :: !Int
-    , _cartesianMaxY :: !Int
+    { _cartesianMinX    :: !Int
+    , _cartesianMaxX    :: !Int
+    , _cartesianMinY    :: !Int
+    , _cartesianMaxY    :: !Int
+    , _cartesianAlpha   :: !Double
+    , _renderAxisLabels :: !Bool -- ^ Render numbers to the hundreds intersections?
+    , _renderTens       :: !Bool -- ^ Render the tens (as crosses)?
+    , _renderHundreds   :: !Bool -- ^ Render the hundreds lines more visible?
     } deriving (Eq, Ord, Show)
 
 instance Default CartesianParams where
     def = CartesianParams
-        { _cartesianMinX = -1000
-        , _cartesianMaxX =  1000
-        , _cartesianMinY = -1000
-        , _cartesianMaxY =  1000
+        { _cartesianMinX    = -1000
+        , _cartesianMaxX    =  1000
+        , _cartesianMinY    = -1000
+        , _cartesianMaxY    =  1000
+        , _cartesianAlpha   =  1
+        , _renderAxisLabels =  True
+        , _renderTens       =  True
+        , _renderHundreds   =  True
         }
 
 -- | Draw a caresian coordinate system in range (x,x') (y,y'). Very useful for
 -- prototyping.
 --
--- @
--- 'cartesianCoordinateSystem' 'def'
--- @
+-- >>> :{
+-- haddockRender "cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
+-- :}
+-- docs/haddock/Draw.hs/cartesianCoordinateSystem.svg
+--
+-- <<docs/haddock/Draw.hs/cartesianCoordinateSystem.svg>>
 cartesianCoordinateSystem :: CartesianParams -> Render ()
-cartesianCoordinateSystem CartesianParams{_cartesianMinX=minX, _cartesianMaxX=maxX, _cartesianMinY=minY, _cartesianMaxY=maxY} = cairoScope $ do
+cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha _cartesianAlpha) $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
     setLineWidth 1
 
-    cairoScope $ do
+    let CartesianParams{_cartesianMinX=minX, _cartesianMaxX=maxX, _cartesianMinY=minY, _cartesianMaxY=maxY} = params
+
+    when _renderHundreds $ cairoScope $ do
         setColor (hsva 0 0 0 0.5)
-        sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
-                  | x <- [minX, minX+100 .. maxX] ]
-        sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
-                  | y <- [minY, minY+100 .. maxY] ]
+        sequence_ [ sketch (Line (vec2 x minY) (vec2 x maxY))
+                | x <- [minX, minX+100 .. maxX] ]
+        sequence_ [ sketch (Line (vec2 minX y) (vec2 maxX y))
+                | y <- [minY, minY+100 .. maxY] ]
         stroke
 
-    cairoScope $ do
+    when _renderTens $ cairoScope $ do
         setColor (hsva 0 0 0 0.2)
         setDash [4,6] 2
-        sequence_ [ lineSketch (Line (vec2 x minY) (vec2 x maxY))
+        let skipHundreds i = not _renderHundreds || mod i 100 /= 0
+        sequence_ [ sketch (Line (vec2 x minY) (vec2 x maxY))
                   | x <- [minX, minX+10 .. maxX]
-                  , mod x 100 /= 0 ]
-        sequence_ [ lineSketch (Line (vec2 minX y) (vec2 maxX y))
+                  , skipHundreds x ]
+        sequence_ [ sketch (Line (vec2 minX y) (vec2 maxX y))
                   | y <- [minY, minY+10 .. maxY]
-                  , mod y 100 /= 0]
+                  , skipHundreds y]
         stroke
 
-    let centeredText :: Int -> Int -> String -> Render ()
-        centeredText x y str = do
-            moveTo (fromIntegral x) (fromIntegral y)
-            showTextAligned HCenter VTop str
-    setFontSize 8
-    setColor (mathematica97 0)
-    sequence_ [ centeredText x y (show x ++ "," ++ show y)
-              | x <- [minX, minX+100 .. maxX]
-              , y <- [minY, minY+100 .. maxY] ]
+    when _renderAxisLabels $ cairoScope $ do
+        let centeredText :: Int -> Int -> String -> Render ()
+            centeredText x y str = do
+                moveTo (fromIntegral x) (fromIntegral y)
+                showTextAligned HCenter VTop str
+        setFontSize 8
+        setColor (mathematica97 0)
+        sequence_ [ centeredText x y (show x ++ "," ++ show y)
+                | x <- [minX, minX+100 .. maxX]
+                , y <- [minY, minY+100 .. maxY] ]
 
 data PolarParams = PolarParams
-    { _polarCenter :: !Vec2
+    { _polarCenter    :: !Vec2
     , _polarMaxRadius :: !Double
+    , _polarAlpha     :: !Double
     } deriving (Eq, Ord, Show)
 
 instance Default PolarParams where
-    def = PolarParams zero 1000
+    def = PolarParams
+        { _polarCenter    = zero
+        , _polarMaxRadius = 1000
+        , _polarAlpha     = 1
+        }
 
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 --
--- @
--- 'radialCoordinateSystem' 'def'
--- @
+-- >>> :{
+-- haddockRender "radialCoordinateSystem.svg" 250 250 $ do
+--     C.translate 50 50
+--     radialCoordinateSystem def
+-- :}
+-- docs/haddock/Draw.hs/radialCoordinateSystem.svg
+--
+-- <<docs/haddock/Draw.hs/radialCoordinateSystem.svg>>
 radialCoordinateSystem :: PolarParams -> Render ()
 radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1
@@ -438,7 +550,7 @@ cairoScope render = save *> render <* restore
 --     'fill'
 -- @
 grouped :: Render after -> Render a -> Render a
-grouped afterwards render = pushGroup *> render <* popGroupToSource <* afterwards
+grouped afterwards render = cairoScope $ pushGroup *> render <* popGroupToSource <* afterwards
 
 -- | Vertical alignment
 data VAlign = VTop | VCenter | VBottom deriving (Eq, Ord, Show)
@@ -446,7 +558,9 @@ data VAlign = VTop | VCenter | VBottom deriving (Eq, Ord, Show)
 -- | Horizontal alignment
 data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
 
--- | Like Cairo’s 'showText', but with alignment parameters.
+-- | Like Cairo’s 'showText', but with alignment parameters. Since Cairo’s text API
+-- is pretty wonky, you may have to sprinkle this with 'moveTo'/'moveToVec' or
+-- 'newPath'.
 showTextAligned
     :: CairoString string
     => HAlign -- ^ Horizontal alignment
@@ -494,8 +608,8 @@ showTextAligned hAlign vAlign str = do
 -- 'C.setMatrix' :: 'C.Matrix' -> 'C.Render' ()
 -- 'C.getMatrix' :: 'C.Render' 'C.Matrix'
 -- @
-fromCairoMatrix :: C.Matrix -> Transformation
-fromCairoMatrix (C.Matrix ca cb cc cd ce cf) =
+fromCairoMatrix :: Matrix -> Transformation
+fromCairoMatrix (Matrix ca cb cc cd ce cf) =
     -- According to the Haskell Cairo docs:
     --
     -- > Matrix a b c d e f:
@@ -528,4 +642,4 @@ toCairoMatrix trafo =
         cb = d
         cd = e
         cf = f
-    in C.Matrix ca cb cc cd ce cf
+    in Matrix ca cb cc cd ce cf

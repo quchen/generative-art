@@ -209,6 +209,26 @@ over quickly.
 
 ![Missing image!](../../docs/geometry/rotate_line.svg)
 
+![Missing image!](../../docs/haddock/Draw.hs/cartesianCoordinateSystem.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Arrow.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Circle.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Cross.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Ellipse.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Line.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Polygon.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg)
+
+![Missing image!](../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
+
 ![Missing image!](../../docs/hexagonal/1_line_and_circle.svg)
 
 ![Missing image!](../../docs/hexagonal/gaussian_hexagons.svg)

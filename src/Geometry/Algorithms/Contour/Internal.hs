@@ -96,10 +96,11 @@ binarySearchRoot f line@(Line start end) tolerance
 
     -- EMERGENCY UNCOMMENT IF THE ERROR BELOW COMES UP
     -- otherwise = middle
-    | otherwise = bugError "This shouldn’t happen if we only have lines that change sign,\
-                           \ picked by marching squares, but I’m sure we’ll be surprised.\
-                           \ Might not be worth investigating though, simply abort the alg\
-                           \ and have one wonky cell."
+    | otherwise = bugError . unwords $
+        [ "This shouldn’t happen if we only have lines that change sign,"
+        , "picked by marching squares, but I’m sure we’ll be surprised."
+        , "Might not be worth investigating though, simply abort the alg"
+        , "and have one wonky cell." ]
   where
     middle = (start +. end) /. 2
     fStart  = f start

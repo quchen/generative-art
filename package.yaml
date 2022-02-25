@@ -63,6 +63,8 @@ extra-doc-files:
     - docs/sampling/poisson-disc.svg
     - docs/triangulation/3_haskell_logo.svg
 
+    - docs/haddock/**/*.svg
+
 ghc-options: [-Wall, -Wno-type-defaults]
 
 library:
