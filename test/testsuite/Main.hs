@@ -88,11 +88,11 @@ runPostTestScripts = do
 
     mdAsync <- do
         putStrLn "Generate visual testsuite file (Markdown)"
-        async (Visual.generateMarkdown "test/out/README.md" files)
+        async (Visual.generateMarkdown "test/testsuite/out/README.md" files)
 
     htmlAsync <- do
         putStrLn "Generate visual testsuite file (HTML)"
-        async (Visual.generateHtml "test/out/README.html" files)
+        async (Visual.generateHtml "test/testsuite/out/README.html" files)
 
     wait mdAsync
     wait htmlAsync

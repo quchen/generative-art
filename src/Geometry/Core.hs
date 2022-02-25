@@ -1168,7 +1168,7 @@ polygonCircumference poly = foldl'
 -- vector.
 --
 -- >>> cross (Vec2 1 0) (Vec2 1 0) -- Colinear
--- 0
+-- 0.0
 --
 -- >>> cross (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec to the right of 1st (in Cairo coordinates)
 -- 0.1

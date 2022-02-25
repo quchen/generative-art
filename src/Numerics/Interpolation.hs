@@ -21,7 +21,7 @@ import Algebra.VectorSpace
 -- \]
 --
 -- >>> lerp (0,1) (10,20) 0.5
--- 15
+-- 15.0
 lerp :: VectorSpace vec => (Double, Double) -> (vec, vec) -> Double -> vec
 lerp (a, b) (x, y) t = x +. ((t-a) / (b-a))*.(y-.x)
 

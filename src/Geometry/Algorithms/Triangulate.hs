@@ -45,8 +45,6 @@ triples (Polygon ps)
   = map (\(p:x:q:rest) -> (Polygon [p,x,q], rest, Polygon (p:q:rest))) (rotations ps)
 
 -- | All rotations of a list.
---
--- prop> \n xs -> rotations xs !! n == rotate n xs
 rotations :: [a] -> [[a]]
 rotations = go []
   where

@@ -147,6 +147,9 @@ instance Default ArrowSpec where
         }
 
 -- | For 'sketch'ing arrows.
+--
+-- >>> 1+1
+-- 2
 data Arrow = Arrow !Line !ArrowSpec
     deriving (Eq, Show)
 

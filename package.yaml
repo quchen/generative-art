@@ -34,8 +34,8 @@ dependencies:
 
 default-extensions:
     - BangPatterns
-    - MultiWayIf
     - LambdaCase
+    - MultiWayIf
     - RecordWildCards
 
 extra-doc-files:
@@ -156,8 +156,8 @@ executables:
 
 tests:
     testsuite:
-        main:        Spec.hs
-        source-dirs: test
+        main:        Main.hs
+        source-dirs: test/testsuite
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
@@ -176,3 +176,10 @@ tests:
             - filepath
             - regex-tdfa
             - Glob
+
+    doctest:
+        main:        Main.hs
+        source-dirs: test/doctest
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - doctest
