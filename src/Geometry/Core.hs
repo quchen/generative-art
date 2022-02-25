@@ -275,9 +275,9 @@ instance NFData Transformation where rnf _ = ()
 -- | The order transformations are applied in function order:
 --
 -- @
--- transform (scale a b <> translate p)
+-- 'transform' ('scale' a b <> 'translate' p)
 -- ==
--- transform (scale a b) . translate p
+-- 'transform' ('scale' a b) . 'transform' ('translate' p)
 -- @
 --
 -- In other words, this first translates its argument, and then scales.
@@ -476,7 +476,7 @@ instance Enum a => Enum (NoTransform a) where
 instance HasBoundingBox a => HasBoundingBox (NoTransform a) where boundingBox (NoTransform x) = boundingBox x
 instance Semigroup a => Semigroup (NoTransform a) where NoTransform x <> NoTransform y = NoTransform (x <> y)
 instance Monoid a => Monoid (NoTransform a) where mempty = NoTransform mempty
--- | The key instance: don’t transform a 'NoTransform'.
+-- | Don’t transform the contents.
 instance Transform (NoTransform a) where transform _ x = x
 
 -- | Decompose an affine transformation into scale, shear, rotation and translation parts.
@@ -510,12 +510,13 @@ decomposeTransformation (Transformation m@(Mat2 a b d e) cf) =
 -- (minimum) and bottom-right (maximum) points, so that everything is inside the
 -- rectangle.
 --
--- Make sure the first argument is smaller than the second when using the
--- constructor directly! Or better yet, don’t use the constructor and create
--- bounding boxes via the provided instances.
+-- __Invariant!__ Make sure the first argument is smaller than the second when
+-- using the constructor directly! Or better yet, don’t use the constructor and
+-- create bounding boxes via the provided instances; for a rectangle, simply use
+-- @'boundingBox' (a,b)@ instead of @'BoundingBox' a b@.
 data BoundingBox = BoundingBox
-    { _bbMin :: !Vec2 -- ^ Minimum coordinate (top left in Cairo coordinates)
-    , _bbMax :: !Vec2 -- ^ Maximum coordinate (bottom right in Cairo coordinates)
+    { _bbMin :: !Vec2 -- ^ Minimum coordinate (top left of the bounding box in Cairo coordinates).
+    , _bbMax :: !Vec2 -- ^ Maximum coordinate (bottom right of the bounding box in Cairo coordinates).
     } deriving (Eq, Ord, Show)
 
 instance NFData BoundingBox where rnf _ = ()
@@ -530,7 +531,8 @@ instance Transform BoundingBox where
 
 -- | A bounding box with the minimum at (plus!) infinity and maximum at (minus!)
 -- infinity acts as a neutral element. This is mostly useful so we can make
--- potentiallly empty data structures such as @[a]@ and @'Maybe' a@ instances too.
+-- potentiallly empty data structures such as @[a]@ and @'Maybe' a@ instances of
+-- 'HasBoundingBox'.
 instance Monoid BoundingBox where
     mempty = BoundingBox (Vec2 inf inf) (Vec2 (-inf) (-inf))
       where inf = 1/0
@@ -546,7 +548,7 @@ instance NFData a => NFData (NoBoundingBox a) where rnf (NoBoundingBox x) = rnf 
 instance Enum a => Enum (NoBoundingBox a) where
     toEnum = NoBoundingBox . toEnum
     fromEnum (NoBoundingBox x) = fromEnum x
--- | The key instance: whatever is in a 'NoBoundingBox' has, well, no bounding box.
+-- | Contents are ignored, reporting an empty bounding box.
 instance HasBoundingBox (NoBoundingBox a) where boundingBox = mempty
 instance Semigroup a => Semigroup (NoBoundingBox a) where NoBoundingBox x <> NoBoundingBox y = NoBoundingBox (x <> y)
 instance Monoid a => Monoid (NoBoundingBox a) where mempty = NoBoundingBox mempty
@@ -556,12 +558,14 @@ boundingBoxPolygon :: BoundingBox -> Polygon
 boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bb
 
-insideBoundingBox :: (HasBoundingBox a, HasBoundingBox b) => a -> b -> Bool
+-- | Is the argument fully contained in another’s bounding box?
+insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
 insideBoundingBox thing bigObject =
     let thingBB = boundingBox thing
         bigObjectBB = boundingBox bigObject
     in bigObjectBB == bigObjectBB <> thingBB
 
+-- | Center/mean/centroid of a bounding box.
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
@@ -576,6 +580,7 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 class HasBoundingBox a where
     boundingBox :: a -> BoundingBox
 
+-- | This is simply 'id', so a bounding box that doesn’t satisfy the min/max invariant will remain incorrect.
 instance HasBoundingBox BoundingBox where
     boundingBox = id
 
@@ -709,16 +714,20 @@ dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 -- | Euclidean norm.
+--
+-- \[ \|\mathbf v\| = \sqrt{v_x^2 + v_y^2} \]
 norm :: Vec2 -> Double
 norm = sqrt . normSquare
 
 -- | Squared Euclidean norm. Does not require a square root, and is thus
 -- suitable for sorting points by distance without excluding certain kinds of
 -- numbers such as rationals.
+--
+-- \[ \|\mathbf v\|^2 = v_x^2 + v_y^2 \]
 normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
--- | Construct a 'Vec2' from polar coordinates
+-- | Construct a 'Vec2' from polar coordinates.
 polar :: Angle -> Double -> Vec2
 polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
@@ -782,7 +791,7 @@ vectorOf (Line start end) = end -. start
 -- | Where do you end up when walking 'Distance' on a 'Line'?
 --
 -- @
--- moveAlong (Line start end) (Distance 0) == start
+-- moveAlong (Line start end) 0 == start
 -- moveAlong (Line start end) (lineLength …) == end
 -- @
 moveAlongLine

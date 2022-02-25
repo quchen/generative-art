@@ -110,10 +110,9 @@ poissonDisc
     -> m [Vec2]
 poissonDisc gen params = do
     let PoissonDiscParams{..} = params
-    initialSample <- do
-        x <- uniformRM (0, fromIntegral _poissonWidth) gen
-        y <- uniformRM (0, fromIntegral _poissonWidth) gen
-        pure (Vec2 x y)
+        minV = zero
+        maxV = Vec2 (fromIntegral _poissonWidth) (fromIntegral _poissonHeight)
+    initialSample <- uniformRM (minV, maxV) gen
     let initialState = PoissonDiscState
             { _gen           = gen
             , _grid          = mempty

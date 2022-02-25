@@ -14,7 +14,7 @@ import           System.Random.MWC
 
 -- | Randomly permute a mutable 'Vector'.
 --
--- You can use this via @'V.modify' 'fisherYatesShuffle'@ to permute a mutable vector.
+-- You can use this via @'V.modify' 'fisherYatesShuffle'@ to permute an immutable vector.
 fisherYatesShuffle
     :: PrimMonad f
     => Gen (PrimState f)

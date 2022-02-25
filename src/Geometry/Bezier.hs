@@ -176,8 +176,8 @@ bezierSubdivideS n bz = map bezier distances
 -- only compute it once for repeated lookups:
 --
 -- @
--- let s = 'bezierS' bezier 0.01
--- 'print' [s ('Distance' d) | d <- [0, 0.1 .. 5]]
+-- let walkOnBezier = 'bezierS' bezier 0.01
+-- 'print' [walkOnBezier d | d <- [0, 0.1 .. 5]]
 -- @
 bezierS :: Bezier -> Double -> Double -> Vec2
 bezierS = bezierS_ode
@@ -186,9 +186,9 @@ bezierS = bezierS_ode
 -- paper (see references on bezier subdivision).
 bezierS_ode
     :: Bezier
-    -> Double   -- ^ Precision parameter (smaller is more precise but slower).
+    -> Double -- ^ Precision parameter (smaller is more precise but slower).
     -> Double -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
-    -> Vec2     -- ^ Point at that distance
+    -> Vec2   -- ^ Point at that distance
 bezierS_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
     in \s -> let t = lookupInterpolated lut s

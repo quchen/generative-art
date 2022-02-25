@@ -119,7 +119,7 @@ instance MwcChaosSource Hex.Hex where
 --
 -- @
 -- 'Control.Monad.runST' $ do
---     gen <- 'initializeMwc' ('Vec2' 3 3, 'Geometry.Shapes.regularPolygon' 3, ['Distance' 1, 'Distance' 2])
+--     gen <- 'initializeMwc' ('Vec2' 3 3, 'Geometry.Shapes.regularPolygon' 3)
 --     'MWC.randomRM' ('Vec2' 0 0, 'Vec2' 1 1) gen
 -- @
 

@@ -42,8 +42,8 @@ Note that there may be edge cases where two lines are meant to be parallel, but 
 ![](intersection/almost_parallel.svg)
 
 ```haskell
-angledLine (Vec2 50 0) (rad (pi/6)) (Distance 80)
-angledLine (Vec2 50 20) (rad (pi/6)) (Distance 80)
+angledLine (Vec2 50 0) (rad (pi/6)) 80
+angledLine (Vec2 50 20) (rad (pi/6)) 80
 ```
 
 are obviously parallel, but still they have an intersection at (-2.1e17, -1.2e17).
