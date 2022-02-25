@@ -11,8 +11,15 @@ module Numerics.FindRoot (newtonStep) where
 --
 -- Useful as a parameter to 'Numerics.ConvergentRecursion.recurseUntilPrecision'.
 newtonStep
-    :: (Double -> Double) -- ^ \( f(t_n)  \)
-    -> (Double -> Double) -- ^ \( f'(t_n) \)
+    :: Double             -- ^ \(h\) to calculate the derivative, as in \(\frac{f(x+h)-f(x)}h\)
+    -> (Double -> Double) -- ^ \( f(t_n)  \)
     -> Double             -- ^ \( t_n     \)
     -> Double             -- ^ \( t_{n+1} \)
-newtonStep f f' t = t - f t/f' t
+newtonStep h f t = t - f t / d h f t
+
+-- | Derivative.
+d :: Double               -- ^ \(h\) as in \(\frac{f(x+h)-f(x)}h\)
+    -> (Double -> Double) -- ^ \(f\)
+    -> Double             -- ^ \(x\)
+    -> Double             -- ^ \(\partial_xf(x)\)
+d h f t = (f (t+h) - f t) / h

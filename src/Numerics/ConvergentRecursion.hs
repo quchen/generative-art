@@ -46,9 +46,8 @@ retryLinearlyUntilPrecision f precision = findCloseConsecutives [f n | n <- [0..
 --
 -- @
 -- let f x = x^2-1
---     f' x = 2*x
--- 'recurseUntilPrecision' ('Numerics.FindRoot.newtonStep' f f') 2 1e-5
--- -- 1.000000000000001
+-- 'recurseUntilPrecision' ('Numerics.FindRoot.newtonStep' 1e-3 f ) 2 1e-10
+-- -- 1.0
 -- @
 recurseUntilPrecision
     :: (Double -> Double) -- ^ Function to iterate
