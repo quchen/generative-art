@@ -101,6 +101,7 @@ module Geometry.Core (
     , boundingBoxPolygon
     , insideBoundingBox
     , boundingBoxCenter
+    , boundingBoxIntersection
     , boundingBoxSize
 
     -- * Useful stuff
@@ -568,6 +569,28 @@ insideBoundingBox thing bigObject =
 -- | Center/mean/centroid of a bounding box.
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
+
+-- | Bounding box of the intersection of two bounding boxes. This is the
+-- intersection analogon to '<>' representing union.
+boundingBoxIntersection
+    :: (HasBoundingBox a, HasBoundingBox b)
+    => a
+    -> b
+    -> Maybe BoundingBox -- ^ 'Nothing' if the input boxes don’t have finite overlap.
+boundingBoxIntersection a b =
+    let BoundingBox (Vec2 aMinX aMinY) (Vec2 aMaxX aMaxY) = boundingBox a
+        BoundingBox (Vec2 bMinX bMinY) (Vec2 bMaxX bMaxY) = boundingBox b
+
+        minX = max aMinX bMinX
+        minY = max aMinY bMinY
+
+        maxX = min aMaxX bMaxX
+        maxY = min aMaxY bMaxY
+
+    in if
+        | minX >= maxX -> Nothing
+        | minY >= maxY -> Nothing
+        | otherwise -> Just (BoundingBox (Vec2 minX minY) (Vec2 maxX maxY))
 
 boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
 boundingBoxSize x = (abs deltaX, abs deltaY)
