@@ -264,7 +264,7 @@ polygonSketch :: Polygon -> Render ()
 polygonSketch = sketch
 {-# DEPRECATED polygonSketch "use `sketch` instead" #-}
 
--- | Sketches a ectangle with a diagonal cross through it. Useful for debugging.
+-- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
 instance Sketch BoundingBox where
     sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
         let w = xhi - xlo
