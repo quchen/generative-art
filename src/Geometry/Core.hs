@@ -121,7 +121,6 @@ import           Data.Default.Class
 import           Data.Fixed
 import           Data.Foldable
 import           Data.List
-import qualified Data.Map            as M
 import qualified Data.Set            as S
 import qualified System.Random.MWC   as MWC
 import           Text.Printf
@@ -597,11 +596,6 @@ instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox
 
 instance {-# OVERLAPPABLE #-} (Foldable f, HasBoundingBox a) => HasBoundingBox (f a) where
     boundingBox = foldMap boundingBox
-
--- | The bounding box takes both keys and values into account. To ignore one or the
--- other, use 'NoBoundingBox'.
-instance {-# OVERLAPPING #-} (HasBoundingBox k, HasBoundingBox a) => HasBoundingBox (M.Map k a) where
-    boundingBox = M.foldMapWithKey (\k v -> boundingBox k <> boundingBox v)
 
 instance HasBoundingBox Line where
     boundingBox (Line start end) = boundingBox (start, end)
