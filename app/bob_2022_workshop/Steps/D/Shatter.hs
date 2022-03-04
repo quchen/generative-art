@@ -7,7 +7,6 @@ module Steps.D.Shatter (
 
 
 
-import           Control.Monad.ST
 import           Data.Traversable         (for)
 import qualified Graphics.Rendering.Cairo as Cairo
 import           System.Random.MWC
@@ -86,13 +85,13 @@ drawSquareShards w h = do
             , Vec2 900 100
             ]
 
-    let shards = runST $ do
-            gen <- create
-            shatterProcess
-                gen
-                (\shard -> polygonArea shard > 10000)
-                (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
-                square
+    shards <- Cairo.liftIO $ do
+        gen <- create
+        shatterProcess
+            gen
+            (\shard -> polygonArea shard > 10000)
+            (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
+            square
 
     for_ (zip [0..] shards) $ \(i, shard) -> do
         sketch shard
@@ -100,11 +99,11 @@ drawSquareShards w h = do
         Cairo.fill
 
 shatterProcess
-    :: GenST s
+    :: GenIO
     -> (Polygon -> Bool)   -- ^ Recursively subdivide the current polygon?
     -> ([Polygon] -> Bool) -- ^ Accept the cut result, or retry with a different random cut line?
     -> Polygon             -- ^ Initial polygon, cut only if the recursion predicate applies
-    -> ST s [Polygon]
+    -> IO [Polygon]
 shatterProcess _ recurse _ polygon
     | not (recurse polygon) = pure [polygon]
 shatterProcess gen recurse acceptCut polygon = do
@@ -117,9 +116,9 @@ shatterProcess gen recurse acceptCut polygon = do
         else shatterProcess gen recurse acceptCut polygon
 
 randomCut
-    :: Gen s
+    :: GenIO
     -> Polygon -- ^ Initial polygon, cut only if the recursion predicate applies
-    -> ST s [Polygon]
+    -> IO [Polygon]
 randomCut gen polygon = do
     let BoundingBox vMin vMax = boundingBox polygon
     p <- uniformRM (vMin, vMax) gen
@@ -147,20 +146,20 @@ drawSquareShattered w h = do
             , Vec2 900 100
             ]
 
-    let shards = runST $ do
-            gen <- create
-            rawShards <- shatterProcess
-                gen
-                (\shard -> polygonArea shard > 10000)
-                (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
-                square
-            for rawShards $ \shard -> do
-                let centroid = polygonCentroid shard
-                    origin = Vec2 500 500
-                    distanceFromOrigin = norm (centroid -. origin) / 500
-                offset <- uniformRM (-0.1, 0.3) gen
-                angle <- distanceFromOrigin *. deg <$> uniformRM (-20, 20) gen
-                pure (transform (translate (offset *. (centroid -. origin)) <> rotateAround centroid angle) shard)
+    shards <- Cairo.liftIO $ do
+        gen <- create
+        rawShards <- shatterProcess
+            gen
+            (\shard -> polygonArea shard > 10000)
+            (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
+            square
+        for rawShards $ \shard -> do
+            let centroid = polygonCentroid shard
+                origin = Vec2 500 500
+                distanceFromOrigin = norm (centroid -. origin) / 500
+            offset <- uniformRM (-0.1, 0.3) gen
+            angle <- distanceFromOrigin *. deg <$> uniformRM (-20, 20) gen
+            pure (transform (translate (offset *. (centroid -. origin)) <> rotateAround centroid angle) shard)
 
     for_ (zip [0..] shards) $ \(i, shard) -> do
         sketch shard
