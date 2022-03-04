@@ -25,11 +25,11 @@ main = do
 
     drawToFiles "bob2022/b_squares" 400 400 Steps.B.Squares.squares
 
-    drawToFiles "bob2022/c1_simpleVectorField" 400 400 Steps.C.FlowFields.drawSimpleVectorField
-    drawToFiles "bob2022/c2_fieldLines" 400 400 Steps.C.FlowFields.drawFieldLines
+    drawToFiles "bob2022/c1_simpleVectorField"        400 400 Steps.C.FlowFields.drawSimpleVectorField
+    drawToFiles "bob2022/c2_fieldLines"               400 400 Steps.C.FlowFields.drawFieldLines
     drawToFiles "bob2022/c3_fieldLinesWithRandomness" 400 400 Steps.C.FlowFields.drawFieldLinesWithRandomness
 
-    drawToFiles "bob2022/d1_square" 400 400 Steps.D.Shatter.drawSquare
-    drawToFiles "bob2022/d2_square_cut" 400 400 Steps.D.Shatter.drawSquareCut
-    drawToFiles "bob2022/d3_square_shards" 400 400 Steps.D.Shatter.drawSquareShards
+    drawToFiles "bob2022/d1_square"           400 400 Steps.D.Shatter.drawSquare
+    drawToFiles "bob2022/d2_square_cut"       400 400 Steps.D.Shatter.drawSquareCut
+    drawToFiles "bob2022/d3_square_shards"    400 400 Steps.D.Shatter.drawSquareShards
     drawToFiles "bob2022/d4_square_shattered" 400 400 Steps.D.Shatter.drawSquareShattered

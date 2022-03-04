@@ -108,22 +108,22 @@ shatterProcess _ recurse _ polygon
     | not (recurse polygon) = pure [polygon]
 shatterProcess gen recurse acceptCut polygon = do
     cutPieces <- randomCut gen polygon
-    let triangulated = concatMap triangulate cutPieces
-    if acceptCut triangulated
+    if acceptCut cutPieces
         then do
-            subcuts <- traverse (shatterProcess gen recurse acceptCut) triangulated
+            subcuts <- traverse (shatterProcess gen recurse acceptCut) cutPieces
             pure (concat subcuts)
         else shatterProcess gen recurse acceptCut polygon
 
+-- Cut a polygon with a random line through its bounding box.
 randomCut
     :: GenIO
     -> Polygon -- ^ Initial polygon, cut only if the recursion predicate applies
     -> IO [Polygon]
 randomCut gen polygon = do
     let BoundingBox vMin vMax = boundingBox polygon
-    p <- uniformRM (vMin, vMax) gen
-    angle <- uniformM gen
-    let scissors = angledLine p angle 1
+    pointOnScissors <- uniformRM (vMin, vMax) gen
+    angleOfScissors <- uniformM gen
+    let scissors = angledLine pointOnScissors angleOfScissors 1
     pure (cutPolygon scissors polygon)
 
 -- | Now let's add some randomness: The square should look somewhat "exploded",
@@ -148,18 +148,24 @@ drawSquareShattered w h = do
 
     shards <- Cairo.liftIO $ do
         gen <- create
-        rawShards <- shatterProcess
+        shards <- shatterProcess
             gen
             (\shard -> polygonArea shard > 10000)
-            (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
+            (\cutResult -> let areas = map polygonArea cutResult in  minimum areas / maximum areas > 0.5)
             square
-        for rawShards $ \shard -> do
+        for shards $ \shard -> do
             let centroid = polygonCentroid shard
                 origin = Vec2 500 500
-                distanceFromOrigin = norm (centroid -. origin) / 500
-            offset <- uniformRM (-0.1, 0.3) gen
-            angle <- distanceFromOrigin *. deg <$> uniformRM (-20, 20) gen
-            pure (transform (translate (offset *. (centroid -. origin)) <> rotateAround centroid angle) shard)
+            translation <- do
+                offset <- uniformRM (-0.1, 0.3) gen
+                let vectorToCentroid = centroid -. origin
+                pure (translate (offset *. vectorToCentroid))
+            rotation <- do
+                angleWiggleDegrees <- uniformRM (-20, 20) gen
+                let distanceFromOrigin = norm (centroid -. origin)
+                    angle = (distanceFromOrigin/500) *. deg angleWiggleDegrees
+                pure (rotateAround centroid angle)
+            pure (transform (translation <> rotation) shard)
 
     for_ (zip [0..] shards) $ \(i, shard) -> do
         sketch shard
