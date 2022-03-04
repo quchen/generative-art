@@ -7,11 +7,6 @@ module Draw (
     , OutputFormat(..)
     , haddockRender
 
-    -- * Colors
-    , module Draw.Color
-    , module Draw.Color.Schemes.Discrete
-    , module Draw.Color.Schemes.Continuous
-
     -- * Drawing presets
     , moveToVec
     , lineToVec
@@ -23,16 +18,30 @@ module Draw (
     , arcSketch
     , arcSketchNegative
 
-    -- * Orientation helpers
-    , cartesianCoordinateSystem
-    , CartesianParams(..)
-    , radialCoordinateSystem
-    , PolarParams(..)
+    -- * Colors
+    , Colour, Color
+    , AlphaColour, AlphaColor
+    , CairoColor(..)
+    , module Draw.Color
+
+    -- ** Discrete color schemes
+    -- $discreteColorSchemes
+    , module Draw.Color.Schemes.Discrete
+
+    -- ** Continuous color schemes
+    -- $continuousColorSchemes
+    , module Draw.Color.Schemes.Continuous
 
     -- * Temporary Cairo modifications
     , withOperator
     , cairoScope
     , grouped
+
+    -- * Orientation helpers
+    , cartesianCoordinateSystem
+    , CartesianParams(..)
+    , radialCoordinateSystem
+    , PolarParams(..)
 
     -- * Transformations
     , fromCairoMatrix
@@ -44,8 +53,9 @@ module Draw (
     , VAlign(..)
 
     -- * Convenience
-    , module Data.Default.Class
+    , for_
     , module Data.Foldable
+    , module Data.Default.Class
 
     -- * Deprecated
     , lineSketch
@@ -643,3 +653,126 @@ toCairoMatrix trafo =
         cd = e
         cf = f
     in Matrix ca cb cc cd ce cf
+
+-- $discreteColorSchemes
+--
+-- Discrete color schemes, taken from:
+--
+--  * Mathematica: https://www.wolfram.com/mathematica/
+--  * Color Brewer 2: https://colorbrewer2.org/
+--
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | Name            |                                                              | Domain  |
+-- +=================+==============================================================+=========+
+-- | 'mathematica97' | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'accent'        | <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>     | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'dark2'         | <<docs/colors/schemes/discrete/colorbrewer2/dark2.svg>>      | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'paired'        | <<docs/colors/schemes/discrete/colorbrewer2/paired.svg>>     | [0..11] |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'pastel1'       | <<docs/colors/schemes/discrete/colorbrewer2/pastel1.svg>>    | [0..8]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'pastel2'       | <<docs/colors/schemes/discrete/colorbrewer2/pastel2.svg>>    | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set1'          | <<docs/colors/schemes/discrete/colorbrewer2/set1.svg>>       | [0..8]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set2'          | <<docs/colors/schemes/discrete/colorbrewer2/set2.svg>>       | [0..7]  |
+-- +-----------------+--------------------------------------------------------------+---------+
+-- | 'set3'          | <<docs/colors/schemes/discrete/colorbrewer2/set3.svg>>       | [0..11] |
+-- +-----------------+--------------------------------------------------------------+---------+
+
+-- $continuousColorSchemes
+--
+-- Continuous color schemes, taken from:
+--
+--  * Color Brewer 2: https://colorbrewer2.org/
+--  * Matplotlib: https://matplotlib.org/
+--  * Seaborn: https://seaborn.pydata.org/
+--
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | Name              |                                                                   | Domain | Type     |
+-- +===================+===================================================================+========+==========+
+-- | 'haskell'         | <<docs/colors/schemes/continuous/haskell/logo.png>>               | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'magma'           | <<docs/colors/schemes/continuous/matplotlib/magma.png>>           | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'inferno'         | <<docs/colors/schemes/continuous/matplotlib/inferno.png>>         | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'plasma'          | <<docs/colors/schemes/continuous/matplotlib/plasma.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'viridis'         | <<docs/colors/schemes/continuous/matplotlib/viridis.png>>         | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'cividis'         | <<docs/colors/schemes/continuous/matplotlib/cividis.png>>         | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'turbo'           | <<docs/colors/schemes/continuous/matplotlib/turbo.png>>           | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'twilight'        | <<docs/colors/schemes/continuous/matplotlib/twilight.png>>        | [0..1] | Cyclic   |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rocket'          | <<docs/colors/schemes/continuous/seaborn/rocket.png>>             | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'mako'            | <<docs/colors/schemes/continuous/seaborn/mako.png>>               | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'flare'           | <<docs/colors/schemes/continuous/seaborn/flare.png>>              | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'crest'           | <<docs/colors/schemes/continuous/seaborn/crest.png>>              | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'vlag'            | <<docs/colors/schemes/continuous/seaborn/vlag.png>>               | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'icefire'         | <<docs/colors/schemes/continuous/seaborn/icefire.png>>            | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'orRd'            | <<docs/colors/schemes/continuous/colorbrewer2/orRd.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'puBu'            | <<docs/colors/schemes/continuous/colorbrewer2/puBu.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'buPu'            | <<docs/colors/schemes/continuous/colorbrewer2/buPu.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'oranges'         | <<docs/colors/schemes/continuous/colorbrewer2/oranges.png>>       | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'buGn'            | <<docs/colors/schemes/continuous/colorbrewer2/buGn.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'ylOrBr'          | <<docs/colors/schemes/continuous/colorbrewer2/ylOrBr.png>>        | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'ylGn'            | <<docs/colors/schemes/continuous/colorbrewer2/ylGn.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'reds'            | <<docs/colors/schemes/continuous/colorbrewer2/reds.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rdPu'            | <<docs/colors/schemes/continuous/colorbrewer2/rdPu.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'greens'          | <<docs/colors/schemes/continuous/colorbrewer2/greens.png>>        | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'ylGnBu'          | <<docs/colors/schemes/continuous/colorbrewer2/ylGnBu.png>>        | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'purples'         | <<docs/colors/schemes/continuous/colorbrewer2/purples.png>>       | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'gnBu'            | <<docs/colors/schemes/continuous/colorbrewer2/gnBu.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'greys'           | <<docs/colors/schemes/continuous/colorbrewer2/greys.png>>         | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'ylOrRd'          | <<docs/colors/schemes/continuous/colorbrewer2/ylOrRd.png>>        | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'puRd'            | <<docs/colors/schemes/continuous/colorbrewer2/puRd.png>>          | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'blues'           | <<docs/colors/schemes/continuous/colorbrewer2/blues.png>>         | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'puBuGn'          | <<docs/colors/schemes/continuous/colorbrewer2/puBuGn.png>>        | [0..1] | Monotone |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'spectral'        | <<docs/colors/schemes/continuous/colorbrewer2/spectral.png>>      | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rdYlGn'          | <<docs/colors/schemes/continuous/colorbrewer2/rdYlGn.png>>        | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rdBu'            | <<docs/colors/schemes/continuous/colorbrewer2/rdBu.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'piYG'            | <<docs/colors/schemes/continuous/colorbrewer2/piYG.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'pRGn'            | <<docs/colors/schemes/continuous/colorbrewer2/pRGn.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rdYlBu'          | <<docs/colors/schemes/continuous/colorbrewer2/rdYlBu.png>>        | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'brBG'            | <<docs/colors/schemes/continuous/colorbrewer2/brBG.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'rdGy'            | <<docs/colors/schemes/continuous/colorbrewer2/rdGy.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+
+-- | 'puOr'            | <<docs/colors/schemes/continuous/colorbrewer2/puOr.png>>          | [0..1] | Divisive |
+-- +-------------------+-------------------------------------------------------------------+--------+----------+

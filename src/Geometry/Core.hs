@@ -2,12 +2,8 @@
 
 module Geometry.Core (
     -- * Primitives
-    -- ** Vector spaces
-      VectorSpace(..)
-    , vsum
-
     -- ** 2D Vectors
-    , Vec2(..)
+      Vec2(..)
     , dotProduct
     , norm
     , normSquare
@@ -65,15 +61,13 @@ module Geometry.Core (
     , getRad
     , normalizeAngle
 
-    -- * Matrices
-    , Mat2(..)
-    , det
-    , mulMV
-    , mulVTM
+    -- ** Vector arithmetic
+    , VectorSpace(..)
+    , vsum
 
     -- * Transformations
-    , Transformation(..)
     , Transform(..)
+    , Transformation(..)
     , NoTransform(..)
     , translate
     , rotate
@@ -103,6 +97,12 @@ module Geometry.Core (
     , boundingBoxCenter
     , boundingBoxIntersection
     , boundingBoxSize
+
+    -- * Matrices
+    , Mat2(..)
+    , det
+    , mulMV
+    , mulVTM
 
     -- * Useful stuff
     , vectorOf
