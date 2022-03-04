@@ -30,7 +30,7 @@ noiseSeed :: Int
 noiseSeed = 519496
 
 main :: IO ()
-main = withSurfaceAuto "out/vector_fields.png" picWidth picHeight $ \surface -> C.renderWith surface $ do
+main = render "out/vector_fields.png" picWidth picHeight $ do
     cairoScope $ do
         setColor white
         C.paint

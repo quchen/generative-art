@@ -60,7 +60,7 @@ main = do
                 , props c) )
             <$> cells voronoiWithProps
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> renderWith surface $ do
+    render file scaledWidth scaledHeight $ do
         cairoScope (setColor (magma 0.05) >> paint)
         for_ voronoiCells $ uncurry drawCell
 

@@ -16,11 +16,9 @@ picWidth = 1000
 picHeight = 720
 
 main :: IO ()
-main = withSurfaceAuto "out/haskell_logo_billard.svg" picWidth picHeight renderDrawing
-  where
-    renderDrawing surface = renderWith surface $ do
-        Cairo.scale 2 2
-        drawing
+main = render "out/haskell_logo_billard.svg" picWidth picHeight $ do
+    Cairo.scale 2 2
+    drawing
 
 data BillardSpec = BillardSpec
     { steps :: Int

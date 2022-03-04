@@ -12,8 +12,6 @@ module Test.TastyAll (
     , Tolerance(..)
 
     -- * Rendering pictures
-    , renderPng
-    , renderSvg
     , renderAllFormats
     , testVisual
 
@@ -95,26 +93,17 @@ assertApproxEqual errMsg (ExpectedWithin tol expected) (Actual actual) = HUnit.a
     preface = if null errMsg then Nothing else Just errMsg
     expectedButGot = intercalate "\n" . maybe id (:) preface $ ["expected (within tolerance " ++ show tol ++ "): " ++ show expected, " but got: " ++ show actual]
 
-renderPng :: Int -> Int -> FilePath -> Render () -> IO ()
-renderPng picWidth picHeight filename drawing = withSurface PNG filename picWidth picHeight $ \surface ->
-    renderWith surface drawing
-
-renderSvg :: Int -> Int -> FilePath -> Render () -> IO ()
-renderSvg picWidth picHeight filename drawing = do
-    withSurface SVG filename w h (\surface -> renderWith surface drawing)
-    normalizeSvgFile filename
-  where
-    w = fromIntegral picWidth
-    h = fromIntegral picHeight
-
 renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
-    renderPng w h (filename ++ ".png") $ do
+    render (filename ++ ".png") w h $ do
         cairoScope $ do
             setColor white
             paint
         drawing
-    renderSvg w h (filename ++ ".svg") drawing
+
+    let svgFilename = filename ++ ".svg"
+    render svgFilename w h drawing
+    normalizeSvgFile svgFilename
 
 newtype Tolerance = Tolerance Double
 
@@ -211,4 +200,4 @@ testVisual
     -> FilePath              -- ^ Output file
     -> ((a, a) -> Render ()) -- ^ Renderer, given width/height
     -> TestTree
-testVisual testName w h filePath render = testCase testName (renderAllFormats w h filePath (render (fromIntegral w,fromIntegral h)))
+testVisual testName w h filePath actions = testCase testName (renderAllFormats w h filePath (actions (fromIntegral w,fromIntegral h)))

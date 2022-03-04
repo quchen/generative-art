@@ -69,7 +69,7 @@ setup tmpDir window = do
             randomNumber <- uniform gen :: IO Int
             pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
         let voronoi = toVoronoi delaunay
-        liftIO $ withSurfaceAuto tmpFile w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
+        liftIO $ render tmpFile w h $ for_ (cells voronoi) drawCellCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
         on (UI.domEvent "load") outImg $ \_ -> do
@@ -79,7 +79,7 @@ setup tmpDir window = do
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
         voronoi <- liftIO $ toVoronoi <$> currentValue bDelaunay
-        liftIO $ withSurfaceAuto fileName w h $ \surface -> Cairo.renderWith surface $ for_ (cells voronoi) drawCellCairo
+        liftIO $ render fileName w h $ for_ (cells voronoi) drawCellCairo
 
 drawCellCairo :: VoronoiCell () -> Cairo.Render ()
 drawCellCairo Cell{..} = case region of

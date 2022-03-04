@@ -2,9 +2,7 @@
 -- | Cairo drawing backend.
 module Draw (
     -- * SVG and PNG file handling
-      withSurfaceAuto
-    , withSurface
-    , OutputFormat(..)
+      render
     , haddockRender
 
     -- * Drawing presets
@@ -84,11 +82,6 @@ import Geometry as G
 
 
 
--- | Renders the drawing as PNG or SVG, depending on the file extension.
-withSurfaceAuto :: FilePath -> Int -> Int -> (Surface -> IO a) -> IO a
-withSurfaceAuto filePath = withSurface (fromExtension filePath) filePath
-
--- | Renders the drawing as PNG or SVG
 withSurface
     :: OutputFormat      -- ^ Output format
     -> FilePath          -- ^ Output file name
@@ -111,11 +104,16 @@ fromExtension filePath
     | ".svg" `isSuffixOf` filePath = SVG
     | otherwise = error ("Unknown file extension: " <> filePath <> ", expecting .png or .svg")
 
+-- | Renders the drawing as PNG or SVG, depending on the file extension.
+render :: FilePath -> Int -> Int -> Render () -> IO ()
+render filepath w h actions =
+    withSurface (fromExtension filepath) filepath w h (\surface -> renderWith surface actions)
+
 -- | Usable by doctests for rendering explanatory little pictures in Haddock.
 haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
 haddockRender filename w h actions = do
-    let filepath = "docs/haddock/Draw.hs/" ++ filename
-    withSurfaceAuto filepath w h $ \surface -> renderWith surface $ do
+    let filepath = "docs/haddock/" ++ filename
+    render filepath w h $ do
         cartesianCoordinateSystem def
             { _cartesianAlpha = 0.5
             , _renderAxisLabels=False
@@ -176,7 +174,7 @@ data Arrow = Arrow !Line !ArrowSpec
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Arrow.svg" 150 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Arrow.svg" 150 100 $ do
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
 -- :}
@@ -217,7 +215,7 @@ class Sketch a where
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Line.svg" 150 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Line.svg" 150 100 $ do
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
 -- :}
@@ -232,7 +230,7 @@ instance Sketch Line where
 -- | Polyline, i.e. a sequence of lines given by their joints.
 --
 -- >>> :{
--- haddockRender "instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
 --     sketch [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
 --     stroke
 -- :}
@@ -249,7 +247,7 @@ instance Sequential f => Sketch (f Vec2) where
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Polygon.svg" 100 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Polygon.svg" 100 100 $ do
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
 -- :}
@@ -262,7 +260,7 @@ instance Sketch Polygon where
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Circle.svg" 100 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Circle.svg" 100 100 $ do
 --     sketch (Circle (Vec2 50 50) 45)
 --     stroke
 -- :}
@@ -274,7 +272,7 @@ instance Sketch Circle where
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Ellipse.svg" 150 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Ellipse.svg" 150 100 $ do
 --     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
 --                         (toEllipse (Circle zero 45)))
 --     stroke
@@ -302,7 +300,7 @@ data Cross = Cross
 
 -- |
 -- >>> :{
--- haddockRender "instance_Sketch_Cross.svg" 90 40 $ do
+-- haddockRender "Draw.hs/instance_Sketch_Cross.svg" 90 40 $ do
 --     sketch (Cross  (Vec2 20 20) 15) >> stroke
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
 --     sketch (Circle (Vec2 60 20) 15) >> stroke
@@ -356,7 +354,7 @@ polygonSketch = sketch
 -- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
 --
 -- >>> :{
--- haddockRender "instance_Sketch_BoundingBox.svg" 100 100 $ do
+-- haddockRender "Draw.hs/instance_Sketch_BoundingBox.svg" 100 100 $ do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
 --     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mathematica97 1) >> setDash [4,6] 0 >> stroke)
 --     sketch (boundingBox geometry)
@@ -406,7 +404,7 @@ instance Default CartesianParams where
 -- prototyping.
 --
 -- >>> :{
--- haddockRender "cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
+-- haddockRender "Draw.hs/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
 -- :}
 -- docs/haddock/Draw.hs/cartesianCoordinateSystem.svg
 --
@@ -465,7 +463,7 @@ instance Default PolarParams where
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 --
 -- >>> :{
--- haddockRender "radialCoordinateSystem.svg" 250 250 $ do
+-- haddockRender "Draw.hs/radialCoordinateSystem.svg" 250 250 $ do
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
@@ -492,10 +490,10 @@ radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = 
 -- | Temporarily draw using a different composition operator, such as
 -- 'OperatorClear' to delete part of an image.
 withOperator :: Operator -> Render a -> Render a
-withOperator op render = do
+withOperator op actions = do
     formerOp <- getOperator
     setOperator op
-    result <- render
+    result <- actions
     setOperator formerOp
     pure result
 
@@ -529,7 +527,7 @@ withOperator op render = do
 -- 'stroke'
 -- @
 cairoScope :: Render a -> Render a
-cairoScope render = save *> render <* restore
+cairoScope actions = save *> actions <* restore
 
 -- | Render something as a group, as in encapsulate it in 'pushGroup' and
 -- 'popGroupToSource'. This function semantically includes a call 'cairoScope'.
@@ -560,7 +558,7 @@ cairoScope render = save *> render <* restore
 --     'fill'
 -- @
 grouped :: Render after -> Render a -> Render a
-grouped afterwards render = cairoScope $ pushGroup *> render <* popGroupToSource <* afterwards
+grouped afterwards actions = cairoScope $ pushGroup *> actions <* popGroupToSource <* afterwards
 
 -- | Vertical alignment
 data VAlign = VTop | VCenter | VBottom deriving (Eq, Ord, Show)

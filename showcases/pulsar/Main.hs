@@ -43,7 +43,7 @@ main = do
 
         pulsarDataScaled = fitToCanvas (layoutEvenlySpacedToCanvasSize (resizeToWidth pulsarData))
 
-        render = V.iforM_ pulsarDataScaled $ \i signal -> do
+        drawing = V.iforM_ pulsarDataScaled $ \i signal -> do
             cairoScope $ do
                 sketch (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h))
                 closePath
@@ -56,8 +56,8 @@ main = do
                 setColor black
                 stroke
 
-    withSurfaceAuto "showcases/pulsar_cp1919.svg" w h $ \surface -> renderWith surface render
-    -- withSurfaceAuto "out/pulsar.png" w h $ \surface -> renderWith surface $ do
+    render "showcases/pulsar_cp1919.svg" w h drawing
+    -- render "out/pulsar.png" w h $ do
     --     cairoScope $ do
     --         setColor white
     --         paint

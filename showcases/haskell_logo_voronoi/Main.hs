@@ -75,7 +75,7 @@ mainHaskellLogo = do
     let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
         voronoiColorized = mapWithRegion (colorizePolygon ditheringPoints) voronoi
 
-    withSurfaceAuto file picWidth picHeight $ \surface -> renderWith surface $ for_ (cells voronoiColorized) drawCell
+    render file picWidth picHeight $ for_ (cells voronoiColorized) drawCell
 
 haskellLogoWithColors :: [(Polygon, Color Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors

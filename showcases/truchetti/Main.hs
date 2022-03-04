@@ -37,7 +37,7 @@ main = do
     gen <- initialize (V.fromList [123, 988])
     tiling <- indexStrands <$> randomTiling gen plane
 
-    withSurfaceAuto file scaledWidth scaledHeight $ \surface -> C.renderWith surface $ do
+    render file scaledWidth scaledHeight $ do
         C.scale scaleFactor scaleFactor
         cairoScope (setColor backgroundColor >> C.paint)
         for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile

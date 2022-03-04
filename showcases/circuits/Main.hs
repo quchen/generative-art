@@ -35,13 +35,12 @@ main = do
                 setLineWidth 1
                 renderCircuits purple  cellSize lambdaCircuits
                 renderCircuits grey cellSize surroundingCircuits
-    withSurfaceAuto "out/circuits.svg" picWidth picHeight (\surface -> renderWith surface mainRender)
-    withSurfaceAuto "out/circuits.png" picWidth picHeight (\surface -> renderWith surface $ do
+    render "out/circuits.svg" picWidth picHeight mainRender
+    render "out/circuits.png" picWidth picHeight $ do
         cairoScope $ do
             setSourceRGB 1 1 1
             paint
         mainRender
-        )
   where
     picWidth = 520
     picHeight = 440

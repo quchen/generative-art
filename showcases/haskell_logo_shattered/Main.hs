@@ -19,8 +19,8 @@ import qualified Geometry.Chaotic as Chaos
 
 main :: IO ()
 main = do
-    withSurfaceAuto "out/haskell_logo_shattered.svg" picWidth picHeight (\surface -> renderWith surface renderDrawing)
-    withSurfaceAuto "out/haskell_logo_shattered.png" picWidth picHeight $ \surface -> renderWith surface $ do
+    render "out/haskell_logo_shattered.svg" picWidth picHeight $ renderDrawing
+    render "out/haskell_logo_shattered.png" picWidth picHeight $ do
         cairoScope $ do
             setColor white
             paint

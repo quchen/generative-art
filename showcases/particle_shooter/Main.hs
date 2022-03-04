@@ -22,11 +22,11 @@ main :: IO ()
 main = do
     let systemResult = runST (systemSetup systemConfig)
     let (w, h) = boundingBoxSize (_boundingBox systemConfig)
-    withSurfaceAuto
+    render
         "out/particle_shooter.png"
         (round w)
         (round h)
-        (\surface -> C.renderWith surface (render systemResult))
+        (draw systemResult)
 
 data SystemConfig s = SystemConfig
     { _seed :: V.Vector Word32
@@ -114,8 +114,8 @@ systemSetup config@SystemConfig{..} = do
         , _potential    = potential
         }
 
-render :: SystemResult -> Render ()
-render SystemResult{..} = do
+draw :: SystemResult -> Render ()
+draw SystemResult{..} = do
     do let BoundingBox (Vec2 x y) _ = _boundingBox systemConfig
        C.translate (-x) (-y)
     cairoScope $ do
