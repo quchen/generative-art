@@ -32,6 +32,20 @@ An sich sprachagnostisch, aber wir verwenden hier:
     * Cairo (Vektorgrafik)
     * Randomness: MWC-Random, Noise (Perlin)
     * Own Library (Geometry, etc.)
+        * Geometry.Core: 
+            * 2D Vectors
+            * Lines
+            * Polygons
+            * Angles
+            * Bounding Boxes
+            * Transformations
+        * Draw:
+            * Drawing Presets
+            * Colors
+            * SVG and PNG file handling
+        * Geometry.Algorithms.Cut
+
+
 
 ### Paar mehr Showcases zeigen
 
