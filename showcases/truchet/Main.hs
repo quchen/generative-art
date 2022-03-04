@@ -90,10 +90,6 @@ colorScheme = paired
 backgroundColor :: Color Double
 backgroundColor = blend 0.5 (colorScheme 8) white
 
-plane :: [Hex]
-plane = hexagonsInRange 1 origin
-  where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
-
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
 mkTile :: [(Direction, Direction, [Int])] -> Tile
@@ -110,13 +106,6 @@ cyclic :: Direction -> Direction -> Bool
 cyclic d1 d2
     | d1 == reverseDirection d2 = d1 < d2
     | otherwise = (6 + fromEnum d1 - fromEnum d2) `mod` 6 <= 3
-
-unTile :: Tile -> [(Direction, Int, Direction)]
-unTile (Tile xs) =
-    [ (d1, i, d2)
-    | ((d1, i), d2) <- M.toList xs
-    , cyclic d1 d2
-    ]
 
 extractArc :: Tile -> Maybe ((Direction, Int, Direction), Tile)
 extractArc (Tile xs)
@@ -139,10 +128,6 @@ tiles2 :: V.Vector Tile
 tiles2 = V.fromList $ allRotations =<<
     [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
 
-tiles3 :: V.Vector Tile
-tiles3 = V.fromList $ allRotations =<<
-    [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
-
 tiles4 :: V.Vector Tile
 tiles4 = V.fromList $ allRotations =<<
     [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
@@ -150,9 +135,6 @@ tiles4 = V.fromList $ allRotations =<<
 tiles5 :: V.Vector Tile
 tiles5 = V.fromList $ allRotations =<<
     [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
-
-allTiles :: V.Vector Tile
-allTiles = V.concat [ tiles1, tiles2, tiles3, tiles4, tiles5 ]
 
 allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
