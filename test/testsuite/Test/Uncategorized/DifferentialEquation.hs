@@ -12,6 +12,7 @@ import           Geometry.Processes.Geodesics
 import           Graphics.Rendering.Cairo      as Cairo hiding (x, y)
 import           Numerics.DifferentialEquation
 import           Numerics.Interpolation
+import Text.Printf
 
 import Test.TastyAll
 
@@ -87,6 +88,15 @@ renderTwoBodyProblem (w, h) = do
             setSourceRGB 0 0 0
             setLineWidth 2
             stroke
+
+    liftIO $ do
+        putStrLn "; 2-body trajectory with tweaked physics for prettier pictures"
+        putStrLn "G90 ; absolute coordinates"
+        let rescaleTo ww hh = Geometry.transform (transformBoundingBox (map snd planetTrajectory) [zero, Vec2 ww hh] def)
+        for_ planetTrajectory $ \(_, v) -> do
+            let Vec2 x y = rescaleTo 500 500 v
+            printf "G1 X%.5f Y%.5f\n" x y
+        putStrLn "; END"
 
     paintSun
     paintTrajectory
