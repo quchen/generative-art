@@ -61,7 +61,7 @@ drawFieldLine ps = cairoScope $ do
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
 vectorPotential :: Vec2 -> Double
-vectorPotential p = noiseScale *. perlinNoise params p
+vectorPotential p = noiseScale *. perlin2 params p
   where
     params = PerlinParameters
         { _perlinFrequency   = 3/noiseScale

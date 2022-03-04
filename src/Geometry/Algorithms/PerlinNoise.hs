@@ -1,6 +1,8 @@
 module Geometry.Algorithms.PerlinNoise (
       PerlinParameters(..)
-    , perlinNoise
+    , perlin1
+    , perlin2
+    , perlin3
 ) where
 
 
@@ -52,6 +54,14 @@ marshalPP PerlinParameters{..} = Perlin.Perlin
     , perlinSeed        = _perlinSeed
     }
 
--- | Perlin noise scalar field.
-perlinNoise :: PerlinParameters -> Vec2 -> Double
-perlinNoise params (Vec2 x y) = fromMaybe 0 (Perlin.getValue (marshalPP params) (x, y, 0))
+-- | One-dimensional Perlin noise.
+perlin1 :: PerlinParameters -> Double -> Double
+perlin1 params x = fromMaybe 0 (Perlin.getValue (marshalPP params) (x, 0, 0))
+
+-- | Two-dimensional Perlin noise.
+perlin2 :: PerlinParameters -> Vec2 -> Double
+perlin2 params (Vec2 x y) = fromMaybe 0 (Perlin.getValue (marshalPP params) (x, y, 0))
+
+-- | Three-dimensional Perlin noise.
+perlin3 :: PerlinParameters -> Double -> Double -> Double -> Double
+perlin3 params x y z = fromMaybe 0 (Perlin.getValue (marshalPP params) (x, y, z))
