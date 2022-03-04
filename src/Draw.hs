@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-duplicate-exports #-}
+
 -- | Cairo drawing backend.
 module Draw (
     -- * SVG and PNG file handling
