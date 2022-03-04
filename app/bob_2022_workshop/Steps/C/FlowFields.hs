@@ -14,6 +14,7 @@ import           Math.Noise               (Perlin (..), getValue, perlin)
 import           System.Random.MWC
 
 import Draw
+import Geometry.Algorithms.PerlinNoise
 import Geometry
 import Numerics.DifferentialEquation
 import Numerics.Interpolation
@@ -46,10 +47,13 @@ drawSimpleVectorField w h = do
 simpleVectorField :: Vec2 -> Vec2
 simpleVectorField = 100 *. noise2d
   where
-    noise = perlin { perlinFrequency = 1/200, perlinOctaves = 2, perlinSeed = seed }
+    noise = perlin3 def
+        { _perlinFrequency = 1/200
+        , _perlinOctaves = 2
+        , _perlinSeed = seed }
     noise2d (Vec2 x y) = Vec2
-        (fromMaybe 0 $ getValue noise (x, y, 0))
-        (fromMaybe 0 $ getValue noise (x, y, 42))
+        (noise x y 0)
+        (noise x y 42)
 
 -- | Now, let's draw some field lines in that vector field.
 drawFieldLines :: Int -> Int -> Cairo.Render ()
