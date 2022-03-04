@@ -61,3 +61,12 @@ Ein Showcase zum Mitcoden (ca. 1h, 3x 20min)
 * Am Ende von jedem Block: Show&Tell, Bilder irgendwo einsenden und zeigen
 * Letzte 5min, falls Zeit: Mögliche weitere Ideen, wie man das Beispiel noch fortsetzen kann
     * Effekte örtlich variieren, zB Zerfall von L->R
+
+
+
+Preparation
+--------------------------------------------------------------------------------
+
+Prerequisites: You should have beginner knowledge of Haskell, being somewhat fluent with simple types, pattern matching, function application and composition, basic `IO` and `do`-notation. ["Learn you a haskell"](http://learnyouahaskell.com/)-level should be sufficient.
+
+To prepare for the workshop, you should have a working `stack` setup. To install `stack`, follow the instructions on https://docs.haskellstack.org/en/stable/README/. To make sure everything is working, clone [github.com/quchen/generative-art](https://github.com/quchen/generative-art), and run `stack build`. This will take some time the first time you run it for compiling all the dependencies, so we recommend doing it once before the workshop!
