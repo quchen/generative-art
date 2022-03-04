@@ -5,6 +5,7 @@
 module Draw.GCode where
 
 
+
 import           Data.Foldable
 import           Data.Text.Lazy (Text)
 import           Data.Vector    (Vector)
@@ -42,13 +43,12 @@ instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
     toGCode = go . toList
       where
         go [] = mempty :: Vector GCode
-        go (start:xys) =
-            [ GComment "{ Polyline"
-            , GMoveAbsoluteXY start ]
+        go xys =
+            [ GComment "{ Polyline" ]
             <>
             withLoweredPen (V.fromList [ GMoveAbsoluteXY xy | xy <- xys ])
             <>
-            [ GComment " } End polyline" ]
+            [ GComment "} End polyline" ]
 
 instance {-# OVERLAPPABLE #-} (Sequential f, ToGCode a) => ToGCode (f a) where
     toGCode = foldMap toGCode
