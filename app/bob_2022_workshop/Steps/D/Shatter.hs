@@ -5,10 +5,12 @@ module Steps.D.Shatter (
     , drawSquareShattered
 ) where
 
-import Control.Monad.ST
-import Data.Traversable (for)
+
+
+import           Control.Monad.ST
+import           Data.Traversable         (for)
 import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC
+import           System.Random.MWC
 
 import Draw
 import Geometry
@@ -29,8 +31,8 @@ drawSquare w h = do
             , Vec2 900 900
             , Vec2 900 100
             ]
-    
-    polygonSketch square
+
+    sketch square
     setColor (mathematica97 0 `withOpacity` 0.5)
     Cairo.fillPreserve
     setColor (mathematica97 0)
@@ -53,16 +55,13 @@ drawSquareCut w h = do
             ]
         crack = angledLine (Vec2 500 500) (deg 30) 1
         shards = cutPolygon crack square
-    
-    for_ (indexed shards) $ \(i, shard) -> do
-        polygonSketch shard
+
+    for_ (zip [0..] shards) $ \(i, shard) -> do
+        sketch shard
         setColor (mathematica97 i `withOpacity` 0.5)
         Cairo.fillPreserve
         setColor (mathematica97 i)
         Cairo.stroke
-
-indexed :: [a] -> [(Int, a)]
-indexed = zip [0..]
 
 -- | Now we can apply cuts recursively:
 -- Take a polygon, cut it along a random line, and repeat with the resulting
@@ -86,7 +85,7 @@ drawSquareShards w h = do
             , Vec2 900 900
             , Vec2 900 100
             ]
-    
+
     let shards = runST $ do
             gen <- create
             shatterProcess
@@ -94,9 +93,9 @@ drawSquareShards w h = do
                 (\shard -> polygonArea shard > 10000)
                 (\cutResult -> minimum (polygonArea <$> cutResult) / maximum (polygonArea <$> cutResult) > 0.5)
                 square
-    
-    for_ (indexed shards) $ \(i, shard) -> do
-        polygonSketch shard
+
+    for_ (zip [0..] shards) $ \(i, shard) -> do
+        sketch shard
         setColor (mathematica97 i)
         Cairo.fill
 
@@ -147,7 +146,7 @@ drawSquareShattered w h = do
             , Vec2 900 900
             , Vec2 900 100
             ]
-    
+
     let shards = runST $ do
             gen <- create
             rawShards <- shatterProcess
@@ -162,8 +161,8 @@ drawSquareShattered w h = do
                 offset <- uniformRM (-0.1, 0.3) gen
                 angle <- distanceFromOrigin *. deg <$> uniformRM (-20, 20) gen
                 pure (transform (translate (offset *. (centroid -. origin)) <> rotateAround centroid angle) shard)
-    
-    for_ (indexed shards) $ \(i, shard) -> do
-        polygonSketch shard
+
+    for_ (zip [0..] shards) $ \(i, shard) -> do
+        sketch shard
         setColor (mathematica97 i)
         Cairo.fill
