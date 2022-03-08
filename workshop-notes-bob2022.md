@@ -1,85 +1,123 @@
 Zeit: 1.5h
 
-Einleitung (20min, realistisch 30min)
-=====================================
+Introduction (20…30 min)
+================================================================================
+
+What is generative art? (Franz)
+--------------------------------------------------------------------------------
+
+* Creating art with computer support
+* Giving _some_ control to the computer, but keeping in control of the
+    overall design
+* As opposed to:
+    * Computer art -> full control
+    * Things like action painting -> full randomness
+* Computers are great tools, but completely uncreative
+* Main ingredients:
+    * 2D graphics lib (cairo)
+    * Randomness
+    * Splitting the image into small parts, and repeat them to form a complex
+      image (iteration, recursion)
+    * Human creativity :-)
+
+First showcase: 3D Voronoi (Franz)
+--------------------------------------------------------------------------------
+
+* Start with random points
+* Voronoi tesselation around those points
+* Pure randomness does not look that good ⇒ Poisson-Disc distribution
+    instead
+* Add colors
+* Add random heights, and isometric perspective
+
+Second showcase: ??? (David)
+--------------------------------------------------------------------------------
+
+TODO
+
+Overview over toolstack (Franz)
+--------------------------------------------------------------------------------
+
+* Haskell
+    * You could use any language, we're using Haskell b/c we like it :-)
+* Cairo (2D vector graphics)
+* Randomness: MWC-Random, Noise (Perlin)
+* Own Library: Walk through most important modules
+    * Open via `stack haddock --open`
+    * Geometry.Core:
+        * 2D Vectors
+        * Lines
+        * Polygons
+        * Angles
+        * Bounding Boxes
+        * Transformations
+    * Draw:
+        * Drawing Presets
+        * Colors
+        * SVG and PNG file handling
+    * Geometry.Algorithms.Cut
 
 
+Workshop example
+================================================================================
 
-Übersicht geben
----------------
+Our example: Shattering a square
+Mode:
+    * Show concept (5min)
+    * code alone or in small groups (10min)
+    * Show & Tell
 
+TODO:
+* Prepare example picture
+* Set up some upload facility for show & tell
 
+Block 1: Cutting a square (???)
+--------------------------------------------------------------------------------
 
-### Cooler Showcase: Voronoi3D
+* Prerequisite: `main` rendering a white canvas
+* Show + code along:
+    * Set up IDE + stack
+    * Draw a square
+    * Cut the square into two parts
+    * Make a random cut
+* Task:
+    * Make several cuts
+    * There are different possibilities to orchestrate the cuts – use your
+      fantasy:
+        * Fixed number of cuts, select a random shard
+        * Fixed number of cuts, select the largest shard
+        * Cut as long as all parts are below a maximum size
+        * Optionally add acceptance criteria, like "shard sizes should only
+          differ by <= 20%"
+* Show & tell
 
-Haskell-Logo wird zerschnitten.
+TODO:
+* Prepare `main`
 
+Block 2: Geometric transformations (???)
+--------------------------------------------------------------------------------
 
+* Show + code along:
+    * Random number generator that rotates all shards by a random amount
+* Task:
+    * Play around with transformations (rotate, translate, resize, …)
+    * You can use Perlin noise for more coherence
+    * Or make the transformation dependent on coordinates, i.e. left-to-right,
+      center-to-border
+* Show & tell
 
-### Zu erklärende Konzepte:
+Block 3: Color (???)
+--------------------------------------------------------------------------------
 
-    * Rechner ist Werkzeug, der exakt und viel machen kann. Leider ist er völlig unkreativ.
-    * Komplexes Bild = Vervielfachung einfacher Schritte
-    * Zufall
-
-
-
-### Toolstack vorstellen
-
-An sich sprachagnostisch, aber wir verwenden hier:
-
-    * Haskell
-    * Cairo (Vektorgrafik)
-    * Randomness: MWC-Random, Noise (Perlin)
-    * Own Library (Geometry, etc.)
-        * Geometry.Core: 
-            * 2D Vectors
-            * Lines
-            * Polygons
-            * Angles
-            * Bounding Boxes
-            * Transformations
-        * Draw:
-            * Drawing Presets
-            * Colors
-            * SVG and PNG file handling
-        * Geometry.Algorithms.Cut
-
-
-
-### Paar mehr Showcases zeigen
-
-Intention: »Schönes Bild« -> Breakdown -> »Das könnte ich ja selber machen!«
-
-
-
-Mitcoden
---------
-
-
-
-Ein Showcase zum Mitcoden (ca. 1h, 3x 20min)
-* Block 1:
-    * Vorgegeben: Main, die weißen Canvas rendert
-    * Zeigen: Shatter-Prozess, Polygone zeichnen mit Cairo
-    * Aufgabe:
-        * Das selbst machen
-        * Optional: Alle Polygone ein bisschen kleiner machen
-* Block 2: Randomness dazubringen
-    * Zeigen: RNG, alle Scherben zufällig drehen
-    * Aufgabe: Das machen
-    * Optional: Perlin-Noise für mehr Kohärenz, zusätlich zu drehen auch zufällig verschieben
-* Block 3: Farbe, Variation Liniienbreite, etc.
-    * Zeigen: Farbschemata, Alpha, Blending, …
-    * Aufgabe: Zufällig einfärben/Farben zufällig ändern, etc.
-* Am Ende von jedem Block: Show&Tell, Bilder irgendwo einsenden und zeigen
-* Letzte 5min, falls Zeit: Mögliche weitere Ideen, wie man das Beispiel noch fortsetzen kann
-    * Effekte örtlich variieren, zB Zerfall von L->R
-
-
+* Show + code along:
+    * Color schemes, alpha, blending
+* Task:
+    * Use randomness to colorize the shards
+    * Be creative!
+* Show & Tell
 
 Preparation
---------------------------------------------------------------------------------
+================================================================================
 
 Prerequisites: You should have beginner knowledge of Haskell, being somewhat fluent with simple types, pattern matching, function application and composition, basic `IO` and `do`-notation. ["Learn you a haskell"](http://learnyouahaskell.com/)-level should be sufficient.
 
