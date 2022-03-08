@@ -35,7 +35,7 @@ Second showcase: ??? (David)
 
 TODO
 
-Overview over toolstack (Franz)
+Overview over toolstack (David)
 --------------------------------------------------------------------------------
 
 * Haskell
@@ -71,7 +71,7 @@ TODO:
 * Prepare example picture
 * Set up some upload facility for show & tell
 
-Block 1: Cutting a square (???)
+Block 1: Cutting a square (Franz)
 --------------------------------------------------------------------------------
 
 * Prerequisite: `main` rendering a white canvas
@@ -94,7 +94,7 @@ Block 1: Cutting a square (???)
 TODO:
 * Prepare `main`
 
-Block 2: Geometric transformations (???)
+Block 2: Geometric transformations (Franz)
 --------------------------------------------------------------------------------
 
 * Show + code along:
@@ -106,7 +106,7 @@ Block 2: Geometric transformations (???)
       center-to-border
 * Show & tell
 
-Block 3: Color (???)
+Block 3: Color (Franz)
 --------------------------------------------------------------------------------
 
 * Show + code along:
