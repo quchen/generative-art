@@ -19,6 +19,13 @@ drawToFiles filename w h drawing = do
     _ <- withSurface SVG (filename ++ ".svg") w h (\surface -> Cairo.renderWith surface (drawing w h))
     pure ()
 
+-- | You can generate the output files using either:
+--
+-- `stack build --file-watch --exec bob-2022-workshop`
+-- (slower compile time, faster execution time, works out of the box with `stack`)
+--
+-- `ghcid --command='stack ghci --main-is generative-art:bob-2022-workshop' --test=main -W`
+-- (fast compilation, slower execution time, requires `ghcid` installation)
 main :: IO ()
 main = do
     drawToFiles "bob2022/a_helloworld" 300 110 Steps.A.HelloWorld.hello
