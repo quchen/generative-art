@@ -3,7 +3,14 @@ Zeit: 1.5h
 Introduction (20…30 min)
 ================================================================================
 
-What is generative art? (Franz)
+Before we start
+--------------------------------------------------------------------------------
+
+* Agenda: Ca. 30min intro+showcases, ca. 1h code-along
+* Beore we start, did everyone compile the repo? If not, now is your chance to
+  run `stack build --haddock`!
+
+What is generative art? (David)
 --------------------------------------------------------------------------------
 
 * Creating art with computer support
@@ -30,7 +37,7 @@ First showcase: 3D Voronoi (Franz)
 * Add colors
 * Add random heights, and isometric perspective
 
-Second showcase: ??? (David)
+Second showcase: Flow fields (David)
 --------------------------------------------------------------------------------
 
 TODO
@@ -58,7 +65,7 @@ Overview over toolstack (David)
     * Geometry.Algorithms.Cut
 
 
-Workshop example
+Workshop example (Franz)
 ================================================================================
 
 Our example: Shattering a square
@@ -66,10 +73,12 @@ Mode:
     * Show concept (5min)
     * code alone or in small groups (10min)
     * Show & Tell
+        * Attach your pictures to github.com/quchen/generative-art/issues/4
+        * Or, if you're not no Github: Host it somewhere, and send a link to
+          quchen via gather chat
 
 TODO:
-* Prepare example picture
-* Set up some upload facility for show & tell
+* Prepare example picture, attach to issue
 
 Block 1: Cutting a square (Franz)
 --------------------------------------------------------------------------------
@@ -89,10 +98,7 @@ Block 1: Cutting a square (Franz)
         * Cut as long as all parts are below a maximum size
         * Optionally add acceptance criteria, like "shard sizes should only
           differ by <= 20%"
-* Show & tell
-
-TODO:
-* Prepare `main`
+* (Show & tell)
 
 Block 2: Geometric transformations (Franz)
 --------------------------------------------------------------------------------
@@ -104,7 +110,7 @@ Block 2: Geometric transformations (Franz)
     * You can use Perlin noise for more coherence
     * Or make the transformation dependent on coordinates, i.e. left-to-right,
       center-to-border
-* Show & tell
+* (Show & tell)
 
 Block 3: Color (Franz)
 --------------------------------------------------------------------------------
