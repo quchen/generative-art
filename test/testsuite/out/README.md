@@ -213,6 +213,8 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Arrow.svg)
 
+![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Bezier.svg)
+
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Circle.svg)

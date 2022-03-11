@@ -137,6 +137,20 @@ lineSketch :: Line -> Render ()
 lineSketch = sketch
 {-# DEPRECATED lineSketch "use `sketch` instead" #-}
 
+-- |
+-- >>> :{
+-- haddockRender "Draw.hs/instance_Sketch_Bezier.svg" 150 100 $ do
+--     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/instance_Sketch_Bezier.svg
+--
+-- <<docs/haddock/Draw.hs/instance_Sketch_Bezier.svg>>
+instance Sketch Bezier where
+    sketch (Bezier start (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) = do
+        moveToVec start
+        curveTo x1 y1 x2 y2 x3 y3
+
 -- | Sketch a continuous curve consisting of multiple Bezier segments. The end of
 -- each segment is assumed to be the start of the next one.
 instance Sequential f => Sketch (f Bezier) where
