@@ -39,12 +39,21 @@ main = drawToFiles "bob2022/shatter" 1000 1000 $ do
             , Vec2 100 900
             , Vec2 900 900
             , Vec2 900 100 ]
-    shards <- randomCut gen square
-    shards' <- concat <$> traverse (randomCut gen) shards
+    shards <- shatter gen 7 [square]
 
-    for_ shards' $ \shard -> do
-        sketch shard
-        setColor (black `withOpacity` 0.5)
+    for_ shards $ \shard -> do
+        randomAngle <- deg <$> (Cairo.liftIO $ uniformRM (-10, 10) gen)
+        let centroid@(Vec2 x y) = polygonCentroid shard
+            transformation
+                = scaleAround centroid 0.9
+                <> rotateAround centroid randomAngle
+
+        sketch (transform transformation shard)
+
+        colorIndex <- Cairo.liftIO $ uniformRM (0, 1) gen
+        let color = flare colorIndex
+
+        setColor (color `withOpacity` 0.8)
         Cairo.fillPreserve
         setColor black
         Cairo.stroke
@@ -53,7 +62,13 @@ randomCut :: GenIO -> Polygon -> Cairo.Render [Polygon]
 randomCut gen polygon = Cairo.liftIO $ do
     let BoundingBox pMin pMax = boundingBox polygon
     randomPoint <- uniformRM (pMin, pMax) gen
-    randomAngle <- uniformM gen
+    randomAngle <- (deg . (60*). fromIntegral) <$> uniformRM (0, 3 :: Int) gen
     pure $ cutPolygon
         (angledLine randomPoint randomAngle 1)
         polygon
+
+shatter :: GenIO -> Int -> [Polygon] -> Cairo.Render [Polygon]
+shatter _   0 polys = pure polys
+shatter gen n polys = do
+    shards <- concat <$> traverse (randomCut gen) polys
+    shatter gen (n-1) shards
