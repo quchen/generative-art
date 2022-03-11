@@ -30,3 +30,30 @@ main :: IO ()
 main = drawToFiles "bob2022/shatter" 1000 1000 $ do
     setColor white
     Cairo.paint
+    Cairo.setLineWidth 5
+
+    gen <- Cairo.liftIO $ initialize (V.fromList [2])
+
+    let square = Polygon
+            [ Vec2 100 100
+            , Vec2 100 900
+            , Vec2 900 900
+            , Vec2 900 100 ]
+    shards <- randomCut gen square
+    shards' <- concat <$> traverse (randomCut gen) shards
+
+    for_ shards' $ \shard -> do
+        sketch shard
+        setColor (black `withOpacity` 0.5)
+        Cairo.fillPreserve
+        setColor black
+        Cairo.stroke
+
+randomCut :: GenIO -> Polygon -> Cairo.Render [Polygon]
+randomCut gen polygon = Cairo.liftIO $ do
+    let BoundingBox pMin pMax = boundingBox polygon
+    randomPoint <- uniformRM (pMin, pMax) gen
+    randomAngle <- uniformM gen
+    pure $ cutPolygon
+        (angledLine randomPoint randomAngle 1)
+        polygon
