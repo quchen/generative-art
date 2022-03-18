@@ -11,9 +11,7 @@ module Draw.GCode (
 import           Data.Foldable
 import           Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import           Data.Vector    (Vector)
-import qualified Data.Vector    as V
-import           Formatting hiding (center)
+import           Formatting     hiding (center)
 import           Geometry.Core
 
 
@@ -21,57 +19,81 @@ import           Geometry.Core
 decimal :: Format r (Double -> r)
 decimal = fixed 3
 
-withLoweredPen :: Vector GCode -> Vector GCode
-withLoweredPen codes =
-    [G91_RelativeMovement, G00_LinearRapidMovement 0 0 (-0.5)]
-    <> codes
-    <> [G91_RelativeMovement, G00_LinearRapidMovement 0 0 0.5]
+draw :: GCode -> GCode
+draw content = GBlock
+    [ G91_RelativeMovement
+    , G00_LinearRapidMovement Nothing Nothing (Just (-0.5))
+    , content
+    , G91_RelativeMovement
+    , G00_LinearRapidMovement Nothing Nothing (Just 0.5)]
 
 data GCode
     = GComment Text
+    | GBlock [GCode]
+    | F_Feedrate Double
+
+    | G00_LinearRapidMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
+    | G01_LinearMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
+    | G02_ArcClockwise Double Double Double Double -- ^ I,J ; X,Y
+    | G03_ArcCounterClockwise Double Double Double Double -- ^ I,J ; X,Y
     | G90_AbsoluteMovement
     | G91_RelativeMovement
-    | G00_LinearRapidMovement Double Double Double
-    | G01_LinearMovement Double Double Double
-    | F_Feedrate Double
-    | G02_ArcClockwise Vec2 Vec2 -- ^ IJ, XY
-    | G03_ArcCounterClockwise Vec2 Vec2
 
-renderGCodeElement :: GCode -> Text
-renderGCodeElement = \case
-    GComment comment                             -> "; " <> comment
+renderGCode :: GCode -> Text
+renderGCode = \case
+    GComment comment -> "; " <> comment
+    GBlock content   -> T.unlines (fmap renderGCode content)
+    F_Feedrate f     -> format ("F" % decimal) f
 
-    G00_LinearRapidMovement x y z                 -> format ("G0 X" % decimal % " Y" % decimal % " Z" % decimal) x y z
-    G01_LinearMovement x y z                      -> format ("G1 X" % decimal % " Y" % decimal % " Z" % decimal) x y z
-    G02_ArcClockwise (Vec2 i j) (Vec2 x y)        -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    G03_ArcCounterClockwise (Vec2 i j) (Vec2 x y) -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    G90_AbsoluteMovement                         -> "G90 ; abs0lute movement"
-    G91_RelativeMovement                         -> "G91 ; re1ative movement"
+    G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
+    G00_LinearRapidMovement x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
 
-    F_Feedrate f                                 -> format ("F" % decimal) f
+    G01_LinearMovement Nothing Nothing Nothing -> mempty
+    G01_LinearMovement x y z                   -> format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
 
-renderGCode :: Vector GCode -> Text
-renderGCode = T.unlines . V.toList . fmap renderGCodeElement
+    G02_ArcClockwise i j x y                      -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+    G03_ArcCounterClockwise i j x y               -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+
+    G90_AbsoluteMovement                          -> "G90 ; abs0lute movement"
+    G91_RelativeMovement                          -> "G91 ; re1ative movement"
 
 class ToGCode a where
-    toGCode :: a -> Vector GCode
+    toGCode :: a -> GCode
 
 instance ToGCode Circle where
-    toGCode (Circle center radius) =
-        [GComment "Circle", G01_LinearMovement, G00_LinearRapidMovement, GMoveXY (center -. Vec2 radius 0)]
-        <> withLoweredPen [G90_AbsoluteMovement, G02_ArcClockwise (Vec2 radius 0) (center +. Vec2 radius 0), G02_ArcClockwise (Vec2 radius 0) (center +. Vec2 radius 0)]
-
+    toGCode (Circle (Vec2 x y) r) =
+        let (startX, startY) = (x-r, y)
+        in GBlock
+            [ GComment "Circle"
+            , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
+            , draw (GBlock
+                [ G90_AbsoluteMovement
+                , G02_ArcClockwise r 0 startX startY
+                ])
+            ]
 
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
     toGCode = go . toList
       where
-        go [] = mempty :: Vector GCode
-        go (x:ys) =
-            [ GComment "{ Polyline", G00_LinearRapidMovement, G90_AbsoluteMovement, GMoveXY x]
-            <>
-            withLoweredPen ([G90_AbsoluteMovement] <> V.fromList [ GMoveXY xy | xy <- ys ])
-            <>
-            [ GComment "} End polyline" ]
+        go [] = GBlock []
+        go (Vec2 startX startY : points) = GBlock
+            [ GComment "Polyline"
+            , G90_AbsoluteMovement
+            , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
+            , draw (GBlock [ G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- points])
+            ]
 
-instance {-# OVERLAPPABLE #-} (Sequential f, ToGCode a) => ToGCode (f a) where
-    toGCode = foldMap toGCode
+instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, ToGCode a) => ToGCode (f a) where
+    toGCode x = GBlock (GComment "Sequential" : toList (fmap toGCode x))
+
+instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b) => ToGCode (a,b) where
+    toGCode (a,b) = GBlock [GComment "2-tuple", toGCode a, toGCode b]
+
+instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c) => ToGCode (a,b,c) where
+    toGCode (a,b,c) = GBlock [GComment "3-tuple", toGCode a, toGCode b, toGCode c]
+
+instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d) => ToGCode (a,b,c,d) where
+    toGCode (a,b,c,d) = GBlock [GComment "4-tuple", toGCode a, toGCode b, toGCode c, toGCode d]
+
+instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d, ToGCode e) => ToGCode (a,b,c,d,e) where
+    toGCode (a,b,c,d,e) = GBlock [GComment "5-tuple", toGCode a, toGCode b, toGCode c, toGCode d, toGCode e]
