@@ -97,3 +97,12 @@ instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d) => ToG
 
 instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d, ToGCode e) => ToGCode (a,b,c,d,e) where
     toGCode (a,b,c,d,e) = GBlock [GComment "5-tuple", toGCode a, toGCode b, toGCode c, toGCode d, toGCode e]
+
+instance ToGCode Polygon where
+    toGCode (Polygon []) = GBlock []
+    toGCode (Polygon (p:ps)) = GBlock -- Like polyline, but closes up the shape
+        [ GComment "Polygon"
+        , G90_AbsoluteMovement
+        , let Vec2 startX startY = p in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
+        , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
+        ]
