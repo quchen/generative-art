@@ -44,7 +44,7 @@ data GCode
 renderGCode :: GCode -> Text
 renderGCode = \case
     GComment comment -> "; " <> comment
-    GBlock content   -> (T.unlines . filter (not . T.null) . fmap renderGCode) (GComment "{ Block" : content <> [GComment "} Block"])
+    GBlock content   -> (T.unlines . filter (not . T.null) . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
     F_Feedrate f     -> format ("F" % decimal) f
 
     G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
