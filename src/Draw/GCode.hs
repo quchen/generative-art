@@ -9,9 +9,10 @@ module Draw.GCode (
 
 
 import           Data.Foldable
-import           Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
-import           Formatting     hiding (center)
+import           Data.Text.Lazy  (Text)
+import qualified Data.Text.Lazy  as T
+import           Formatting      hiding (center)
+import           Geometry.Bezier
 import           Geometry.Core
 
 
@@ -105,4 +106,15 @@ instance ToGCode Polygon where
         , G90_AbsoluteMovement
         , let Vec2 startX startY = p in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
         , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
+        ]
+
+-- | FluidNC doesn’t support G05, so we approximage them with line pieces. We use
+-- the naive Bezier interpolation 'bezierSubdivideT', because it just so happens to
+-- put more points in places with more curvature.
+instance ToGCode Bezier where
+    toGCode bezier@(Bezier a _ _ _) = GBlock
+        [ GComment "Bezier (cubic)"
+        , G90_AbsoluteMovement
+        , let Vec2 startX startY = a in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
+        , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
         ]
