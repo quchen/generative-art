@@ -24,13 +24,9 @@ decimal = fixed 3
 
 draw :: GCode -> GCode
 draw content = GBlock
-    [ G91_RelativeMovement
-    , G00_LinearRapidMovement Nothing Nothing (Just (-0.5))
-    , G90_AbsoluteMovement
+    [ G00_LinearRapidMovement Nothing Nothing (Just (-2))
     , content
-    , G91_RelativeMovement
-    , G00_LinearRapidMovement Nothing Nothing (Just 0.5)
-    , G90_AbsoluteMovement
+    , G00_LinearRapidMovement Nothing Nothing (Just 2)
     ]
 
 data GCode
@@ -48,7 +44,7 @@ data GCode
 renderGCode :: GCode -> Text
 renderGCode = \case
     GComment comment -> "; " <> comment
-    GBlock content   -> T.unlines (fmap renderGCode (GComment "{ Block" : content <> [GComment "} Block"]))
+    GBlock content   -> (T.unlines . filter (not . T.null) . fmap renderGCode) (GComment "{ Block" : content <> [GComment "} Block"])
     F_Feedrate f     -> format ("F" % decimal) f
 
     G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
