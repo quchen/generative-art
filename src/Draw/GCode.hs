@@ -22,32 +22,33 @@ decimal :: Format r (Double -> r)
 decimal = fixed 3
 
 withLoweredPen :: Vector GCode -> Vector GCode
-withLoweredPen codes = [GRelativeMovement, GMoveZ (-0.5)] <> codes <> [GRelativeMovement, GMoveZ 0.5]
+withLoweredPen codes =
+    [G91_RelativeMovement, G00_LinearRapidMovement 0 0 (-0.5)]
+    <> codes
+    <> [G91_RelativeMovement, G00_LinearRapidMovement 0 0 0.5]
 
 data GCode
     = GComment Text
-    | GAbsoluteMovement
-    | GRelativeMovement
-    | GRapidMovement
-    | GLinearMovement
-    | GFeedrate Double
-    | GArcCw Vec2 Vec2 -- ^ IJ, XY
-    | GArcCcw Vec2 Vec2
-    | GMoveXY Vec2
-    | GMoveZ Double
+    | G90_AbsoluteMovement
+    | G91_RelativeMovement
+    | G00_LinearRapidMovement Double Double Double
+    | G01_LinearMovement Double Double Double
+    | F_Feedrate Double
+    | G02_ArcClockwise Vec2 Vec2 -- ^ IJ, XY
+    | G03_ArcCounterClockwise Vec2 Vec2
 
 renderGCodeElement :: GCode -> Text
 renderGCodeElement = \case
-    GComment comment              -> "; " <> comment
-    GRapidMovement                -> "G0 ; Linear interpolation; rapid movement"
-    GLinearMovement               -> "G1 ; Linear interpolation; move with feed rate"
-    GMoveXY (Vec2 x y)            -> format ("X" % decimal % " Y" %  decimal) x y
-    GMoveZ z                      -> format ("Z" % decimal) z
-    GFeedrate f                   -> format ("F" % decimal) f
-    GArcCw (Vec2 i j) (Vec2 x y)  -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    GArcCcw (Vec2 i j) (Vec2 x y) -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    GAbsoluteMovement             -> "G90 ; abs0lute movement"
-    GRelativeMovement             -> "G91 ; re1ative movement"
+    GComment comment                             -> "; " <> comment
+
+    G00_LinearRapidMovement x y z                 -> format ("G0 X" % decimal % " Y" % decimal % " Z" % decimal) x y z
+    G01_LinearMovement x y z                      -> format ("G1 X" % decimal % " Y" % decimal % " Z" % decimal) x y z
+    G02_ArcClockwise (Vec2 i j) (Vec2 x y)        -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+    G03_ArcCounterClockwise (Vec2 i j) (Vec2 x y) -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+    G90_AbsoluteMovement                         -> "G90 ; abs0lute movement"
+    G91_RelativeMovement                         -> "G91 ; re1ative movement"
+
+    F_Feedrate f                                 -> format ("F" % decimal) f
 
 renderGCode :: Vector GCode -> Text
 renderGCode = T.unlines . V.toList . fmap renderGCodeElement
@@ -57,8 +58,8 @@ class ToGCode a where
 
 instance ToGCode Circle where
     toGCode (Circle center radius) =
-        [GComment "Move to left of the circle", GLinearMovement, GRapidMovement, GMoveXY (center -. Vec2 radius 0)]
-        <> withLoweredPen [GAbsoluteMovement, GArcCw (Vec2 radius 0) (center +. Vec2 radius 0), GArcCw (Vec2 radius 0) (center +. Vec2 radius 0)]
+        [GComment "Circle", G01_LinearMovement, G00_LinearRapidMovement, GMoveXY (center -. Vec2 radius 0)]
+        <> withLoweredPen [G90_AbsoluteMovement, G02_ArcClockwise (Vec2 radius 0) (center +. Vec2 radius 0), G02_ArcClockwise (Vec2 radius 0) (center +. Vec2 radius 0)]
 
 
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
@@ -66,9 +67,9 @@ instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
       where
         go [] = mempty :: Vector GCode
         go (x:ys) =
-            [ GComment "{ Polyline", GRapidMovement, GAbsoluteMovement, GMoveXY x]
+            [ GComment "{ Polyline", G00_LinearRapidMovement, G90_AbsoluteMovement, GMoveXY x]
             <>
-            withLoweredPen ([GAbsoluteMovement] <> V.fromList [ GMoveXY xy | xy <- ys ])
+            withLoweredPen ([G90_AbsoluteMovement] <> V.fromList [ GMoveXY xy | xy <- ys ])
             <>
             [ GComment "} End polyline" ]
 
