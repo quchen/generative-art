@@ -3,7 +3,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Draw.GCode (
-    renderGCode
+      renderGCode
+    , ToGCode(..)
+    , GCode(..)
 ) where
 
 
@@ -24,9 +26,12 @@ draw :: GCode -> GCode
 draw content = GBlock
     [ G91_RelativeMovement
     , G00_LinearRapidMovement Nothing Nothing (Just (-0.5))
+    , G90_AbsoluteMovement
     , content
     , G91_RelativeMovement
-    , G00_LinearRapidMovement Nothing Nothing (Just 0.5)]
+    , G00_LinearRapidMovement Nothing Nothing (Just 0.5)
+    , G90_AbsoluteMovement
+    ]
 
 data GCode
     = GComment Text
@@ -43,7 +48,7 @@ data GCode
 renderGCode :: GCode -> Text
 renderGCode = \case
     GComment comment -> "; " <> comment
-    GBlock content   -> T.unlines (fmap renderGCode content)
+    GBlock content   -> T.unlines (fmap renderGCode (GComment "{ Block" : content <> [GComment "} Block"]))
     F_Feedrate f     -> format ("F" % decimal) f
 
     G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
@@ -55,11 +60,14 @@ renderGCode = \case
     G02_ArcClockwise i j x y                      -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
     G03_ArcCounterClockwise i j x y               -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
 
-    G90_AbsoluteMovement                          -> "G90 ; abs0lute movement"
-    G91_RelativeMovement                          -> "G91 ; re1ative movement"
+    G90_AbsoluteMovement                          -> "G90"
+    G91_RelativeMovement                          -> "G91"
 
 class ToGCode a where
     toGCode :: a -> GCode
+
+instance ToGCode GCode where
+    toGCode = id
 
 instance ToGCode Circle where
     toGCode (Circle (Vec2 x y) r) =
@@ -67,10 +75,7 @@ instance ToGCode Circle where
         in GBlock
             [ GComment "Circle"
             , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
-            , draw (GBlock
-                [ G90_AbsoluteMovement
-                , G02_ArcClockwise r 0 startX startY
-                ])
+            , draw (G02_ArcClockwise r 0 startX startY)
             ]
 
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
@@ -79,7 +84,6 @@ instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
         go [] = GBlock []
         go (Vec2 startX startY : points) = GBlock
             [ GComment "Polyline"
-            , G90_AbsoluteMovement
             , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
             , draw (GBlock [ G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- points])
             ]
@@ -103,7 +107,6 @@ instance ToGCode Polygon where
     toGCode (Polygon []) = GBlock []
     toGCode (Polygon (p:ps)) = GBlock -- Like polyline, but closes up the shape
         [ GComment "Polygon"
-        , G90_AbsoluteMovement
         , let Vec2 startX startY = p in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
         , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
         ]
@@ -114,7 +117,6 @@ instance ToGCode Polygon where
 instance ToGCode Bezier where
     toGCode bezier@(Bezier a _ _ _) = GBlock
         [ GComment "Bezier (cubic)"
-        , G90_AbsoluteMovement
         , let Vec2 startX startY = a in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
         , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
         ]
