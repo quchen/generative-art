@@ -5,6 +5,7 @@ module Main (main) where
 
 
 import qualified Data.Text                       as T
+import qualified Data.Text.Lazy                       as TL
 import qualified Data.Text.IO                    as T
 import qualified Data.Text.Lazy.IO               as TL
 import           Options.Applicative
@@ -32,9 +33,16 @@ main = do
         Left err -> T.putStrLn ("Parse error: " <> err)
         Right paths -> do
             let scaled = scaleToA4Portrait (G.transform mirrorXCoords (extractPolylines paths))
-                gcode = convertToGcode scaled
+                gcode = GBlock
+                    [ GComment ("Total line length: " <> TL.pack (show (sum (map polyLineLength scaled))))
+                    , GComment ("Number of polylines: " <> TL.pack (show (length scaled)))
+                    , convertToGcode scaled
+                    ]
                 gcodeRaw = renderGCode gcode
             TL.writeFile outputFileG gcodeRaw
+
+polyLineLength :: [Vec2] -> Double
+polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
 
 convertToGcode :: (ToGCode a, HasBoundingBox a) => [a] -> GCode
 convertToGcode polylines =

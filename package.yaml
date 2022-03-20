@@ -26,7 +26,6 @@ dependencies:
     - mwc-random
     - Noise
     - parallel
-    - prettyprinter
     - primitive
     - random
     - text

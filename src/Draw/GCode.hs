@@ -17,11 +17,9 @@ module Draw.GCode (
 
 
 import           Data.Foldable
-import qualified Data.Set                  as S
-import qualified Data.Text.Lazy            as TL
-import           Formatting                hiding (center)
-import           Prettyprinter
-import           Prettyprinter.Render.Text
+import qualified Data.Set       as S
+import qualified Data.Text.Lazy as TL
+import           Formatting     hiding (center)
 
 import Geometry.Bezier
 import Geometry.Core
@@ -93,26 +91,29 @@ addHeaderFooter settings body = GBlock [header, body, footer]
         ]
 
 renderGCode :: GCode -> TL.Text
-renderGCode = renderLazy . layoutPretty defaultLayoutOptions . pretty
+renderGCode = renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
 
-instance Pretty GCode where
-    pretty = \case
-        GComment comment -> pretty ("; " <> comment)
-        GBlock content   -> vsep [pretty (GComment "{"), indent 4 (vsep (map pretty content)), pretty (GComment "}")]
-        F_Feedrate f     -> pretty (format ("F" % decimal) f)
-        M0_Pause         -> "M0 ; Pause/wait for user input"
+renderGcodeIndented :: Int -> GCode -> TL.Text
+renderGcodeIndented !level = \case
+    GComment comment -> indent ("; " <> comment)
+    GBlock content   -> TL.intercalate "\n" (map (renderGcodeIndented (level+1)) content)
+    F_Feedrate f     -> indent (format ("F" % decimal) f)
+    M0_Pause         -> indent "M0 ; Pause/wait for user input"
 
-        G00_LinearRapidMove Nothing Nothing Nothing -> mempty
-        G00_LinearRapidMove x y z                   -> pretty (format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G00_LinearRapidMove Nothing Nothing Nothing -> mempty
+    G00_LinearRapidMove x y z                   -> indent (format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
-        G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
-        G01_LinearFeedrateMove x y z                   -> pretty (format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
+    G01_LinearFeedrateMove x y z                   -> indent (format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
-        G02_ArcClockwise        i j x y -> pretty (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
-        G03_ArcCounterClockwise i j x y -> pretty (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+    G02_ArcClockwise        i j x y -> indent (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+    G03_ArcCounterClockwise i j x y -> indent (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
 
-        G90_AbsoluteMovement -> "G90"
-        G91_RelativeMovement -> "G91"
+    G90_AbsoluteMovement -> indent "G90"
+    G91_RelativeMovement -> indent "G91"
+  where
+    indentation = "    "
+    indent x = TL.replicate (fromIntegral level) indentation <> x
 
 class ToGCode a where
     toGCode :: a -> GCode
