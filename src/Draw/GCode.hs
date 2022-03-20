@@ -24,6 +24,11 @@ import           Geometry.Core
 decimal :: Format r (Double -> r)
 decimal = fixed 3
 
+data PlottingSettings = PlottingSettings
+    { _previewBoundingBox :: Maybe BoundingBox -- ^ Trace this bounding box to preview extents of the plot and wait for confirmation
+    , _feedrate :: Maybe Double -- ^ Either set a feedrate, or have an initial check whether one was set previously
+    } deriving (Eq, Ord, Show)
+
 draw :: GCode -> GCode
 draw content = GBlock
     [ G00_LinearRapidMove Nothing Nothing (Just (-2))
@@ -44,18 +49,38 @@ data GCode
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
-addHeaderFooter :: GCode -> GCode
-addHeaderFooter body = GBlock [header, body, footer]
+addHeaderFooter :: PlottingSettings -> GCode -> GCode
+addHeaderFooter settings body = GBlock [header, body, footer]
   where
+    feedrateCheck = GBlock $ case _feedrate settings of
+        Just f ->
+            [ GComment "Initial feedrate"
+            , F_Feedrate f
+            ]
+        Nothing ->
+            [ GComment "NOOP move to make sure feedrate is already set externally"
+            , G91_RelativeMovement
+            , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
+            , G90_AbsoluteMovement
+            ]
+
+    previewBoundingBox = GBlock $ case _previewBoundingBox settings of
+        Just bb ->
+            [ GComment "Preview bounding box"
+            , toGCode bb
+            , M0_Pause
+            ]
+        Nothing -> []
+
     header = GBlock
-        [ GComment "NOOP move to make sure feedrate is set"
-        , G91_RelativeMovement
-        , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
-        , G90_AbsoluteMovement
+        [ GComment "Header"
+        , feedrateCheck
+        , previewBoundingBox
         ]
 
     footer = GBlock
-        [ GComment "Lift pen"
+        [ GComment "Footer"
+        , GComment "Lift pen"
         , G00_LinearRapidMove Nothing Nothing (Just 10)
         ]
 
@@ -64,7 +89,7 @@ renderGCode = \case
     GComment comment -> "; " <> comment
     GBlock content   -> (T.intercalate "\n" . filter (not . T.null) . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
     F_Feedrate f     -> format ("F" % decimal) f
-    M0_Pause         -> "M0"
+    M0_Pause         -> "M0 ; Pause/wait for user input"
 
     G00_LinearRapidMove Nothing Nothing Nothing -> mempty
     G00_LinearRapidMove x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
