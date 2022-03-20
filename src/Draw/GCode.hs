@@ -34,6 +34,7 @@ data GCode
     = GComment Text
     | GBlock [GCode]
     | F_Feedrate Double
+    | M0_Pause
 
     | G00_LinearRapidMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
     | G01_LinearMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
@@ -42,11 +43,27 @@ data GCode
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
+addHeaderFooter :: GCode -> GCode
+addHeaderFooter body = GBlock [header, body, footer]
+  where
+    header = GBlock
+        [ GComment "NOOP move to make sure feedrate is set"
+        , G91_RelativeMovement
+        , G01_LinearMovement (Just 0) (Just 0) (Just 0)
+        , G90_AbsoluteMovement
+        ]
+
+    footer = GBlock
+        [ GComment "Lift pen"
+        , G00_LinearRapidMovement Nothing Nothing (Just 5)
+        ]
+
 renderGCode :: GCode -> Text
 renderGCode = \case
     GComment comment -> "; " <> comment
     GBlock content   -> (T.unlines . filter (not . T.null) . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
     F_Feedrate f     -> format ("F" % decimal) f
+    M0_Pause         -> "M0"
 
     G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
     G00_LinearRapidMovement x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
@@ -54,11 +71,11 @@ renderGCode = \case
     G01_LinearMovement Nothing Nothing Nothing -> mempty
     G01_LinearMovement x y z                   -> format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
 
-    G02_ArcClockwise i j x y                      -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    G03_ArcCounterClockwise i j x y               -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+    G02_ArcClockwise        i j x y -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+    G03_ArcCounterClockwise i j x y -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
 
-    G90_AbsoluteMovement                          -> "G90"
-    G91_RelativeMovement                          -> "G91"
+    G90_AbsoluteMovement -> "G90"
+    G91_RelativeMovement -> "G91"
 
 class ToGCode a where
     toGCode :: a -> GCode
@@ -108,9 +125,9 @@ instance ToGCode Polygon where
         , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
         ]
 
--- | FluidNC doesn’t support G05, so we approximage them with line pieces. We use
--- the naive Bezier interpolation 'bezierSubdivideT', because it just so happens to
--- put more points in places with more curvature.
+-- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
+-- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
+-- happens to put more points in places with more curvature.
 instance ToGCode Bezier where
     toGCode bezier@(Bezier a _ _ _) = GBlock
         [ GComment "Bezier (cubic)"
