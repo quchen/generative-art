@@ -83,6 +83,16 @@ class ToGCode a where
 instance ToGCode GCode where
     toGCode = id
 
+-- | Trace the bounding box without actually drawing anything to estimate result size
+instance ToGCode BoundingBox where
+    toGCode (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = GBlock
+        [ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+        , G00_LinearRapidMove (Just xMax) (Just yMin) Nothing
+        , G00_LinearRapidMove (Just xMax) (Just yMax) Nothing
+        , G00_LinearRapidMove (Just xMin) (Just yMax) Nothing
+        , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+        ]
+
 instance ToGCode Circle where
     toGCode (Circle (Vec2 x y) r) =
         let (startX, startY) = (x-r, y)
@@ -92,6 +102,7 @@ instance ToGCode Circle where
             , draw (G02_ArcClockwise r 0 startX startY)
             ]
 
+-- | Polyline
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
     toGCode = go . toList
       where
@@ -102,18 +113,23 @@ instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
             , draw (GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points])
             ]
 
+-- | Draw each element separately. Note the overlap with the Polyline instance, which takes precedence.
 instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, ToGCode a) => ToGCode (f a) where
     toGCode x = GBlock (GComment "Sequential" : toList (fmap toGCode x))
 
+-- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b) => ToGCode (a,b) where
     toGCode (a,b) = GBlock [GComment "2-tuple", toGCode a, toGCode b]
 
+-- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c) => ToGCode (a,b,c) where
     toGCode (a,b,c) = GBlock [GComment "3-tuple", toGCode a, toGCode b, toGCode c]
 
+-- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d) => ToGCode (a,b,c,d) where
     toGCode (a,b,c,d) = GBlock [GComment "4-tuple", toGCode a, toGCode b, toGCode c, toGCode d]
 
+-- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d, ToGCode e) => ToGCode (a,b,c,d,e) where
     toGCode (a,b,c,d,e) = GBlock [GComment "5-tuple", toGCode a, toGCode b, toGCode c, toGCode d, toGCode e]
 
