@@ -141,6 +141,14 @@ instance ToGCode Circle where
             , draw (G02_ArcClockwise r 0 startX startY)
             ]
 
+-- | Approximation by a number of points
+instance ToGCode Ellipse where
+    toGCode (Ellipse trafo) =
+        let subdivisions = 64
+            angleStepSize = 360/subdivisions
+            unitCirclePoints = [polar (deg angle) 1 | angle <- takeWhile (<360) [0, angleStepSize ..]]
+        in toGCode (Polygon (transform trafo unitCirclePoints))
+
 -- | Polyline
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
     toGCode = go . toList
