@@ -17,11 +17,15 @@ module Draw.GCode (
 
 
 import           Data.Foldable
-import qualified Data.Set        as S
-import qualified Data.Text.Lazy  as TL
-import           Formatting      hiding (center)
-import           Geometry.Bezier
-import           Geometry.Core
+import qualified Data.Set                  as S
+import qualified Data.Text.Lazy            as TL
+import           Formatting                hiding (center)
+import           Prettyprinter
+import           Prettyprinter.Render.Text
+
+import Geometry.Bezier
+import Geometry.Core
+
 
 
 
@@ -89,23 +93,26 @@ addHeaderFooter settings body = GBlock [header, body, footer]
         ]
 
 renderGCode :: GCode -> TL.Text
-renderGCode = \case
-    GComment comment -> "; " <> comment
-    GBlock content   -> (TL.intercalate "\n" . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
-    F_Feedrate f     -> format ("F" % decimal) f
-    M0_Pause         -> "M0 ; Pause/wait for user input"
+renderGCode = renderLazy . layoutPretty defaultLayoutOptions . pretty
 
-    G00_LinearRapidMove Nothing Nothing Nothing -> mempty
-    G00_LinearRapidMove x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
+instance Pretty GCode where
+    pretty = \case
+        GComment comment -> pretty ("; " <> comment)
+        GBlock content   -> vsep [pretty (GComment "{"), indent 4 (vsep (map pretty content)), pretty (GComment "}")]
+        F_Feedrate f     -> pretty (format ("F" % decimal) f)
+        M0_Pause         -> "M0 ; Pause/wait for user input"
 
-    G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
-    G01_LinearFeedrateMove x y z                   -> format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
+        G00_LinearRapidMove Nothing Nothing Nothing -> mempty
+        G00_LinearRapidMove x y z                   -> pretty (format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
-    G02_ArcClockwise        i j x y -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
-    G03_ArcCounterClockwise i j x y -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
+        G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
+        G01_LinearFeedrateMove x y z                   -> pretty (format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
-    G90_AbsoluteMovement -> "G90"
-    G91_RelativeMovement -> "G91"
+        G02_ArcClockwise        i j x y -> pretty (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+        G03_ArcCounterClockwise i j x y -> pretty (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+
+        G90_AbsoluteMovement -> "G90"
+        G91_RelativeMovement -> "G91"
 
 class ToGCode a where
     toGCode :: a -> GCode
