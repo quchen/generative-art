@@ -9,11 +9,15 @@ module Draw.GCode (
     , draw
     , ToGCode(..)
     , GCode(..)
+
+    -- * Utilities
+    , sortByMinimumPenHovering
 ) where
 
 
 
 import           Data.Foldable
+import qualified Data.Set        as S
 import qualified Data.Text.Lazy  as TL
 import           Formatting      hiding (center)
 import           Geometry.Bezier
@@ -42,10 +46,10 @@ data GCode
     | F_Feedrate Double
     | M0_Pause
 
-    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
-    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
-    | G02_ArcClockwise Double Double Double Double -- ^ I,J ; X,Y
-    | G03_ArcCounterClockwise Double Double Double Double -- ^ I,J ; X,Y
+    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G0 X Y Z
+    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 X Y Z
+    | G02_ArcClockwise Double Double Double Double -- ^ G02 I J X Y
+    | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
@@ -177,3 +181,26 @@ instance ToGCode Bezier where
         , let Vec2 startX startY = a in G00_LinearRapidMove (Just startX) (Just startY) Nothing
         , draw (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
         ]
+
+minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
+minimumOn f xs
+    | null xs = Nothing
+    | otherwise = Just (minimumBy (\x y -> compare (f x) (f y)) xs)
+
+-- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
+-- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,
+-- although this algorithm here is \(\mathcal O(n^2)\).
+sortByMinimumPenHovering :: S.Set [Vec2] -> [[Vec2]]
+sortByMinimumPenHovering = go (Vec2 0 0)
+  where
+    go penPos pool =
+        let closestNextLine = minimumOn (\candidate -> norm (head candidate -. penPos) `min` norm (last candidate -. penPos)) pool
+        in case closestNextLine of
+            Nothing -> []
+            Just l ->
+                let rightWayRound = if norm (head l -. penPos) > norm (last l -. penPos)
+                        then reverse l
+                        else l
+                    remainingPool = S.delete l pool
+                    newPenPos = last rightWayRound
+                in rightWayRound : go newPenPos remainingPool
