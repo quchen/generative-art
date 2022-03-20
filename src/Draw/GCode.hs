@@ -25,9 +25,9 @@ decimal = fixed 3
 
 draw :: GCode -> GCode
 draw content = GBlock
-    [ G00_LinearRapidMovement Nothing Nothing (Just (-2))
+    [ G00_LinearRapidMove Nothing Nothing (Just (-2))
     , content
-    , G00_LinearRapidMovement Nothing Nothing (Just 2)
+    , G00_LinearRapidMove Nothing Nothing (Just 2)
     ]
 
 data GCode
@@ -36,8 +36,8 @@ data GCode
     | F_Feedrate Double
     | M0_Pause
 
-    | G00_LinearRapidMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
-    | G01_LinearMovement (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
+    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
+    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ X, Y, Z
     | G02_ArcClockwise Double Double Double Double -- ^ I,J ; X,Y
     | G03_ArcCounterClockwise Double Double Double Double -- ^ I,J ; X,Y
     | G90_AbsoluteMovement
@@ -49,13 +49,13 @@ addHeaderFooter body = GBlock [header, body, footer]
     header = GBlock
         [ GComment "NOOP move to make sure feedrate is set"
         , G91_RelativeMovement
-        , G01_LinearMovement (Just 0) (Just 0) (Just 0)
+        , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
         , G90_AbsoluteMovement
         ]
 
     footer = GBlock
         [ GComment "Lift pen"
-        , G00_LinearRapidMovement Nothing Nothing (Just 5)
+        , G00_LinearRapidMove Nothing Nothing (Just 10)
         ]
 
 renderGCode :: GCode -> Text
@@ -65,11 +65,11 @@ renderGCode = \case
     F_Feedrate f     -> format ("F" % decimal) f
     M0_Pause         -> "M0"
 
-    G00_LinearRapidMovement Nothing Nothing Nothing -> mempty
-    G00_LinearRapidMovement x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
+    G00_LinearRapidMove Nothing Nothing Nothing -> mempty
+    G00_LinearRapidMove x y z                   -> format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
 
-    G01_LinearMovement Nothing Nothing Nothing -> mempty
-    G01_LinearMovement x y z                   -> format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
+    G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
+    G01_LinearFeedrateMove x y z                   -> format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z
 
     G02_ArcClockwise        i j x y -> format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
     G03_ArcCounterClockwise i j x y -> format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j
@@ -88,7 +88,7 @@ instance ToGCode Circle where
         let (startX, startY) = (x-r, y)
         in GBlock
             [ GComment "Circle"
-            , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
+            , G00_LinearRapidMove (Just startX) (Just startY) Nothing
             , draw (G02_ArcClockwise r 0 startX startY)
             ]
 
@@ -98,8 +98,8 @@ instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
         go [] = GBlock []
         go (Vec2 startX startY : points) = GBlock
             [ GComment "Polyline"
-            , G00_LinearRapidMovement (Just startX) (Just startY) Nothing
-            , draw (GBlock [ G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- points])
+            , G00_LinearRapidMove (Just startX) (Just startY) Nothing
+            , draw (GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points])
             ]
 
 instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, ToGCode a) => ToGCode (f a) where
@@ -121,8 +121,8 @@ instance ToGCode Polygon where
     toGCode (Polygon []) = GBlock []
     toGCode (Polygon (p:ps)) = GBlock -- Like polyline, but closes up the shape
         [ GComment "Polygon"
-        , let Vec2 startX startY = p in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
-        , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
+        , let Vec2 startX startY = p in G00_LinearRapidMove (Just startX) (Just startY) Nothing
+        , draw (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
         ]
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
@@ -131,6 +131,6 @@ instance ToGCode Polygon where
 instance ToGCode Bezier where
     toGCode bezier@(Bezier a _ _ _) = GBlock
         [ GComment "Bezier (cubic)"
-        , let Vec2 startX startY = a in G00_LinearRapidMovement (Just startX) (Just startY) Nothing
-        , draw (GBlock [G01_LinearMovement (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
+        , let Vec2 startX startY = a in G00_LinearRapidMove (Just startX) (Just startY) Nothing
+        , draw (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
         ]
