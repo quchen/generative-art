@@ -9,6 +9,7 @@ import qualified Data.Text.Lazy                       as TL
 import qualified Data.Text.IO                    as T
 import qualified Data.Text.Lazy.IO               as TL
 import           Options.Applicative
+import Data.List
 
 import           Draw
 import           Draw.GCode
@@ -58,11 +59,15 @@ convertToGcode polylines =
 extractPolylines :: [[Either Line noBeziersPlease]] -> [[Vec2]]
 extractPolylines paths =
     let svgLines = map (\path -> map (\(Left p) -> p) path) paths
-        lineListToPolyline :: [Line] -> [Vec2]
-        lineListToPolyline [] = []
-        lineListToPolyline (Line x y : xs) = x : y : [end | Line _ end <- xs]
-        polylines = map lineListToPolyline svgLines
+        polylines = map (removeDuplicates . connectedLinesToPolyline) svgLines
     in polylines
+
+connectedLinesToPolyline :: [Line] -> [Vec2]
+connectedLinesToPolyline [] = []
+connectedLinesToPolyline xs@(Line start _ : _) = start : [end | Line _ end <- xs]
+
+removeDuplicates :: Eq a => [a] -> [a]
+removeDuplicates = map head . group
 
 data Options = Options
     { _inputFileSvg :: FilePath
