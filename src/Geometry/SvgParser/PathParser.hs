@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Geometry.SvgPathParser (parse) where
+-- | Parse an SVG path, as see in the <g> element, such as
+-- @M413.654,295.115c0,0-1.283-13.865,12.717-19.615@.
+module Geometry.SvgParser.PathParser (parse) where
 
 
 
@@ -20,6 +22,7 @@ import Geometry.Core
 
 
 
+-- | Run a parser, and discard any whitespace after it.
 lexeme :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text a
 lexeme  = MP.label "" . MPCLex.lexeme MPC.space
 
@@ -31,7 +34,11 @@ char_ :: Ord err => Char -> MP.Parsec err Text ()
 char_ c = lexeme (MPC.char c) $> ()
 
 vec2 :: Ord err => MP.Parsec err Text Vec2
-vec2 = Vec2 <$> double <*> double
+vec2 = MP.label "position (x,y)" $ do
+    x <- double
+    MP.option () (char_ ',')
+    y <- double
+    pure (Vec2 x y)
 
 data AbsRel = Absolute | Relative
     deriving (Eq, Ord, Show)
