@@ -10,6 +10,7 @@ import qualified Data.Text.IO        as T
 import qualified Data.Text.Lazy      as TL
 import qualified Data.Text.Lazy.IO   as TL
 import           Options.Applicative
+import           System.Exit
 
 import Draw
 import Draw.GCode
@@ -32,7 +33,7 @@ main = do
     inputSvg <- T.readFile (_inputFileSvg options)
     let inputLines = T.lines inputSvg
     case traverse parse inputLines of
-        Left err -> T.putStrLn ("Parse error: " <> err)
+        Left err -> T.putStrLn ("Parse error: " <> err) >> exitWith (ExitFailure 1)
         Right svgElementsYflipped -> do
             let svgElements = G.transform mirrorYCoords svgElementsYflipped
             let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
