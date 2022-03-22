@@ -20,6 +20,7 @@ import Geometry.SvgParser.Common
 
 
 
+
 data SimpleShape
     = SvgLine Line
     | SvgCircle Circle

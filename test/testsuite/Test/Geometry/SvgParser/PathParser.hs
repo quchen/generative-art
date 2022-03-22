@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.Uncategorized.SvgParser.PathParser (tests) where
+module Test.Geometry.SvgParser.PathParser (tests) where
 
 
 
