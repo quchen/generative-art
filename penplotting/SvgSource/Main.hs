@@ -10,6 +10,7 @@ import qualified Data.Text.IO                    as T
 import qualified Data.Text.Lazy.IO               as TL
 import           Options.Applicative
 import Data.List
+import Data.Functor
 
 import           Draw
 import           Draw.GCode
@@ -88,30 +89,24 @@ data Options = Options
 commandLineOptions :: IO Options
 commandLineOptions = execParser parserOpts
   where
-    progOpts = Options
-        <$> strOption   (mconcat
+    progOpts = (\i o (x,y) margin -> Options i o x y margin)
+        <$> strOption (mconcat
             [ long "input"
             , short 'f'
             , metavar "<file>"
             , help "Input SVG file"
             ])
-        <*> strOption   (mconcat
+        <*> strOption (mconcat
             [ long "output"
             , short 'o'
             , metavar "<file>"
             , help "Output GCode file"
             ])
-        <*> option auto (mconcat
-            [ long "width"
-            , short 'w'
+        <*> option sizeReader (mconcat
+            [ long "size"
+            , short 's'
             , metavar "[mm]"
-            , help "Output width, e.g. 271 for DIN A4 (landscape)"
-            ])
-        <*> option auto (mconcat
-            [ long "height"
-            , short 'h'
-            , metavar "[mm]"
-            , help "Output height, e.g. 210 for DIN A4 (landscape)"
+            , help "Output size, e.g. 271x210 for DIN A4 (landscape)"
             ])
         <*> option auto (mconcat
             [ long "margin"
@@ -125,3 +120,19 @@ commandLineOptions = execParser parserOpts
       ( fullDesc
      <> progDesc "Convert SVG to GCode"
      <> header "Not that much of SVG is supported, bear with me…" )
+
+    sizeReader :: ReadM (Double, Double)
+    sizeReader = widthXheight <|> paperFormat
+      where
+        widthXheight = do
+            w <- auto
+            _ <- eitherReader $ \case
+                "x" -> Right ()
+                _ -> Left "x expected"
+            h <- auto
+            pure (w,h)
+
+        paperFormat = eitherReader $ \case
+            "a4-landscape" -> Right (271, 210)
+            "a4-portrait" -> Right (210, 271)
+            other -> Left ("Unrecognized paper format: " <> other)
