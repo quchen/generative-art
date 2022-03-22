@@ -20,12 +20,6 @@ import Geometry.SvgParser
 
 
 
-scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
-scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def
-  where
-    Options{_margin=margin, _height=height, _width=width} = options
-    margin2 = Vec2 margin margin
-
 main :: IO ()
 main = do
     options <- commandLineOptions
@@ -44,32 +38,28 @@ main = do
                     . filter (\(len, _) -> len >= 1)
                     . map (\polyline -> (polyLineLength polyline, polyline))
                     . transformAll
-                    . extractPolylines
-                    . concat
-                    $ [path | SvgPath path <- svgElements]
-                simpleLines = transformAll [line | SvgLine line <- svgElements]
-                simpleEllipses = transformAll [ellipse | SvgEllipse ellipse <- svgElements]
+                    . concatMap pathToPolyline
+                    $ svgElements
 
-                numElements = length paths + length simpleLines + length simpleEllipses
-                totalLength = sum
-                    [ sum (map polyLineLength paths)
-                    , sum (map lineLength simpleLines)
-                    , sum (map circumferenceEllipse simpleEllipses)
-                    ]
+                numElements = length paths
+                totalLength = sum (map polyLineLength paths)
 
                 gcode = GBlock
                     [ GComment ("Total line length: " <> TL.pack (show totalLength))
                     , GComment ("Number of elements to draw: " <> TL.pack (show numElements))
-                    , convertToGcode (simpleLines, simpleEllipses, paths)
+                    , convertToGcode paths
                     ]
                 gcodeRaw = renderGCode gcode
             TL.writeFile (_outputFileG options) gcodeRaw
 
+scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
+scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def
+  where
+    Options{_margin=margin, _height=height, _width=width} = options
+    margin2 = Vec2 margin margin
+
 polyLineLength :: [Vec2] -> Double
 polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
-
-circumferenceEllipse :: Ellipse -> Double
-circumferenceEllipse (Ellipse e) = polygonCircumference (transform e (regularPolygon 100)) -- lol
 
 convertToGcode :: (ToGCode a, HasBoundingBox a) => a -> GCode
 convertToGcode elements =
@@ -80,18 +70,17 @@ convertToGcode elements =
         gcode = addHeaderFooter plottingSettings (toGCode elements)
     in gcode
 
+pathToPolyline :: SvgElement -> [[Vec2]]
+pathToPolyline (SvgPath paths) = map pathToLineSegments paths
+pathToPolyline (SvgLine (Line x y)) = [[x,y]]
+pathToPolyline (SvgEllipse (Ellipse e)) = transform e [[x,y] | Line x y <- polygonEdges (regularPolygon 128)]
+
 pathToLineSegments :: [Either Line Bezier] -> [Vec2]
 pathToLineSegments [] = []
 pathToLineSegments [Left (Line x y)] = [x,y]
 pathToLineSegments (Left (Line x _) : xs) = x : pathToLineSegments xs
 pathToLineSegments [Right bezier] = bezierSubdivideT 32 bezier
 pathToLineSegments (Right bezier : xs) = init (bezierSubdivideT 32 bezier) ++ pathToLineSegments xs
-
-extractPolylines :: [[Either Line Bezier]] -> [[Vec2]]
-extractPolylines paths = map (removeDuplicates . pathToLineSegments) paths
-
-removeDuplicates :: Eq a => [a] -> [a]
-removeDuplicates = map head . group
 
 data Options = Options
     { _inputFileSvg :: FilePath
@@ -125,27 +114,27 @@ commandLineOptions = execParser parserOpts
                 , metavar "[mm]"
                 , help "Output size, format: <width>x<height>"
                 ]
-            , flag' (297, 210) $ mconcat
+            , flag' (paper_a4_long, paper_a4_short) $ mconcat
                 [ long "a4-landscape"
                 , help "DIN A4, landscape orientation (271 mm × 210 mm)"
                 ]
-            , flag' (210, 297) $ mconcat
+            , flag' (paper_a4_short, paper_a4_long) $ mconcat
                 [ long "a4-portrait"
                 , help "DIN A4, portrait orientation (210 mm × 271 mm)"
                 ]
-            , flag' (420, 297) $ mconcat
+            , flag' (paper_a3_long, paper_a3_short) $ mconcat
                 [ long "a3-landscape"
                 , help "DIN A3, landscape orientation (420 mm × 271 mm)"
                 ]
-            , flag' (297, 420) $ mconcat
+            , flag' (paper_a3_short, paper_a3_long) $ mconcat
                 [ long "a3-portrait"
                 , help "DIN A3, portrait orientation (271 mm × 420 mm)"
                 ]
-            , flag' (594, 420) $ mconcat
+            , flag' (paper_a2_long, paper_a2_short) $ mconcat
                 [ long "a2-landscape"
                 , help "DIN A2, landscape orientation (594 mm × 420 mm)"
                 ]
-            , flag' (420, 594) $ mconcat
+            , flag' (paper_a2_short, paper_a2_long) $ mconcat
                 [ long "a2-portrait"
                 , help "DIN A2, portrait orientation (420 mm × 594 mm)"
                 ]
@@ -172,3 +161,11 @@ commandLineOptions = execParser parserOpts
                 _ -> Left "expected width/height separator: x"
             h <- auto
             pure (w,h)
+
+paper_a4_long, paper_a4_short, paper_a3_short, paper_a3_long, paper_a2_short, paper_a2_long :: Double
+paper_a4_long = 297
+paper_a4_short = 210
+paper_a3_short = paper_a4_long
+paper_a3_long = 420
+paper_a2_short = paper_a3_long
+paper_a2_long = 594
