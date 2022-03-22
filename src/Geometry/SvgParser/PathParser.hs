@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Parse an SVG path, as see in the <g> element, such as
 -- @M413.654,295.115c0,0-1.283-13.865,12.717-19.615@.
@@ -19,19 +18,9 @@ import qualified Text.Megaparsec.Char.Lexer as MPCLex
 
 import Geometry.Bezier
 import Geometry.Core
+import Geometry.SvgParser.Common
 
 
-
--- | Run a parser, and discard any whitespace after it.
-lexeme :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text a
-lexeme  = MP.label "" . MPCLex.lexeme MPC.space
-
-double :: Ord err => MP.Parsec err Text Double
-double = MP.label "number" $ lexeme $ MPCLex.signed (pure ()) $
-    MP.try MPCLex.float <|> fmap fromIntegral MPCLex.decimal
-
-char_ :: Ord err => Char -> MP.Parsec err Text ()
-char_ c = lexeme (MPC.char c) $> ()
 
 vec2 :: Ord err => MP.Parsec err Text Vec2
 vec2 = MP.label "position (x,y)" $ do
@@ -149,9 +138,6 @@ closePath = MP.label "close path (zZ)" $ do
     pure $ do
         DrawState (Start start) (Current current) _ <- get
         put (DrawState (Start start) (Current start) Nothing) $> Line current start
-
-instance MP.ShowErrorComponent Text where
-    showErrorComponent = show
 
 parse :: Text -> Either Text [[Either Line Bezier]]
 parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.eof) sourceFile input of
