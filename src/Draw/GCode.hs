@@ -38,9 +38,9 @@ data PlottingSettings = PlottingSettings
 
 draw :: GCode -> GCode
 draw content = flatten $ GBlock
-    [ G00_LinearRapidMove Nothing Nothing (Just (-2))
+    [ G00_LinearRapidMove Nothing Nothing (Just (-1))
     , content
-    , G00_LinearRapidMove Nothing Nothing (Just 2)
+    , G00_LinearRapidMove Nothing Nothing (Just 1)
     ]
 
 data GCode
