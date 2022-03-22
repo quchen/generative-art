@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Geometry.SvgParser (parse) where
+module Geometry.SvgParser (parse, SvgElement(..)) where
 
 
 
@@ -19,6 +19,12 @@ data SvgElement
     | SvgCircle Circle
     | SvgEllipse Ellipse
     | SvgPath [[Either Line Bezier]]
+
+instance HasBoundingBox SvgElement where
+    boundingBox (SvgLine x) = boundingBox x
+    boundingBox (SvgCircle x) = boundingBox x
+    boundingBox (SvgEllipse x) = boundingBox x
+    boundingBox (SvgPath x) = boundingBox x
 
 parse :: Text -> Either Text SvgElement
 parse input = case PathParser.parse input of
