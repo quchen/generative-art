@@ -118,10 +118,13 @@ module Geometry.Core (
 import           Algebra.Group
 import           Algebra.VectorSpace
 import           Control.DeepSeq
+import           Data.Bifoldable
+import           Data.Bifunctor
 import           Data.Default.Class
 import           Data.Fixed
 import           Data.Foldable
 import           Data.List
+import qualified Data.Map            as M
 import qualified Data.Set            as S
 import qualified System.Random.MWC   as MWC
 import           Text.Printf
@@ -344,12 +347,19 @@ instance Transform Polygon where
 instance Transform Transformation where
     transform = (<>)
 
-instance {-# OVERLAPPABLE #-} (Transform a, Functor f) => Transform (f a) where
+instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, Transform a) => Transform (f a) where
+                            -- Sequential so we don’t clash with the surprising Foldables such as tuples and Either
     transform t = fmap (transform t)
 
 -- | Points mapped to the same point will unify to a single entry
 instance (Ord a, Transform a) => Transform (S.Set a) where
     transform t = S.map (transform t)
+
+instance Transform a => Transform (M.Map k a) where
+    transform t = fmap (transform t)
+
+instance {-# OVERLAPPING #-} (Transform a, Transform b) => Transform (Either a b) where
+    transform t = bimap (transform t) (transform t)
 
 instance {-# OVERLAPPING #-} (Transform a, Transform b) => Transform (a,b) where
     transform t (a,b) = (transform t a, transform t b)
@@ -610,19 +620,29 @@ instance HasBoundingBox BoundingBox where
 instance HasBoundingBox Vec2 where
     boundingBox v = BoundingBox v v
 
-instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
+instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (Either a b) where
+    boundingBox = bifoldMap boundingBox boundingBox
+
+instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (a,b) where
     boundingBox (a,b) = boundingBox a <> boundingBox b
 
-instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c) => HasBoundingBox (a,b,c) where
     boundingBox (a,b,c) = boundingBox a <> boundingBox b <> boundingBox c
 
-instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d) => HasBoundingBox (a,b,c,d) where
     boundingBox (a,b,c,d) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d
 
-instance {-# OVERLAPPING #-} (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
+instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
     boundingBox (a,b,c,d,e) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d <> boundingBox e
 
-instance {-# OVERLAPPABLE #-} (Foldable f, HasBoundingBox a) => HasBoundingBox (f a) where
+instance {-# OVERLAPPABLE #-} (Sequential f, HasBoundingBox a) => HasBoundingBox (f a) where
+                            -- Sequential so we don’t clash with the surprising Foldables such as tuples and Either
+    boundingBox = foldMap boundingBox
+
+instance (HasBoundingBox a) => HasBoundingBox (S.Set a) where
+    boundingBox = foldMap boundingBox
+
+instance (HasBoundingBox a) => HasBoundingBox (M.Map k a) where
     boundingBox = foldMap boundingBox
 
 instance HasBoundingBox Line where
