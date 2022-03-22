@@ -5,7 +5,7 @@
 -- LINE x1=0 y1=80 x2=100 y2=20
 -- CIRCLE cx=100 cy=50 r=100
 -- ELLIPSE cx=100 cy=50 rx=100 ry=50
-module Geometry.SvgParser.SimpleShapes (parse) where
+module Geometry.SvgParser.SimpleShapes (parse, SimpleShape(..)) where
 
 
 
@@ -41,7 +41,7 @@ parseSimpleShape = asum
     ]
 
 parseLine :: MP.Parsec Text Text Line
-parseLine = do
+parseLine = MP.label "line (x1,y1,x2,y2)" $ do
     _ <- lexeme (MPC.string "LINE")
     x1 <- assignedValue "x1"
     y1 <- assignedValue "y1"
@@ -50,7 +50,7 @@ parseLine = do
     pure (Line (Vec2 x1 y1) (Vec2 x2 y2))
 
 parseCircle :: MP.Parsec Text Text Circle
-parseCircle = do
+parseCircle = MP.label "circle (cx,cy,r)" $ do
     _ <- lexeme (MPC.string "CIRCLE")
     cx <- assignedValue "cx"
     cy <- assignedValue "cy"
@@ -58,7 +58,7 @@ parseCircle = do
     pure (Circle (Vec2 cx cy) r)
 
 parseEllipse :: MP.Parsec Text Text Ellipse
-parseEllipse = do
+parseEllipse = MP.label "ellipse (cx,cy,rx,ry)" $ do
     _ <- lexeme (MPC.string "ELLIPSE")
     cx <- assignedValue "cx"
     cy <- assignedValue "cy"

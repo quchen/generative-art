@@ -14,7 +14,6 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import qualified Text.Megaparsec            as MP
 import qualified Text.Megaparsec.Char       as MPC
-import qualified Text.Megaparsec.Char.Lexer as MPCLex
 
 import Geometry.Bezier
 import Geometry.Core
