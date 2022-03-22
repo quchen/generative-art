@@ -11,6 +11,7 @@ import qualified Data.Text.Lazy.IO               as TL
 import           Options.Applicative
 import Data.List
 import Data.Functor
+import System.Exit
 
 import           Draw
 import           Draw.GCode
@@ -28,6 +29,8 @@ scaleToFit options geo = G.transform (G.transformBoundingBox geo (Vec2 0 0 +. ma
 main :: IO ()
 main = do
     options <- commandLineOptions
+    print options
+    exitWith (ExitFailure 123)
     inputSvg <- T.readFile (_inputFileSvg options)
     let inputLines = T.lines inputSvg
     case fmap concat (traverse parse inputLines) of
@@ -102,18 +105,44 @@ commandLineOptions = execParser parserOpts
             , metavar "<file>"
             , help "Output GCode file"
             ])
-        <*> option sizeReader (mconcat
-            [ long "size"
-            , short 's'
-            , metavar "[mm]"
-            , help "Output size, e.g. 271x210 for DIN A4 (landscape)"
-            ])
+        <*> asum
+            [ option sizeReader $ mconcat
+                [ long "size"
+                , short 's'
+                , metavar "[mm]"
+                , help "Output size, format: <width>x<height>"
+                ]
+            , flag' (297, 210) $ mconcat
+                [ long "a4-landscape"
+                , help "DIN A4, landscape orientation (271 mm × 210 mm)"
+                ]
+            , flag' (210, 297) $ mconcat
+                [ long "a4-portrait"
+                , help "DIN A4, portrait orientation (210 mm × 271 mm)"
+                ]
+            , flag' (420, 297) $ mconcat
+                [ long "a3-landscape"
+                , help "DIN A3, landscape orientation (420 mm × 271 mm)"
+                ]
+            , flag' (297, 420) $ mconcat
+                [ long "a3-portrait"
+                , help "DIN A3, portrait orientation (271 mm × 420 mm)"
+                ]
+            , flag' (594, 420) $ mconcat
+                [ long "a2-landscape"
+                , help "DIN A2, landscape orientation (594 mm × 420 mm)"
+                ]
+            , flag' (420, 594) $ mconcat
+                [ long "a2-portrait"
+                , help "DIN A2, portrait orientation (420 mm × 594 mm)"
+                ]
+            ]
         <*> option auto (mconcat
             [ long "margin"
             , metavar "[mm]"
-            , value 0
-            , showDefault
-            , help "Margin; ensure this much blank space to the edge of the output"
+            , value 10
+            , showDefaultWith (\x -> show x <> " mm")
+            , help "Ensure this much blank space to the edge"
             ])
 
     parserOpts = info (progOpts <**> helper)
@@ -122,17 +151,11 @@ commandLineOptions = execParser parserOpts
      <> header "Not that much of SVG is supported, bear with me…" )
 
     sizeReader :: ReadM (Double, Double)
-    sizeReader = widthXheight <|> paperFormat
-      where
-        widthXheight = do
+    sizeReader = do
             w <- auto
             _ <- eitherReader $ \case
                 "x" -> Right ()
-                _ -> Left "x expected"
+                "×" -> Right ()
+                _ -> Left "expected width/height separator: x"
             h <- auto
             pure (w,h)
-
-        paperFormat = eitherReader $ \case
-            "a4-landscape" -> Right (271, 210)
-            "a4-portrait" -> Right (210, 271)
-            other -> Left ("Unrecognized paper format: " <> other)
