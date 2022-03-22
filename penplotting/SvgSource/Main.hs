@@ -18,17 +18,16 @@ import           Geometry.SvgPathParser
 
 
 
-scaleToA4Portrait :: (Transform geo, HasBoundingBox geo) => geo -> geo
-scaleToA4Portrait geo = G.transform (G.transformBoundingBox geo (Vec2 0 0 +. margin, Vec2 a4width_mm a4height_mm -. margin) def) geo
+scaleToFit :: (Transform geo, HasBoundingBox geo) => Options -> geo -> geo
+scaleToFit options geo = G.transform (G.transformBoundingBox geo (Vec2 0 0 +. margin2, Vec2 width height -. margin2) def) geo
   where
-    margin = Vec2 10 10
-    a4height_mm = 210
-    a4width_mm = 297
+    Options{_margin=margin, _height=height, _width=width} = options
+    margin2 = Vec2 margin margin
 
 main :: IO ()
 main = do
-    Options {_inputFileSvg=inputFileSvg, _outputFileG=outputFileG} <- commandLineOptions
-    inputSvg <- T.readFile inputFileSvg
+    options <- commandLineOptions
+    inputSvg <- T.readFile (_inputFileSvg options)
     let inputLines = T.lines inputSvg
     case fmap concat (traverse parse inputLines) of
         Left err -> T.putStrLn ("Parse error: " <> err)
@@ -38,7 +37,7 @@ main = do
                     . sortBy (\(len1, _) (len2, _) -> compare len1 len2)
                     . filter (\(len, _) -> len >= 1)
                     . map (\polyline -> (polyLineLength polyline, polyline))
-                    . scaleToA4Portrait
+                    . scaleToFit options
                     . G.transform mirrorYCoords
                     . extractPolylines
                     $ paths
@@ -48,7 +47,7 @@ main = do
                     , convertToGcode scaled
                     ]
                 gcodeRaw = renderGCode gcode
-            TL.writeFile outputFileG gcodeRaw
+            TL.writeFile (_outputFileG options) gcodeRaw
 
 polyLineLength :: [Vec2] -> Double
 polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
@@ -80,22 +79,48 @@ removeDuplicates = map head . group
 data Options = Options
     { _inputFileSvg :: FilePath
     , _outputFileG :: FilePath
+
+    , _width :: Double
+    , _height :: Double
+    , _margin :: Double
     } deriving (Eq, Ord, Show)
 
 commandLineOptions :: IO Options
 commandLineOptions = execParser parserOpts
   where
     progOpts = Options
-        <$> strOption (
-               long "input"
-            <> short 'f'
-            <> metavar "FILE"
-            <> help "Input SVG file")
-        <*> strOption (
-               long "output"
-            <> short 'o'
-            <> metavar "FILE"
-            <> help "Output GCode file")
+        <$> strOption   (mconcat
+            [ long "input"
+            , short 'f'
+            , metavar "<file>"
+            , help "Input SVG file"
+            ])
+        <*> strOption   (mconcat
+            [ long "output"
+            , short 'o'
+            , metavar "<file>"
+            , help "Output GCode file"
+            ])
+        <*> option auto (mconcat
+            [ long "width"
+            , short 'w'
+            , metavar "[mm]"
+            , help "Output width, e.g. 271 for DIN A4 (landscape)"
+            ])
+        <*> option auto (mconcat
+            [ long "height"
+            , short 'h'
+            , metavar "[mm]"
+            , help "Output height, e.g. 210 for DIN A4 (landscape)"
+            ])
+        <*> option auto (mconcat
+            [ long "margin"
+            , metavar "[mm]"
+            , value 0
+            , showDefault
+            , help "Margin; ensure this much blank space to the edge of the output"
+            ])
+
     parserOpts = info (progOpts <**> helper)
       ( fullDesc
      <> progDesc "Convert SVG to GCode"
