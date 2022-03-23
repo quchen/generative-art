@@ -87,7 +87,7 @@ skipGen0 = testVisual "Omitting the generation 0 circles" 300 300 "docs/apolloni
 
     for_ (zip [1..] (depthFirst gasket)) $ \(i, Circle center r) -> do
         setLineWidth 1
-        let colorValue = rocket (linearInterpolate (1, fromIntegral (length gasket)) (1, 0) i)
+        let colorValue = rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i)
         setColor colorValue
         circleSketch center (abs r)
         stroke

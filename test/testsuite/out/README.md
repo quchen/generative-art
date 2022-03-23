@@ -11,6 +11,8 @@ over quickly.
 
 ![Missing image!](../../../docs/apollonian_gasket/missing_the_minus.svg)
 
+![Missing image!](../../../docs/apollonian_gasket/skip_gen0.svg)
+
 ![Missing image!](../../../docs/apollonian_gasket/spaced_gasket.svg)
 
 ![Missing image!](../../../docs/bezier/1_single_curve.svg)
