@@ -2,6 +2,7 @@
 module Geometry.Processes.ApollonianGasket (
     -- * The classical shape
       createGasket
+    , fifthCircle
     , Circle(..)
 
     -- * For playing around
@@ -14,6 +15,7 @@ module Geometry.Processes.ApollonianGasket (
 
 
 import Data.Complex
+import Data.Tree
 
 import Geometry.Core as G
 
@@ -67,7 +69,9 @@ newCenter (+-) (ApoCircle c1 k1) (ApoCircle c2 k2) (ApoCircle c3 k3) k4 =
   where
     [k1', k2', k3', k4'] = map (:+ 0) [k1, k2, k3, k4]
 
--- | Create a new Apollonian circle, based on three existing ones.
+-- | Create a new Apollonian circle, based on three existing ones. This is the raw
+-- application of Descartes’ theorem. For something with less pitfalls, use
+-- 'fifthCircle'.
 --
 -- The choice of sign is a mystery to me. For the Apollonian Gasket, the rule is:
 --
@@ -92,6 +96,15 @@ newCircle plusMinusCurvature plusMinusCenter circ1@(ApoCircle _ k1) circ2@(ApoCi
         c4 = newCenter plusMinusCenter circ1 circ2 circ3 k4
     in ApoCircle c4 k4
 
+-- | Given four mutually tangent circles, find »the other one« than the first argument.
+-- This resolves the »\((+,-)\)« ambiguity of 'newCircle'.
+fifthCircle :: ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle
+fifthCircle (ApoCircle c1 k1) (ApoCircle c2 k2) (ApoCircle c3 k3) (ApoCircle c4 k4) =
+    let [k1', k2', k3', k4', k5'] = map (:+ 0) [k1, k2, k3, k4, k5]
+        k5 = 2*(k2+k3+k4) - k1
+        c5 = (2*(k2'*c2+k3'*c3+k4'*c4) - k1'*c1) / k5'
+    in ApoCircle c5 k5
+
 -- | The simple workhorse function. Given three mutually touching, equally sized
 -- circles, it calculates the classical Apollonian Gasket:
 --
@@ -114,35 +127,30 @@ createGasket
     -> Circle -- ^ Initial left circle
     -> Circle -- ^ Initial right circle
     -> Circle -- ^ Initial bottom circle
-    -> [Circle]
+    -> Tree Circle
 createGasket minRadius gen0LCirc gen0RCirc gen0BCirc =
     let gen0L = toApoCircle gen0LCirc
         gen0R = toApoCircle gen0RCirc
         gen0B = toApoCircle gen0BCirc
 
         large = newCircle (-) (-) gen0L gen0R gen0B
+        small = newCircle (+) (+) gen0L gen0R gen0B
 
-        gen1T = newCircle (+) (+) large gen0L gen0R
-        gen1L = newCircle (+) (-) large gen0L gen0B
-        gen1R = newCircle (+) (+) large gen0R gen0B
+        recurse :: ApoCircle -> ApoCircle -> ApoCircle -> ApoCircle -> Tree Circle
+        recurse cA c1 c2 c3 =
+            let cB@(ApoCircle _ kB) = fifthCircle cA c1 c2 c3
+            in Node (toCircle cB)
+                (if abs kB < 1/minRadius
+                    then
+                        [ recurse c3 cB c1 c2
+                        , recurse c2 c3 cB c1
+                        , recurse c1 c2 c3 cB
+                        ]
+                    else [])
 
-        recurse [] = []
-        recurse ((c1, c2, c3) : rest) =
-            let new@(ApoCircle _ k) = newCircle (+) (+) c1 c2 c3
-            in if k > 1/minRadius
-                then recurse rest
-                else new : recurse ((c1, c2, new) : (c1, c3, new) : (c2, c3, new) : rest)
-
-        apoCircles = concat
-            [ []
-            , [large]
-            , [gen0B, gen0L, gen0R]
-            , recurse [(gen0L, gen0R, gen0B)]
-            , gen1T : recurse [(gen1T, gen0L, large)]
-            , gen1T : recurse [(gen1T, gen0R, large)]
-            , gen1R : recurse [(gen1R, gen0R, large)]
-            , gen1R : recurse [(gen1R, gen0B, large)]
-            , gen1L : recurse [(gen1L, gen0B, large)]
-            , gen1L : recurse [(gen1L, gen0L, large)]
+        circles :: Tree Circle
+        circles = Node (toCircle large)
+            [ recurse small gen0L gen0R gen0B
+            , recurse large gen0L gen0R gen0B
             ]
-    in map toCircle apoCircles
+    in circles
