@@ -50,6 +50,7 @@ module Geometry.Core (
 
     -- ** Circles and ellipses
     , Circle(..)
+    , UnsafeTransformCircle(..)
     , toEllipse
     , Ellipse(..)
 
@@ -1055,6 +1056,27 @@ instance NFData Circle where rnf _ = ()
 instance HasBoundingBox Circle where
     boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
 
+-- | This allows applying a 'Transformation' to a 'Circle', which can e.g. be
+-- useful to put circles in a 'transformBoundingBox' operation. See the 'Transform'
+-- instance for details.
+newtype UnsafeTransformCircle = UnsafeTransformCircle Circle
+
+-- | Transform the circle as much as circles allow us. In order for the new circle
+-- to have correct radius, the transformation must not contain:
+--
+--   * Shears (would yield an ellipse)
+--   * Scaling by different amounts in x/y directions (dito) except mirroring
+--
+-- This instance is unsafe in the sense that it will yield a wrong result if these
+-- requirements are not met, but it can be useful to do aspect ratio preserving
+-- scales or translations of circles.
+instance Transform UnsafeTransformCircle where
+    transform t (UnsafeTransformCircle (Circle center radius)) =
+        let center' = transform t center
+            radius' = abs scaleX * radius
+            (_, (scaleX, _), _shear, _angle) = decomposeTransformation t
+        in UnsafeTransformCircle (Circle center' radius')
+
 -- | Embedding of 'Circle' as a special case of an 'Ellipse'.
 toEllipse :: Circle -> Ellipse
 toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
@@ -1067,6 +1089,9 @@ newtype Ellipse = Ellipse Transformation
     deriving (Show)
 
 instance NFData Ellipse where rnf _ = ()
+
+-- | Unit circle
+instance Default Ellipse where def = Ellipse mempty
 
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
