@@ -23,6 +23,8 @@ import qualified Test.Geometry.LookupTable.Lookup2
 import qualified Test.Geometry.Processes.ApollonianGasket
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
+import qualified Test.Geometry.SvgParser.PathParser
+import qualified Test.Geometry.SvgParser.SimpleShapes
 import qualified Test.Uncategorized.Bezier
 import qualified Test.Uncategorized.ConvexHull
 import qualified Test.Uncategorized.DifferentialEquation
@@ -31,7 +33,6 @@ import qualified Test.Uncategorized.Mirror
 import qualified Test.Uncategorized.Properties
 import qualified Test.Uncategorized.Reflection
 import qualified Test.Uncategorized.SimpleOperations
-import qualified Test.Uncategorized.SvgPathParser
 import qualified Test.Uncategorized.Trajectory
 
 import           Test.Tasty
@@ -67,6 +68,8 @@ tests = testGroup "Test suite"
     , Test.Geometry.Processes.ApollonianGasket.tests
     , Test.Geometry.Processes.Billard.tests
     , Test.Geometry.Processes.Penrose.tests
+    , Test.Geometry.SvgParser.PathParser.tests
+    , Test.Geometry.SvgParser.SimpleShapes.tests
     , Test.Uncategorized.Bezier.tests
     , Test.Uncategorized.ConvexHull.tests
     , Test.Uncategorized.DifferentialEquation.tests
@@ -75,7 +78,6 @@ tests = testGroup "Test suite"
     , Test.Uncategorized.Properties.tests
     , Test.Uncategorized.Reflection.tests
     , Test.Uncategorized.SimpleOperations.tests
-    , Test.Uncategorized.SvgPathParser.tests
     , Test.Uncategorized.Trajectory.tests
     ]
 

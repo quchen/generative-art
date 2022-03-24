@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.Uncategorized.SvgPathParser (tests) where
+module Test.Geometry.SvgParser.PathParser (tests) where
 
 
 
@@ -10,7 +10,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 
 import Geometry
-import Geometry.SvgPathParser
+import Geometry.SvgParser.PathParser
 
 import Test.Tasty
 import Test.Tasty.HUnit

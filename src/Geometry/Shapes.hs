@@ -27,8 +27,8 @@ haskellLogo = rescaleNormalizePolygons haskellLogoRaw
 -- | Rescale so that in drawing coordinates, the top/left is at the origin, and
 -- the height extents is 1.
 rescaleNormalizePolygons :: [Polygon] -> [Polygon]
-rescaleNormalizePolygons polygons
-  = let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
+rescaleNormalizePolygons polygons =
+    let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
         scaleFactor = 1 / (maxY - minY)
         transformation = scale scaleFactor <> translate (Vec2 (- minX) (- minY))
     in transform transformation polygons
@@ -63,6 +63,6 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
 -- | Regular n-gon with radius 1, oriented in mathematically positive direction,
 -- and starting with the first corner on the positive x axis.
 regularPolygon :: Int -> Polygon
-regularPolygon n = Polygon
-    [ transform (rotate (rad d)) (Vec2 1 0)
-        | d <- take n [0, 2*pi/fromIntegral n ..] ]
+regularPolygon n =
+    let angleStepSize = 360/fromIntegral n
+    in Polygon [polar (deg angle) 1 | angle <- takeWhile (<360) (iterate (+angleStepSize) 0)]

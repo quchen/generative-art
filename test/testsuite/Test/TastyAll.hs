@@ -43,6 +43,7 @@ import           Test.Tasty.HUnit      hiding (assertEqual)
 import qualified Test.Tasty.HUnit      as HUnit
 import           Test.Tasty.QuickCheck
 import           VisualOutput.NormalizeSvg
+import Geometry.SvgParser.SimpleShapes
 
 
 
@@ -156,6 +157,15 @@ instance EqApprox Vec2 where
     approxEqual (Tolerance tol) v1 v2
       = norm (v2 -. v1) <= tol
 
+instance EqApprox Line where
+    approxEqual tol (Line a b) (Line c d) = approxEqual tol (a,b) (c,d)
+
+instance EqApprox Circle where
+    approxEqual tol (Circle c1 r1) (Circle c2 r2) = approxEqual tol (c1,r1) (c2,r2)
+
+instance EqApprox Ellipse where
+    approxEqual tol (Ellipse e1) (Ellipse e2) = approxEqual tol e1 e2
+
 instance EqApprox Angle where
     approxEqual tol x y
       = let x' = getRad x
@@ -178,6 +188,12 @@ instance EqApprox Transformation where
             , (d1, d2)
             , (e1, e2)
             , (f1, f2) ]
+
+instance EqApprox SimpleShape  where
+    approxEqual tol (SvgLine a) (SvgLine b) = approxEqual tol a b
+    approxEqual tol (SvgCircle a) (SvgCircle b) = approxEqual tol a b
+    approxEqual tol (SvgEllipse a) (SvgEllipse b) = approxEqual tol a b
+    approxEqual _ _ _ = False
 
 instance (Real a, EqApprox a) => EqApprox (Colour a) where
     approxEqual tol s t =

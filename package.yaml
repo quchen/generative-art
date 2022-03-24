@@ -20,6 +20,7 @@ dependencies:
     - data-default-class
     - data-r-tree
     - deepseq
+    - formatting
     - heaps
     - megaparsec
     - mwc-random
@@ -155,6 +156,25 @@ executables:
             - cassava
             - bytestring
             - vector-algorithms
+    penplotting-gasket:
+        main: Main.hs
+        source-dirs: penplotting/ApollonianGasket
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+    penplotting-flowlines:
+        main: Main.hs
+        source-dirs: penplotting/FlowLines
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+    penplotting-svg:
+        main: Main.hs
+        source-dirs: penplotting/SvgSource
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
+            - optparse-applicative
 
 tests:
     testsuite:
