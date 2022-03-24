@@ -1,5 +1,5 @@
 module Circuits.GrowingProcess (
-    circuitProcess
+      circuitProcess
     , CellState(..)
     , Circuits(..)
     , ProcessGeometry(..)
@@ -22,6 +22,7 @@ import Geometry.Coordinates.Hexagonal as Hex
 
 
 
+-- | The geometry in which a circuit growing process takes place.
 data ProcessGeometry = ProcessGeometry
     { _inside :: Set Hex
     , _edge :: Set Hex
@@ -41,6 +42,7 @@ data MoveConstraints = MoveConstraints
     , _acceptStep :: CellState -> Circuits -> Maybe CellState
     }
 
+-- | All existing circuits. The wires can be reconstructed from this.
 data Circuits = Circuits
     { _starts :: Set Hex
     , _nodes :: Map Hex CellState
@@ -62,6 +64,7 @@ insertNode cellPos cellState circuits = circuits { _nodes = M.insert cellPos cel
 insertStart :: Hex -> Circuits -> Circuits
 insertStart start circuits = circuits { _starts = S.insert start (_starts circuits) }
 
+-- | Grow circuits inside a geometry.
 circuitProcess
     :: ProcessGeometry
     -> Circuits

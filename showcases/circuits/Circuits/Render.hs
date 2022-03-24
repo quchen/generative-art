@@ -99,11 +99,6 @@ randomColor gen (ColorScheme scheme) = do
     n <- liftIO $ MWC.uniformRM (0, V.length scheme-1) gen
     scheme V.! n
 
--- renderProcessGeometry
---     :: HexagonalCoordinate  hex
---     => Double
---     -> ProcessGeometry hex
---     -> Render ()
 renderProcessGeometry
     :: (CairoColor filling, CairoColor edges)
     => filling
