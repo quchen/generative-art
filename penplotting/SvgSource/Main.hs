@@ -22,8 +22,8 @@ scaleToA4Portrait :: (Transform geo, HasBoundingBox geo) => geo -> geo
 scaleToA4Portrait geo = G.transform (G.transformBoundingBox geo (Vec2 0 0 +. margin, Vec2 a4width_mm a4height_mm -. margin) def) geo
   where
     margin = Vec2 10 10
-    a4width_mm = 210
-    a4height_mm = 297
+    a4height_mm = 210
+    a4width_mm = 297
 
 main :: IO ()
 main = do
@@ -33,7 +33,7 @@ main = do
     case fmap concat (traverse parse inputLines) of
         Left err -> T.putStrLn ("Parse error: " <> err)
         Right paths -> do
-            let scaled = scaleToA4Portrait (G.transform mirrorXCoords (extractPolylines paths))
+            let scaled = sortBy (\x y -> compare (polyLineLength x) (polyLineLength y)) (scaleToA4Portrait (G.transform mirrorXCoords (extractPolylines paths)))
                 gcode = GBlock
                     [ GComment ("Total line length: " <> TL.pack (show (sum (map polyLineLength scaled))))
                     , GComment ("Number of polylines: " <> TL.pack (show (length scaled)))
@@ -56,15 +56,15 @@ convertToGcode polylines =
         gcode = addHeaderFooter plottingSettings (GBlock collectionOfGcodeLines)
     in gcode
 
-extractPolylines :: [[Either Line noBeziersPlease]] -> [[Vec2]]
-extractPolylines paths =
-    let svgLines = map (\path -> map (\(Left p) -> p) path) paths
-        polylines = map (removeDuplicates . connectedLinesToPolyline) svgLines
-    in polylines
+pathToLineSegments :: [Either Line Bezier] -> [Vec2]
+pathToLineSegments [] = []
+pathToLineSegments [Left (Line x y)] = [x,y]
+pathToLineSegments (Left (Line x _) : xs) = x : pathToLineSegments xs
+pathToLineSegments [Right bezier] = bezierSubdivideT 32 bezier
+pathToLineSegments (Right bezier : xs) = init (bezierSubdivideT 32 bezier) ++ pathToLineSegments xs
 
-connectedLinesToPolyline :: [Line] -> [Vec2]
-connectedLinesToPolyline [] = []
-connectedLinesToPolyline xs@(Line start _ : _) = start : [end | Line _ end <- xs]
+extractPolylines :: [[Either Line Bezier]] -> [[Vec2]]
+extractPolylines paths = map (removeDuplicates . pathToLineSegments) paths
 
 removeDuplicates :: Eq a => [a] -> [a]
 removeDuplicates = map head . group
