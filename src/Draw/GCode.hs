@@ -4,6 +4,7 @@
 
 module Draw.GCode (
       renderGCode
+    , draw
     , ToGCode(..)
     , GCode(..)
 ) where
