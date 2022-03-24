@@ -4,6 +4,7 @@
 
 module Draw.GCode (
       renderGCode
+    , addHeaderFooter
     , draw
     , ToGCode(..)
     , GCode(..)
@@ -86,7 +87,8 @@ instance ToGCode GCode where
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance ToGCode BoundingBox where
     toGCode (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = GBlock
-        [ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+        [ GComment "Hover over bounding box"
+        , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
         , G00_LinearRapidMove (Just xMax) (Just yMin) Nothing
         , G00_LinearRapidMove (Just xMax) (Just yMax) Nothing
         , G00_LinearRapidMove (Just xMin) (Just yMax) Nothing
