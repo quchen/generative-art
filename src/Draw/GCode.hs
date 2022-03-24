@@ -23,6 +23,7 @@ import           Formatting     hiding (center)
 
 import Geometry.Bezier
 import Geometry.Core
+import Geometry.Shapes
 
 
 
@@ -36,7 +37,7 @@ data PlottingSettings = PlottingSettings
     } deriving (Eq, Ord, Show)
 
 draw :: GCode -> GCode
-draw content = GBlock
+draw content = flatten $ GBlock
     [ G00_LinearRapidMove Nothing Nothing (Just (-2))
     , content
     , G00_LinearRapidMove Nothing Nothing (Just 2)
@@ -54,6 +55,15 @@ data GCode
     | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
     | G90_AbsoluteMovement
     | G91_RelativeMovement
+
+-- | Flatten one level of GCode blocks
+flatten :: GCode -> GCode
+flatten (GBlock gcodes) = GBlock $ do
+    gcode <- gcodes
+    case gcode of
+        GBlock gcodes' -> gcodes'
+        other -> [other]
+flatten notABlock = notABlock
 
 addHeaderFooter :: PlottingSettings -> GCode -> GCode
 addHeaderFooter settings body = GBlock [header, body, footer]
@@ -78,7 +88,7 @@ addHeaderFooter settings body = GBlock [header, body, footer]
             ]
         Nothing -> []
 
-    header = GBlock
+    header = flatten $ GBlock
         [ GComment "Header"
         , feedrateCheck
         , previewBoundingBox
@@ -143,11 +153,10 @@ instance ToGCode Circle where
 
 -- | Approximation by a number of points
 instance ToGCode Ellipse where
-    toGCode (Ellipse trafo) =
-        let subdivisions = 64
-            angleStepSize = 360/subdivisions
-            unitCirclePoints = [polar (deg angle) 1 | angle <- takeWhile (<360) [0, angleStepSize ..]]
-        in toGCode (Polygon (transform trafo unitCirclePoints))
+    toGCode (Ellipse trafo) = GBlock
+        [ GComment "Ellipse"
+        , toGCode (transform trafo (regularPolygon 64))
+        ]
 
 -- | Polyline
 instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
