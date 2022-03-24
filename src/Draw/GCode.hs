@@ -142,6 +142,14 @@ instance ToGCode BoundingBox where
         , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
         ]
 
+instance ToGCode Line where
+    toGCode (Line (Vec2 a b) (Vec2 x y)) =
+        GBlock
+            [ GComment "Line"
+            , G00_LinearRapidMove (Just a) (Just b) Nothing
+            , draw (G01_LinearFeedrateMove (Just x) (Just y) Nothing)
+            ]
+
 instance ToGCode Circle where
     toGCode (Circle (Vec2 x y) r) =
         let (startX, startY) = (x-r, y)
