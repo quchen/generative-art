@@ -22,17 +22,17 @@ import Circuits.ReconstructWires
 
 main :: IO ()
 main = do
-    let lambdaScale = 10
-        numColors = 3
+    for_ [5, 10] $ \lambdaScale ->
+        for_ [1,3] $ \numColors ->
+            maini lambdaScale numColors
 
-        lambdaGeometry = hexLambda lambdaScale
+maini :: Int -> Int -> IO ()
+maini lambdaScale numColors = do
 
+    let lambdaGeometry = hexLambda lambdaScale
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
-
         vecCircuits = fitToPaper (hex2wire hexCircuits)
-
         settings = PlottingSettings (Just (boundingBox vecCircuits)) (Just 1000)
-
         circuitsList = toList vecCircuits
 
     gen <- MWC.create
@@ -40,16 +40,15 @@ main = do
         i <- MWC.uniformRM (1,numColors) gen
         pure (i::Int, circuit)
 
-    let partitionByIndex :: [(Int, a)] -> [[a]]
-        partitionByIndex = (map.map) snd . groupBy (\(i,_) (j,_) -> i == j) . sortBy (\(i,_) (j,_) -> compare i j)
+    let partitionByIndex = (map.map) snd . groupBy (\(i,_) (j,_) -> i == j) . sortBy (\(i,Wire xs) (j,Wire ys) -> compare i j <> compare (length xs) (length ys))
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         TL.writeFile
-            ("/home/main/temp/circuit-lambda-scale-"++show lambdaScale++"-color-"++show i++".g")
+            ("/home/main/temp/circuit-lambda-scale-"++show lambdaScale++"-color-"++show i++"-of-"++show numColors++".g")
             (renderGCode (addHeaderFooter settings (toGCode wires)))
 
 hex2wire :: Set [Hex] -> Set Wire
-hex2wire = S.map (Wire . map (toVec2 1))
+hex2wire = G.transform mirrorYCoords (S.map (Wire . map (toVec2 1)))
 
 fitToPaper :: (Transform geo, HasBoundingBox geo) => geo -> geo
 fitToPaper geo = G.transform (G.transformBoundingBox geo (Vec2 margin margin, Vec2 210 291 -. Vec2 margin margin) def) geo
@@ -67,8 +66,8 @@ instance Transform Wire where
 
 wireToGCode :: Wire -> [GCode]
 wireToGCode (Wire ws) = case ws of
-    [] -> error "Bad circuit algorithm! :-("
-    [_] -> error "Bad circuit algorithm! :-("
+    [] -> error "Bad circuit algorithm! :-C"
+    [_] -> error "Bad circuit algorithm! :-C"
     xs@(Vec2 startX startY:_) -> [G00_LinearRapidMove (Just startX) (Just startY) Nothing, draw (GBlock (go xs))]
   where
     go :: [Vec2] -> [GCode]
@@ -78,7 +77,9 @@ wireToGCode (Wire ws) = case ws of
             Line _ intersection@(Vec2 edgeX edgeY) = resizeLine (\d -> d - circleRadius) (Line start target)
             Vec2 centerDX centerDY = target -. intersection
         in [ G01_LinearFeedrateMove (Just edgeX) (Just edgeY) Nothing
-           , G02_ArcClockwise centerDX centerDY edgeX edgeY
+           , G91_RelativeMovement
+           , G02_ArcClockwise centerDX centerDY 0 0
+           , G90_AbsoluteMovement
            ]
     go (_:rest@(Vec2 x y:_)) = G01_LinearFeedrateMove (Just x) (Just y) Nothing : go rest
     go _ = error "Can’t happen because go is only called with lists of at least two elements"
