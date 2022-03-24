@@ -5,6 +5,7 @@
 module Draw.GCode (
       renderGCode
     , addHeaderFooter
+    , PlottingSettings(..)
     , draw
     , ToGCode(..)
     , GCode(..)
@@ -13,8 +14,7 @@ module Draw.GCode (
 
 
 import           Data.Foldable
-import           Data.Text.Lazy  (Text)
-import qualified Data.Text.Lazy  as T
+import qualified Data.Text.Lazy  as TL
 import           Formatting      hiding (center)
 import           Geometry.Bezier
 import           Geometry.Core
@@ -37,7 +37,7 @@ draw content = GBlock
     ]
 
 data GCode
-    = GComment Text
+    = GComment TL.Text
     | GBlock [GCode]
     | F_Feedrate Double
     | M0_Pause
@@ -84,10 +84,10 @@ addHeaderFooter settings body = GBlock [header, body, footer]
         , G00_LinearRapidMove Nothing Nothing (Just 10)
         ]
 
-renderGCode :: GCode -> Text
+renderGCode :: GCode -> TL.Text
 renderGCode = \case
     GComment comment -> "; " <> comment
-    GBlock content   -> (T.intercalate "\n" . filter (not . T.null) . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
+    GBlock content   -> (TL.intercalate "\n" . fmap renderGCode) (GComment "{" : content <> [GComment "}"])
     F_Feedrate f     -> format ("F" % decimal) f
     M0_Pause         -> "M0 ; Pause/wait for user input"
 
