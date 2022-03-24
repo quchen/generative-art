@@ -2,15 +2,18 @@ module Main (main) where
 
 
 
-import           Data.Set                    (Set)
-import qualified Data.Set                    as S
-import Data.Default.Class
-import qualified Data.Text.Lazy.IO as TL
-import Data.Foldable
+import           Data.Default.Class
+import           Data.Foldable
+import           Data.List
+import           Data.Set           (Set)
+import qualified Data.Set           as S
+import qualified Data.Text.Lazy.IO  as TL
+import           Data.Traversable
+import qualified System.Random.MWC  as MWC
 
-import Geometry.Coordinates.Hexagonal as Hex
-import Geometry as G
 import Draw.GCode
+import Geometry                       as G
+import Geometry.Coordinates.Hexagonal as Hex
 
 import Circuits.GrowingProcess
 import Circuits.ReconstructWires
@@ -19,7 +22,9 @@ import Circuits.ReconstructWires
 
 main :: IO ()
 main = do
-    let lambdaScale = 5
+    let lambdaScale = 10
+        numColors = 3
+
         lambdaGeometry = hexLambda lambdaScale
 
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
@@ -28,10 +33,20 @@ main = do
 
         settings = PlottingSettings (Just (boundingBox vecCircuits)) (Just 1000)
 
-        gCode = addHeaderFooter settings (toGCode (toList vecCircuits))
+        circuitsList = toList vecCircuits
 
-        gcodeRaw = renderGCode gCode
-    TL.putStrLn gcodeRaw
+    gen <- MWC.create
+    colorIndexedCircuits <- for circuitsList $ \circuit -> do
+        i <- MWC.uniformRM (1,numColors) gen
+        pure (i::Int, circuit)
+
+    let partitionByIndex :: [(Int, a)] -> [[a]]
+        partitionByIndex = (map.map) snd . groupBy (\(i,_) (j,_) -> i == j) . sortBy (\(i,_) (j,_) -> compare i j)
+
+    for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
+        TL.writeFile
+            ("/home/main/temp/circuit-lambda-scale-"++show lambdaScale++"-color-"++show i++".g")
+            (renderGCode (addHeaderFooter settings (toGCode wires)))
 
 hex2wire :: Set [Hex] -> Set Wire
 hex2wire = S.map (Wire . map (toVec2 1))
@@ -52,7 +67,7 @@ instance Transform Wire where
 
 wireToGCode :: Wire -> [GCode]
 wireToGCode (Wire ws) = case ws of
-    [] -> []
+    [] -> error "Bad circuit algorithm! :-("
     [_] -> error "Bad circuit algorithm! :-("
     xs@(Vec2 startX startY:_) -> [G00_LinearRapidMove (Just startX) (Just startY) Nothing, draw (GBlock (go xs))]
   where
