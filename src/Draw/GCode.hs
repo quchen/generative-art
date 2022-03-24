@@ -97,7 +97,7 @@ renderGcodeIndented :: Int -> GCode -> TL.Text
 renderGcodeIndented !level = \case
     GComment comment -> indent ("; " <> comment)
     GBlock content   -> TL.intercalate "\n" (map (renderGcodeIndented (level+1)) content)
-    F_Feedrate f     -> indent (format ("F" % decimal) f)
+    F_Feedrate f     -> indent (format ("F " % decimal) f)
     M0_Pause         -> indent "M0 ; Pause/wait for user input"
 
     G00_LinearRapidMove Nothing Nothing Nothing -> mempty
