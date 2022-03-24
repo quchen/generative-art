@@ -39,16 +39,12 @@ main = do
 convertToGcode :: (ToGCode a, HasBoundingBox a) => [a] -> GCode
 convertToGcode polylines =
     let collectionOfGcodeLines = map toGCode polylines
-        fullGcodeBody = GBlock
-            [ GBlock
-                [ F_Feedrate 1000
-                , toGCode (boundingBox polylines)
-                , M0_Pause
-                ]
-            , GBlock collectionOfGcodeLines
-            ]
-        gcode = addHeaderFooter fullGcodeBody
 
+        plottingSettings = PlottingSettings
+            { _previewBoundingBox = Just (boundingBox polylines)
+            , _feedrate = Just 1000
+            }
+        gcode = addHeaderFooter plottingSettings (GBlock collectionOfGcodeLines)
     in gcode
 
 extractPolylines :: [[Either Line noBeziersPlease]] -> [[Vec2]]
