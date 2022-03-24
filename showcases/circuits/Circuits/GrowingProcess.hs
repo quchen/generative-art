@@ -117,8 +117,8 @@ growSingleCircuit gen constraints (startingCandidates, knownCircuits) =
             pure (Just (thinnedOutSCs, grownCircuit))
 
 data FirstStep
-    = NoFirstStepPossible
-    | FirstStepIs (Set Hex) Hex Hex
+    = NoFirstStepPossible -- ^ Given the geometry and already existing circuits, we can’t grow any circuits
+    | FirstStepIs (Set Hex) Hex Hex -- ^ Remaining start position candidates, starting position, first step
     deriving (Eq, Ord, Show)
 
 -- | Pick a starting point and a first step. If a listed point is an impossible
@@ -126,7 +126,7 @@ data FirstStep
 pickStartAndFirstStep
     :: MWC.GenST s
     -> MoveConstraints
-    -> (Set Hex, Circuits) -- ^ Possible starting points, existing circuits
+    -> (Set Hex, Circuits) -- ^ Starting point candidates, existing circuits
     -> ST s FirstStep
 pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) =
     let allowedSCs = S.filter (\start -> fieldIsAllowed start knownCircuits constraints) startingCandidates
@@ -137,6 +137,7 @@ pickStartAndFirstStep gen constraints (startingCandidates, knownCircuits) =
                 Just firstStep -> pure (FirstStepIs thinnedOutSCs start firstStep)
     in loop allowedSCs
 
+-- | Random uniform choice of a 'Set' element.
 randomEntry :: MWC.GenST s -> Set a -> ST s (Maybe a)
 randomEntry gen xs = do
     let n = S.size xs
@@ -146,12 +147,13 @@ randomEntry gen xs = do
             i <- MWC.uniformRM (0,n-1) gen
             pure (Just (S.elemAt i xs))
 
+-- Take an allowed first step
 randomFirstStep
-    :: MWC.Gen s
-    -> Hex
-    -> Circuits
-    -> MoveConstraints
-    -> ST s (Maybe Hex)
+    :: MWC.Gen s        -- ^ RNG
+    -> Hex              -- ^ Starting position
+    -> Circuits         -- ^ Existing geometry
+    -> MoveConstraints  -- ^ Collision detection
+    -> ST s (Maybe Hex) -- ^ Destination for the first step
 randomFirstStep gen start knownCircuits constraints = do
     let neighbours = V.fromList (ring 1 start)
     scrambledNeighbours <- do
@@ -160,6 +162,7 @@ randomFirstStep gen start knownCircuits constraints = do
         V.unsafeFreeze vMut
     pure (V.find (\firstStep -> fieldIsAllowed firstStep knownCircuits constraints) scrambledNeighbours)
 
+-- | Check whether a field can house another piece of wire
 fieldIsAllowed :: Hex -> Circuits -> MoveConstraints -> Bool
 fieldIsAllowed hex circuits constraints = not inAnyCircuit && inBounds
   where
