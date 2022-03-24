@@ -33,7 +33,15 @@ main = do
     case fmap concat (traverse parse inputLines) of
         Left err -> T.putStrLn ("Parse error: " <> err)
         Right paths -> do
-            let scaled = sortBy (\x y -> compare (polyLineLength x) (polyLineLength y)) (scaleToA4Portrait (G.transform mirrorYCoords (extractPolylines paths)))
+            let scaled =
+                      map (\(_len, polyline) -> polyline)
+                    . sortBy (\(len1, _) (len2, _) -> compare len1 len2)
+                    . filter (\(len, _) -> len >= 1)
+                    . map (\polyline -> (polyLineLength polyline, polyline))
+                    . scaleToA4Portrait
+                    . G.transform mirrorYCoords
+                    . extractPolylines
+                    $ paths
                 gcode = GBlock
                     [ GComment ("Total line length: " <> TL.pack (show (sum (map polyLineLength scaled))))
                     , GComment ("Number of polylines: " <> TL.pack (show (length scaled)))
