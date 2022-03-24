@@ -1,5 +1,7 @@
 module Main (main) where
 
+
+
 import           Control.Parallel.Strategies
 import qualified Data.Set                    as S
 import           Graphics.Rendering.Cairo    as C hiding (x, y)
@@ -8,7 +10,10 @@ import Draw                           as D
 import Geometry.Coordinates.Hexagonal as Hex
 
 import Circuits.GrowingProcess
+import Circuits.ReconstructWires
 import Circuits.Render
+
+
 
 -- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
@@ -21,20 +26,15 @@ main = do
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
 
         (lambdaCircuits, surroundingCircuits) =
-            (circuitProcess lambdaGeometry, circuitProcess surroundingGeometry)
+            (reconstructWires (circuitProcess lambdaGeometry), reconstructWires (circuitProcess surroundingGeometry))
             `using` parTuple2 rdeepseq rdeepseq
     let mainRender = do
-            -- cairoScope $ grouped (paintWithAlpha 0.5) $ cartesianCoordinateSystem
             let cellSize = 3
             C.translate (fromIntegral picWidth/2) (fromIntegral picHeight/2)
-            -- cairoScope $ grouped (paintWithAlpha 0.2) $ do
-            --     setLineWidth 1
-            --     renderProcessGeometry (mathematica97 0) (mathematica97 1) cellSize lambdaGeometry
-            --     renderProcessGeometry (mathematica97 2) (mathematica97 3) cellSize surroundingGeometry
             cairoScope $ do
                 setLineWidth 1
-                renderCircuits purple  cellSize lambdaCircuits
-                renderCircuits grey cellSize surroundingCircuits
+                renderWires purple  cellSize lambdaCircuits
+                renderWires grey cellSize surroundingCircuits
     render "out/circuits.svg" picWidth picHeight mainRender
     render "out/circuits.png" picWidth picHeight $ do
         cairoScope $ do

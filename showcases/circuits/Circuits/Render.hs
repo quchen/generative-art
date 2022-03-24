@@ -1,5 +1,5 @@
 module Circuits.Render (
-      renderCircuits
+      renderWires
     , renderProcessGeometry
 
     , ColorScheme(..)
@@ -10,10 +10,7 @@ module Circuits.Render (
 
 
 
-import           Data.Function
-import           Data.Map                 (Map)
-import qualified Data.Map                 as M
-import qualified Data.Set                 as S
+import           Data.Set                 (Set)
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C hiding (x, y)
 import qualified System.Random.MWC        as MWC
@@ -21,56 +18,36 @@ import qualified System.Random.MWC        as MWC
 import Circuits.GrowingProcess
 import Draw                           as D
 import Geometry                       as G
-import Geometry.Chaotic
 import Geometry.Coordinates.Hexagonal as Hex
 
 
 
-renderSingleWire
-    :: Double
-    -> Map Hex CellState
-    -> Hex
-    -> Render ()
-renderSingleWire cellSize allKnownCells start = do
-    moveToVec (toVec2 cellSize start)
-    fix (\go currentPosHex -> case M.lookup currentPosHex allKnownCells of
-            Nothing -> do
-                stroke
-                sketch (Cross (toVec2 cellSize currentPosHex) (cellSize/2))
-            Just (WireTo target) -> do
-                case M.lookup target allKnownCells of
-                    Just WireEnd -> do
-                        let circleRadius = cellSize/2
-                            currentPosVec = toVec2 cellSize currentPosHex
-                            circleCenterVec = toVec2 cellSize target
-                            Line _ targetVecShortened = resizeLine (\d -> d - circleRadius) (Line currentPosVec circleCenterVec)
-                        lineToVec targetVecShortened
-                        stroke
-                        sketch (Circle circleCenterVec circleRadius)
-                        stroke
-                    _other -> lineToVec (toVec2 cellSize target)
-                go target
-            Just WireEnd ->
-                -- We handle this case in the WireTo part so we can shorten the line leading
-                -- to the circle to avoid circle/line overlap
-                pure ()
-        )
-        start
+renderWire :: Double -> [Hex] -> Render ()
+renderWire cellSize = go . map (toVec2 cellSize)
+  where
+    circleRadius = cellSize/2
+    go [] = pure ()
+    go [x] = sketch (Circle x circleRadius) >> stroke
+    go [x,y] = do
+        let shortLine = resizeLine (\d -> d - circleRadius) (Line x y)
+        sketch shortLine
+        stroke
+        sketch (Circle y circleRadius)
+        stroke
+    go (x:rest@(y:_)) = do
+        sketch (Line x y)
+        go rest
 
-renderCircuits
+renderWires
     :: ColorScheme
     -> Double
-    -> Circuits
+    -> Set [Hex]
     -> Render ()
-renderCircuits scheme cellSize allCircuits = do
-    gen <- liftIO $ MWC.initialize (V.fromList [fromIntegral (perturb cellSize), fromIntegral $ perturb (S.size (_starts allCircuits))])
-    let loop circuits = case S.minView (_starts circuits) of
-            Nothing -> pure ()
-            Just (start, rest) -> do
-                randomColor gen scheme
-                renderSingleWire cellSize (_nodes circuits) start
-                loop circuits{ _starts = rest }
-    loop allCircuits
+renderWires scheme cellSize wires = do
+    gen <- liftIO MWC.create
+    for_ wires $ \wire -> do
+        randomColor gen scheme
+        renderWire cellSize wire
 
 newtype ColorScheme = ColorScheme (V.Vector (Render ()))
 
@@ -99,11 +76,6 @@ randomColor gen (ColorScheme scheme) = do
     n <- liftIO $ MWC.uniformRM (0, V.length scheme-1) gen
     scheme V.! n
 
--- renderProcessGeometry
---     :: HexagonalCoordinate  hex
---     => Double
---     -> ProcessGeometry hex
---     -> Render ()
 renderProcessGeometry
     :: (CairoColor filling, CairoColor edges)
     => filling
