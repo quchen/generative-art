@@ -4,24 +4,23 @@ module Main (main) where
 
 
 
-import qualified Data.Text                       as T
-import qualified Data.Text.Lazy                       as TL
-import qualified Data.Text.IO                    as T
-import qualified Data.Text.Lazy.IO               as TL
+import           Data.List
+import qualified Data.Text           as T
+import qualified Data.Text.IO        as T
+import qualified Data.Text.Lazy      as TL
+import qualified Data.Text.Lazy.IO   as TL
 import           Options.Applicative
-import Data.List
-import Data.Functor
-import System.Exit
 
-import           Draw
-import           Draw.GCode
-import           Geometry                        as G
-import           Geometry.SvgPathParser
+import Draw
+import Draw.GCode
+import Geometry           as G
+import Geometry.Shapes
+import Geometry.SvgParser
 
 
 
-scaleToFit :: (Transform geo, HasBoundingBox geo) => Options -> geo -> geo
-scaleToFit options geo = G.transform (G.transformBoundingBox geo (Vec2 0 0 +. margin2, Vec2 width height -. margin2) def) geo
+scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
+scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def
   where
     Options{_margin=margin, _height=height, _width=width} = options
     margin2 = Vec2 margin margin
@@ -30,25 +29,37 @@ main :: IO ()
 main = do
     options <- commandLineOptions
     print options
-    exitWith (ExitFailure 123)
     inputSvg <- T.readFile (_inputFileSvg options)
     let inputLines = T.lines inputSvg
-    case fmap concat (traverse parse inputLines) of
+    case traverse parse inputLines of
         Left err -> T.putStrLn ("Parse error: " <> err)
-        Right paths -> do
-            let scaled =
+        Right svgElementsYflipped -> do
+            let svgElements = G.transform mirrorYCoords svgElementsYflipped
+            let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
+                transformAll = G.transform (scaleToFit options (boundingBox svgElements))
+                paths =
                       map (\(_len, polyline) -> polyline)
                     . sortBy (\(len1, _) (len2, _) -> compare len1 len2)
                     . filter (\(len, _) -> len >= 1)
                     . map (\polyline -> (polyLineLength polyline, polyline))
-                    . scaleToFit options
-                    . G.transform mirrorYCoords
+                    . transformAll
                     . extractPolylines
-                    $ paths
+                    . concat
+                    $ [path | SvgPath path <- svgElements]
+                simpleLines = transformAll [line | SvgLine line <- svgElements]
+                simpleEllipses = transformAll [ellipse | SvgEllipse ellipse <- svgElements]
+
+                numElements = length paths + length simpleLines + length simpleEllipses
+                totalLength = sum
+                    [ sum (map polyLineLength paths)
+                    , sum (map lineLength simpleLines)
+                    , sum (map circumferenceEllipse simpleEllipses)
+                    ]
+
                 gcode = GBlock
-                    [ GComment ("Total line length: " <> TL.pack (show (sum (map polyLineLength scaled))))
-                    , GComment ("Number of polylines: " <> TL.pack (show (length scaled)))
-                    , convertToGcode scaled
+                    [ GComment ("Total line length: " <> TL.pack (show totalLength))
+                    , GComment ("Number of elements to draw: " <> TL.pack (show numElements))
+                    , convertToGcode (simpleLines, simpleEllipses, paths)
                     ]
                 gcodeRaw = renderGCode gcode
             TL.writeFile (_outputFileG options) gcodeRaw
@@ -56,15 +67,16 @@ main = do
 polyLineLength :: [Vec2] -> Double
 polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
 
-convertToGcode :: (ToGCode a, HasBoundingBox a) => [a] -> GCode
-convertToGcode polylines =
-    let collectionOfGcodeLines = map toGCode polylines
+circumferenceEllipse :: Ellipse -> Double
+circumferenceEllipse (Ellipse e) = polygonCircumference (transform e (regularPolygon 100)) -- lol
 
-        plottingSettings = PlottingSettings
-            { _previewBoundingBox = Just (boundingBox polylines)
+convertToGcode :: (ToGCode a, HasBoundingBox a) => a -> GCode
+convertToGcode elements =
+    let plottingSettings = PlottingSettings
+            { _previewBoundingBox = Just (boundingBox elements)
             , _feedrate = Just 1000
             }
-        gcode = addHeaderFooter plottingSettings (GBlock collectionOfGcodeLines)
+        gcode = addHeaderFooter plottingSettings (toGCode elements)
     in gcode
 
 pathToLineSegments :: [Either Line Bezier] -> [Vec2]
