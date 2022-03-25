@@ -4,7 +4,6 @@
 
 module Draw.GCode (
       renderGCode
-    , addHeaderFooter
     , PlottingSettings(..)
     , draw
     , ToGCode(..)
@@ -24,7 +23,6 @@ import           Formatting     hiding (center)
 import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
-
 
 
 
@@ -100,8 +98,10 @@ addHeaderFooter settings body = GBlock [header, body, footer]
         , G00_LinearRapidMove Nothing Nothing (Just 10)
         ]
 
-renderGCode :: GCode -> TL.Text
-renderGCode = renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
+renderGCode :: PlottingSettings -> GCode -> TL.Text
+renderGCode settings
+    = renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
+    . addHeaderFooter settings
 
 renderGcodeIndented :: Int -> GCode -> TL.Text
 renderGcodeIndented !level = \case

@@ -28,8 +28,7 @@ main = do
     let inputLines = T.lines inputSvg
     case traverse parse inputLines of
         Left err -> T.putStrLn ("Parse error: " <> err) >> exitWith (ExitFailure 1)
-        Right svgElementsYflipped -> do
-            let svgElements = G.transform mirrorYCoords svgElementsYflipped
+        Right svgElements -> do
             let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 transformAll = G.transform (scaleToFit options (boundingBox svgElements))
                 paths =
@@ -47,9 +46,13 @@ main = do
                 gcode = GBlock
                     [ GComment ("Total line length: " <> TL.pack (show totalLength))
                     , GComment ("Number of elements to draw: " <> TL.pack (show numElements))
-                    , convertToGcode paths
+                    , toGCode paths
                     ]
-                gcodeRaw = renderGCode gcode
+                plottingSettings = PlottingSettings
+                    { _previewBoundingBox = Just (boundingBox paths)
+                    , _feedrate = Just 1000
+                    }
+                gcodeRaw = renderGCode plottingSettings gcode
             TL.writeFile (_outputFileG options) gcodeRaw
 
 scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
@@ -60,15 +63,6 @@ scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 w
 
 polyLineLength :: [Vec2] -> Double
 polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
-
-convertToGcode :: (ToGCode a, HasBoundingBox a) => a -> GCode
-convertToGcode elements =
-    let plottingSettings = PlottingSettings
-            { _previewBoundingBox = Just (boundingBox elements)
-            , _feedrate = Just 1000
-            }
-        gcode = addHeaderFooter plottingSettings (toGCode elements)
-    in gcode
 
 pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
