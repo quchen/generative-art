@@ -8,6 +8,7 @@ import qualified Data.Text.Lazy.IO        as T
 import qualified Graphics.Rendering.Cairo as C
 
 
+import qualified Data.Set                        as S
 import           Draw
 import           Draw.GCode
 import           Geometry                        as G
@@ -69,7 +70,7 @@ geometry =
             . takeWhile
                 (\(t, pos) -> t <= 400 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
             $ fieldLine velocityField start
-    in map mkTrajectory startPoints
+    in (sortByMinimumPenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints
 
 drawFieldLine :: [Vec2] -> Render ()
 drawFieldLine polyLine = cairoScope $ do
