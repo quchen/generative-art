@@ -49,9 +49,17 @@ main = do
             setLineWidth 1
             for_ geometry drawFieldLine
 
-    for_ geometry $ \trajectory -> do
-        for_ (splitIntoInsideParts trajectory) $ \drawableTrajectoryPart -> do
-            T.putStrLn (renderGCode (toGCode drawableTrajectoryPart))
+    let gcode = GBlock $ do
+            trajectory <- geometry
+            part <- splitIntoInsideParts trajectory
+            pure (toGCode part)
+
+        plottingSettings = PlottingSettings
+            { _previewBoundingBox = Just (boundingBox geometry)
+            , _feedrate = Just 1000
+            }
+
+    T.putStrLn (renderGCode plottingSettings gcode)
 
 geometry :: [[Vec2]]
 geometry =
