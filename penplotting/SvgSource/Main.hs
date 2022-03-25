@@ -4,7 +4,7 @@ module Main (main) where
 
 
 
-import           Data.List
+import qualified Data.Set            as S
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import qualified Data.Text.Lazy      as TL
@@ -32,10 +32,9 @@ main = do
             let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 transformAll = G.transform (scaleToFit options (boundingBox svgElements))
                 paths =
-                      map (\(_len, polyline) -> polyline)
-                    . sortBy (\(len1, _) (len2, _) -> compare len1 len2)
-                    . filter (\(len, _) -> len >= 1)
-                    . map (\polyline -> (polyLineLength polyline, polyline))
+                      sortByMinimumPenHovering
+                    . S.fromList
+                    . filter (\polyline ->polyLineLength polyline >= 1)
                     . transformAll
                     . concatMap pathToPolyline
                     $ svgElements
