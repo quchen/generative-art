@@ -54,6 +54,7 @@ getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> RT.toL
     deleteInitialPolygon = filter (not . hasCommonCorner (_dtInitialPolygon delaunay))
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
 
+-- | Calculate the Delaunay triangulation of a set of vertices using the Bowyer-Watson algorithm.
 bowyerWatson :: HasBoundingBox bounds => bounds -> [Vec2] -> DelaunayTriangulation
 bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
   where
@@ -65,6 +66,7 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
         , _dtInitialPolygon = initialPolygon
         }
 
+-- | Add a new vertex to an existing Delaunay triangulation.
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
 bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTriangulation = foldr RT.insert goodTriangles newTriangles }
   where
@@ -108,6 +110,8 @@ circumcircle (Triangle p1 p2 p3) = case maybeCenter of
 inside :: Vec2 -> Circle -> Bool
 point `inside` Circle center radius = norm (center -. point) <= radius
 
+-- | Since the two concepts are closely related (by duality), we can convert a
+-- 'DelaunayTriangulation' to a 'Voronoi' diagram rather easily.
 toVoronoi :: DelaunayTriangulation -> Voronoi ()
 toVoronoi delaunay = Voronoi
     { _voronoiBounds = _dtBounds delaunay
@@ -151,6 +155,9 @@ voronoiCell delaunay p qs
         go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
     Polygon corners = _dtInitialPolygon delaunay
 
+-- | Apply one iteration of Lloyd relaxation, moving the vertices of a
+-- triangulation a bit. Applying this repeatedly results in a triangulation where
+-- each triangle is approximately the same size.
 lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
 lloydRelaxation delaunay = bowyerWatson (_dtBounds delaunay) relaxedVertices
   where

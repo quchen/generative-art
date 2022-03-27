@@ -1,11 +1,10 @@
 module Geometry.Algorithms.Delaunay (
-  DelaunayTriangulation()
-, getPolygons
-, bowyerWatson
-, bowyerWatsonStep
+      DelaunayTriangulation()
+    , getPolygons
+    , bowyerWatson
 
-, toVoronoi
-, lloydRelaxation
+    , toVoronoi
+    , lloydRelaxation
 ) where
 
 import Geometry.Algorithms.Delaunay.Internal

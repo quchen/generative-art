@@ -65,7 +65,7 @@ data VoronoiCell a = VoronoiCell
 
 -- | A Voronoi diagram, with a possible tag for each cell, e.g. for coloring.
 --
--- Voronoi patterns are constructed using 'mkVoronoi' or 'addPoint'.
+-- Voronoi patterns are constructed using 'mkVoronoi' or 'addPoint'/'emptyVoronoi'.
 data Voronoi a = Voronoi
     { _voronoiBounds :: BoundingBox
     -- ^ The bounding box. Also used as a basis for all newly inserted polygons.
@@ -98,7 +98,12 @@ mapWithSeed f voronoi@Voronoi{..} = voronoi { _voronoiCells = [ cell { _voronoiP
 -- 'mkVoronoi' constructs a Voronoi pattern by iteratively adding points.
 --
 -- Basically, @mkVoronoi w h = foldl' 'addPoint' ('emptyVoronoi' w h)
-mkVoronoi :: Foldable f => Double -> Double -> f (Vec2, a) -> Voronoi a
+mkVoronoi
+    :: Foldable f
+    => Double -- ^ Width
+    -> Double -- ^ Height
+    -> f (Vec2, a)
+    -> Voronoi a
 mkVoronoi w h = foldl' addPoint (emptyVoronoi w h)
 
 -- | The starting point for a Voronoi pattern.
