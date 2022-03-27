@@ -5,7 +5,7 @@ module Test.Geometry.Algorithms.Delaunay (tests) where
 import           Control.Monad.IO.Class
 import           Data.List                (scanl')
 import qualified Graphics.Rendering.Cairo as C
-import           System.Random.MWC        (create)
+import qualified System.Random.MWC        as MWC
 
 import           Draw                                  hiding (Circle)
 import qualified Draw                                  as D
@@ -60,19 +60,21 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
 randomDelaunay width height = do
-    gen <- liftIO create
-    randomPoints <- liftIO $ poissonDisc gen PoissonDiscParams
-        { _poissonRadius = fromIntegral (width * height) / 1000
-        , _poissonK      = 4
-        , _poissonWidth  = width
-        , _poissonHeight = height
-        }
+
+    randomPoints <- liftIO $ do
+        gen <- MWC.create
+        poissonDisc gen PoissonDiscParams
+            { _poissonRadius = fromIntegral (width * height) / 1000
+            , _poissonK      = 4
+            , _poissonWidth  = width
+            , _poissonHeight = height
+            }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
 
 testLloydRelaxation :: TestTree
 testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_relaxation" $ \_ -> do
     points <- liftIO $ do
-        gen <- create
+        gen <- MWC.create
         uniformlyDistributedPoints gen 200 200 15
     let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) (toList points)
         triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)

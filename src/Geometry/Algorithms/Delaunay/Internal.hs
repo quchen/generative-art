@@ -15,6 +15,8 @@ import Geometry.Algorithms.Voronoi
 
 
 
+-- | Abstract data type. Create values with 'bowyerWatson', and then extract the
+-- contents with 'getPolygons'.
 data DelaunayTriangulation = DelaunayTriangulation
     { _dtTriangulation :: !(RT.RTree DelaunayTriangle)
     , _dtInitialPolygon :: !Polygon
@@ -48,6 +50,7 @@ toPolygon (Triangle p1 p2 p3) = Polygon [p1, p2, p3]
 edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
+-- | Extract the polygons out of a 'DelaunayTriangulation'.
 getPolygons :: DelaunayTriangulation -> [Polygon]
 getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> RT.toList (_dtTriangulation delaunay)
   where
@@ -72,7 +75,7 @@ bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTri
   where
     validNewPoint = if newPoint `insideBoundingBox` _dtBounds
         then newPoint
-        else error "User error: Tried to add a point outside the bounding box"
+        else error "bowyerWatsonStep: user error: Tried to add a point outside the bounding box"
     badTriangles = filter ((validNewPoint `inside`) . _dtCircle) (RT.lookupContainsRange (boundingBox validNewPoint) _dtTriangulation)
     goodTriangles = foldr RT.delete _dtTriangulation badTriangles
     outerPolygon = collectPolygon $ go (edges . _dtTriangle =<< badTriangles) M.empty
@@ -156,8 +159,9 @@ voronoiCell delaunay p qs
     Polygon corners = _dtInitialPolygon delaunay
 
 -- | Apply one iteration of Lloyd relaxation, moving the vertices of a
--- triangulation a bit. Applying this repeatedly results in a triangulation where
--- each triangle is approximately the same size.
+-- triangulation to the centroids of the corresponding Voronoi pattern. Applying
+-- this a couple of times (say, 4) results in a triangulation where each triangle
+-- is approximately the same size.
 lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
 lloydRelaxation delaunay = bowyerWatson (_dtBounds delaunay) relaxedVertices
   where
