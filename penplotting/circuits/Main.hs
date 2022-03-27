@@ -50,7 +50,7 @@ main = do
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         let filename = formatToString (string%"_scale-"%int%"_color-"%int%"-"%int%".g") (dropExtension (_outputFileG options)) lambdaScale (i::Int) numColors
-            gCodeText = renderGCode (addHeaderFooter settings (toGCode wires))
+            gCodeText = renderGCode settings (toGCode wires)
         TL.writeFile filename gCodeText
 
 hex2wire :: Set [Hex] -> Set Wire
