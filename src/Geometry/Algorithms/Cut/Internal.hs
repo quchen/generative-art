@@ -67,7 +67,7 @@ buildGraph :: [CutEdgeGraph -> CutEdgeGraph] -> CutEdgeGraph
 buildGraph = foldl' (\graph insertEdge -> insertEdge graph) (CutEdgeGraph mempty)
 
 newCutsEdgeGraph :: Line -> PolygonOrientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
-newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
+newCutsEdgeGraph scissors orientation cuts = go (cutPointsSorted scissors orientation cuts)
   where
     go :: [NormalizedCut] -> [CutEdgeGraph -> CutEdgeGraph]
     go [] = []
@@ -109,29 +109,28 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
     go [Exiting p, Entering q]
       = go [Entering p, Exiting q]
 
-
     go bad
       = bugError $ unlines
           [ "Expecting patterns to be exhaustive, but apparently it's not."
           , "Bad portion: " ++ show bad
-          , "Full list of cut lines: " ++ show cutPointsSorted ]
+          , "Full list of cut lines: " ++ show (cutPointsSorted scissors orientation cuts) ]
 
+-- | Sort cut points by location on the scissors
+cutPointsSorted :: Line -> PolygonOrientation -> [CutLine] -> [NormalizedCut]
+cutPointsSorted scissors orientation cuts = sortOn (scissorCoordinate scissors) (normalizeCuts scissors orientation cuts)
 
-    cutPointsSorted :: [NormalizedCut]
-    cutPointsSorted = sortOn scissorCoordinate (normalizeCuts scissors orientation cuts)
-
-    -- How far ahead/behind the start of the line is the point?
-    --
-    -- In mathematical terms, this yields the coordinate of a point in the
-    -- 1-dimensional vector space that is the scissors line.
-    scissorCoordinate :: NormalizedCut -> Double
-    scissorCoordinate nc = case nc of
-        Entering x -> positionAlongScissor x
-        Exiting x -> positionAlongScissor x
-        Touching x -> positionAlongScissor x
-        AlongEdge x y -> min (positionAlongScissor x) (positionAlongScissor y)
-      where
-        positionAlongScissor p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
+-- How far ahead/behind the start of the line is the point?
+--
+-- In mathematical terms, this yields the coordinate of a point in the
+-- 1-dimensional vector space that is the scissors line.
+scissorCoordinate :: Line -> NormalizedCut -> Double
+scissorCoordinate scissors@(Line scissorsStart _) nc = case nc of
+    Entering x -> positionAlongScissor x
+    Exiting x -> positionAlongScissor x
+    Touching x -> positionAlongScissor x
+    AlongEdge x y -> min (positionAlongScissor x) (positionAlongScissor y)
+    where
+    positionAlongScissor p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
 
 -- A polygon can be described by an adjacency list of corners to the next
 -- corner. A cut simply introduces two new corners (of polygons to be) that
@@ -332,3 +331,38 @@ data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
 -- from the left, but we cut exactly through the vertex.
 data CutType = LO | LR | OL | OO | OR | RL | RO
     deriving (Eq, Ord, Show)
+
+data LineType = LineInsidePolygon | LineOutsidePolygon
+    deriving (Eq, Ord, Show)
+
+{-# WARNING clipPolygonWithLine "This function is wholly untested, be careful!" #-}
+-- | Classify lines on the scissors as being inside or outside the polygon.
+clipPolygonWithLine :: Polygon -> Line -> [(Line, LineType)]
+clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
+
+  where
+    allCuts = cutAll scissors (polygonEdges polygon)
+    orientation = polygonOrientation polygon
+    normalizedCuts = normalizeCuts scissors orientation allCuts
+
+    -- Happy path
+    reconstruct [] = []
+    reconstruct (Entering start : Exiting end : rest) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct (e@Entering{} : AlongEdge{} : rest) = reconstruct (e:rest)
+    reconstruct (Exiting start : Entering end : rest) = (Line start end, LineOutsidePolygon) : reconstruct rest
+    reconstruct (e@Exiting{} : AlongEdge{} : rest) = reconstruct (e:rest)
+
+    -- Lonely AlongEdge: arbitrary choice on whether it’s inside/outside
+    reconstruct (AlongEdge start end : rest) = (Line start end, LineInsidePolygon) : reconstruct rest
+
+    -- Ignore touch points: simply continue the line
+    reconstruct (e@Entering{} : Touching{} : rest) = reconstruct (e:rest)
+    reconstruct (e@Exiting{} : Touching{} : rest) = reconstruct (e:rest)
+    reconstruct (Touching{} : rest) = reconstruct rest
+
+    reconstruct (Entering{} : Entering {} : _) = err "Double enter"
+    reconstruct (Exiting{} : Exiting {} : _) = err "Double exit"
+    reconstruct [Entering{}] = err "Standalone enter"
+    reconstruct [Exiting{}] = err "Standalone exit"
+
+    err msg = bugError ("clipPolygonWithLine: " ++ msg)
