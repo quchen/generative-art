@@ -296,7 +296,7 @@ data NormalizedCut
     | Exiting Vec2
     | Touching Vec2
     | AlongEdge Vec2 Vec2
-    deriving (Show)
+    deriving (Eq, Ord, Show)
 
 classifyCut :: Line -> CutLine -> Maybe (Vec2, CutType)
 classifyCut _ NoCut{} = Nothing
