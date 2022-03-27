@@ -148,7 +148,10 @@ polygonEdgeGraph cuts = case cuts of
     Nothing       -> CutEdgeGraph (M.insert k [v] edgeMap)
     Just vs -> CutEdgeGraph (M.insert k (v:vs) edgeMap)
 
-newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 [Vec2])
+-- | Directed graph from each vertex to the next, so that following the chain of
+-- pointers allows reconstruction of certain properties. Subdividing polygons is
+-- done by finding minimal cycles, for example.
+newtype CutEdgeGraph = CutEdgeGraph (Map Vec2 [Vec2]) -- TODO: this should be a (Set Vec2), not a [Vec2]
     deriving (Eq, Ord)
 
 instance Show CutEdgeGraph where
@@ -182,40 +185,50 @@ extractSinglePolygon
     -> (Polygon, CutEdgeGraph) -- ^ Extracted polygon and remaining edge map
 extractSinglePolygon orientation = go Nothing S.empty
   where
-    go lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap)
-      = case M.lookup pivot edgeMap of
-            _ | S.member pivot visited -> (Polygon [], edgeGraph)
-            Nothing -> (Polygon [], edgeGraph)
-            Just [] -> (Polygon [], edgeGraph)
-            Just [next] ->
-                let (Polygon rest, edgeGraph') = go
-                        (Just pivot)
-                        (S.insert pivot visited)
-                        next
-                        (CutEdgeGraph (M.delete pivot edgeMap))
-                in (Polygon (pivot:rest), edgeGraph')
-            Just toVertices@(next1:_) ->
-                let useAsNext = case lastPivot of
-                        Nothing -> next1 -- arbitrary starting point WLOG
-                        Just from ->
-                            let leftness end = normalizeAngle (rad 0) (angleOfLine (Line pivot from) -. angleOfLine (Line pivot end))
-                                rightness end = negateV (leftness end)
-                                pickNextVertex = minimumBy $ comparing $ case orientation of
-                                    -- TODO: comparing by angles is flaky because of their modular arithmetic.
-                                    -- leftness/rightness should be rewritten in terms of 'cross', which allows
-                                    -- judging whether a vector is left/right of another much better.
-                                    -- The 'getRad' was just put here quickly so the 'Ord Angle' instance
-                                    -- could be removed.
-                                    PolygonPositive -> getRad . leftness
-                                    PolygonNegative -> getRad . rightness
-                            in  pickNextVertex (delete from toVertices)
-                    otherVertices = delete useAsNext toVertices
-                    (Polygon rest, edgeGraph') = go
-                        (Just pivot)
-                        (S.insert pivot visited)
-                        useAsNext
-                        (CutEdgeGraph (M.insert pivot otherVertices edgeMap))
-                in (Polygon (pivot:rest), edgeGraph')
+    go lastPivot visited pivot edgeGraph@(CutEdgeGraph edgeMap) = case M.lookup pivot edgeMap of
+
+        -- We were already here: terminate (TODO: shouldn’t this be an error?)
+        _ | S.member pivot visited -> (Polygon [], edgeGraph)
+
+        -- The pivot is not in the edge map: terminate. (TODO: shouldn’t this be an error?)
+        Nothing -> (Polygon [], edgeGraph)
+
+        -- The pivot is there, but does not point anywhere. (TODO: shouldn’t this be an error?)
+        Just [] -> (Polygon [], edgeGraph)
+
+        -- The pivot points to a single target; follow the pointer
+        Just [next] ->
+            let (Polygon rest, edgeGraph') = go
+                    (Just pivot)
+                    (S.insert pivot visited)
+                    next
+                    (CutEdgeGraph (M.delete pivot edgeMap))
+            in (Polygon (pivot:rest), edgeGraph')
+
+        -- The pivot points to multiple targets; follow the direction of the smallest loop
+        Just toVertices@(next1:_) ->
+            let useAsNext = case lastPivot of
+                    Nothing -> next1 -- There was no previous pivot; pick an arbitrary starting point WLOG
+                    Just from ->
+                        let leftness, rightness :: Vec2 -> Angle
+                            leftness end = normalizeAngle (rad 0) (angleOfLine (Line pivot from) -. angleOfLine (Line pivot end))
+                            rightness end = negateV (leftness end)
+                            pickNextVertex = minimumBy $ comparing $ case orientation of
+                                -- TODO: comparing by angles is flaky because of their modular arithmetic.
+                                -- leftness/rightness should be rewritten in terms of 'cross', which allows
+                                -- judging whether a vector is left/right of another much better.
+                                -- The 'getRad' was just put here quickly so the 'Ord Angle' instance
+                                -- could be removed.
+                                PolygonPositive -> getRad . leftness
+                                PolygonNegative -> getRad . rightness
+                        in pickNextVertex (delete from toVertices)
+                otherVertices = delete useAsNext toVertices
+                (Polygon rest, edgeGraph') = go
+                    (Just pivot)
+                    (S.insert pivot visited)
+                    useAsNext
+                    (CutEdgeGraph (M.insert pivot otherVertices edgeMap))
+            in (Polygon (pivot:rest), edgeGraph')
 
 normalizeCuts :: Line -> PolygonOrientation -> [CutLine] -> [NormalizedCut]
 normalizeCuts _ _ [] = []
