@@ -98,7 +98,7 @@ mkVoronoi w h = foldl' addPoint (emptyVoronoi w h)
 
 -- | The starting point for a Voronoi pattern.
 emptyVoronoi :: Double -> Double -> Voronoi a
-emptyVoronoi w h = Voronoi (BoundingBox (Vec2 0 0) (Vec2 w h)) []
+emptyVoronoi w h = Voronoi (boundingBox [zero, Vec2 w h]) []
 
 -- | Add a new seed point to a Voronoi pattern.
 --
