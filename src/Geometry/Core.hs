@@ -29,6 +29,9 @@ module Geometry.Core (
     , intersectionPoint
     , reflection
 
+    -- ** Polylines
+    , Polyline(..)
+
     -- ** Polygons
     , Polygon(..)
     , normalizePolygon
@@ -127,6 +130,7 @@ import           Data.Foldable
 import           Data.List
 import qualified Data.Map            as M
 import qualified Data.Set            as S
+import           Data.Vector         (Vector)
 import qualified System.Random.MWC   as MWC
 import           Text.Printf
 
@@ -142,6 +146,23 @@ instance NFData Vec2 where rnf _ = ()
 instance MWC.UniformRange Vec2 where
     uniformRM (Vec2 xMin yMin, Vec2 xMax yMax) gen =
         Vec2 <$> MWC.uniformRM (xMin, xMax) gen <*> MWC.uniformRM (yMin, yMax) gen
+
+-- | Explicit type for polylines. Useful in type signatures, beacuse [[[Vec2]]] is
+-- really hard to read. Also makes some typeclass instances clearer, such as
+-- 'sketch'.
+newtype Polyline container = Polyline (container Vec2)
+
+instance Eq (Polyline []) where Polyline a == Polyline b = a == b
+instance Eq (Polyline Vector) where Polyline a == Polyline b = a == b
+
+instance Ord (Polyline []) where compare (Polyline a) (Polyline b) = compare a b
+instance Ord (Polyline Vector) where compare (Polyline a) (Polyline b) = compare a b
+
+instance Show (Polyline []) where show (Polyline xs) = "Polyline " ++ show xs
+instance Show (Polyline Vector) where show (Polyline xs) = "Polyline (" ++ show xs ++ ")"
+
+instance NFData (Polyline []) where rnf (Polyline xs) = rnf xs
+instance NFData (Polyline Vector) where rnf (Polyline xs) = rnf xs
 
 -- | Polygon, defined by its corners.
 --
@@ -344,6 +365,9 @@ instance Transform Line where
 
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
+
+instance Transform (Polyline []) where transform t (Polyline xs) = Polyline (transform t xs)
+instance Transform (Polyline Vector) where transform t (Polyline xs) = Polyline (transform t xs)
 
 instance Transform Transformation where
     transform = (<>)
@@ -651,6 +675,9 @@ instance HasBoundingBox Line where
 
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
+
+instance HasBoundingBox (Polyline []) where boundingBox (Polyline xs) = boundingBox xs
+instance HasBoundingBox (Polyline Vector) where boundingBox (Polyline xs) = boundingBox xs
 
 -- | Do the bounding boxes of two objects overlap?
 overlappingBoundingBoxes :: (HasBoundingBox a, HasBoundingBox b) => a -> b -> Bool

@@ -74,13 +74,14 @@ import Control.Monad
 import Data.Default.Class
 import Data.Foldable
 import Data.List
+import Data.Vector                     (Vector)
 import Graphics.Rendering.Cairo        as C hiding (x, y)
 import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 
 import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
-import Geometry as G
+import Geometry                      as G
 
 
 
@@ -260,6 +261,9 @@ instance Sequential f => Sketch (f Vec2) where
         go (Vec2 x0 y0 : vecs) = do
             moveTo x0 y0
             for_ vecs (\(Vec2 x y) -> lineTo x y)
+
+instance Sketch (Polyline Vector) where sketch (Polyline xs) = sketch xs
+instance Sketch (Polyline []) where sketch (Polyline xs) = sketch xs
 
 -- |
 -- >>> :{

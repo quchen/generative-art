@@ -19,6 +19,7 @@ import           Graphics.Rendering.Cairo
 import           Numerics.DifferentialEquation
 import           Numerics.Functions
 import           Numerics.VectorAnalysis
+import           Data.Coerce
 
 
 
@@ -63,18 +64,19 @@ main = do
 
     T.putStrLn (renderGCode plottingSettings gcode)
 
-geometry :: [Vector Vec2]
+geometry :: [Polyline Vector]
 geometry =
     let startPoints = [Vec2 0 y | y <- [-50, -45..height_mm+50]]
         mkTrajectory start =
-            map (\(_t, pos) -> pos)
+              Polyline
+            . map (\(_t, pos) -> pos)
             . takeWhile
                 (\(t, pos) -> t <= 400 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
             $ fieldLine velocityField start
-    in (minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints
+    in (coerce . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints
 
-drawFieldLine :: Vector Vec2 -> Render ()
-drawFieldLine polyLine = cairoScope $ do
+drawFieldLine :: Polyline Vector -> Render ()
+drawFieldLine (Polyline polyLine) = cairoScope $ do
     let simplified = simplifyTrajectoryRadial 3 polyLine
     unless (null (drop 2 simplified)) $ do
         sketch (bezierSmoothen simplified)
@@ -83,8 +85,8 @@ drawFieldLine polyLine = cairoScope $ do
 groupOn :: Eq b => (a -> b) -> [a] -> [[a]]
 groupOn f = groupBy (\x y -> f x == f y)
 
-splitIntoInsideParts :: Sequential list => list Vec2 -> [[Vec2]]
-splitIntoInsideParts = filter (\(x:_) -> x `insideBoundingBox` drawBB) . groupOn (\p -> insideBoundingBox p drawBB) . toList
+splitIntoInsideParts :: Sequential list => Polyline list -> [[Vec2]]
+splitIntoInsideParts (Polyline xs) = filter (\(x:_) -> x `insideBoundingBox` drawBB) . groupOn (\p -> insideBoundingBox p drawBB) . toList $ xs
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
 vectorPotential :: Vec2 -> Double
