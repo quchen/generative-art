@@ -88,7 +88,7 @@ testPolygonCutting = testGroup "Adding polygons"
 
 testVoronoi :: TestTree
 testVoronoi = testVisual "Full Voronoi pattern" 120 120 "docs/voronoi/3_full_voronoi" $ \_ -> do
-    let voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
+    let voronoiPattern = mkVoronoi [zero, Vec2 100 100] (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
     Cairo.translate 10 10
     drawVoronoi (_voronoiCells voronoiPattern)
 

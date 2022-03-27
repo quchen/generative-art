@@ -12,7 +12,7 @@
 --     points <- liftIO $ do
 --         gen <- MWC.create
 --         gaussianDistributedPoints gen [zero, Vec2 300 200] (Mat2 150 0 0 100) 16
---     let voronoi = mkVoronoi 300 200 (fmap (\point -> (point, ())) points)
+--     let voronoi = mkVoronoi [zero, Vec2 300 200] (fmap (\point -> (point, ())) points)
 --     for_ (_voronoiCells voronoi) $ \cell -> do
 --         sketch (_voronoiRegion cell)
 --         setColor (mathematica97 0)
@@ -94,19 +94,16 @@ mapWithSeed f = mapWithMetadata (\polygon _ meta -> f polygon meta)
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
 -- 'mkVoronoi' constructs a Voronoi pattern by iteratively adding points.
---
--- Basically, @mkVoronoi w h = foldl' 'addPoint' ('emptyVoronoi' w h)
 mkVoronoi
-    :: Foldable f
-    => Double -- ^ Width
-    -> Double -- ^ Height
+    :: (Foldable f, HasBoundingBox region)
+    => region -- ^ Defines the boundary of the pattern
     -> f (Vec2, a)
     -> Voronoi a
-mkVoronoi w h = foldl' addPoint (emptyVoronoi w h)
+mkVoronoi world = foldl' addPoint (emptyVoronoi world)
 
 -- | The starting point for a Voronoi pattern.
-emptyVoronoi :: Double -> Double -> Voronoi a
-emptyVoronoi w h = Voronoi (boundingBox [zero, Vec2 w h]) []
+emptyVoronoi :: HasBoundingBox region => region -> Voronoi a
+emptyVoronoi world = Voronoi (boundingBox world) []
 
 -- | Add a new seed point to a Voronoi pattern.
 --
