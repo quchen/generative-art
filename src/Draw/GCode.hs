@@ -10,7 +10,7 @@ module Draw.GCode (
     , GCode(..)
 
     -- * Utilities
-    , sortByMinimumPenHovering
+    , minimizePenHovering
 ) where
 
 
@@ -18,6 +18,8 @@ module Draw.GCode (
 import           Data.Foldable
 import qualified Data.Set       as S
 import qualified Data.Text.Lazy as TL
+import           Data.Vector    (Vector)
+import qualified Data.Vector    as V
 import           Formatting     hiding (center)
 
 import Geometry.Bezier
@@ -223,17 +225,27 @@ minimumOn f xs
 -- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
 -- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,
 -- although this algorithm here is \(\mathcal O(n^2)\).
-sortByMinimumPenHovering :: S.Set [Vec2] -> [[Vec2]]
-sortByMinimumPenHovering = go (Vec2 0 0)
+minimizePenHovering :: Sequential vector => S.Set (vector Vec2) -> [Vector Vec2]
+minimizePenHovering = mergeStep . sortStep (Vec2 0 0) . S.map toVector
   where
-    go penPos pool =
-        let closestNextLine = minimumOn (\candidate -> norm (head candidate -. penPos) `min` norm (last candidate -. penPos)) pool
+    -- Sort by minimal travel between adjacent lines
+    sortStep :: Vec2 -> S.Set (Vector Vec2) -> [Vector Vec2]
+    sortStep penPos pool =
+        let closestNextLine = minimumOn (\candidate -> norm (V.head candidate -. penPos) `min` norm (V.last candidate -. penPos)) pool
         in case closestNextLine of
             Nothing -> []
             Just l ->
-                let rightWayRound = if norm (head l -. penPos) > norm (last l -. penPos)
-                        then reverse l
+                let rightWayRound = if norm (V.head l -. penPos) > norm (V.last l -. penPos)
+                        then V.reverse l
                         else l
                     remainingPool = S.delete l pool
-                    newPenPos = last rightWayRound
-                in rightWayRound : go newPenPos remainingPool
+                    newPenPos = V.last rightWayRound
+                in rightWayRound : sortStep newPenPos remainingPool
+
+    -- Merge adjacent polylines
+    mergeStep :: [Vector Vec2] -> [Vector Vec2]
+    mergeStep (t1:t2:rest) = case (V.unsnoc t1, V.uncons t2) of
+        (Just (_t1Init, t1Last), Just (t2Head, t2Tail))
+            | t1Last == t2Head -> mergeStep (t1 <> t2Tail:rest)
+        _ -> t1 : mergeStep (t2:rest)
+    mergeStep other = other

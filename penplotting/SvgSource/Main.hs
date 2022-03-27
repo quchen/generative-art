@@ -9,6 +9,7 @@ import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import qualified Data.Text.Lazy      as TL
 import qualified Data.Text.Lazy.IO   as TL
+import qualified Data.Vector         as V
 import           Options.Applicative
 import           System.Exit
 
@@ -32,15 +33,15 @@ main = do
             let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 transformAll = G.transform (scaleToFit options (boundingBox svgElements))
                 paths =
-                      sortByMinimumPenHovering
+                      filter (\polyline -> polyLineLength polyline >= 1)
+                    . minimizePenHovering
                     . S.fromList
-                    . filter (\polyline ->polyLineLength polyline >= 1)
                     . transformAll
                     . concatMap pathToPolyline
                     $ svgElements
 
                 numElements = length paths
-                totalLength = sum (map polyLineLength paths)
+                totalLength = sum (fmap polyLineLength paths)
 
                 gcode = GBlock
                     [ GComment ("Total line length: " <> TL.pack (show totalLength))
@@ -60,8 +61,10 @@ scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 w
     Options{_margin=margin, _height=height, _width=width} = options
     margin2 = Vec2 margin margin
 
-polyLineLength :: [Vec2] -> Double
-polyLineLength xs = sum (zipWith (\start end -> lineLength (Line start end)) xs (tail xs))
+polyLineLength :: Sequential vector => vector Vec2 -> Double
+polyLineLength xs =
+    let xsVec = toVector xs
+    in V.foldl' (+) 0 (V.zipWith (\start end -> lineLength (Line start end)) xsVec (V.tail xsVec))
 
 pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
