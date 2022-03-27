@@ -9,7 +9,8 @@ import qualified Data.Map                 as M
 import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
-import Geometry
+import Geometry                         as G
+import Geometry.Algorithms.Cut
 import Geometry.Algorithms.Cut.Internal
 import Geometry.Shapes
 
@@ -31,6 +32,7 @@ tests = testGroup "Cutting things"
         , complicatedPolygonTest
         , cutMissesPolygonTest
         , cornerCasesTests
+        , shadeTest
         ]
     ]
 
@@ -136,9 +138,9 @@ cutSquareTest = do
 
     testVisual "Convex polygon" 170 90 "docs/geometry/cut/2_square" $ \_ -> do
         polyCutDraw
-            (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
-            (Geometry.transform (Geometry.translate (Vec2 90 10)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 90 10)) cutResult)
+            (G.transform (G.translate (Vec2 10 10)) polygon)
+            (G.transform (G.translate (Vec2 90 10)) scissors)
+            (G.transform (G.translate (Vec2 90 10)) cutResult)
 
         setColor $ mathematica97 1
         setFontSize 12
@@ -157,9 +159,9 @@ complicatedPolygonTest = do
 
     testVisual "Concave polygon" 400 190 "docs/geometry/cut/3_complicated" $ \_ -> do
         polyCutDraw
-            (Geometry.transform (Geometry.translate (Vec2 90 100)) polygon)
-            (Geometry.transform (Geometry.translate (Vec2 290 100)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 290 100)) cutResult)
+            (G.transform (G.translate (Vec2 90 100)) polygon)
+            (G.transform (G.translate (Vec2 290 100)) scissors)
+            (G.transform (G.translate (Vec2 290 100)) cutResult)
 
         setColor $ mathematica97 1
         setFontSize 12
@@ -178,9 +180,9 @@ cutMissesPolygonTest = do
 
     testVisual "Cut misses polygon" 130 90 "docs/geometry/cut/4_miss" $ \_ -> do
         polyCutDraw
-            (Geometry.transform (Geometry.translate (Vec2 10 10)) polygon)
-            (Geometry.transform (Geometry.translate (Vec2 70 10)) scissors)
-            (Geometry.transform (Geometry.translate (Vec2 70 10)) cutResult)
+            (G.transform (G.translate (Vec2 10 10)) polygon)
+            (G.transform (G.translate (Vec2 70 10)) scissors)
+            (G.transform (G.translate (Vec2 70 10)) cutResult)
 
         liftIO $ do
             assertEqual "Number of resulting polygons" (Expected 1) (Actual (length cutResult))
@@ -198,9 +200,9 @@ zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw
-        (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult)
+        (G.transform (G.translate (Vec2 10 20)) polygon)
+        (G.transform (G.translate (Vec2 80 20)) scissors)
+        (G.transform (G.translate (Vec2 80 20)) cutResult)
 
 cutThroughCornerTest :: TestTree
 cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut/5_through_corner" $ \_ -> do
@@ -209,9 +211,9 @@ cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut
         cutResult = cutPolygon scissors polygon
 
     polyCutDraw
-        (Geometry.transform (Geometry.translate (Vec2 10 20)) polygon)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) scissors)
-        (Geometry.transform (Geometry.translate (Vec2 80 20)) cutResult)
+        (G.transform (G.translate (Vec2 10 20)) polygon)
+        (G.transform (G.translate (Vec2 80 20)) scissors)
+        (G.transform (G.translate (Vec2 80 20)) cutResult)
 
     liftIO $ do
         assertEqual "Number of resulting polygons" (Expected 2) (Actual (length cutResult))
@@ -231,8 +233,8 @@ pathologicalCornerCutsTests = do
         Cairo.translate 0 50
         let cutResult = cutPolygon scissors polygon
             placeOriginal, placeCut :: Transform a => a -> a
-            placeOriginal = Geometry.transform (Geometry.translate (Vec2 70 0))
-            placeCut = Geometry.transform (Geometry.translate (Vec2 190 0))
+            placeOriginal = G.transform (G.translate (Vec2 70 0))
+            placeCut = G.transform (G.translate (Vec2 190 0))
         grouped paint $ do
             polyCutDraw
                 (placeOriginal polygon)
@@ -308,14 +310,14 @@ drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
         Cairo.translate 10 110
         drawCutEdgeGraph PolygonPositive cutEdgeGraph
     , testVisual "Simple calculated graph" 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ \_ -> do
-        let polygon = Geometry.transform (Geometry.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
+        let polygon = G.transform (G.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
             scissors = angledLine (Vec2 0 0) (deg 20) 1
             cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
         Cairo.translate 60 60
         drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
     ]
   where
-    moveRight d line = Geometry.transform (Geometry.translate (d *. direction (perpendicularBisector line))) line
+    moveRight d line = G.transform (G.translate (d *. direction (perpendicularBisector line))) line
     nudge = moveRight 2.5 . resizeLineSymmetric (\d -> 0.85*d)
     arrowSpec = def{_arrowheadSize = 7, _arrowheadRelPos = 0.5, _arrowheadDrawLeft = False}
 
@@ -356,3 +358,18 @@ sideOfScissorsTest = testProperty "Side of scissors" $
                 EQ -> DirectlyOnLine
                 GT -> LeftOfLine
         in actual === expected
+
+shadeTest :: TestTree
+shadeTest = testVisual "Shading a regular polygon" 300 300 "docs/geometry/cut/shade_polygon" $ \(w,h) -> do
+    let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
+        shading = shade polygon (deg 30) 5
+
+    setLineWidth 1
+    cairoScope $ do
+        setColor (mathematica97 1)
+        for_ shading sketch
+        stroke
+    cairoScope $ do
+        setColor (mathematica97 0)
+        sketch polygon
+        stroke
