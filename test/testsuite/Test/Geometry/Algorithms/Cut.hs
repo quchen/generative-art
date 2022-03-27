@@ -10,7 +10,6 @@ import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry                         as G
-import Geometry.Algorithms.Cut
 import Geometry.Algorithms.Cut.Internal
 import Geometry.Shapes
 
@@ -32,7 +31,10 @@ tests = testGroup "Cutting things"
         , complicatedPolygonTest
         , cutMissesPolygonTest
         , cornerCasesTests
-        , shadeTest
+        , testGroup "Shading"
+            [ shadeRegularPolygon
+            , shadeSpiralPolygon
+            ]
         ]
     ]
 
@@ -359,9 +361,25 @@ sideOfScissorsTest = testProperty "Side of scissors" $
                 GT -> LeftOfLine
         in actual === expected
 
-shadeTest :: TestTree
-shadeTest = testVisual "Shading a regular polygon" 300 300 "docs/geometry/cut/shade_polygon" $ \(w,h) -> do
+shadeRegularPolygon :: TestTree
+shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/shade_polygon_regular" $ \(w,h) -> do
     let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
+        shading = shade polygon (deg 30) 5
+
+    setLineWidth 1
+    cairoScope $ do
+        setColor (mathematica97 1)
+        for_ shading sketch
+        stroke
+    cairoScope $ do
+        setColor (mathematica97 0)
+        sketch polygon
+        stroke
+
+shadeSpiralPolygon :: TestTree
+shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/cut/shade_polygon_spiral" $ \(w,h) -> do
+    let polygon' = spiralPolygon 3 10
+        polygon = G.transform (G.transformBoundingBox polygon' [Vec2 0 0, Vec2 w h] def) polygon'
         shading = shade polygon (deg 30) 5
 
     setLineWidth 1
