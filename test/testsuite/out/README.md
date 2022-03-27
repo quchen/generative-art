@@ -185,6 +185,10 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/cut/random_cut_square.svg)
 
+![Missing image!](../../../docs/geometry/cut/shade_polygon_regular.svg)
+
+![Missing image!](../../../docs/geometry/cut/shade_polygon_spiral.svg)
+
 ![Missing image!](../../../docs/geometry/ellipse_bounding_boxes.svg)
 
 ![Missing image!](../../../docs/geometry/ellipses.svg)
