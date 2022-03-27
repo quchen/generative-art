@@ -15,7 +15,10 @@ import qualified Data.Set   as S
 
 import Geometry.Core
 
--- | Cut a finite piece of paper in one or two parts with an infinite line
+
+
+-- | Cut a finite piece of paper in one or two parts with an infinite scissors line
+-- (depending on whether the scissors miss the line or not).
 cutLine :: Line -> Line -> CutLine
 cutLine scissors paper = case intersectionLL scissors paper of
     IntersectionReal p           -> cut p
@@ -50,8 +53,7 @@ cutPolygon scissors polygon =
             (cutAll scissors
                 (polygonEdges polygon)))
 
--- Generate a list of all the edges of a polygon, extended with additional
--- points on the edges that are crossed by the scissors.
+-- Extend a number of lines by points that are crossed by the scissors.
 cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
@@ -193,7 +195,7 @@ extractSinglePolygon orientation = go Nothing S.empty
                         next
                         (CutEdgeGraph (M.delete pivot edgeMap))
                 in (Polygon (pivot:rest), edgeGraph')
-            Just (toVertices@(next1:_)) ->
+            Just toVertices@(next1:_) ->
                 let useAsNext = case lastPivot of
                         Nothing -> next1 -- arbitrary starting point WLOG
                         Just from ->
