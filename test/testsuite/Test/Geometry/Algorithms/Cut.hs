@@ -364,7 +364,7 @@ sideOfScissorsTest = testProperty "Side of scissors" $
 shadeRegularPolygon :: TestTree
 shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/shade_polygon_regular" $ \(w,h) -> do
     let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
-        shading = shade polygon (deg 30) 5
+        shading = shade polygon (deg 30) 24
 
     setLineWidth 1
     cairoScope $ do
@@ -378,15 +378,13 @@ shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/sh
 
 shadeSpiralPolygon :: TestTree
 shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/cut/shade_polygon_spiral" $ \(w,h) -> do
-    let polygon' = spiralPolygon 3 10
+    let polygon' = spiralPolygon 9 10
         polygon = G.transform (G.transformBoundingBox polygon' [Vec2 0 0, Vec2 w h] def) polygon'
-        shading = shade polygon (deg 30) 5
+        shading = shade polygon (deg 30) 24
 
     setLineWidth 1
     cairoScope $ do
-        setColor (mathematica97 1)
-        for_ shading sketch
-        stroke
+        for_ (zip [1..] shading) $ \(i, line) -> setColor (mathematica97 i) >> sketch line >> stroke
     cairoScope $ do
         setColor (mathematica97 0)
         sketch polygon

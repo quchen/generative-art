@@ -335,7 +335,6 @@ data CutType = LO | LR | OL | OO | OR | RL | RO
 data LineType = LineInsidePolygon | LineOutsidePolygon
     deriving (Eq, Ord, Show)
 
-{-# WARNING clipPolygonWithLine "This function is wholly untested, be careful!" #-}
 -- | Classify lines on the scissors as being inside or outside the polygon.
 clipPolygonWithLine :: Polygon -> Line -> [(Line, LineType)]
 clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
@@ -343,26 +342,30 @@ clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
   where
     allCuts = cutAll scissors (polygonEdges polygon)
     orientation = polygonOrientation polygon
-    normalizedCuts = normalizeCuts scissors orientation allCuts
+    normalizedCuts = cutPointsSorted scissors orientation allCuts
 
     -- Happy path
-    reconstruct [] = []
-    reconstruct (Entering start : Exiting end : rest) = (Line start end, LineInsidePolygon) : reconstruct rest
-    reconstruct (e@Entering{} : AlongEdge{} : rest) = reconstruct (e:rest)
-    reconstruct (Exiting start : Entering end : rest) = (Line start end, LineOutsidePolygon) : reconstruct rest
-    reconstruct (e@Exiting{} : AlongEdge{} : rest) = reconstruct (e:rest)
+    reconstruct (Entering start : rest@((Exiting end) : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct (e@Entering{} : AlongEdge{} : rest) = reconstruct (e:rest) -- We ignore the alongEdge part here, much like the 'Touching' cases
+    reconstruct (Exiting start : rest@(Entering end : _)) = (Line start end, LineOutsidePolygon) : reconstruct rest
+    reconstruct (e@Exiting{} : AlongEdge{} : rest) = reconstruct (e:rest) -- We ignore the alongEdge part here, much like the 'Touching' cases
+    reconstruct [Exiting{}] = []
 
-    -- Lonely AlongEdge: arbitrary choice on whether it’s inside/outside
-    reconstruct (AlongEdge start end : rest) = (Line start end, LineInsidePolygon) : reconstruct rest
+    -- Unhappy path, cutting along edges: do some lookahead to decide whether we’re in our out
+    reconstruct (AlongEdge start end : rest@(AlongEdge{} : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct (AlongEdge start end : rest@(Entering{} : _)) = (Line start end, LineOutsidePolygon) : reconstruct rest
+    reconstruct (AlongEdge start end : rest@(Exiting{} : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct [AlongEdge{}] = [] -- This might also be declared an error, but in the name of sanity let’s just say this does nothing
 
     -- Ignore touch points: simply continue the line
     reconstruct (e@Entering{} : Touching{} : rest) = reconstruct (e:rest)
     reconstruct (e@Exiting{} : Touching{} : rest) = reconstruct (e:rest)
+    reconstruct (along@AlongEdge{} : Touching{} : rest) = reconstruct (along:rest)
     reconstruct (Touching{} : rest) = reconstruct rest
 
     reconstruct (Entering{} : Entering {} : _) = err "Double enter"
     reconstruct (Exiting{} : Exiting {} : _) = err "Double exit"
     reconstruct [Entering{}] = err "Standalone enter"
-    reconstruct [Exiting{}] = err "Standalone exit"
+    reconstruct [] = [] -- Input was empty to begin with, otherwise one of the other cases happens
 
     err msg = bugError ("clipPolygonWithLine: " ++ msg)
