@@ -53,9 +53,9 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
         for_ ps $ \p -> do
             sketch (D.Circle p 4)
             C.fill
-    for_ (cells voronoi) $ \VoronoiCell{..} -> do
+    for_ (_voronoiCells voronoi) $ \VoronoiCell{..} -> do
         setColor $ mathematica97 3
-        sketch region
+        sketch _voronoiRegion
         C.stroke
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
@@ -78,14 +78,14 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
         triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
     C.translate 10 10
     for_ triangulations $ \triangulation -> do
-        for_ (cells (toVoronoi triangulation)) $ \VoronoiCell{..} -> cairoScope $ do
+        for_ (_voronoiCells (toVoronoi triangulation)) $ \VoronoiCell{..} -> cairoScope $ do
             setColor $ mathematica97 0
-            sketch region
+            sketch _voronoiRegion
             C.stroke
             setColor $ mathematica97 3
-            sketch (Arrow (Line seed (polygonCentroid region)) def { _arrowheadSize = 4 })
+            sketch (Arrow (Line _voronoiSeed (polygonCentroid _voronoiRegion)) def { _arrowheadSize = 4 })
             C.stroke
             setColor $ mathematica97 1
-            sketch (D.Circle seed 4)
+            sketch (D.Circle _voronoiSeed 4)
             C.fill
         C.translate 210 0

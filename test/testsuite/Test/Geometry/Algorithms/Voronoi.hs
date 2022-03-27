@@ -90,7 +90,7 @@ testVoronoi :: TestTree
 testVoronoi = testVisual "Full Voronoi pattern" 120 120 "docs/voronoi/3_full_voronoi" $ \_ -> do
     let voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
     Cairo.translate 10 10
-    drawVoronoi (cells voronoiPattern)
+    drawVoronoi (_voronoiCells voronoiPattern)
 
 drawVoronoi :: [VoronoiCell MathematicaColor] -> Render ()
 drawVoronoi voronoiCells = cairoScope $ do
@@ -110,7 +110,7 @@ drawVoronoi voronoiCells = cairoScope $ do
         drawPoint point i
 
 drawSeed :: VoronoiCell MathematicaColor -> Render ()
-drawSeed cell = drawPoint (seed cell) (props cell)
+drawSeed cell = drawPoint (_voronoiSeed cell) (_voronoiProps cell)
 
 drawPoint :: Vec2 -> MathematicaColor -> Render ()
 drawPoint point color = cairoScope $ do

@@ -55,10 +55,10 @@ main = do
                     <> G.scaleAround' origin 1 0.35
                     <> G.rotateAround origin (deg 45)
                     <> G.translate (Vec2 560 0 )
-                    <> G.scaleAround (seed c) 0.9 )
-                    (region c)
-                , props c) )
-            <$> cells voronoiWithProps
+                    <> G.scaleAround (_voronoiSeed c) 0.9 )
+                    (_voronoiRegion c)
+                , _voronoiProps c) )
+            <$> _voronoiCells voronoiWithProps
 
     render file scaledWidth scaledHeight $ do
         cairoScope (setColor (magma 0.05) >> paint)

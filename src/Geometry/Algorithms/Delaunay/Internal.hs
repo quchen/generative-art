@@ -108,13 +108,14 @@ inside :: Vec2 -> Circle -> Bool
 point `inside` Circle center radius = norm (center -. point) <= radius
 
 toVoronoi :: DelaunayTriangulation -> Voronoi ()
-toVoronoi delaunay@Delaunay{..} = Voronoi {..}
-  where
-    cells =
+toVoronoi delaunay = Voronoi
+    { _voronoiBounds = bounds delaunay
+    , _voronoiCells =
         [ cell
         | (p, rays) <- M.toList (vertexGraph delaunay)
         , cell <- maybeToList (voronoiCell delaunay p rays)
         ]
+    }
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
 vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
@@ -130,7 +131,7 @@ vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
 voronoiCell :: DelaunayTriangulation -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
 voronoiCell Delaunay{..} p qs
     | p `elem` corners = Nothing
-    | otherwise          = Just VoronoiCell { region = polygonRestrictedToBounds, seed = p, props = () }
+    | otherwise          = Just VoronoiCell { _voronoiRegion = polygonRestrictedToBounds, _voronoiSeed = p, _voronoiProps = () }
   where
     sortedRays = sortOn (getRad . angleOfLine) (Line p <$> S.toList qs)
     voronoiVertex l1 l2
@@ -152,4 +153,4 @@ voronoiCell Delaunay{..} p qs
 lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
 lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices
   where
-    relaxedVertices = polygonCentroid . region <$> cells (toVoronoi delaunay)
+    relaxedVertices = polygonCentroid . _voronoiRegion <$> _voronoiCells (toVoronoi delaunay)
