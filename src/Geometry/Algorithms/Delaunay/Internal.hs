@@ -114,7 +114,9 @@ inside :: Vec2 -> Circle -> Bool
 point `inside` Circle center radius = norm (center -. point) <= radius
 
 -- | Since the two concepts are closely related (by duality), we can convert a
--- 'DelaunayTriangulation' to a 'Voronoi' diagram rather easily.
+-- 'DelaunayTriangulation' to a 'Voronoi' diagram rather easily. One way to crete a
+-- nice 'Voronoi' is by starting with a 'DelaunayTriangulation', relaying it a bit
+-- with 'lloydRelaxation', and then calling 'toVoronoi'.
 toVoronoi :: DelaunayTriangulation -> Voronoi ()
 toVoronoi delaunay = Voronoi
     { _voronoiBounds = _dtBounds delaunay

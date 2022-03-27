@@ -1,5 +1,5 @@
--- | A Voronoi pattern paints a cell around each point, so that each point in the
--- cell is closest to that point.
+-- | The Delaunay triangulation tries to maximize the smallest angle of a
+-- triangulation of vertices.
 --
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay.hs/delaunay.svg" 300 200 $ do
@@ -7,7 +7,7 @@
 --     randomPoints <- liftIO $ do
 --         gen <- MWC.create
 --         poissonDisc gen PoissonDiscParams
---             { _poissonRadius = width * height / 1000
+--             { _poissonRadius = width * height / 1600
 --             , _poissonK      = 4
 --             , _poissonWidth  = round width
 --             , _poissonHeight = round height

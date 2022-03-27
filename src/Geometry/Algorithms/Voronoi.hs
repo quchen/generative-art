@@ -1,16 +1,24 @@
--- | A Voronoi pattern paints a cell around each point, so that each point in the
--- cell is closest to that point.
+-- | A Voronoi pattern is constructed from a list of seeds:
+-- Each seed is surrounded by a polygon so that the distance of all
+-- points in the polygon is closer to the seed than to any other
+-- seed in the plane.
+--
+-- The phyiscal analogon is crystallization around a nucleus: Starting from a
+-- nucleus, the crystal grows in every direction, until it hits the crystal
+-- structure of another nucleus.
 --
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Voronoi.hs/voronoi.svg" 400 300 $ do
+-- haddockRender "Geometry/Algorithms/Voronoi.hs/voronoi.svg" 300 200 $ do
 --     points <- liftIO $ do
 --         gen <- MWC.create
---         gaussianDistributedPoints gen [zero, Vec2 400 300] (Mat2 200 0 0 150) 16
---     let voronoi = mkVoronoi 400 300 (fmap (\point -> (point, ())) points)
+--         gaussianDistributedPoints gen [zero, Vec2 300 200] (Mat2 150 0 0 100) 16
+--     let voronoi = mkVoronoi 300 200 (fmap (\point -> (point, ())) points)
 --     for_ (_voronoiCells voronoi) $ \cell -> do
 --         sketch (_voronoiRegion cell)
+--         setColor (mathematica97 0)
 --         stroke
---         sketch (Circle (_voronoiSeed cell) 2)
+--         sketch (Circle (_voronoiSeed cell) 3)
+--         setColor (mathematica97 1)
 --         fill
 -- :}
 -- docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg
@@ -18,15 +26,7 @@
 -- <<docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg>>
 module Geometry.Algorithms.Voronoi (
     -- * Types
-    --
-    -- A Voronoi pattern is constructed from a list of seeds:
-    -- Each seed is surrounded by a polygon so that the distance of all
-    -- points in the polygon is closer to the seed than to any other
-    -- seed in the plane.
-    --
-    -- The phyiscal analogon is crystallization around a nucleus: Starting from a
-    -- nucleus, the crystal grows in every direction, until it hits the crystal
-    -- structure of another nucleus.
+
 
     Voronoi(..)
     , VoronoiCell(..)
@@ -85,13 +85,11 @@ instance Functor Voronoi where
 mapWithMetadata :: (Vec2 -> Polygon -> a -> b) -> Voronoi a -> Voronoi b
 mapWithMetadata f voronoi@Voronoi{..} = voronoi { _voronoiCells = [ cell { _voronoiProps = f _voronoiSeed _voronoiRegion _voronoiProps } | cell@VoronoiCell{..} <- _voronoiCells ] }
 
-{-# DEPRECATED mapWithRegion "Use mapWithMetadata instead" #-}
+{-# DEPRECATED mapWithRegion, mapWithSeed "Use mapWithMetadata instead" #-}
 mapWithRegion :: (Polygon -> a -> b) -> Voronoi a -> Voronoi b
-mapWithRegion f voronoi@Voronoi{..} = voronoi { _voronoiCells = [ cell { _voronoiProps = f _voronoiRegion _voronoiProps } | cell@VoronoiCell{..} <- _voronoiCells ] }
-
-{-# DEPRECATED mapWithSeed "Use mapWithMetadata instead" #-}
+mapWithRegion f = mapWithMetadata (\_ polygon meta -> f polygon meta)
 mapWithSeed :: (Vec2 -> a -> b) -> Voronoi a -> Voronoi b
-mapWithSeed f voronoi@Voronoi{..} = voronoi { _voronoiCells = [ cell { _voronoiProps = f _voronoiSeed _voronoiProps } | cell@VoronoiCell{..} <- _voronoiCells ] }
+mapWithSeed f = mapWithMetadata (\polygon _ meta -> f polygon meta)
 
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
