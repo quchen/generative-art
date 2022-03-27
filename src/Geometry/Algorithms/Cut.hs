@@ -14,14 +14,28 @@ module Geometry.Algorithms.Cut (
 import Geometry.Core
 import Geometry.Algorithms.Cut.Internal
 
-
+-- $setup
+-- >>> import Draw
+-- >>> import Graphics.Rendering.Cairo
 
 -- | Add shading lines to a polygon. This is especially useful for a pen plotter to
 -- do shading, hence the name.
+--
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Cut.hs/shaded_polygon.svg" 100 100 $ do
+--     let polygon = Polygon [Vec2 10 10, Vec2 90 10, Vec2 90 90, Vec2 10 90]
+--     let shading = shade polygon (deg 30) 10
+--     sketch polygon
+--     for_ shading sketch
+--     stroke
+-- :}
+-- docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg
+--
+-- <<docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg>>
 shade
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.
-    -> Double -- ^ Distance between shading line
+    -> Double -- ^ Distance between shading lines
     -> [Line]
 shade polygon angle shadeInterval = do
 
