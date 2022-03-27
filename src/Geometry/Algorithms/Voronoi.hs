@@ -57,7 +57,7 @@ import Geometry
 
 
 
-data VoronoiCell a = Cell
+data VoronoiCell a = VoronoiCell
     { seed :: Vec2      -- ^ The point around which the cell grows.
     , region :: Polygon -- ^ The cell itself.
     , props :: a        -- ^ Any additional data, e.g. the color of the cell.
@@ -76,22 +76,22 @@ data Voronoi a = Voronoi
     deriving (Eq, Show)
 
 instance Functor VoronoiCell where
-    fmap f cell@Cell{..} = cell { props = f props }
+    fmap f cell@VoronoiCell{..} = cell { props = f props }
 
 instance Functor Voronoi where
     fmap f voronoi@Voronoi{..} = voronoi { cells = fmap (fmap f) cells }
 
 -- | Rewrite the tags of every cell, taking the position of the seed and the region into account.
 mapWithMetadata :: (Vec2 -> Polygon -> a -> b) -> Voronoi a -> Voronoi b
-mapWithMetadata f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed region props } | cell@Cell{..} <- cells ] }
+mapWithMetadata f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed region props } | cell@VoronoiCell{..} <- cells ] }
 
 {-# DEPRECATED mapWithRegion "Use mapWithMetadata instead" #-}
 mapWithRegion :: (Polygon -> a -> b) -> Voronoi a -> Voronoi b
-mapWithRegion f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f region props } | cell@Cell{..} <- cells ] }
+mapWithRegion f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f region props } | cell@VoronoiCell{..} <- cells ] }
 
 {-# DEPRECATED mapWithSeed "Use mapWithMetadata instead" #-}
 mapWithSeed :: (Vec2 -> a -> b) -> Voronoi a -> Voronoi b
-mapWithSeed f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed props } | cell@Cell{..} <- cells ] }
+mapWithSeed f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed props } | cell@VoronoiCell{..} <- cells ] }
 
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
@@ -124,7 +124,7 @@ emptyVoronoi w h = Voronoi (boundingBox [zero, Vec2 w h]) []
 addPoint :: Voronoi a -> (Vec2, a) -> Voronoi a
 addPoint Voronoi{..} (p, a) = Voronoi bounds (newCell : cells')
   where
-    newCell = foldl' (\nf f -> updateCell (seed f) nf) (Cell p (boundingBoxPolygon bounds) a) cells
+    newCell = foldl' (\nf f -> updateCell (seed f) nf) (VoronoiCell p (boundingBoxPolygon bounds) a) cells
     cells' = fmap (updateCell (seed newCell)) cells
 
 -- | The heart of 'addPoint': Given a seed and a 'VoronoiCell', remove

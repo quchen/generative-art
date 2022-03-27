@@ -31,9 +31,9 @@ testPolygonCutting = testGroup "Adding polygons"
     point1 = Vec2 20 40
     point2 = Vec2 80 90
     point3 = Vec2 60 30
-    cell1 = Cell point1 box 1
-    cell2 = Cell point2 box 2
-    cell3 = Cell point3 box 3
+    cell1 = VoronoiCell point1 box 1
+    cell2 = VoronoiCell point2 box 2
+    cell3 = VoronoiCell point3 box 3
     cell1' = updateCell point2 cell1
     cell1'' = updateCell point3 cell1'
     cell2' = updateCell point1 cell2
@@ -95,7 +95,7 @@ testVoronoi = testVisual "Full Voronoi pattern" 120 120 "docs/voronoi/3_full_vor
 drawVoronoi :: [VoronoiCell MathematicaColor] -> Render ()
 drawVoronoi voronoiCells = cairoScope $ do
     setLineWidth 1
-    for_ voronoiCells $ \(Cell point polygon i) -> do
+    for_ voronoiCells $ \(VoronoiCell point polygon i) -> do
         cairoScope $ do
             newPath
             sketch polygon

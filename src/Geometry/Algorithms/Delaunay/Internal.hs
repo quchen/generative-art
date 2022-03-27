@@ -130,7 +130,7 @@ vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
 voronoiCell :: DelaunayTriangulation -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
 voronoiCell Delaunay{..} p qs
     | p `elem` corners = Nothing
-    | otherwise          = Just Cell { region = polygonRestrictedToBounds, seed = p, props = () }
+    | otherwise          = Just VoronoiCell { region = polygonRestrictedToBounds, seed = p, props = () }
   where
     sortedRays = sortOn (getRad . angleOfLine) (Line p <$> S.toList qs)
     voronoiVertex l1 l2

@@ -100,7 +100,7 @@ colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> di
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 drawCell :: VoronoiCell (Color Double) -> Render ()
-drawCell Cell{..} = drawPoly region props
+drawCell VoronoiCell{..} = drawPoly region props
 
 drawPoly :: Polygon -> Color Double -> Render ()
 drawPoly (Polygon []) _ = pure ()

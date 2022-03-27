@@ -53,7 +53,7 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
         for_ ps $ \p -> do
             sketch (D.Circle p 4)
             C.fill
-    for_ (cells voronoi) $ \Cell{..} -> do
+    for_ (cells voronoi) $ \VoronoiCell{..} -> do
         setColor $ mathematica97 3
         sketch region
         C.stroke
@@ -78,7 +78,7 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
         triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
     C.translate 10 10
     for_ triangulations $ \triangulation -> do
-        for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
+        for_ (cells (toVoronoi triangulation)) $ \VoronoiCell{..} -> cairoScope $ do
             setColor $ mathematica97 0
             sketch region
             C.stroke

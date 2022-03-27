@@ -82,7 +82,7 @@ setup tmpDir window = do
         liftIO $ render fileName w h $ for_ (cells voronoi) drawCellCairo
 
 drawCellCairo :: VoronoiCell () -> Cairo.Render ()
-drawCellCairo Cell{..} = case region of
+drawCellCairo VoronoiCell{..} = case region of
     Polygon [] -> pure ()
     poly -> do
         let fillColor = parseRgbHex "#eeeeee"
