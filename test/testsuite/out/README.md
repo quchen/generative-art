@@ -185,6 +185,10 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/cut/random_cut_square.svg)
 
+![Missing image!](../../../docs/geometry/cut/shade_polygon_regular.svg)
+
+![Missing image!](../../../docs/geometry/cut/shade_polygon_spiral.svg)
+
 ![Missing image!](../../../docs/geometry/ellipse_bounding_boxes.svg)
 
 ![Missing image!](../../../docs/geometry/ellipses.svg)
@@ -232,6 +236,8 @@ over quickly.
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg)
 
 ![Missing image!](../../../docs/hexagonal/1_line_and_circle.svg)
 

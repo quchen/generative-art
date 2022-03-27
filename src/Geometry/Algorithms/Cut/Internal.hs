@@ -15,7 +15,10 @@ import qualified Data.Set   as S
 
 import Geometry.Core
 
--- | Cut a finite piece of paper in one or two parts with an infinite line
+
+
+-- | Cut a finite piece of paper in one or two parts with an infinite scissors line
+-- (depending on whether the scissors miss the line or not).
 cutLine :: Line -> Line -> CutLine
 cutLine scissors paper = case intersectionLL scissors paper of
     IntersectionReal p           -> cut p
@@ -50,8 +53,7 @@ cutPolygon scissors polygon =
             (cutAll scissors
                 (polygonEdges polygon)))
 
--- Generate a list of all the edges of a polygon, extended with additional
--- points on the edges that are crossed by the scissors.
+-- Extend a number of lines by points that are crossed by the scissors.
 cutAll :: Line -> [Line] -> [CutLine]
 cutAll scissors edges = map (cutLine scissors) edges
 
@@ -65,7 +67,7 @@ buildGraph :: [CutEdgeGraph -> CutEdgeGraph] -> CutEdgeGraph
 buildGraph = foldl' (\graph insertEdge -> insertEdge graph) (CutEdgeGraph mempty)
 
 newCutsEdgeGraph :: Line -> PolygonOrientation -> [CutLine] -> [CutEdgeGraph -> CutEdgeGraph]
-newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPointsSorted
+newCutsEdgeGraph scissors orientation cuts = go (cutPointsSorted scissors orientation cuts)
   where
     go :: [NormalizedCut] -> [CutEdgeGraph -> CutEdgeGraph]
     go [] = []
@@ -107,29 +109,28 @@ newCutsEdgeGraph scissors@(Line scissorsStart _) orientation cuts = go cutPoints
     go [Exiting p, Entering q]
       = go [Entering p, Exiting q]
 
-
     go bad
       = bugError $ unlines
           [ "Expecting patterns to be exhaustive, but apparently it's not."
           , "Bad portion: " ++ show bad
-          , "Full list of cut lines: " ++ show cutPointsSorted ]
+          , "Full list of cut lines: " ++ show (cutPointsSorted scissors orientation cuts) ]
 
+-- | Sort cut points by location on the scissors
+cutPointsSorted :: Line -> PolygonOrientation -> [CutLine] -> [NormalizedCut]
+cutPointsSorted scissors orientation cuts = sortOn (scissorCoordinate scissors) (normalizeCuts scissors orientation cuts)
 
-    cutPointsSorted :: [NormalizedCut]
-    cutPointsSorted = sortOn scissorCoordinate (normalizeCuts scissors orientation cuts)
-
-    -- How far ahead/behind the start of the line is the point?
-    --
-    -- In mathematical terms, this yields the coordinate of a point in the
-    -- 1-dimensional vector space that is the scissors line.
-    scissorCoordinate :: NormalizedCut -> Double
-    scissorCoordinate nc = case nc of
-        Entering x -> positionAlongScissor x
-        Exiting x -> positionAlongScissor x
-        Touching x -> positionAlongScissor x
-        AlongEdge x y -> min (positionAlongScissor x) (positionAlongScissor y)
-      where
-        positionAlongScissor p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
+-- How far ahead/behind the start of the line is the point?
+--
+-- In mathematical terms, this yields the coordinate of a point in the
+-- 1-dimensional vector space that is the scissors line.
+scissorCoordinate :: Line -> NormalizedCut -> Double
+scissorCoordinate scissors@(Line scissorsStart _) nc = case nc of
+    Entering x -> positionAlongScissor x
+    Exiting x -> positionAlongScissor x
+    Touching x -> positionAlongScissor x
+    AlongEdge x y -> min (positionAlongScissor x) (positionAlongScissor y)
+    where
+    positionAlongScissor p = dotProduct (vectorOf scissors) (vectorOf (Line scissorsStart p))
 
 -- A polygon can be described by an adjacency list of corners to the next
 -- corner. A cut simply introduces two new corners (of polygons to be) that
@@ -193,7 +194,7 @@ extractSinglePolygon orientation = go Nothing S.empty
                         next
                         (CutEdgeGraph (M.delete pivot edgeMap))
                 in (Polygon (pivot:rest), edgeGraph')
-            Just (toVertices@(next1:_)) ->
+            Just toVertices@(next1:_) ->
                 let useAsNext = case lastPivot of
                         Nothing -> next1 -- arbitrary starting point WLOG
                         Just from ->
@@ -330,3 +331,41 @@ data SideOfLine = LeftOfLine | DirectlyOnLine | RightOfLine
 -- from the left, but we cut exactly through the vertex.
 data CutType = LO | LR | OL | OO | OR | RL | RO
     deriving (Eq, Ord, Show)
+
+data LineType = LineInsidePolygon | LineOutsidePolygon
+    deriving (Eq, Ord, Show)
+
+-- | Classify lines on the scissors as being inside or outside the polygon.
+clipPolygonWithLine :: Polygon -> Line -> [(Line, LineType)]
+clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
+
+  where
+    allCuts = cutAll scissors (polygonEdges polygon)
+    orientation = polygonOrientation polygon
+    normalizedCuts = cutPointsSorted scissors orientation allCuts
+
+    -- Happy path
+    reconstruct (Entering start : rest@((Exiting end) : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct (e@Entering{} : AlongEdge{} : rest) = reconstruct (e:rest) -- We ignore the alongEdge part here, much like the 'Touching' cases
+    reconstruct (Exiting start : rest@(Entering end : _)) = (Line start end, LineOutsidePolygon) : reconstruct rest
+    reconstruct (e@Exiting{} : AlongEdge{} : rest) = reconstruct (e:rest) -- We ignore the alongEdge part here, much like the 'Touching' cases
+    reconstruct [Exiting{}] = []
+
+    -- Unhappy path, cutting along edges: do some lookahead to decide whether we’re in our out
+    reconstruct (AlongEdge start end : rest@(AlongEdge{} : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct (AlongEdge start end : rest@(Entering{} : _)) = (Line start end, LineOutsidePolygon) : reconstruct rest
+    reconstruct (AlongEdge start end : rest@(Exiting{} : _)) = (Line start end, LineInsidePolygon) : reconstruct rest
+    reconstruct [AlongEdge{}] = [] -- This might also be declared an error, but in the name of sanity let’s just say this does nothing
+
+    -- Ignore touch points: simply continue the line
+    reconstruct (e@Entering{} : Touching{} : rest) = reconstruct (e:rest)
+    reconstruct (e@Exiting{} : Touching{} : rest) = reconstruct (e:rest)
+    reconstruct (along@AlongEdge{} : Touching{} : rest) = reconstruct (along:rest)
+    reconstruct (Touching{} : rest) = reconstruct rest
+
+    reconstruct (Entering{} : Entering {} : _) = err "Double enter"
+    reconstruct (Exiting{} : Exiting {} : _) = err "Double exit"
+    reconstruct [Entering{}] = err "Standalone enter"
+    reconstruct [] = [] -- Input was empty to begin with, otherwise one of the other cases happens
+
+    err msg = bugError ("clipPolygonWithLine: " ++ msg)
