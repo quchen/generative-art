@@ -136,6 +136,7 @@ addPoint Voronoi{..} (p, a) = Voronoi _voronoiBounds (newCell : cells')
 updateCell :: Vec2 -> VoronoiCell a -> VoronoiCell a
 updateCell p f = clipCell (perpendicularBisector (Line (_voronoiSeed f) p)) f
 
+-- | Remove everything from a cell that’s beyond the specified line.
 clipCell :: Line -> VoronoiCell a -> VoronoiCell a
 clipCell line f =
     case filter (pointInPolygon (_voronoiSeed f)) (cutPolygon line (_voronoiRegion f)) of
