@@ -79,6 +79,7 @@ library:
         - Draw.Color.Schemes.Internal.Seaborn
         - Geometry.Algorithms.Clipping.Internal
         - Geometry.Algorithms.Clipping.PolygonPolygon
+        - Geometry.Algorithms.Sampling.PoissonDisc
         - Geometry.Trajectory.PathSimplifier.Radial
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
