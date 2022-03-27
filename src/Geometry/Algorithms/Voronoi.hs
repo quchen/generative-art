@@ -1,48 +1,70 @@
-module Geometry.Algorithms.Voronoi
-(
--- * Types
+-- | A Voronoi pattern paints a cell around each point, so that each point in the
+-- cell is closest to that point.
 --
--- A Voronoi pattern is constructed from a list of seeds:
--- Each seed is surrounded by a polygon so that the distance of all
--- points in the polygon is closer to the seed than to any other
--- seed in the plane.
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Voronoi.hs/voronoi.svg" 400 300 $ do
+--     points <- liftIO $ do
+--         gen <- MWC.create
+--         gaussianDistributedPoints gen [zero, Vec2 400 300] (Mat2 200 0 0 150) 16
+--     let voronoi = mkVoronoi 400 300 (fmap (\point -> (point, ())) points)
+--     for_ (cells voronoi) $ \cell -> do
+--         sketch (region cell)
+--         stroke
+--         sketch (Circle (seed cell) 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg
 --
--- The phyiscal analogon is crystallization around a nucleus: Starting from a
--- nucleus, the crystal grows in every direction, until it hits the crystal
--- structure of another nucleus.
+-- <<docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg>>
+module Geometry.Algorithms.Voronoi (
+    -- * Types
+    --
+    -- A Voronoi pattern is constructed from a list of seeds:
+    -- Each seed is surrounded by a polygon so that the distance of all
+    -- points in the polygon is closer to the seed than to any other
+    -- seed in the plane.
+    --
+    -- The phyiscal analogon is crystallization around a nucleus: Starting from a
+    -- nucleus, the crystal grows in every direction, until it hits the crystal
+    -- structure of another nucleus.
 
-  Voronoi(..)
-, Voronoi'
-, VoronoiCell(..)
-, mapWithSeed
-, mapWithRegion
+    Voronoi(..)
+    , VoronoiCell(..)
+    , mapWithSeed
+    , mapWithRegion
 
--- * Construction
-, emptyVoronoi
-, mkVoronoi
-, mkVoronoi'
-, addPoint
-, addPoint'
+    -- * Construction
+    , emptyVoronoi
+    , mkVoronoi
+    , addPoint
 
--- * Internal
-, updateCell
+    -- * Internal
+    , updateCell
 ) where
 
-import Data.List                       (foldl')
+
+
+import Data.List (foldl')
 
 import Geometry
 
-data VoronoiCell a = Cell
-    { seed :: Vec2
-    -- ^ The point around which the cell grows.
-    , region :: Polygon
-    -- ^ The cell itself.
-    , props :: a
-    -- ^ Any additional data, e.g. the color of the cell.
-    }
-    deriving (Eq, Show)
+-- $setup
+-- >>> import Draw
+-- >>> import Graphics.Rendering.Cairo
+-- >>> import Geometry.Algorithms.Sampling
+-- >>> import qualified System.Random.MWC as MWC
 
--- | Voronoi patterns should be constructed using 'mkVoronoi' or 'addPoint'.
+
+
+data VoronoiCell a = Cell
+    { seed :: Vec2      -- ^ The point around which the cell grows.
+    , region :: Polygon -- ^ The cell itself.
+    , props :: a        -- ^ Any additional data, e.g. the color of the cell.
+    } deriving (Eq, Show)
+
+-- | A Voronoi diagram, with a possible tag for each cell, e.g. for coloring.
+--
+-- Voronoi patterns are constructed using 'mkVoronoi' or 'addPoint'.
 data Voronoi a = Voronoi
     { bounds :: BoundingBox
     -- ^ The bounding box. Also used as a basis for all newly inserted polygons.
@@ -51,8 +73,6 @@ data Voronoi a = Voronoi
     -- or 'addPoint' instead.
     }
     deriving (Eq, Show)
-
-type Voronoi' = Voronoi ()
 
 instance Functor VoronoiCell where
     fmap f cell@Cell{..} = cell { props = f props }
@@ -73,12 +93,8 @@ mapWithRegion f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f regio
 -- 'mkVoronoi' constructs a Voronoi pattern by iteratively adding points.
 --
 -- Basically, @mkVoronoi w h = foldl' 'addPoint' ('emptyVoronoi' w h)
-mkVoronoi :: Double -> Double -> [(Vec2, a)] -> Voronoi a
+mkVoronoi :: Foldable f => Double -> Double -> f (Vec2, a) -> Voronoi a
 mkVoronoi w h = foldl' addPoint (emptyVoronoi w h)
-
--- | Same as 'mkVoronoi', but omitting the 'props'.
-mkVoronoi' :: Double -> Double -> [Vec2] -> Voronoi'
-mkVoronoi' w h = foldl' addPoint' (emptyVoronoi w h)
 
 -- | The starting point for a Voronoi pattern.
 emptyVoronoi :: Double -> Double -> Voronoi a
@@ -105,10 +121,6 @@ addPoint Voronoi{..} (p, a) = Voronoi bounds (newCell : cells')
   where
     newCell = foldl' (\nf f -> updateCell (seed f) nf) (Cell p (boundingBoxPolygon bounds) a) cells
     cells' = fmap (updateCell (seed newCell)) cells
-
--- | Same as 'addPoint', but without 'props'.
-addPoint' :: Voronoi' -> Vec2 -> Voronoi'
-addPoint' voronoi point = addPoint voronoi (point, ())
 
 -- | The heart of 'addPoint': Given a seed and a 'VoronoiCell', remove
 -- everything from the cell that is nearer to the new seed than to the

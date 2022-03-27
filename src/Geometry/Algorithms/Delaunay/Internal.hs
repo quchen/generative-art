@@ -107,7 +107,7 @@ circumcircle (Triangle p1 p2 p3) = case maybeCenter of
 inside :: Vec2 -> Circle -> Bool
 point `inside` Circle center radius = norm (center -. point) <= radius
 
-toVoronoi :: DelaunayTriangulation -> Voronoi'
+toVoronoi :: DelaunayTriangulation -> Voronoi ()
 toVoronoi delaunay@Delaunay{..} = Voronoi {..}
   where
     cells =
