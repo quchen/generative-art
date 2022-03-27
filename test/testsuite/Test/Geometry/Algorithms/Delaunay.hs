@@ -3,12 +3,11 @@ module Test.Geometry.Algorithms.Delaunay (tests) where
 
 
 import           Control.Monad.IO.Class
-import           Data.List                (scanl')
 import qualified Graphics.Rendering.Cairo as C
 import qualified System.Random.MWC        as MWC
 
-import           Draw                                  hiding (Circle)
-import qualified Draw                                  as D
+import           Draw                         hiding (Circle)
+import qualified Draw                         as D
 import           Geometry
 import           Geometry.Algorithms.Delaunay
 import           Geometry.Algorithms.Sampling
@@ -77,7 +76,7 @@ testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_
         gen <- MWC.create
         uniformlyDistributedPoints gen 200 200 15
     let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) (toList points)
-        triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
+        triangulations = take 4 (iterate (lloydRelaxation 1) triangulation0)
     C.translate 10 10
     for_ triangulations $ \triangulation -> do
         for_ (_voronoiCells (toVoronoi triangulation)) $ \VoronoiCell{..} -> cairoScope $ do

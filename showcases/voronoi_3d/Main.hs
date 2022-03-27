@@ -45,7 +45,7 @@ main = do
 
     points <- poissonDisc gen samplingProps
     print (length points)
-    let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points)
+    let voronoi = toVoronoi (lloydRelaxation 4 (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points))
         voronoiWithProps = mapWithMetadata (\p _ _ -> (randomColor p, randomHeight p)) voronoi
         origin = Vec2 (picWidth/2) (picHeight/2)
         voronoiCells = sortOn ((\(Polygon ps) -> minimum (yCoordinate <$> ps)) . fst) $

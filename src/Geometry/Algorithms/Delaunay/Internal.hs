@@ -158,11 +158,13 @@ voronoiCell delaunay p qs
         go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
     Polygon corners = _dtInitialPolygon delaunay
 
--- | Apply one iteration of Lloyd relaxation, moving the vertices of a
--- triangulation to the centroids of the corresponding Voronoi pattern. Applying
--- this a couple of times (say, 4) results in a triangulation where each triangle
--- is approximately the same size.
-lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
-lloydRelaxation delaunay = bowyerWatson (_dtBounds delaunay) relaxedVertices
+lloydRelaxationStep :: DelaunayTriangulation -> DelaunayTriangulation
+lloydRelaxationStep delaunay = bowyerWatson (_dtBounds delaunay) relaxedVertices
   where
     relaxedVertices = polygonCentroid . _voronoiRegion <$> _voronoiCells (toVoronoi delaunay)
+
+-- | Apply Lloyd relaxation a number of times (typically 1-5), moving the vertices
+-- of a triangulation to the centroids of the corresponding Voronoi pattern. This
+-- makes the distribution of the triangles and vertices more uniform.
+lloydRelaxation :: Int -> DelaunayTriangulation -> DelaunayTriangulation
+lloydRelaxation n delaunay = iterate lloydRelaxationStep delaunay !! n
