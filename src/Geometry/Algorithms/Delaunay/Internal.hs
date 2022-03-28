@@ -15,15 +15,17 @@ import Geometry.Algorithms.Voronoi
 
 
 
-data DelaunayTriangulation = Delaunay
-    { triangulation :: !(RT.RTree DelaunayTriangle)
-    , initialPolygon :: !Polygon
-    , bounds :: {-# UNPACK #-} !BoundingBox
+-- | Abstract data type. Create values with 'bowyerWatson', and then extract the
+-- contents with 'getPolygons'.
+data DelaunayTriangulation = DelaunayTriangulation
+    { _dtTriangulation :: !(RT.RTree DelaunayTriangle)
+    , _dtInitialPolygon :: !Polygon
+    , _dtBounds :: {-# UNPACK #-} !BoundingBox
     }
 
 data DelaunayTriangle = DT
-    { dtTriangle :: {-# UNPACK #-} !Triangle
-    , dtCircle :: {-# UNPACK #-} !Circle
+    { _dtTriangle :: {-# UNPACK #-} !Triangle
+    , _dtCircle :: {-# UNPACK #-} !Circle
     } deriving (Eq)
 
 data Triangle = Triangle {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 deriving (Eq, Ord, Show)
@@ -36,7 +38,7 @@ instance HasBoundingBox DelaunayTriangle where
 
 -- | Smart constructor for triangles.
 --
--- Invariant: Orientation is always positive
+-- The returned triangles always have 'PolygonPositive' orientation.
 triangle :: Vec2 -> Vec2 -> Vec2 -> Triangle
 triangle p1 p2 p3 = case polygonOrientation (Polygon [p1, p2, p3]) of
     PolygonPositive -> Triangle p1 p2 p3
@@ -48,31 +50,35 @@ toPolygon (Triangle p1 p2 p3) = Polygon [p1, p2, p3]
 edges :: Triangle -> [Line]
 edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
+-- | Extract the polygons out of a 'DelaunayTriangulation'.
 getPolygons :: DelaunayTriangulation -> [Polygon]
-getPolygons Delaunay{..} = deleteInitialPolygon $ toPolygon . dtTriangle <$> RT.toList triangulation
+getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> RT.toList (_dtTriangulation delaunay)
   where
-    deleteInitialPolygon = filter (not . hasCommonCorner initialPolygon)
+    deleteInitialPolygon = filter (not . hasCommonCorner (_dtInitialPolygon delaunay))
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
 
-bowyerWatson :: BoundingBox -> [Vec2] -> DelaunayTriangulation
+-- | Calculate the Delaunay triangulation of a set of vertices using the Bowyer-Watson algorithm.
+bowyerWatson :: HasBoundingBox bounds => bounds -> [Vec2] -> DelaunayTriangulation
 bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
   where
     initialTriangles = [triangle v1 v2 v4, triangle v2 v3 v4]
-    initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (center bounds) 2) (boundingBoxPolygon bounds)
-      where center (BoundingBox p q) = (p +. q) /. 2
-    initialDelaunay = Delaunay
-        { triangulation = RT.fromList (zipWith DT initialTriangles (fromJust . circumcircle <$> initialTriangles))
-        , .. }
+    initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (boundingBoxCenter bounds) 2) (boundingBoxPolygon bounds)
+    initialDelaunay = DelaunayTriangulation
+        { _dtTriangulation = RT.fromList (zipWith DT initialTriangles (fromJust . circumcircle <$> initialTriangles))
+        , _dtBounds = boundingBox bounds
+        , _dtInitialPolygon = initialPolygon
+        }
 
+-- | Add a new vertex to an existing Delaunay triangulation.
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
-bowyerWatsonStep delaunay@Delaunay{..} newPoint = delaunay { triangulation = foldr RT.insert goodTriangles newTriangles }
+bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTriangulation = foldr RT.insert goodTriangles newTriangles }
   where
-    validNewPoint = if newPoint `insideBoundingBox` bounds
+    validNewPoint = if newPoint `insideBoundingBox` _dtBounds
         then newPoint
-        else error "User error: Tried to add a point outside the bounding box"
-    badTriangles = filter ((validNewPoint `inside`) . dtCircle) (RT.lookupContainsRange (boundingBox validNewPoint) triangulation)
-    goodTriangles = foldr RT.delete triangulation badTriangles
-    outerPolygon = collectPolygon $ go (edges . dtTriangle =<< badTriangles) M.empty
+        else error "bowyerWatsonStep: user error: Tried to add a point outside the bounding box"
+    badTriangles = filter ((validNewPoint `inside`) . _dtCircle) (RT.lookupContainsRange (boundingBox validNewPoint) _dtTriangulation)
+    goodTriangles = foldr RT.delete _dtTriangulation badTriangles
+    outerPolygon = collectPolygon $ go (edges . _dtTriangle =<< badTriangles) M.empty
       where
         go [] result = result
         go (Line p q : es) result
@@ -107,17 +113,22 @@ circumcircle (Triangle p1 p2 p3) = case maybeCenter of
 inside :: Vec2 -> Circle -> Bool
 point `inside` Circle center radius = norm (center -. point) <= radius
 
-toVoronoi :: DelaunayTriangulation -> Voronoi'
-toVoronoi delaunay@Delaunay{..} = Voronoi {..}
-  where
-    cells =
+-- | Since the two concepts are closely related (by duality), we can convert a
+-- 'DelaunayTriangulation' to a 'Voronoi' diagram rather easily. One way to crete a
+-- nice 'Voronoi' is by starting with a 'DelaunayTriangulation', relaying it a bit
+-- with 'lloydRelaxation', and then calling 'toVoronoi'.
+toVoronoi :: DelaunayTriangulation -> Voronoi ()
+toVoronoi delaunay = Voronoi
+    { _voronoiBounds = _dtBounds delaunay
+    , _voronoiCells =
         [ cell
         | (p, rays) <- M.toList (vertexGraph delaunay)
         , cell <- maybeToList (voronoiCell delaunay p rays)
         ]
+    }
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
-vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
+vertexGraph delaunay = go (_dtTriangle <$> RT.toList (_dtTriangulation delaunay)) M.empty
   where
     go [] = id
     go (Triangle a b c : rest) = go rest
@@ -128,9 +139,9 @@ vertexGraph Delaunay{..} = go (dtTriangle <$> RT.toList triangulation) M.empty
     insertOrUpdate ps (Just qs) = Just (S.union qs (S.fromList ps))
 
 voronoiCell :: DelaunayTriangulation -> Vec2 -> S.Set Vec2 -> Maybe (VoronoiCell ())
-voronoiCell Delaunay{..} p qs
+voronoiCell delaunay p qs
     | p `elem` corners = Nothing
-    | otherwise          = Just Cell { region = polygonRestrictedToBounds, seed = p, props = () }
+    | otherwise          = Just VoronoiCell { _voronoiRegion = polygonRestrictedToBounds, _voronoiSeed = p, _voronoiProps = () }
   where
     sortedRays = sortOn (getRad . angleOfLine) (Line p <$> S.toList qs)
     voronoiVertex l1 l2
@@ -143,13 +154,19 @@ voronoiCell Delaunay{..} p qs
         | otherwise
           = intersectionPoint (intersectionLL (perpendicularBisector l1) (perpendicularBisector l2))
     rawPolygon = Polygon $ catMaybes (uncurry voronoiVertex <$> zip sortedRays (tail (cycle sortedRays)))
-    polygonRestrictedToBounds = go (polygonEdges (boundingBoxPolygon bounds)) rawPolygon
+    polygonRestrictedToBounds = go (polygonEdges (boundingBoxPolygon (_dtBounds delaunay))) rawPolygon
       where
         go [] poly = poly
         go (l:ls) poly = let [clipped] = filter (p `pointInPolygon`) (cutPolygon l poly) in go ls clipped
-    Polygon corners = initialPolygon
+    Polygon corners = _dtInitialPolygon delaunay
 
-lloydRelaxation :: DelaunayTriangulation -> DelaunayTriangulation
-lloydRelaxation delaunay@Delaunay{..} = bowyerWatson bounds relaxedVertices
+lloydRelaxationStep :: DelaunayTriangulation -> DelaunayTriangulation
+lloydRelaxationStep delaunay = bowyerWatson (_dtBounds delaunay) relaxedVertices
   where
-    relaxedVertices = polygonCentroid . region <$> cells (toVoronoi delaunay)
+    relaxedVertices = polygonCentroid . _voronoiRegion <$> _voronoiCells (toVoronoi delaunay)
+
+-- | Apply Lloyd relaxation a number of times (typically 1-5), moving the vertices
+-- of a triangulation to the centroids of the corresponding Voronoi pattern. This
+-- makes the distribution of the triangles and vertices more uniform.
+lloydRelaxation :: Int -> DelaunayTriangulation -> DelaunayTriangulation
+lloydRelaxation n delaunay = iterate lloydRelaxationStep delaunay !! n

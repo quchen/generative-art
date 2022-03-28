@@ -257,7 +257,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 
     randomPoint = do
         let t = Transformation covariance center
-        vec <- (transform t . Vec2) <$> standard gen <*> standard gen
+        vec <- transform t . Vec2 <$> standard gen <*> standard gen
         if vec `insideBoundingBox` bb
-            then randomPoint
-            else pure vec
+            then pure vec
+            else randomPoint

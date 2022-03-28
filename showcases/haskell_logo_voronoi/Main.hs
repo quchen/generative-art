@@ -73,9 +73,9 @@ mainHaskellLogo = do
     ditheringPoints <- RT.fromList <$> poissonDisc gen samplingProps{ _poissonRadius = adaptiveRadius / 4 }
     print (length points)
     let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
-        voronoiColorized = mapWithRegion (colorizePolygon ditheringPoints) voronoi
+        voronoiColorized = mapWithMetadata (\_seed polygon ann -> colorizePolygon ditheringPoints polygon ann) voronoi
 
-    render file picWidth picHeight $ for_ (cells voronoiColorized) drawCell
+    render file picWidth picHeight $ for_ (_voronoiCells voronoiColorized) drawCell
 
 haskellLogoWithColors :: [(Polygon, Color Double)]
 haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
@@ -100,7 +100,7 @@ colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> di
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
 drawCell :: VoronoiCell (Color Double) -> Render ()
-drawCell Cell{..} = drawPoly region props
+drawCell VoronoiCell{..} = drawPoly _voronoiRegion _voronoiProps
 
 drawPoly :: Polygon -> Color Double -> Render ()
 drawPoly (Polygon []) _ = pure ()

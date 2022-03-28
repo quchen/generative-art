@@ -31,9 +31,9 @@ testPolygonCutting = testGroup "Adding polygons"
     point1 = Vec2 20 40
     point2 = Vec2 80 90
     point3 = Vec2 60 30
-    cell1 = Cell point1 box 1
-    cell2 = Cell point2 box 2
-    cell3 = Cell point3 box 3
+    cell1 = VoronoiCell point1 box 1
+    cell2 = VoronoiCell point2 box 2
+    cell3 = VoronoiCell point3 box 3
     cell1' = updateCell point2 cell1
     cell1'' = updateCell point3 cell1'
     cell2' = updateCell point1 cell2
@@ -88,14 +88,14 @@ testPolygonCutting = testGroup "Adding polygons"
 
 testVoronoi :: TestTree
 testVoronoi = testVisual "Full Voronoi pattern" 120 120 "docs/voronoi/3_full_voronoi" $ \_ -> do
-        let voronoiPattern = mkVoronoi 100 100 (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
-        Cairo.translate 10 10
-        drawVoronoi (cells voronoiPattern)
+    let voronoiPattern = mkVoronoi [zero, Vec2 100 100] (zip [Vec2 10 10, Vec2 80 30, Vec2 70 90, Vec2 20 99, Vec2 50 50] [1..])
+    Cairo.translate 10 10
+    drawVoronoi (_voronoiCells voronoiPattern)
 
 drawVoronoi :: [VoronoiCell MathematicaColor] -> Render ()
 drawVoronoi voronoiCells = cairoScope $ do
     setLineWidth 1
-    for_ voronoiCells $ \(Cell point polygon i) -> do
+    for_ voronoiCells $ \(VoronoiCell point polygon i) -> do
         cairoScope $ do
             newPath
             sketch polygon
@@ -110,7 +110,7 @@ drawVoronoi voronoiCells = cairoScope $ do
         drawPoint point i
 
 drawSeed :: VoronoiCell MathematicaColor -> Render ()
-drawSeed cell = drawPoint (seed cell) (props cell)
+drawSeed cell = drawPoint (_voronoiSeed cell) (_voronoiProps cell)
 
 drawPoint :: Vec2 -> MathematicaColor -> Render ()
 drawPoint point color = cairoScope $ do

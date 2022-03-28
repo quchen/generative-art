@@ -239,6 +239,10 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg)
+
 ![Missing image!](../../../docs/hexagonal/1_line_and_circle.svg)
 
 ![Missing image!](../../../docs/hexagonal/gaussian_hexagons.svg)

@@ -590,9 +590,9 @@ instance Semigroup a => Semigroup (NoBoundingBox a) where NoBoundingBox x <> NoB
 instance Monoid a => Monoid (NoBoundingBox a) where mempty = NoBoundingBox mempty
 instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundingBox x) = NoBoundingBox (transform t x)
 
-boundingBoxPolygon :: BoundingBox -> Polygon
-boundingBoxPolygon bb = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
-  where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = bb
+boundingBoxPolygon :: HasBoundingBox object => object -> Polygon
+boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
+  where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox object
 
 -- | Is the argument fully contained in another’s bounding box?
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool

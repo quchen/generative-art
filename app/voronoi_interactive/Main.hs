@@ -69,7 +69,7 @@ setup tmpDir window = do
             randomNumber <- uniform gen :: IO Int
             pure (tmpDir ++ "/" ++ showHex (abs randomNumber) ".png")
         let voronoi = toVoronoi delaunay
-        liftIO $ render tmpFile w h $ for_ (cells voronoi) drawCellCairo
+        liftIO $ render tmpFile w h $ for_ (_voronoiCells voronoi) drawCellCairo
         outFile <- loadFile "image/png" tmpFile
         outImg <- UI.img # set UI.src outFile
         on (UI.domEvent "load") outImg $ \_ -> do
@@ -79,10 +79,10 @@ setup tmpDir window = do
     on UI.click btnSave $ \() -> do
         fileName <- get UI.value inputFileName
         voronoi <- liftIO $ toVoronoi <$> currentValue bDelaunay
-        liftIO $ render fileName w h $ for_ (cells voronoi) drawCellCairo
+        liftIO $ render fileName w h $ for_ (_voronoiCells voronoi) drawCellCairo
 
 drawCellCairo :: VoronoiCell () -> Cairo.Render ()
-drawCellCairo Cell{..} = case region of
+drawCellCairo VoronoiCell{..} = case _voronoiRegion of
     Polygon [] -> pure ()
     poly -> do
         let fillColor = parseRgbHex "#eeeeee"
@@ -93,5 +93,5 @@ drawCellCairo Cell{..} = case region of
         setColor lineColor
         Cairo.setLineWidth 1
         Cairo.stroke
-        sketch (Circle seed 5)
+        sketch (Circle _voronoiSeed 5)
         Cairo.fill

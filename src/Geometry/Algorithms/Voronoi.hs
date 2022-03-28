@@ -1,8 +1,4 @@
-module Geometry.Algorithms.Voronoi
-(
--- * Types
---
--- A Voronoi pattern is constructed from a list of seeds:
+-- | A Voronoi pattern is constructed from a list of seeds:
 -- Each seed is surrounded by a polygon so that the distance of all
 -- points in the polygon is closer to the seed than to any other
 -- seed in the plane.
@@ -10,79 +6,104 @@ module Geometry.Algorithms.Voronoi
 -- The phyiscal analogon is crystallization around a nucleus: Starting from a
 -- nucleus, the crystal grows in every direction, until it hits the crystal
 -- structure of another nucleus.
+--
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Voronoi.hs/voronoi.svg" 300 200 $ do
+--     points <- liftIO $ do
+--         gen <- MWC.create
+--         gaussianDistributedPoints gen [zero, Vec2 300 200] (Mat2 150 0 0 100) 16
+--     let voronoi = mkVoronoi [zero, Vec2 300 200] (fmap (\point -> (point, ())) points)
+--     for_ (_voronoiCells voronoi) $ \cell -> do
+--         sketch (_voronoiRegion cell)
+--         setColor (mathematica97 0)
+--         stroke
+--         sketch (Circle (_voronoiSeed cell) 3)
+--         setColor (mathematica97 1)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg
+--
+-- <<docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg>>
+module Geometry.Algorithms.Voronoi (
+    -- * Types
 
-  Voronoi(..)
-, Voronoi'
-, VoronoiCell(..)
-, mapWithSeed
-, mapWithRegion
 
--- * Construction
-, emptyVoronoi
-, mkVoronoi
-, mkVoronoi'
-, addPoint
-, addPoint'
+    Voronoi(..)
+    , VoronoiCell(..)
+    , mapWithMetadata
+    , mapWithSeed
+    , mapWithRegion
 
--- * Internal
-, updateCell
+    -- * Construction
+    , emptyVoronoi
+    , mkVoronoi
+    , addPoint
+
+    -- * Internal
+    , updateCell
 ) where
 
-import Data.List                       (foldl')
+
+
+import Data.List (foldl')
 
 import Geometry
 
-data VoronoiCell a = Cell
-    { seed :: Vec2
-    -- ^ The point around which the cell grows.
-    , region :: Polygon
-    -- ^ The cell itself.
-    , props :: a
-    -- ^ Any additional data, e.g. the color of the cell.
-    }
-    deriving (Eq, Show)
+-- $setup
+-- >>> import Draw
+-- >>> import Graphics.Rendering.Cairo
+-- >>> import Geometry.Algorithms.Sampling
+-- >>> import qualified System.Random.MWC as MWC
 
--- | Voronoi patterns should be constructed using 'mkVoronoi' or 'addPoint'.
+
+
+data VoronoiCell a = VoronoiCell
+    { _voronoiSeed :: Vec2      -- ^ The point around which the cell grows.
+    , _voronoiRegion :: Polygon -- ^ The cell itself.
+    , _voronoiProps :: a        -- ^ Any additional data, e.g. the color of the cell.
+    } deriving (Eq, Show)
+
+-- | A Voronoi diagram, with a possible tag for each cell, e.g. for coloring.
+--
+-- Voronoi patterns are constructed using 'mkVoronoi' or 'addPoint'/'emptyVoronoi'.
 data Voronoi a = Voronoi
-    { bounds :: BoundingBox
+    { _voronoiBounds :: BoundingBox
     -- ^ The bounding box. Also used as a basis for all newly inserted polygons.
-    , cells :: [VoronoiCell a]
+    , _voronoiCells :: [VoronoiCell a]
     -- ^ A list of Voronoi cells. Don't add any cells yourself, use 'mkVoronoi'
     -- or 'addPoint' instead.
     }
     deriving (Eq, Show)
 
-type Voronoi' = Voronoi ()
-
 instance Functor VoronoiCell where
-    fmap f cell@Cell{..} = cell { props = f props }
+    fmap f cell@VoronoiCell{..} = cell { _voronoiProps = f _voronoiProps }
 
 instance Functor Voronoi where
-    fmap f voronoi@Voronoi{..} = voronoi { cells = fmap (fmap f) cells }
+    fmap f voronoi@Voronoi{..} = voronoi { _voronoiCells = fmap (fmap f) _voronoiCells }
 
--- | Rewrite the tags of every cell, taking the position of the seed into account.
-mapWithSeed :: (Vec2 -> a -> b) -> Voronoi a -> Voronoi b
-mapWithSeed f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f seed props } | cell@Cell{..} <- cells ] }
+-- | Rewrite the tags of every cell, taking the position of the seed and the region into account.
+mapWithMetadata :: (Vec2 -> Polygon -> a -> b) -> Voronoi a -> Voronoi b
+mapWithMetadata f voronoi@Voronoi{..} = voronoi { _voronoiCells = [ cell { _voronoiProps = f _voronoiSeed _voronoiRegion _voronoiProps } | cell@VoronoiCell{..} <- _voronoiCells ] }
 
--- | Rewrite the tags of every cell, taking the region polygon into account.
+{-# DEPRECATED mapWithRegion, mapWithSeed "Use mapWithMetadata instead" #-}
 mapWithRegion :: (Polygon -> a -> b) -> Voronoi a -> Voronoi b
-mapWithRegion f voronoi@Voronoi{..} = voronoi { cells = [ cell { props = f region props } | cell@Cell{..} <- cells ] }
+mapWithRegion f = mapWithMetadata (\_ polygon meta -> f polygon meta)
+mapWithSeed :: (Vec2 -> a -> b) -> Voronoi a -> Voronoi b
+mapWithSeed f = mapWithMetadata (\polygon _ meta -> f polygon meta)
 
 -- | Construct a Voronoi pattern from a list of tagged seeds.
 --
 -- 'mkVoronoi' constructs a Voronoi pattern by iteratively adding points.
---
--- Basically, @mkVoronoi w h = foldl' 'addPoint' ('emptyVoronoi' w h)
-mkVoronoi :: Double -> Double -> [(Vec2, a)] -> Voronoi a
-mkVoronoi w h = foldl' addPoint (emptyVoronoi w h)
-
--- | Same as 'mkVoronoi', but omitting the 'props'.
-mkVoronoi' :: Double -> Double -> [Vec2] -> Voronoi'
-mkVoronoi' w h = foldl' addPoint' (emptyVoronoi w h)
+mkVoronoi
+    :: (Foldable f, HasBoundingBox region)
+    => region -- ^ Defines the boundary of the pattern
+    -> f (Vec2, a)
+    -> Voronoi a
+mkVoronoi world = foldl' addPoint (emptyVoronoi world)
 
 -- | The starting point for a Voronoi pattern.
-emptyVoronoi :: Double -> Double -> Voronoi a
-emptyVoronoi w h = Voronoi (BoundingBox (Vec2 0 0) (Vec2 w h)) []
+emptyVoronoi :: HasBoundingBox region => region -> Voronoi a
+emptyVoronoi world = Voronoi (boundingBox world) []
 
 -- | Add a new seed point to a Voronoi pattern.
 --
@@ -101,24 +122,21 @@ emptyVoronoi w h = Voronoi (BoundingBox (Vec2 0 0) (Vec2 w h)) []
 -- of the existing cells don't have any overlap with the new cell, so we do a
 -- a lot of unnecessary checks. The algorithm runs in O(n²) time.
 addPoint :: Voronoi a -> (Vec2, a) -> Voronoi a
-addPoint Voronoi{..} (p, a) = Voronoi bounds (newCell : cells')
+addPoint Voronoi{..} (p, a) = Voronoi _voronoiBounds (newCell : cells')
   where
-    newCell = foldl' (\nf f -> updateCell (seed f) nf) (Cell p (boundingBoxPolygon bounds) a) cells
-    cells' = fmap (updateCell (seed newCell)) cells
-
--- | Same as 'addPoint', but without 'props'.
-addPoint' :: Voronoi' -> Vec2 -> Voronoi'
-addPoint' voronoi point = addPoint voronoi (point, ())
+    newCell = foldl' (\nf f -> updateCell (_voronoiSeed f) nf) (VoronoiCell p (boundingBoxPolygon _voronoiBounds) a) _voronoiCells
+    cells' = fmap (updateCell (_voronoiSeed newCell)) _voronoiCells
 
 -- | The heart of 'addPoint': Given a seed and a 'VoronoiCell', remove
 -- everything from the cell that is nearer to the new seed than to the
 -- seed of the original cell.
 updateCell :: Vec2 -> VoronoiCell a -> VoronoiCell a
-updateCell p f = clipCell (perpendicularBisector (Line (seed f) p)) f
+updateCell p f = clipCell (perpendicularBisector (Line (_voronoiSeed f) p)) f
 
+-- | Remove everything from a cell that’s beyond the specified line.
 clipCell :: Line -> VoronoiCell a -> VoronoiCell a
 clipCell line f =
-    case filter (pointInPolygon (seed f)) (cutPolygon line (region f)) of
-        [p] -> f { region = p }
+    case filter (pointInPolygon (_voronoiSeed f)) (cutPolygon line (_voronoiRegion f)) of
+        [p] -> f { _voronoiRegion = p }
         [] -> bugError "Could not identify the remaining Voronoi cell. Perhaps the seed was outside the cell to start with?"
         _ -> bugError "`cutPolygon` resulted in overlapping polygons."

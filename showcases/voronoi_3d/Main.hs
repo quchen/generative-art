@@ -45,8 +45,8 @@ main = do
 
     points <- poissonDisc gen samplingProps
     print (length points)
-    let voronoi = toVoronoi (lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ lloydRelaxation $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points)
-        voronoiWithProps = mapWithSeed (\p () -> (randomColor p, randomHeight p)) voronoi
+    let voronoi = toVoronoi (lloydRelaxation 4 (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points))
+        voronoiWithProps = mapWithMetadata (\p _ _ -> (randomColor p, randomHeight p)) voronoi
         origin = Vec2 (picWidth/2) (picHeight/2)
         voronoiCells = sortOn ((\(Polygon ps) -> minimum (yCoordinate <$> ps)) . fst) $
             ( \c ->
@@ -55,10 +55,10 @@ main = do
                     <> G.scaleAround' origin 1 0.35
                     <> G.rotateAround origin (deg 45)
                     <> G.translate (Vec2 560 0 )
-                    <> G.scaleAround (seed c) 0.9 )
-                    (region c)
-                , props c) )
-            <$> cells voronoiWithProps
+                    <> G.scaleAround (_voronoiSeed c) 0.9 )
+                    (_voronoiRegion c)
+                , _voronoiProps c) )
+            <$> _voronoiCells voronoiWithProps
 
     render file scaledWidth scaledHeight $ do
         cairoScope (setColor (magma 0.05) >> paint)

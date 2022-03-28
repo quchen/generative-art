@@ -3,12 +3,11 @@ module Test.Geometry.Algorithms.Delaunay (tests) where
 
 
 import           Control.Monad.IO.Class
-import           Data.List                (scanl')
 import qualified Graphics.Rendering.Cairo as C
-import           System.Random.MWC        (create)
+import qualified System.Random.MWC        as MWC
 
-import           Draw                                  hiding (Circle)
-import qualified Draw                                  as D
+import           Draw                         hiding (Circle)
+import qualified Draw                         as D
 import           Geometry
 import           Geometry.Algorithms.Delaunay
 import           Geometry.Algorithms.Sampling
@@ -53,39 +52,41 @@ testConversionToVoronoi = testVisual "Conversion to Voronoi" 220 220 "docs/voron
         for_ ps $ \p -> do
             sketch (D.Circle p 4)
             C.fill
-    for_ (cells voronoi) $ \Cell{..} -> do
+    for_ (_voronoiCells voronoi) $ \VoronoiCell{..} -> do
         setColor $ mathematica97 3
-        sketch region
+        sketch _voronoiRegion
         C.stroke
 
 randomDelaunay :: Int -> Int -> IO DelaunayTriangulation
 randomDelaunay width height = do
-    gen <- liftIO create
-    randomPoints <- liftIO $ poissonDisc gen PoissonDiscParams
-        { _poissonRadius = fromIntegral (width * height) / 1000
-        , _poissonK      = 4
-        , _poissonWidth  = width
-        , _poissonHeight = height
-        }
+
+    randomPoints <- liftIO $ do
+        gen <- MWC.create
+        poissonDisc gen PoissonDiscParams
+            { _poissonRadius = fromIntegral (width * height) / 1000
+            , _poissonK      = 4
+            , _poissonWidth  = width
+            , _poissonHeight = height
+            }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
 
 testLloydRelaxation :: TestTree
 testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_relaxation" $ \_ -> do
     points <- liftIO $ do
-        gen <- create
+        gen <- MWC.create
         uniformlyDistributedPoints gen 200 200 15
     let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) (toList points)
-        triangulations = scanl' (flip ($)) triangulation0 (replicate 3 lloydRelaxation)
+        triangulations = take 4 (iterate (lloydRelaxation 1) triangulation0)
     C.translate 10 10
     for_ triangulations $ \triangulation -> do
-        for_ (cells (toVoronoi triangulation)) $ \Cell{..} -> cairoScope $ do
+        for_ (_voronoiCells (toVoronoi triangulation)) $ \VoronoiCell{..} -> cairoScope $ do
             setColor $ mathematica97 0
-            sketch region
+            sketch _voronoiRegion
             C.stroke
             setColor $ mathematica97 3
-            sketch (Arrow (Line seed (polygonCentroid region)) def { _arrowheadSize = 4 })
+            sketch (Arrow (Line _voronoiSeed (polygonCentroid _voronoiRegion)) def { _arrowheadSize = 4 })
             C.stroke
             setColor $ mathematica97 1
-            sketch (D.Circle seed 4)
+            sketch (D.Circle _voronoiSeed 4)
             C.fill
         C.translate 210 0
