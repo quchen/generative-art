@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -6,8 +7,10 @@ module Draw.GCode (
       renderGCode
     , PlottingSettings(..)
     , draw
-    , ToGCode(..)
+    , Plot()
+    , Plotting(..)
     , GCode(..)
+    , withHeaderFooter
 
     -- * Utilities
     , minimizePenHovering
@@ -15,6 +18,8 @@ module Draw.GCode (
 
 
 
+import Control.Monad.State
+import Control.Monad.Writer
 import           Data.Foldable
 import qualified Data.Set       as S
 import qualified Data.Text.Lazy as TL
@@ -27,6 +32,9 @@ import Geometry.Core
 import Geometry.Shapes
 
 
+newtype Plot a = Plot (StateT PlottingSettings (Writer [GCode]) a)
+    deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingSettings)
+
 
 decimal :: Format r (Double -> r)
 decimal = fixed 3
@@ -36,12 +44,12 @@ data PlottingSettings = PlottingSettings
     , _feedrate :: Maybe Double -- ^ Either set a feedrate, or have an initial check whether one was set previously
     } deriving (Eq, Ord, Show)
 
-draw :: GCode -> GCode
-draw content = flatten $ GBlock
-    [ G00_LinearRapidMove Nothing Nothing (Just (-1))
-    , content
-    , G00_LinearRapidMove Nothing Nothing (Just 1)
-    ]
+draw :: Plot a -> Plot a
+draw content = gBlock $ do
+    tell [ G00_LinearRapidMove Nothing Nothing (Just (-1)) ]
+    a <- content
+    tell [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
+    pure a
 
 data GCode
     = GComment TL.Text
@@ -56,54 +64,51 @@ data GCode
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
--- | Flatten one level of GCode blocks
-flatten :: GCode -> GCode
-flatten (GBlock gcodes) = GBlock $ do
-    gcode <- gcodes
-    case gcode of
-        GBlock gcodes' -> gcodes'
-        other -> [other]
-flatten notABlock = notABlock
+gBlock :: Plot a -> Plot a
+gBlock (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
 
-addHeaderFooter :: PlottingSettings -> GCode -> GCode
-addHeaderFooter settings body = GBlock [header, body, footer]
+withHeaderFooter :: Plot a -> Plot a
+withHeaderFooter body = gBlock $ do
+    header
+    a <- body
+    footer
+    pure a
   where
-    feedrateCheck = GBlock $ case _feedrate settings of
-        Just f ->
+    feedrateCheck = gets _feedrate >>= \case
+        Just f -> tell
             [ GComment "Initial feedrate"
             , F_Feedrate f
             ]
-        Nothing ->
+        Nothing -> tell
             [ GComment "NOOP move to make sure feedrate is already set externally"
             , G91_RelativeMovement
             , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = GBlock $ case _previewBoundingBox settings of
-        Just bb ->
-            [ GComment "Preview bounding box"
-            , toGCode bb
-            , M0_Pause
+    previewBoundingBox = gets _previewBoundingBox >>= \case
+        Just bb -> do
+            plot $ GComment "Preview bounding box"
+            plot bb
+            plot M0_Pause
+        Nothing -> pure ()
+
+    header = gBlock $ do
+        tell [ GComment "Header" ]
+        feedrateCheck
+        previewBoundingBox
+
+    footer = gBlock $ tell
+            [ GComment "Footer"
+            , GComment "Lift pen"
+            , G00_LinearRapidMove Nothing Nothing (Just 10)
             ]
-        Nothing -> []
 
-    header = flatten $ GBlock
-        [ GComment "Header"
-        , feedrateCheck
-        , previewBoundingBox
-        ]
 
-    footer = GBlock
-        [ GComment "Footer"
-        , GComment "Lift pen"
-        , G00_LinearRapidMove Nothing Nothing (Just 10)
-        ]
-
-renderGCode :: PlottingSettings -> GCode -> TL.Text
-renderGCode settings
-    = renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
-    . addHeaderFooter settings
+renderGCode :: PlottingSettings -> Plot a -> TL.Text
+renderGCode settings (Plot body) = TL.concat
+    (renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
+        <$> execWriter (evalStateT body settings))
 
 renderGcodeIndented :: Int -> GCode -> TL.Text
 renderGcodeIndented !level = \case
@@ -127,95 +132,108 @@ renderGcodeIndented !level = \case
     indentation = "    "
     indent x = TL.replicate (fromIntegral level) indentation <> x
 
-class ToGCode a where
-    toGCode :: a -> GCode
+class Plotting a where
+    plot :: a -> Plot ()
 
-instance ToGCode GCode where
-    toGCode = id
+instance Plotting GCode where
+    plot = tell . pure
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
-instance ToGCode BoundingBox where
-    toGCode (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = GBlock
-        [ GComment "Hover over bounding box"
-        , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
-        , G00_LinearRapidMove (Just xMax) (Just yMin) Nothing
-        , G00_LinearRapidMove (Just xMax) (Just yMax) Nothing
-        , G00_LinearRapidMove (Just xMin) (Just yMax) Nothing
-        , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
-        ]
+instance Plotting BoundingBox where
+    plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = gBlock $ do
+        plot $ GComment "Hover over bounding box"
+        plot $ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+        plot $ G00_LinearRapidMove (Just xMax) (Just yMin) Nothing
+        plot $ G00_LinearRapidMove (Just xMax) (Just yMax) Nothing
+        plot $ G00_LinearRapidMove (Just xMin) (Just yMax) Nothing
+        plot $ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
 
-instance ToGCode Line where
-    toGCode (Line (Vec2 a b) (Vec2 x y)) =
-        GBlock
-            [ GComment "Line"
-            , G00_LinearRapidMove (Just a) (Just b) Nothing
-            , draw (G01_LinearFeedrateMove (Just x) (Just y) Nothing)
-            ]
+instance Plotting Line where
+    plot (Line (Vec2 a b) (Vec2 x y)) = gBlock $ do
+        plot $ GComment "Line"
+        plot $ G00_LinearRapidMove (Just a) (Just b) Nothing
+        draw $ plot (G01_LinearFeedrateMove (Just x) (Just y) Nothing)
 
-instance ToGCode Circle where
-    toGCode (Circle (Vec2 x y) r) =
+instance Plotting Circle where
+    plot (Circle (Vec2 x y) r) = gBlock $ do
         let (startX, startY) = (x-r, y)
-        in GBlock
-            [ GComment "Circle"
-            , G00_LinearRapidMove (Just startX) (Just startY) Nothing
-            , draw (G02_ArcClockwise r 0 startX startY)
-            ]
+        plot $ GComment "Circle"
+        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
+        draw $ plot (G02_ArcClockwise r 0 startX startY)
 
 -- | Approximation by a number of points
-instance ToGCode Ellipse where
-    toGCode (Ellipse trafo) = GBlock
-        [ GComment "Ellipse"
-        , toGCode (transform trafo (regularPolygon 64))
-        ]
+instance Plotting Ellipse where
+    plot (Ellipse trafo) = gBlock $ do
+        plot $ GComment "Ellipse"
+        plot $ transform trafo (regularPolygon 64)
 
 -- | Polyline
-instance {-# OVERLAPPING #-} Sequential f => ToGCode (f Vec2) where
-    toGCode = go . toList
+instance {-# OVERLAPPING #-} Sequential f => Plotting (f Vec2) where
+    plot = go . toList
       where
-        go [] = GBlock []
-        go (Vec2 startX startY : points) = GBlock
-            [ GComment "Polyline"
-            , G00_LinearRapidMove (Just startX) (Just startY) Nothing
-            , draw (GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points])
-            ]
+        go [] = pure ()
+        go (Vec2 startX startY : points) = gBlock $ do
+            plot $ GComment "Polyline"
+            plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
+            draw $ plot (GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points])
 
 -- | Draw each element separately. Note the overlap with the Polyline instance, which takes precedence.
-instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, ToGCode a) => ToGCode (f a) where
-    toGCode x = GBlock (GComment "Sequential" : toList (fmap toGCode x))
+instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, Plotting a) => Plotting (f a) where
+    plot x = gBlock $ do
+        plot (GComment "Sequential")
+        traverse_ plot x
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b) => ToGCode (a,b) where
-    toGCode (a,b) = GBlock [GComment "2-tuple", toGCode a, toGCode b]
+instance {-# OVERLAPPING #-} (Plotting a, Plotting b) => Plotting (a,b) where
+    plot (a,b) = gBlock $ do
+        plot (GComment "2-tuple")
+        plot a
+        plot b
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c) => ToGCode (a,b,c) where
-    toGCode (a,b,c) = GBlock [GComment "3-tuple", toGCode a, toGCode b, toGCode c]
+instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
+    plot (a,b,c) = gBlock $ do
+        plot (GComment "3-tuple")
+        plot a
+        plot b
+        plot c
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d) => ToGCode (a,b,c,d) where
-    toGCode (a,b,c,d) = GBlock [GComment "4-tuple", toGCode a, toGCode b, toGCode c, toGCode d]
+instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
+    plot (a,b,c,d) = gBlock $ do
+        plot (GComment "4-tuple")
+        plot a
+        plot b
+        plot c
+        plot d
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (ToGCode a, ToGCode b, ToGCode c, ToGCode d, ToGCode e) => ToGCode (a,b,c,d,e) where
-    toGCode (a,b,c,d,e) = GBlock [GComment "5-tuple", toGCode a, toGCode b, toGCode c, toGCode d, toGCode e]
+instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
+    plot (a,b,c,d,e) = gBlock $ do
+        plot (GComment "5-tuple")
+        plot a
+        plot b
+        plot c
+        plot d
+        plot e
 
-instance ToGCode Polygon where
-    toGCode (Polygon []) = GBlock []
-    toGCode (Polygon (p:ps)) = GBlock -- Like polyline, but closes up the shape
-        [ GComment "Polygon"
-        , let Vec2 startX startY = p in G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        , draw (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
-        ]
+instance Plotting Polygon where
+    plot (Polygon []) = pure ()
+    plot (Polygon (p:ps)) = gBlock $ do -- Like polyline, but closes up the shape
+        let Vec2 startX startY = p
+        plot $ GComment "Polygon"
+        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
+        draw $ plot (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
 -- happens to put more points in places with more curvature.
-instance ToGCode Bezier where
-    toGCode bezier@(Bezier a _ _ _) = GBlock
-        [ GComment "Bezier (cubic)"
-        , let Vec2 startX startY = a in G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        , draw (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
-        ]
+instance Plotting Bezier where
+    plot bezier@(Bezier a _ _ _) = gBlock $ do
+        let Vec2 startX startY = a
+        plot $ GComment "Bezier (cubic)"
+        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
+        draw $ plot (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs

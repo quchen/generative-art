@@ -39,4 +39,4 @@ plotterSettings :: PlottingSettings
 plotterSettings = PlottingSettings (Just (foldMap boundingBox gasketScaled)) (Just 1000)
 
 main :: IO ()
-main = T.putStrLn (renderGCode plotterSettings (toGCode (toList gasketScaled)))
+main = T.putStrLn (renderGCode plotterSettings (withHeaderFooter (plot (toList gasketScaled))))
