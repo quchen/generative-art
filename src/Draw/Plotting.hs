@@ -15,6 +15,7 @@ module Draw.Plotting (
     -- * Plotting primitives
     , moveTo
     , lineTo
+    , lineVia
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
     , setFeedrate
@@ -25,7 +26,8 @@ module Draw.Plotting (
     , comment
 
     -- * Raw G-Code
-    , draw
+    , penDown
+    , penUp
     , gCode
 
     -- * Utilities
@@ -49,8 +51,15 @@ import Geometry.Core
 import Geometry.Shapes
 
 
-newtype Plot a = Plot (StateT PlottingSettings (Writer [GCode]) a)
-    deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingSettings)
+newtype Plot a = Plot (StateT PlottingState (Writer [GCode]) a)
+    deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingState)
+
+data PlottingState = PlottingState
+    { _plottingSettings :: PlottingSettings
+    , _penState :: PenState
+    }
+
+data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
     { _previewBoundingBox :: Maybe BoundingBox
@@ -78,39 +87,59 @@ gCode :: [GCode] -> Plot ()
 gCode = tell
 
 moveTo :: Vec2 -> Plot ()
-moveTo (Vec2 x y) = gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
+moveTo (Vec2 x y) = do
+    penUp
+    gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
 
 lineTo :: Vec2 -> Plot ()
-lineTo (Vec2 x y) = draw $ gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
+lineTo p = lineVia p >> penUp
+
+-- | Like lineTo, but keeps the pen lowered so the next line segment can directly continue
+lineVia :: Vec2 -> Plot ()
+lineVia (Vec2 x y) = do
+    penDown
+    gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
 
 -- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = draw $ gCode [ G03_ArcCounterClockwise mx my x y ]
+counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+    penDown
+    gCode [ G03_ArcCounterClockwise mx my x y ]
+    penUp
 
 -- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = draw $ gCode [ G02_ArcClockwise mx my x y ]
+clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+    penDown
+    gCode [ G02_ArcClockwise mx my x y ]
+    penUp
 
-draw :: Plot a -> Plot a
-draw content = block $ do
-    zDrawing <- gets _zDrawingHeight
-    zTravel <- gets _zTravelHeight
-    gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
-    a <- content
-    gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
-    pure a
+penDown, penUp :: Plot ()
+penDown = do
+    zDrawing <- gets (_zDrawingHeight . _plottingSettings)
+    penState <- gets _penState
+    unless (penState == PenDown) $
+        gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
+    modify (\s -> s { _penState = PenDown })
+
+penUp = do
+    zTravel <- gets (_zTravelHeight . _plottingSettings)
+    penState <- gets _penState
+    unless (penState == PenUp) $
+        gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
+    modify (\s -> s { _penState = PenUp })
 
 setFeedrate :: Double -> Plot ()
 setFeedrate f = gCode [ F_Feedrate f ]
 
 block :: Plot a -> Plot a
-block (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
+block (Plot content) = Plot (mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content) <* penUp -- for extra safety
 
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
 
 pause :: Plot ()
-pause = gCode [ M0_Pause ]
+pause = penUp >> gCode [ M0_Pause ]
 
 withHeaderFooter :: Plot a -> Plot a
 withHeaderFooter body = block $ do
@@ -119,7 +148,7 @@ withHeaderFooter body = block $ do
     footer
     pure a
   where
-    feedrateCheck = gets _feedrate >>= \case
+    feedrateCheck = gets (_feedrate . _plottingSettings) >>= \case
         Just f -> comment "Initial feedrate" >> setFeedrate f
         Nothing -> gCode
             [ GComment "NOOP move to make sure feedrate is already set externally"
@@ -128,7 +157,7 @@ withHeaderFooter body = block $ do
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = gets _previewBoundingBox >>= \case
+    previewBoundingBox = gets (_previewBoundingBox . _plottingSettings) >>= \case
         Just bb -> do
             comment "Preview bounding box"
             plot bb
@@ -146,7 +175,8 @@ withHeaderFooter body = block $ do
             gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body settings))
+runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body initialState))
+  where initialState = PlottingState settings PenUp
 
 class Plotting a where
     plot :: a -> Plot ()
@@ -187,7 +217,8 @@ instance Foldable f => Plotting (Polyline f) where
         go (p:ps) = block $ do
             comment "Polyline"
             moveTo p
-            traverse_ lineTo ps
+            traverse_ lineVia ps
+            penUp
 
 instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
     plot x = block $ do
@@ -233,7 +264,7 @@ instance Plotting Polygon where
     plot (Polygon (p:ps)) = block $ do -- Like polyline, but closes up the shape
         comment "Polygon"
         moveTo p
-        traverse_ lineTo ps
+        traverse_ lineVia ps
         lineTo p
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
@@ -243,7 +274,8 @@ instance Plotting Bezier where
     plot bezier@(Bezier a _ _ _) = block $ do
         comment "Bezier (cubic)"
         moveTo a
-        traverse_ lineTo (bezierSubdivideT 32 bezier)
+        traverse_ lineVia (bezierSubdivideT 32 bezier)
+        penUp
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs
