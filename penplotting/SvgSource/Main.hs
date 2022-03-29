@@ -14,7 +14,7 @@ import           Options.Applicative
 import           System.Exit
 
 import Draw
-import Draw.GCode
+import Draw.Plotting
 import Geometry           as G
 import Geometry.Shapes
 import Geometry.SvgParser
@@ -43,16 +43,15 @@ main = do
                 numElements = length paths
                 totalLength = sum (fmap polyLineLength paths)
 
-                gcode = GBlock
-                    [ GComment ("Total line length: " <> TL.pack (show totalLength))
-                    , GComment ("Number of elements to draw: " <> TL.pack (show numElements))
-                    , toGCode paths
-                    ]
-                plottingSettings = PlottingSettings
+                drawing = block $ do
+                    comment ("Total line length: " <> TL.pack (show totalLength))
+                    comment ("Number of elements to draw: " <> TL.pack (show numElements))
+                    plot (Polyline <$> paths)
+                plottingSettings = def
                     { _previewBoundingBox = Just (boundingBox paths)
                     , _feedrate = Just 1000
                     }
-                gcodeRaw = renderGCode plottingSettings gcode
+                gcodeRaw = runPlot plottingSettings drawing
             TL.writeFile (_outputFileG options) gcodeRaw
 
 scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
