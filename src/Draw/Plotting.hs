@@ -1,16 +1,33 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Draw.Plotting (
-      runPlot
+    -- * 'Plot' Monad
+      Plot()
     , PlottingSettings(..)
-    , draw
-    , Plot()
-    , Plotting(..)
-    , GCode(..)
+    , runPlot
     , withHeaderFooter
+
+    -- * 'Plotting' shapes
+    , Plotting(..)
+
+    -- * Plotting primitives
+    , moveTo
+    , lineTo
+    , clockwiseArcAroundTo
+    , counterclockwiseArcAroundTo
+    , setFeedrate
+    , pause
+
+    -- ** File structure
+    , block
+    , comment
+
+    -- * Raw G-Code
+    , draw
+    , gCode
 
     -- * Utilities
     , minimizePenHovering
@@ -40,28 +57,52 @@ data PlottingSettings = PlottingSettings
     , _feedrate :: Maybe Double -- ^ Either set a feedrate, or have an initial check whether one was set previously
     } deriving (Eq, Ord, Show)
 
-draw :: Plotting a => a -> Plot ()
-draw content = gBlock $ do
-    tell [ G00_LinearRapidMove Nothing Nothing (Just (-1)) ]
-    plot content
-    tell [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
+gCode :: [GCode] -> Plot ()
+gCode = tell
 
-gBlock :: Plot a -> Plot a
-gBlock (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
+moveTo :: Vec2 -> Plot ()
+moveTo (Vec2 x y) = gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
+
+lineTo :: Vec2 -> Plot ()
+lineTo (Vec2 x y) = draw $ gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
+
+-- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
+counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
+counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = draw $ gCode [ G03_ArcCounterClockwise mx my x y ]
+
+-- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
+clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
+clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = draw $ gCode [ G02_ArcClockwise mx my x y ]
+
+draw :: Plot a -> Plot a
+draw content = block $ do
+    gCode [ G00_LinearRapidMove Nothing Nothing (Just (-1)) ]
+    a <- content
+    gCode [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
+    pure a
+
+setFeedrate :: Double -> Plot ()
+setFeedrate f = gCode [ F_Feedrate f ]
+
+block :: Plot a -> Plot a
+block (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
+
+comment :: TL.Text -> Plot ()
+comment txt = gCode [ GComment txt ]
+
+pause :: Plot ()
+pause = gCode [ M0_Pause ]
 
 withHeaderFooter :: Plot a -> Plot a
-withHeaderFooter body = gBlock $ do
+withHeaderFooter body = block $ do
     header
     a <- body
     footer
     pure a
   where
     feedrateCheck = gets _feedrate >>= \case
-        Just f -> tell
-            [ GComment "Initial feedrate"
-            , F_Feedrate f
-            ]
-        Nothing -> tell
+        Just f -> comment "Initial feedrate" >> setFeedrate f
+        Nothing -> gCode
             [ GComment "NOOP move to make sure feedrate is already set externally"
             , G91_RelativeMovement
             , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
@@ -70,21 +111,20 @@ withHeaderFooter body = gBlock $ do
 
     previewBoundingBox = gets _previewBoundingBox >>= \case
         Just bb -> do
-            plot $ GComment "Preview bounding box"
+            comment "Preview bounding box"
             plot bb
-            plot M0_Pause
+            pause
         Nothing -> pure ()
 
-    header = gBlock $ do
-        tell [ GComment "Header" ]
+    header = block $ do
+        comment "Header"
         feedrateCheck
         previewBoundingBox
 
-    footer = gBlock $ tell
-            [ GComment "Footer"
-            , GComment "Lift pen"
-            , G00_LinearRapidMove Nothing Nothing (Just 10)
-            ]
+    footer = block $ do
+            comment "Footer"
+            comment "Lift pen"
+            gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
 runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body settings))
@@ -92,76 +132,68 @@ runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body settings
 class Plotting a where
     plot :: a -> Plot ()
 
-instance Plotting (Plot ()) where
-    plot = id
-
-instance Plotting GCode where
-    plot = tell . pure
-
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = gBlock $ do
-        plot $ GComment "Hover over bounding box"
-        plot $ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
-        plot $ G00_LinearRapidMove (Just xMax) (Just yMin) Nothing
-        plot $ G00_LinearRapidMove (Just xMax) (Just yMax) Nothing
-        plot $ G00_LinearRapidMove (Just xMin) (Just yMax) Nothing
-        plot $ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+    plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = block $ do
+        comment "Hover over bounding box"
+        moveTo (Vec2 xMin yMin)
+        moveTo (Vec2 xMax yMin)
+        moveTo (Vec2 xMax yMax)
+        moveTo (Vec2 xMin yMax)
+        moveTo (Vec2 xMin yMin)
 
 instance Plotting Line where
-    plot (Line (Vec2 a b) (Vec2 x y)) = gBlock $ do
-        plot $ GComment "Line"
-        plot $ G00_LinearRapidMove (Just a) (Just b) Nothing
-        draw $ G01_LinearFeedrateMove (Just x) (Just y) Nothing
+    plot (Line start end) = block $ do
+        comment "Line"
+        moveTo start
+        lineTo end
 
 instance Plotting Circle where
-    plot (Circle (Vec2 x y) r) = gBlock $ do
-        let (startX, startY) = (x-r, y)
-        plot $ GComment "Circle"
-        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ G02_ArcClockwise r 0 startX startY
+    plot (Circle center radius) = block $ do
+        let start = center -. Vec2 radius 0
+        comment "Circle"
+        moveTo start
+        clockwiseArcAroundTo (center -. start) start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
-    plot (Ellipse trafo) = gBlock $ do
-        plot $ GComment "Ellipse"
-        plot $ transform trafo (regularPolygon 64)
+    plot (Ellipse trafo) = block $ do
+        comment "Ellipse"
+        plot (transform trafo (regularPolygon 64))
 
--- | Polyline
-instance {-# OVERLAPPING #-} Sequential f => Plotting (f Vec2) where
-    plot = go . toList
+instance Foldable f => Plotting (Polyline f) where
+    plot (Polyline xs) = go (toList xs)
       where
         go [] = pure ()
-        go (Vec2 startX startY : points) = gBlock $ do
-            plot $ GComment "Polyline"
-            plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-            draw $ GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points ]
+        go (p:ps) = block $ do
+            comment "Polyline"
+            moveTo p
+            traverse_ lineTo ps
 
--- | Draw each element separately. Note the overlap with the Polyline instance, which takes precedence.
-instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, Plotting a) => Plotting (f a) where
-    plot x = gBlock $ do
-        plot (GComment "Sequential")
+instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
+    plot x = block $ do
+        comment "Sequential"
         traverse_ plot x
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (Plotting a, Plotting b) => Plotting (a,b) where
-    plot (a,b) = gBlock $ do
-        plot (GComment "2-tuple")
+instance (Plotting a, Plotting b) => Plotting (a,b) where
+    plot (a,b) = block $ do
+        comment "2-tuple"
         plot a
         plot b
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
-    plot (a,b,c) = gBlock $ do
-        plot (GComment "3-tuple")
+instance (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
+    plot (a,b,c) = block $ do
+        comment "3-tuple"
         plot a
         plot b
         plot c
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
-    plot (a,b,c,d) = gBlock $ do
-        plot (GComment "4-tuple")
+    plot (a,b,c,d) = block $ do
+        comment "4-tuple"
         plot a
         plot b
         plot c
@@ -169,8 +201,8 @@ instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) =>
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
-    plot (a,b,c,d,e) = gBlock $ do
-        plot (GComment "5-tuple")
+    plot (a,b,c,d,e) = block $ do
+        comment "5-tuple"
         plot a
         plot b
         plot c
@@ -179,21 +211,20 @@ instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Pl
 
 instance Plotting Polygon where
     plot (Polygon []) = pure ()
-    plot (Polygon (p:ps)) = gBlock $ do -- Like polyline, but closes up the shape
-        let Vec2 startX startY = p
-        plot $ GComment "Polygon"
-        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]]
+    plot (Polygon (p:ps)) = block $ do -- Like polyline, but closes up the shape
+        comment "Polygon"
+        moveTo p
+        traverse_ lineTo ps
+        lineTo p
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
 -- happens to put more points in places with more curvature.
 instance Plotting Bezier where
-    plot bezier@(Bezier a _ _ _) = gBlock $ do
-        let Vec2 startX startY = a
-        plot $ GComment "Bezier (cubic)"
-        plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier]
+    plot bezier@(Bezier a _ _ _) = block $ do
+        comment "Bezier (cubic)"
+        moveTo a
+        traverse_ lineTo (bezierSubdivideT 32 bezier)
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs
