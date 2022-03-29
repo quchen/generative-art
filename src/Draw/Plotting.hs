@@ -40,12 +40,11 @@ data PlottingSettings = PlottingSettings
     , _feedrate :: Maybe Double -- ^ Either set a feedrate, or have an initial check whether one was set previously
     } deriving (Eq, Ord, Show)
 
-draw :: Plot a -> Plot a
+draw :: Plotting a => a -> Plot ()
 draw content = gBlock $ do
     tell [ G00_LinearRapidMove Nothing Nothing (Just (-1)) ]
-    a <- content
+    plot content
     tell [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
-    pure a
 
 gBlock :: Plot a -> Plot a
 gBlock (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
@@ -93,6 +92,9 @@ runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body settings
 class Plotting a where
     plot :: a -> Plot ()
 
+instance Plotting (Plot ()) where
+    plot = id
+
 instance Plotting GCode where
     plot = tell . pure
 
@@ -110,14 +112,14 @@ instance Plotting Line where
     plot (Line (Vec2 a b) (Vec2 x y)) = gBlock $ do
         plot $ GComment "Line"
         plot $ G00_LinearRapidMove (Just a) (Just b) Nothing
-        draw $ plot (G01_LinearFeedrateMove (Just x) (Just y) Nothing)
+        draw $ G01_LinearFeedrateMove (Just x) (Just y) Nothing
 
 instance Plotting Circle where
     plot (Circle (Vec2 x y) r) = gBlock $ do
         let (startX, startY) = (x-r, y)
         plot $ GComment "Circle"
         plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ plot (G02_ArcClockwise r 0 startX startY)
+        draw $ G02_ArcClockwise r 0 startX startY
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
@@ -133,7 +135,7 @@ instance {-# OVERLAPPING #-} Sequential f => Plotting (f Vec2) where
         go (Vec2 startX startY : points) = gBlock $ do
             plot $ GComment "Polyline"
             plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-            draw $ plot (GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points])
+            draw $ GBlock [ G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- points ]
 
 -- | Draw each element separately. Note the overlap with the Polyline instance, which takes precedence.
 instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, Plotting a) => Plotting (f a) where
@@ -181,7 +183,7 @@ instance Plotting Polygon where
         let Vec2 startX startY = p
         plot $ GComment "Polygon"
         plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ plot (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]])
+        draw $ GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- ps ++ [p]]
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
@@ -191,7 +193,7 @@ instance Plotting Bezier where
         let Vec2 startX startY = a
         plot $ GComment "Bezier (cubic)"
         plot $ G00_LinearRapidMove (Just startX) (Just startY) Nothing
-        draw $ plot (GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier])
+        draw $ GBlock [G01_LinearFeedrateMove (Just x) (Just y) Nothing | Vec2 x y <- bezierSubdivideT 32 bezier]
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs
