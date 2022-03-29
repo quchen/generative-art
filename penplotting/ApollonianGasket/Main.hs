@@ -7,7 +7,7 @@ import           Data.Default.Class
 import           Data.Foldable
 import qualified Data.Text.Lazy.IO                   as T
 import           Data.Tree
-import           Draw.GCode
+import           Draw.Plotting
 import           Geometry                            as G
 import           Geometry.Processes.ApollonianGasket
 
@@ -39,4 +39,4 @@ plotterSettings :: PlottingSettings
 plotterSettings = PlottingSettings (Just (foldMap boundingBox gasketScaled)) (Just 1000)
 
 main :: IO ()
-main = T.putStrLn (renderGCode plotterSettings (withHeaderFooter (plot (toList gasketScaled))))
+main = T.putStrLn (runPlot plotterSettings (withHeaderFooter (plot (toList gasketScaled))))

@@ -3,8 +3,8 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Draw.GCode (
-      renderGCode
+module Draw.Plotting (
+      runPlot
     , PlottingSettings(..)
     , draw
     , Plot()
@@ -25,8 +25,8 @@ import qualified Data.Set       as S
 import qualified Data.Text.Lazy as TL
 import           Data.Vector    (Vector)
 import qualified Data.Vector    as V
-import           Formatting     hiding (center)
 
+import Draw.Plotting.GCode
 import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
@@ -34,10 +34,6 @@ import Geometry.Shapes
 
 newtype Plot a = Plot (StateT PlottingSettings (Writer [GCode]) a)
     deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingSettings)
-
-
-decimal :: Format r (Double -> r)
-decimal = fixed 3
 
 data PlottingSettings = PlottingSettings
     { _previewBoundingBox :: Maybe BoundingBox -- ^ Trace this bounding box to preview extents of the plot and wait for confirmation
@@ -50,19 +46,6 @@ draw content = gBlock $ do
     a <- content
     tell [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
     pure a
-
-data GCode
-    = GComment TL.Text
-    | GBlock [GCode]
-    | F_Feedrate Double
-    | M0_Pause
-
-    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G0 X Y Z
-    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 X Y Z
-    | G02_ArcClockwise Double Double Double Double -- ^ G02 I J X Y
-    | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
-    | G90_AbsoluteMovement
-    | G91_RelativeMovement
 
 gBlock :: Plot a -> Plot a
 gBlock (Plot content) = Plot $ mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content
@@ -104,33 +87,8 @@ withHeaderFooter body = gBlock $ do
             , G00_LinearRapidMove Nothing Nothing (Just 10)
             ]
 
-
-renderGCode :: PlottingSettings -> Plot a -> TL.Text
-renderGCode settings (Plot body) = TL.concat
-    (renderGcodeIndented (-1) -- We start at -1 so the first layer GBLock is not indented. Hacky but simple.
-        <$> execWriter (evalStateT body settings))
-
-renderGcodeIndented :: Int -> GCode -> TL.Text
-renderGcodeIndented !level = \case
-    GComment comment -> indent ("; " <> comment)
-    GBlock content   -> TL.intercalate "\n" (map (renderGcodeIndented (level+1)) content)
-    F_Feedrate f     -> indent (format ("F " % decimal) f)
-    M0_Pause         -> indent "M0 ; Pause/wait for user input"
-
-    G00_LinearRapidMove Nothing Nothing Nothing -> mempty
-    G00_LinearRapidMove x y z                   -> indent (format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
-
-    G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
-    G01_LinearFeedrateMove x y z                   -> indent (format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
-
-    G02_ArcClockwise        i j x y -> indent (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
-    G03_ArcCounterClockwise i j x y -> indent (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
-
-    G90_AbsoluteMovement -> indent "G90"
-    G91_RelativeMovement -> indent "G91"
-  where
-    indentation = "    "
-    indent x = TL.replicate (fromIntegral level) indentation <> x
+runPlot :: PlottingSettings -> Plot a -> TL.Text
+runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body settings))
 
 class Plotting a where
     plot :: a -> Plot ()
