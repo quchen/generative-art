@@ -11,7 +11,7 @@ import qualified Graphics.Rendering.Cairo as C
 import qualified Data.Set                        as S
 import           Data.Vector                     (Vector)
 import           Draw
-import           Draw.GCode
+import           Draw.Plotting
 import           Geometry                        as G
 import           Geometry.Algorithms.PerlinNoise
 import qualified Geometry.Processes.FlowField    as ODE
@@ -52,17 +52,17 @@ main = do
             setLineWidth 1
             for_ geometry drawFieldLine
 
-    let gcode = GBlock $ do
-            trajectory <- geometry
-            part <- splitIntoInsideParts trajectory
-            pure (toGCode part)
+    let drawing = withHeaderFooter $ sequence
+            [ plot (Polyline part)
+            | trajectory <- geometry
+            , part <- splitIntoInsideParts trajectory ]
 
-        plottingSettings = PlottingSettings
+        plottingSettings = def
             { _previewBoundingBox = Just (boundingBox geometry)
             , _feedrate = Just 1000
             }
 
-    T.putStrLn (renderGCode plottingSettings gcode)
+    T.putStrLn (runPlot plottingSettings drawing)
 
 geometry :: [Polyline Vector]
 geometry =
