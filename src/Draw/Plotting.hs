@@ -1,6 +1,5 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedLists   #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Draw.Plotting (
@@ -37,6 +36,7 @@ module Draw.Plotting (
 
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Default.Class
 import           Data.Foldable
 import qualified Data.Set       as S
 import qualified Data.Text.Lazy as TL
@@ -53,9 +53,26 @@ newtype Plot a = Plot (StateT PlottingSettings (Writer [GCode]) a)
     deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingSettings)
 
 data PlottingSettings = PlottingSettings
-    { _previewBoundingBox :: Maybe BoundingBox -- ^ Trace this bounding box to preview extents of the plot and wait for confirmation
-    , _feedrate :: Maybe Double -- ^ Either set a feedrate, or have an initial check whether one was set previously
+    { _previewBoundingBox :: Maybe BoundingBox
+    -- ^ Trace this bounding box to preview extents of the plot and wait for confirmation
+
+    , _feedrate :: Maybe Double
+    -- ^ Either set a feedrate, or have an initial check whether one was set previously
+
+    , _zTravelHeight :: Double
+    -- ^ During travel motion, keep the pen at this height (in absolute coordinates)
+
+    , _zDrawingHeight :: Double
+    -- ^ When drawing, keep the pen at this height (in absolute coordinates)
     } deriving (Eq, Ord, Show)
+
+instance Default PlottingSettings where
+    def = PlottingSettings
+        { _previewBoundingBox = Nothing
+        , _feedrate = Nothing
+        , _zTravelHeight = 1
+        , _zDrawingHeight = -1
+        }
 
 gCode :: [GCode] -> Plot ()
 gCode = tell
@@ -76,9 +93,11 @@ clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = draw $ gCode [ G02_ArcClockwise m
 
 draw :: Plot a -> Plot a
 draw content = block $ do
-    gCode [ G00_LinearRapidMove Nothing Nothing (Just (-1)) ]
+    zDrawing <- gets _zDrawingHeight
+    zTravel <- gets _zTravelHeight
+    gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
     a <- content
-    gCode [ G00_LinearRapidMove Nothing Nothing (Just 1) ]
+    gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
     pure a
 
 setFeedrate :: Double -> Plot ()
