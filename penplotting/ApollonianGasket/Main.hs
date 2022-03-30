@@ -39,4 +39,4 @@ plotterSettings :: PlottingSettings
 plotterSettings = def { _previewBoundingBox = Just (foldMap boundingBox gasketScaled), _feedrate = Just 1000 }
 
 main :: IO ()
-main = T.putStrLn (runPlot plotterSettings (withHeaderFooter (plot (toList gasketScaled))))
+main = T.putStrLn (runPlot plotterSettings (plot (toList gasketScaled)))

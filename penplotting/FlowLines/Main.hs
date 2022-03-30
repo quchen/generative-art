@@ -52,7 +52,7 @@ main = do
             setLineWidth 1
             for_ geometry drawFieldLine
 
-    let drawing = withHeaderFooter $ sequence
+    let drawing = sequence
             [ plot (Polyline part)
             | trajectory <- geometry
             , part <- splitIntoInsideParts trajectory ]
