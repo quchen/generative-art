@@ -58,7 +58,7 @@ data PlottingState = PlottingState
     { _plottingSettings :: PlottingSettings
     , _penState :: PenState
     , _penXY :: Vec2
-    }
+    } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
@@ -112,7 +112,7 @@ repositionTo target@(Vec2 x y) = do
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
         setPenXY target
 
--- | Like lineTo, but keeps the pen lowered so the next line segment can directly continue
+-- | Draw a line from the current position to a target.
 lineTo :: Vec2 -> Plot ()
 lineTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
