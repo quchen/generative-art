@@ -165,9 +165,9 @@ comment txt = gCode [ GComment txt ]
 
 pause :: PauseMode -> Plot ()
 pause PauseUserConfirm = penUp >> gCode [ M0_Pause ]
-pause (PauseMilliseconds seconds) = gCode [ G04_Dwell seconds ]
+pause (PauseSeconds seconds) = gCode [ G04_Dwell seconds ]
 
-data PauseMode = PauseUserConfirm | PauseMilliseconds Double deriving (Eq, Ord, Show)
+data PauseMode = PauseUserConfirm | PauseSeconds Double deriving (Eq, Ord, Show)
 
 addHeaderFooter :: Plot a -> Plot a
 addHeaderFooter body = block $ do
@@ -227,7 +227,7 @@ class Plotting a where
 instance Plotting BoundingBox where
     plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = block $ do
         comment "Hover over bounding box"
-        sequence_ . intersperse (pause (PauseMilliseconds 500)) . map repositionTo $
+        sequence_ . intersperse (pause (PauseSeconds 0.5)) . map repositionTo $
             [ Vec2 xMin yMin
             , Vec2 xMax yMin
             , Vec2 xMax yMax
