@@ -43,7 +43,7 @@ main = do
                 numElements = length paths
                 totalLength = sum (fmap polyLineLength paths)
 
-                drawing = withHeaderFooter $ block $ do
+                drawing = block $ do
                     comment ("Total line length: " <> TL.pack (show totalLength))
                     comment ("Number of elements to draw: " <> TL.pack (show numElements))
                     plot (Polyline <$> paths)

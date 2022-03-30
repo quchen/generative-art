@@ -51,7 +51,7 @@ main = do
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         let filename = formatToString (string%"_scale-"%int%"_color-"%int%"-"%int%".g") (dropExtension (_outputFileG options)) lambdaScale (i::Int) numColors
-            gCodeText = runPlot settings (withHeaderFooter $ plot wires)
+            gCodeText = runPlot settings (plot wires)
         TL.writeFile filename gCodeText
 
 hex2wire :: Set [Hex] -> Set Wire
@@ -76,24 +76,22 @@ drawWire (Wire ws) = case ws of
     [] -> error "Bad circuit algorithm! :-C"
     [_] -> error "Bad circuit algorithm! :-C"
     xs@(start:_) -> do
-        moveTo start
-        block (go xs >> penUp)
+        repositionTo start
+        block (go xs)
   where
     go :: [Vec2] -> Plot ()
     go [start,target] = do
         let cellSize = norm (start -. target)/2
             circleRadius = cellSize/2
-            Line _ intersection@(Vec2 edgeX edgeY) = resizeLine (\d -> d - circleRadius) (Line start target)
+            Line _ intersection = resizeLine (\d -> d - circleRadius) (Line start target)
             Vec2 centerDX centerDY = target -. intersection
-        penDown
+        plot (Line start intersection)
         gCode
-            [ G01_LinearFeedrateMove (Just edgeX) (Just edgeY) Nothing
-            , G91_RelativeMovement
+            [ G91_RelativeMovement
             , G02_ArcClockwise centerDX centerDY 0 0
             , G90_AbsoluteMovement
             ]
-        penUp
-    go (_:rest@(target:_)) = lineVia target >> go rest
+    go (_:rest@(target:_)) = lineTo target >> go rest
     go _ = error "Can’t happen because go is only called with lists of at least two elements"
 
 instance Plotting Wire where
