@@ -16,7 +16,8 @@ import           Options.Applicative
 import           System.FilePath
 import qualified System.Random.MWC   as MWC
 
-import Draw.GCode
+import Draw.Plotting
+import Draw.Plotting.GCode
 import Geometry                       as G
 import Geometry.Coordinates.Hexagonal as Hex
 
@@ -35,7 +36,7 @@ main = do
     let lambdaGeometry = hexLambda lambdaScale
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
         vecCircuits = fitToPaper options (hex2wire hexCircuits)
-        settings = PlottingSettings (Just (boundingBox vecCircuits)) (Just 1000)
+        settings = def { _previewBoundingBox = Just (boundingBox vecCircuits), _feedrate = Just 1000 }
         circuitsList = toList vecCircuits
 
     gen <- MWC.create
@@ -50,7 +51,7 @@ main = do
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         let filename = formatToString (string%"_scale-"%int%"_color-"%int%"-"%int%".g") (dropExtension (_outputFileG options)) lambdaScale (i::Int) numColors
-            gCodeText = renderGCode settings (toGCode wires)
+            gCodeText = runPlot settings (withHeaderFooter $ plot wires)
         TL.writeFile filename gCodeText
 
 hex2wire :: Set [Hex] -> Set Wire
@@ -70,28 +71,33 @@ instance HasBoundingBox Wire where
 instance Transform Wire where
     transform t (Wire xs) = Wire (transform t xs)
 
-wireToGCode :: Wire -> [GCode]
-wireToGCode (Wire ws) = case ws of
+drawWire :: Wire -> Plot ()
+drawWire (Wire ws) = case ws of
     [] -> error "Bad circuit algorithm! :-C"
     [_] -> error "Bad circuit algorithm! :-C"
-    xs@(Vec2 startX startY:_) -> [G00_LinearRapidMove (Just startX) (Just startY) Nothing, draw (GBlock (go xs))]
+    xs@(start:_) -> do
+        moveTo start
+        block (go xs >> penUp)
   where
-    go :: [Vec2] -> [GCode]
-    go [start,target] =
+    go :: [Vec2] -> Plot ()
+    go [start,target] = do
         let cellSize = norm (start -. target)/2
             circleRadius = cellSize/2
             Line _ intersection@(Vec2 edgeX edgeY) = resizeLine (\d -> d - circleRadius) (Line start target)
             Vec2 centerDX centerDY = target -. intersection
-        in [ G01_LinearFeedrateMove (Just edgeX) (Just edgeY) Nothing
-           , G91_RelativeMovement
-           , G02_ArcClockwise centerDX centerDY 0 0
-           , G90_AbsoluteMovement
-           ]
-    go (_:rest@(Vec2 x y:_)) = G01_LinearFeedrateMove (Just x) (Just y) Nothing : go rest
+        penDown
+        gCode
+            [ G01_LinearFeedrateMove (Just edgeX) (Just edgeY) Nothing
+            , G91_RelativeMovement
+            , G02_ArcClockwise centerDX centerDY 0 0
+            , G90_AbsoluteMovement
+            ]
+        penUp
+    go (_:rest@(target:_)) = lineVia target >> go rest
     go _ = error "Can’t happen because go is only called with lists of at least two elements"
 
-instance ToGCode Wire where
-    toGCode = GBlock . wireToGCode
+instance Plotting Wire where
+    plot = block . drawWire
 
 -- | A lambda in hexagonal coordinates.
 hexLambda

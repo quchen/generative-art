@@ -7,7 +7,7 @@ import           Data.Default.Class
 import           Data.Foldable
 import qualified Data.Text.Lazy.IO                   as T
 import           Data.Tree
-import           Draw.GCode
+import           Draw.Plotting
 import           Geometry                            as G
 import           Geometry.Processes.ApollonianGasket
 
@@ -36,7 +36,7 @@ gasketScaled :: Tree Circle
 gasketScaled = unsafelyTransform (G.transformBoundingBox (foldMap boundingBox gasket) (Vec2 margin margin, Vec2 pageWidth pageHeight -. Vec2 margin margin) def) gasket
 
 plotterSettings :: PlottingSettings
-plotterSettings = PlottingSettings (Just (foldMap boundingBox gasketScaled)) (Just 1000)
+plotterSettings = def { _previewBoundingBox = Just (foldMap boundingBox gasketScaled), _feedrate = Just 1000 }
 
 main :: IO ()
-main = T.putStrLn (renderGCode plotterSettings (toGCode (toList gasketScaled)))
+main = T.putStrLn (runPlot plotterSettings (withHeaderFooter (plot (toList gasketScaled))))

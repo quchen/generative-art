@@ -23,6 +23,7 @@ dependencies:
     - formatting
     - heaps
     - megaparsec
+    - mtl
     - mwc-random
     - Noise
     - parallel
