@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Draw.Plotting (
-    -- * 'Plot' Monad
+    -- * 'Plot' type
       Plot()
     , PlottingSettings(..)
     , runPlot
@@ -63,16 +63,20 @@ data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
     { _previewBoundingBox :: Maybe BoundingBox
-    -- ^ Trace this bounding box to preview extents of the plot and wait for confirmation
+    -- ^ Before plotting, trace this bounding box to preview extents of the plot
+    --   and wait for confirmation. ('def'ault: 'Nothing)
 
     , _feedrate :: Maybe Double
-    -- ^ Either set a feedrate, or have an initial check whether one was set previously
+    -- ^ Either set a feedrate, or have an initial check whether one was set
+    -- previously. ('def'ault: 'Nothing)
 
     , _zTravelHeight :: Double
-    -- ^ During travel motion, keep the pen at this height (in absolute coordinates)
+    -- ^ During travel motion, keep the pen at this height (in absolute
+    -- coordinates). ('def'ault: 1)
 
     , _zDrawingHeight :: Double
-    -- ^ When drawing, keep the pen at this height (in absolute coordinates)
+    -- ^ When drawing, keep the pen at this height (in absolute coordinates).
+    -- ('def'ault: -1)
     } deriving (Eq, Ord, Show)
 
 instance Default PlottingSettings where
@@ -83,9 +87,11 @@ instance Default PlottingSettings where
         , _zDrawingHeight = -1
         }
 
+-- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
 gCode = tell
 
+-- | Quick move without drawing for repositioning.
 moveTo :: Vec2 -> Plot ()
 moveTo (Vec2 x y) = do
     penUp
@@ -114,20 +120,25 @@ clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
     gCode [ G02_ArcClockwise mx my x y ]
     penUp
 
-penDown, penUp :: Plot ()
-penDown = do
-    zDrawing <- gets (_zDrawingHeight . _plottingSettings)
-    penState <- gets _penState
-    unless (penState == PenDown) $
+-- | If the pen is up, lower it to drawing height. Do nothing if it is already
+-- lowered.
+penDown :: Plot ()
+penDown = gets _penState >>= \case
+    PenUp -> do
+        zDrawing <- gets (_zDrawingHeight . _plottingSettings)
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
-    modify (\s -> s { _penState = PenDown })
+        modify (\s -> s { _penState = PenDown })
+    PenDown -> pure ()
 
-penUp = do
-    zTravel <- gets (_zTravelHeight . _plottingSettings)
-    penState <- gets _penState
-    unless (penState == PenUp) $
+-- | If the pen is down, lift it to travel height. Do nothing if it is already
+-- lifted.
+penUp :: Plot ()
+penUp = gets _penState >>= \case
+    PenUp -> pure ()
+    PenDown -> do
+        zTravel <- gets (_zTravelHeight . _plottingSettings)
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
-    modify (\s -> s { _penState = PenUp })
+        modify (\s -> s { _penState = PenUp })
 
 setFeedrate :: Double -> Plot ()
 setFeedrate f = gCode [ F_Feedrate f ]
@@ -138,6 +149,7 @@ block (Plot content) = Plot (mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) 
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
 
+-- | Wait for user confirmation
 pause :: Plot ()
 pause = penUp >> gCode [ M0_Pause ]
 
