@@ -7,8 +7,12 @@ module Draw.Plotting.GCode (
 
 
 
+import           Data.List
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TL
 import           Formatting     hiding (center)
+
+
 
 decimal :: Format r (Double -> r)
 decimal = fixed 3
@@ -31,33 +35,33 @@ data GCode
 
 renderGCode :: [GCode] -> TL.Text
 renderGCode [GBlock xs] = renderGCode xs -- Remove indentation if it's a single top-level block
-renderGCode xs = TL.intercalate "\n" (fmap (renderGcodeIndented 0) xs)
+renderGCode xs = TL.toLazyText (mconcat (intersperse "\n" (fmap (renderGcodeIndented 0) xs)))
 
-renderGcodeIndented :: Int -> GCode -> TL.Text
+renderGcodeIndented :: Int -> GCode -> TL.Builder
 renderGcodeIndented !level = \case
-    GComment comment -> indent ("; " <> comment)
-    GBlock content   -> TL.intercalate "\n" (map (renderGcodeIndented (level+1)) content)
-    F_Feedrate f     -> indent (format ("F " % decimal) f)
+    GComment comment -> indent ("; " <> TL.fromLazyText comment)
+    GBlock content   -> mconcat (intersperse "\n" (map (renderGcodeIndented (level+1)) content))
+    F_Feedrate f     -> indent (bformat ("F " % decimal) f)
     M0_Pause         -> indent "M0 ; Pause/wait for user input"
 
     G00_LinearRapidMove Nothing Nothing Nothing -> mempty
-    G00_LinearRapidMove x y z                   -> indent (format ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G00_LinearRapidMove x y z                   -> indent (bformat ("G0" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
     G01_LinearFeedrateMove Nothing Nothing Nothing -> mempty
-    G01_LinearFeedrateMove x y z                   -> indent (format ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G01_LinearFeedrateMove x y z                   -> indent (bformat ("G1" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
-    G02_ArcClockwise        i j x y -> indent (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
-    G03_ArcCounterClockwise i j x y -> indent (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+    G02_ArcClockwise        i j x y -> indent (bformat ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+    G03_ArcCounterClockwise i j x y -> indent (bformat ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
 
-    G04_Dwell s -> indent (format ("G4 P" % decimal) s)
+    G04_Dwell s -> indent (bformat ("G4 P" % decimal) s)
 
     G28_GotoPredefinedPosition Nothing Nothing Nothing -> mempty
-    G28_GotoPredefinedPosition x y z                   -> indent (format ("G28" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G28_GotoPredefinedPosition x y z                   -> indent (bformat ("G28" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
     G30_GotoPredefinedPosition Nothing Nothing Nothing -> mempty
-    G30_GotoPredefinedPosition x y z                   -> indent (format ("G30" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G30_GotoPredefinedPosition x y z                   -> indent (bformat ("G30" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
     G90_AbsoluteMovement -> indent "G90"
     G91_RelativeMovement -> indent "G91"
   where
     indentation = "    "
-    indent x = TL.replicate (fromIntegral level) indentation <> x
+    indent x = TL.fromLazyText (TL.replicate (fromIntegral level) indentation) <> x
