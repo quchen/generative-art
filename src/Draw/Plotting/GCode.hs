@@ -24,6 +24,8 @@ data GCode
     | G02_ArcClockwise Double Double Double Double -- ^ G02 I J X Y
     | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
     | G04_Dwell Double
+    | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G28 X Y Z
+    | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
@@ -48,6 +50,11 @@ renderGcodeIndented !level = \case
     G03_ArcCounterClockwise i j x y -> indent (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
 
     G04_Dwell s -> indent (format ("G4 P" % decimal) s)
+
+    G28_GotoPredefinedPosition Nothing Nothing Nothing -> mempty
+    G28_GotoPredefinedPosition x y z                   -> indent (format ("G28" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
+    G30_GotoPredefinedPosition Nothing Nothing Nothing -> mempty
+    G30_GotoPredefinedPosition x y z                   -> indent (format ("G30" % optioned (" X"%decimal) % optioned (" Y"%decimal) % optioned (" Z"%decimal)) x y z)
 
     G90_AbsoluteMovement -> indent "G90"
     G91_RelativeMovement -> indent "G91"

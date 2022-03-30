@@ -78,7 +78,14 @@ data PlottingSettings = PlottingSettings
     , _zDrawingHeight :: Double
     -- ^ When drawing, keep the pen at this height (in absolute coordinates).
     -- ('def'ault: -1)
+
+    , _finishMove :: Maybe FinishMove
+    -- ^ Do a final move after the drawing has ended
     } deriving (Eq, Ord, Show)
+
+-- | Command to issue in the footer
+data FinishMove = FinishWithG28 | FinishWithG30
+    deriving (Eq, Ord, Show)
 
 instance Default PlottingSettings where
     def = PlottingSettings
@@ -86,6 +93,7 @@ instance Default PlottingSettings where
         , _feedrate = Nothing
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
+        , _finishMove = Nothing
         }
 
 -- | Add raw GCode to the output.
@@ -191,9 +199,17 @@ withHeaderFooter body = block $ do
         previewBoundingBox
 
     footer = block $ do
-            comment "Footer"
-            comment "Lift pen"
-            gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
+        comment "Footer"
+        gets (_finishMove . _plottingSettings) >>= \case
+            Nothing -> do
+                comment "Lift pen"
+                gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
+            Just FinishWithG28 -> do
+                comment "Move to predefined position"
+                gCode [ G28_GotoPredefinedPosition Nothing Nothing (Just 10) ]
+            Just FinishWithG30 -> do
+                comment "Move to predefined position"
+                gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
 runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body initialState))
