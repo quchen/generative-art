@@ -7,7 +7,6 @@ module Draw.Plotting (
       Plot()
     , PlottingSettings(..)
     , runPlot
-    , withHeaderFooter
 
     -- * 'Plotting' shapes
     , Plotting(..)
@@ -170,8 +169,8 @@ pause (PauseMilliseconds seconds) = gCode [ G04_Dwell seconds ]
 
 data PauseMode = PauseUserConfirm | PauseMilliseconds Double deriving (Eq, Ord, Show)
 
-withHeaderFooter :: Plot a -> Plot a
-withHeaderFooter body = block $ do
+addHeaderFooter :: Plot a -> Plot a
+addHeaderFooter body = block $ do
     header
     a <- body
     footer
@@ -212,8 +211,9 @@ withHeaderFooter body = block $ do
                 gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings (Plot body) = renderGCode (execWriter (evalStateT body initialState))
+runPlot settings body = renderGCode (execWriter (evalStateT finalPlot initialState))
   where
+    Plot finalPlot = addHeaderFooter body
     initialState = PlottingState
         { _plottingSettings = settings
         , _penState = PenUp
