@@ -23,6 +23,7 @@ data GCode
     | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 X Y Z
     | G02_ArcClockwise Double Double Double Double -- ^ G02 I J X Y
     | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
+    | G04_Dwell Double
     | G90_AbsoluteMovement
     | G91_RelativeMovement
 
@@ -45,6 +46,8 @@ renderGcodeIndented !level = \case
 
     G02_ArcClockwise        i j x y -> indent (format ("G2 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
     G03_ArcCounterClockwise i j x y -> indent (format ("G3 X" % decimal % " Y" % decimal % " I" % decimal % " J" % decimal) x y i j)
+
+    G04_Dwell s -> indent (format ("G4 P" % decimal) s)
 
     G90_AbsoluteMovement -> indent "G90"
     G91_RelativeMovement -> indent "G91"
