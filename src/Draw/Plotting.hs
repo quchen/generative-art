@@ -121,14 +121,14 @@ lineTo target@(Vec2 x y) = do
         gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
         setPenXY target
 
--- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
+-- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
     penDown
     gCode [ G03_ArcCounterClockwise mx my x y ]
     setPenXY target
 
--- | Center given in _relative_ coordinates, but target in _absolute_ coordinates!
+-- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
     penDown
@@ -243,10 +243,23 @@ instance Plotting Line where
 
 instance Plotting Circle where
     plot (Circle center radius) = block $ do
-        let start = center -. Vec2 radius 0
         comment "Circle"
+
+        -- The naive way of painting a circle is by always starting them e.g. on
+        -- the very left. This requires some unnecessary pen hovering, and for some
+        -- pens creates a visible »pen down« dot. We therefore go the more
+        -- complicated route here: start the circle at the point closest to the pen
+        -- position.
+        currentXY <- gets _penXY
+        let radialLine@(Line _ start) = resizeLine (const radius) (Line center currentXY)
+            Line _ oppositeOfStart = resizeLine negate radialLine
+
         repositionTo start
-        clockwiseArcAroundTo (center -. start) start
+        -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t do
+        -- anything when we plot it with a single arc »from start to itself«. We work
+        -- around this by explicitly chaining two half circles.
+        clockwiseArcAroundTo (vectorOf (lineReverse radialLine)) oppositeOfStart
+        clockwiseArcAroundTo (vectorOf radialLine) start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
