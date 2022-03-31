@@ -1,5 +1,5 @@
 -- | __INTERNAL MODULE__, not exposed from the package.
-module Geometry.Algorithms.Cut.WeilerAtherton (intersectionOfTwoPolygons) where
+module Geometry.Algorithms.Clipping.PolygonPolygon (intersectionOfTwoPolygons) where
 
 
 

@@ -1,5 +1,5 @@
 -- | __INTERNAL MODULE__, not exposed from the package.
-module Geometry.Algorithms.Cut.Internal where
+module Geometry.Algorithms.Clipping.Internal where
 
 
 
@@ -75,7 +75,7 @@ cutLineWithLine scissors paper = case intersectionLL scissors paper of
 -- misses) or two pieces. Concave polygons can in general be divided in
 -- arbitrarily many pieces.
 --
--- <<docs/geometry/cut/3_complicated.svg>>
+-- <<docs/geometry/clipping/3_complicated.svg>>
 cutPolygon :: Line -> Polygon -> [Polygon]
 cutPolygon scissors polygon =
     -- The idea here is as follows:

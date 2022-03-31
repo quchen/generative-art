@@ -1,4 +1,4 @@
-module Test.Geometry.Algorithms.Cut (tests) where
+module Test.Geometry.Algorithms.Clipping (tests) where
 
 
 
@@ -7,7 +7,7 @@ import Data.Foldable
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
-import Geometry.Algorithms.Cut
+import Geometry.Algorithms.Clipping
 import Geometry.Core           as G
 import Geometry.Shapes
 
@@ -36,7 +36,7 @@ tests = testGroup "Cutting things"
     ]
 
 lineTest :: TestTree
-lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_line" $ \_ -> do
+lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/clipping/1_line" $ \_ -> do
     Cairo.translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) 100
         scissors = perpendicularBisector paper
@@ -97,7 +97,7 @@ cutSquareTest = do
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) 100)
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Convex polygon" 170 90 "docs/geometry/cut/2_square" $ \_ -> do
+    testVisual "Convex polygon" 170 90 "docs/geometry/clipping/2_square" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 10 10)) polygon)
             (G.transform (G.translate (Vec2 90 10)) scissors)
@@ -118,7 +118,7 @@ complicatedPolygonTest = do
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) 220)
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Concave polygon" 400 190 "docs/geometry/cut/3_complicated" $ \_ -> do
+    testVisual "Concave polygon" 400 190 "docs/geometry/clipping/3_complicated" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 90 100)) polygon)
             (G.transform (G.translate (Vec2 290 100)) scissors)
@@ -139,7 +139,7 @@ cutMissesPolygonTest = do
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Cut misses polygon" 130 90 "docs/geometry/cut/4_miss" $ \_ -> do
+    testVisual "Cut misses polygon" 130 90 "docs/geometry/clipping/4_miss" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 10 10)) polygon)
             (G.transform (G.translate (Vec2 70 10)) scissors)
@@ -155,7 +155,7 @@ cornerCasesTests :: TestTree
 cornerCasesTests = testGroup "Corner cases" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
 
 zigzagTest :: TestTree
-zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
+zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/clipping/5_zigzag" $ \_ -> do
     let scissors = Line (Vec2 0 25) (Vec2 50 25)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
         cutResult = cutPolygon scissors polygon
@@ -166,7 +166,7 @@ zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
         (G.transform (G.translate (Vec2 80 20)) cutResult)
 
 cutThroughCornerTest :: TestTree
-cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut/5_through_corner" $ \_ -> do
+cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/clipping/5_through_corner" $ \_ -> do
     let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
@@ -184,7 +184,7 @@ pathologicalCornerCutsTests :: [TestTree]
 pathologicalCornerCutsTests = do
     -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
     (name, filenameSuffix, polygon, expectedNumPolys) <- [ooo, lol, ror, ool, oor, loo, roo]
-    [ testVisual name 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix) $ \_ -> do
+    [ testVisual name 380 100 ("docs/geometry/clipping/6_corner_cases_" ++ filenameSuffix) $ \_ -> do
             specialCaseTest name polygon
             liftIO $ assertEqual "Expected polygons" (Expected expectedNumPolys) (Actual (length (cutPolygon scissors polygon)))
         ]
@@ -262,7 +262,7 @@ assertAreaConserved polygon cutResult = do
             , "|Δ|      = " ++ show (abs (originalArea - sumOfCutAreas)) ])))
 
 shadeRegularPolygon :: TestTree
-shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/shade_polygon_regular" $ \(w,h) -> do
+shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clipping/shade_polygon_regular" $ \(w,h) -> do
     let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
         shading = shade polygon (deg 30) 24
 
@@ -277,7 +277,7 @@ shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/sh
         stroke
 
 shadeSpiralPolygon :: TestTree
-shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/cut/shade_polygon_spiral" $ \(w,h) -> do
+shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping/shade_polygon_spiral" $ \(w,h) -> do
     let polygon' = spiralPolygon 9 10
         polygon = G.transform (G.transformBoundingBox polygon' [Vec2 0 0, Vec2 w h] def) polygon'
         shading = shade polygon (deg 30) 24
@@ -333,7 +333,7 @@ weilerAthertonTest =
             ]
         cutResult = intersectionOfTwoPolygons p1 p2
 
-    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/cut/polygon-clipping" $ \_ -> do
+    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/clipping/polygon-polygon" $ \_ -> do
         setLineJoin LineJoinRound
         cairoScope $ do
             setLineWidth 1
