@@ -149,45 +149,49 @@ over quickly.
 
 ![Missing image!](../../../docs/differential_equations/geodesic_hill_and_valley.svg)
 
+![Missing image!](../../../docs/geometry/clipping/1_line.svg)
+
+![Missing image!](../../../docs/geometry/clipping/2_square.svg)
+
+![Missing image!](../../../docs/geometry/clipping/3_complicated.svg)
+
+![Missing image!](../../../docs/geometry/clipping/4_miss.svg)
+
+![Missing image!](../../../docs/geometry/clipping/5_through_corner.svg)
+
+![Missing image!](../../../docs/geometry/clipping/5_zigzag.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_lol.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_loo.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_ool.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_ooo.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_oor.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_roo.svg)
+
+![Missing image!](../../../docs/geometry/clipping/6_corner_cases_ror.svg)
+
+![Missing image!](../../../docs/geometry/clipping/7_1_handcrafted_edge_graph.svg)
+
+![Missing image!](../../../docs/geometry/clipping/7_2_calculated_edge_graph.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-clipping.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon.svg)
+
+![Missing image!](../../../docs/geometry/clipping/random_cut_haskell_logo.svg)
+
+![Missing image!](../../../docs/geometry/clipping/random_cut_square.svg)
+
+![Missing image!](../../../docs/geometry/clipping/shade_polygon_regular.svg)
+
+![Missing image!](../../../docs/geometry/clipping/shade_polygon_spiral.svg)
+
 ![Missing image!](../../../docs/geometry/convex_hull.svg)
-
-![Missing image!](../../../docs/geometry/cut/1_line.svg)
-
-![Missing image!](../../../docs/geometry/cut/2_square.svg)
-
-![Missing image!](../../../docs/geometry/cut/3_complicated.svg)
-
-![Missing image!](../../../docs/geometry/cut/4_miss.svg)
-
-![Missing image!](../../../docs/geometry/cut/5_through_corner.svg)
-
-![Missing image!](../../../docs/geometry/cut/5_zigzag.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_lol.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_loo.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_ool.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_ooo.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_oor.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_roo.svg)
-
-![Missing image!](../../../docs/geometry/cut/6_corner_cases_ror.svg)
-
-![Missing image!](../../../docs/geometry/cut/7_1_handcrafted_edge_graph.svg)
-
-![Missing image!](../../../docs/geometry/cut/7_2_calculated_edge_graph.svg)
-
-![Missing image!](../../../docs/geometry/cut/random_cut_haskell_logo.svg)
-
-![Missing image!](../../../docs/geometry/cut/random_cut_square.svg)
-
-![Missing image!](../../../docs/geometry/cut/shade_polygon_regular.svg)
-
-![Missing image!](../../../docs/geometry/cut/shade_polygon_spiral.svg)
 
 ![Missing image!](../../../docs/geometry/ellipse_bounding_boxes.svg)
 
@@ -237,7 +241,7 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay.svg)
 
