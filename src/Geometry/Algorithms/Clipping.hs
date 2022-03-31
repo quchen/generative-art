@@ -1,18 +1,21 @@
-module Geometry.Algorithms.Cut (
-      cutLine
+module Geometry.Algorithms.Clipping (
+      cutLineWithLine
     , CutLine(..)
     , cutPolygon
 
     , LineType(..)
     , clipPolygonWithLine
 
+    , intersectionOfTwoPolygons
+
     , shade
 ) where
 
 
 
+import Geometry.Algorithms.Clipping.Internal
+import Geometry.Algorithms.Clipping.PolygonPolygon
 import Geometry.Core
-import Geometry.Algorithms.Cut.Internal
 
 -- $setup
 -- >>> import Draw
@@ -22,16 +25,16 @@ import Geometry.Algorithms.Cut.Internal
 -- do shading, hence the name.
 --
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Cut.hs/shaded_polygon.svg" 100 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping.hs/shaded_polygon.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 90 10, Vec2 90 90, Vec2 10 90]
 --     let shading = shade polygon (deg 30) 10
 --     sketch polygon
 --     for_ shading sketch
 --     stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg
+-- docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg
 --
--- <<docs/haddock/Geometry/Algorithms/Cut.hs/shaded_polygon.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg>>
 shade
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.

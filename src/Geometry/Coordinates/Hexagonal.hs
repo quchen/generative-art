@@ -49,11 +49,13 @@ import           Data.Foldable
 import           Data.Maybe
 import           Data.Set                 (Set)
 import qualified Data.Set                 as S
-import           Draw                     hiding (polygonSketch)
-import           Geometry.Core            as G hiding
-    (Polygon, pointInPolygon, rotateAround)
-import qualified Geometry.Core            as G
 import           Graphics.Rendering.Cairo as C hiding (x, y)
+
+import           Draw          hiding (polygonSketch)
+import           Geometry.Core as G hiding
+    (Polygon, pointInPolygon, rotateAround)
+import qualified Geometry.Core as G
+import           Util
 
 
 
@@ -139,7 +141,7 @@ rotateAround0 n = go (mod n 6)
     go 3 = mirror0
     go 4 = rotateCcw . rotateCcw
     go 5 = rotateCcw
-    go i = bugError ("Bad modulus in rotateAround, got value: " ++ show i)
+    go i = bugError "Hexagonal.rotateAround0" ("Bad modulus in rotateAround, got value: " ++ show i)
 
 -- | Convert a hexagonal coordinate’s center to an Euclidean 'Vec2'.
 toVec2

@@ -15,7 +15,7 @@ import qualified Data.Vector                 as V
 import Geometry.Core
 import Geometry.LookupTable.Lookup2
 import Geometry.Trajectory
-
+import Util
 
 
 -- | Find the iso lines of a function (= where the function has the same height,
@@ -96,7 +96,7 @@ binarySearchRoot f line@(Line start end) tolerance
 
     -- EMERGENCY UNCOMMENT IF THE ERROR BELOW COMES UP
     -- otherwise = middle
-    | otherwise = bugError . unwords $
+    | otherwise = bugError "binarySearchRoot" . unwords $
         [ "This shouldn’t happen if we only have lines that change sign,"
         , "picked by marching squares, but I’m sure we’ll be surprised."
         , "Might not be worth investigating though, simply abort the alg"

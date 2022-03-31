@@ -1,16 +1,14 @@
-module Test.Geometry.Algorithms.Cut (tests) where
+module Test.Geometry.Algorithms.Clipping (tests) where
 
 
 
-import           Control.Monad
-import           Data.Foldable
-import           Data.List
-import qualified Data.Map                 as M
-import           Graphics.Rendering.Cairo as Cairo hiding (x, y)
+import Control.Monad
+import Data.Foldable
+import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
-import Geometry                         as G
-import Geometry.Algorithms.Cut.Internal
+import Geometry.Algorithms.Clipping
+import Geometry.Core           as G
 import Geometry.Shapes
 
 import Test.TastyAll
@@ -19,68 +17,30 @@ import Test.TastyAll
 
 tests :: TestTree
 tests = testGroup "Cutting things"
-    [ testGroup "Internal Helper functions"
-        [ rebuildSimpleEdgeGraphTest
-        , reconstructConvexPolygonTest
-        , sideOfScissorsTest
-        , drawCutEdgeGraphTest
-        ]
-    , testGroup "Public API"
+    [ testGroup "Line with line"
         [ lineTest
-        , cutSquareTest
+        ]
+    , testGroup "Polygon with line"
+        [ cutSquareTest
         , complicatedPolygonTest
         , cutMissesPolygonTest
         , cornerCasesTests
-        , testGroup "Shading"
-            [ shadeRegularPolygon
-            , shadeSpiralPolygon
-            ]
+        ]
+    , testGroup "Shading"
+        [ shadeRegularPolygon
+        , shadeSpiralPolygon
+        ]
+    , testGroup "Polygon with polygon"
+        [ weilerAthertonTest
         ]
     ]
 
-simpleCutEdgeGraph :: CutEdgeGraph
-simpleCutEdgeGraph = foldl' (\db f -> f db) (CutEdgeGraph mempty)
-    [ Vec2 0   0  --> Vec2 1   0  -- > +---------+
-    , Vec2 1   0  --> Vec2 1   1  -- > |         |
-    , Vec2 1   1  --> Vec2 0   1  -- > |         |
-    , Vec2 0   1  --> Vec2 0   0  -- > |         |
-                                  -- > +---------+
-    , Vec2 1   0  --> Vec2 0   0  -- > |         |
-    , Vec2 0   0  --> Vec2 0 (-1) -- > |         |
-    , Vec2 0 (-1) --> Vec2 1 (-1) -- > |         |
-    , Vec2 1 (-1) --> Vec2 1   0  -- > +---------+
-    ]
-
-rebuildSimpleEdgeGraphTest :: TestTree
-rebuildSimpleEdgeGraphTest = testCase "Rebuild simple edge graph" $
-    let actual = sort (reconstructPolygons PolygonPositive simpleCutEdgeGraph)
-        expected = sort [ Polygon [Vec2 0 (-1), Vec2 1 (-1), Vec2 1 0, Vec2 0 0]
-                        , Polygon [Vec2 0 0,    Vec2 1 0,    Vec2 1 1, Vec2 0 1] ]
-    in assertEqual "" (Expected expected) (Actual actual)
-
-reconstructConvexPolygonTest :: TestTree
-reconstructConvexPolygonTest = testProperty "Rebuild convex polygon" $
-    let gen = do
-            n <- choose (10, 100)
-            replicateM n $ do
-                Gaussian v <- arbitrary
-                pure v
-    in forAll gen $ \points ->
-        let convexPolygon = convexHull points
-            orientation = polygonOrientation convexPolygon
-            maxY = maximum (map (\(Vec2 _ y) -> y) points)
-            scissorsThatMiss = angledLine (Vec2 0 (maxY + 1)) (deg 0) 1
-            cuts = cutAll scissorsThatMiss (polygonEdges convexPolygon)
-            actual = reconstructPolygons orientation (buildGraph (polygonEdgeGraph cuts))
-            expected = [convexPolygon]
-        in actual === expected
-
 lineTest :: TestTree
-lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_line" $ \_ -> do
+lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/clipping/1_line" $ \_ -> do
     Cairo.translate 3 32
     let paper = angledLine (Vec2 0 0) (deg 20) 100
         scissors = perpendicularBisector paper
-        Cut paperStart p paperEnd = cutLine scissors paper
+        Cut paperStart p paperEnd = cutLineWithLine scissors paper
 
     setLineWidth 1
     setColor black
@@ -101,7 +61,6 @@ lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/cut/1_lin
     setFontSize 12
     moveTo 60 10
     showText "Cut my line in two pieces"
-
 
 polyCutDraw :: Polygon -> Line -> [Polygon] -> Render ()
 polyCutDraw initialPolygon scissors cutResults = do
@@ -138,7 +97,7 @@ cutSquareTest = do
         scissors = centerLine (angledLine (Vec2 25 25) (deg 20) 100)
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Convex polygon" 170 90 "docs/geometry/cut/2_square" $ \_ -> do
+    testVisual "Convex polygon" 170 90 "docs/geometry/clipping/2_square" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 10 10)) polygon)
             (G.transform (G.translate (Vec2 90 10)) scissors)
@@ -159,7 +118,7 @@ complicatedPolygonTest = do
         scissors = centerLine (angledLine (Vec2 (-5) (-5)) (deg 140) 220)
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Concave polygon" 400 190 "docs/geometry/cut/3_complicated" $ \_ -> do
+    testVisual "Concave polygon" 400 190 "docs/geometry/clipping/3_complicated" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 90 100)) polygon)
             (G.transform (G.translate (Vec2 290 100)) scissors)
@@ -180,7 +139,7 @@ cutMissesPolygonTest = do
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
 
-    testVisual "Cut misses polygon" 130 90 "docs/geometry/cut/4_miss" $ \_ -> do
+    testVisual "Cut misses polygon" 130 90 "docs/geometry/clipping/4_miss" $ \_ -> do
         polyCutDraw
             (G.transform (G.translate (Vec2 10 10)) polygon)
             (G.transform (G.translate (Vec2 70 10)) scissors)
@@ -196,7 +155,7 @@ cornerCasesTests :: TestTree
 cornerCasesTests = testGroup "Corner cases" (zigzagTest : cutThroughCornerTest : pathologicalCornerCutsTests)
 
 zigzagTest :: TestTree
-zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
+zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/clipping/5_zigzag" $ \_ -> do
     let scissors = Line (Vec2 0 25) (Vec2 50 25)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 25 10, Vec2 25 50, Vec2 0 0]
         cutResult = cutPolygon scissors polygon
@@ -207,7 +166,7 @@ zigzagTest = testVisual "Zigzag" 150 90 "docs/geometry/cut/5_zigzag" $ \_ -> do
         (G.transform (G.translate (Vec2 80 20)) cutResult)
 
 cutThroughCornerTest :: TestTree
-cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/cut/5_through_corner" $ \_ -> do
+cutThroughCornerTest = testVisual "Cut through corner" 150 90 "docs/geometry/clipping/5_through_corner" $ \_ -> do
     let scissors = Line (Vec2 (-15) (-15)) (Vec2 65 65)
         polygon = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
         cutResult = cutPolygon scissors polygon
@@ -225,7 +184,7 @@ pathologicalCornerCutsTests :: [TestTree]
 pathologicalCornerCutsTests = do
     -- Taken from https://geidav.wordpress.com/2015/03/21/splitting-an-arbitrary-polygon-by-a-line/
     (name, filenameSuffix, polygon, expectedNumPolys) <- [ooo, lol, ror, ool, oor, loo, roo]
-    [ testVisual name 380 100 ("docs/geometry/cut/6_corner_cases_" ++ filenameSuffix) $ \_ -> do
+    [ testVisual name 380 100 ("docs/geometry/clipping/6_corner_cases_" ++ filenameSuffix) $ \_ -> do
             specialCaseTest name polygon
             liftIO $ assertEqual "Expected polygons" (Expected expectedNumPolys) (Actual (length (cutPolygon scissors polygon)))
         ]
@@ -302,67 +261,8 @@ assertAreaConserved polygon cutResult = do
             , "Σ cuts   = " ++ show sumOfCutAreas
             , "|Δ|      = " ++ show (abs (originalArea - sumOfCutAreas)) ])))
 
-drawCutEdgeGraphTest :: TestTree
-drawCutEdgeGraphTest = testGroup "Draw cut edge graphs"
-    [ testVisual "Simple handcrafted graph" 120 220 "docs/geometry/cut/7_1_handcrafted_edge_graph" $ \_ -> do
-        let cutEdgeGraph = transformAllVecs (100 *.) simpleCutEdgeGraph
-            transformAllVecs f (CutEdgeGraph xs) = (CutEdgeGraph . M.fromList . map modify . M.toList) xs
-                where
-                modify (k, vs) = (f k, f <$> vs)
-        Cairo.translate 10 110
-        drawCutEdgeGraph PolygonPositive cutEdgeGraph
-    , testVisual "Simple calculated graph" 120 120  "docs/geometry/cut/7_2_calculated_edge_graph" $ \_ -> do
-        let polygon = G.transform (G.scale 50) (Polygon [Vec2 1 1, Vec2 (-1) 1, Vec2 (-1) (-1), Vec2 1 (-1)])
-            scissors = angledLine (Vec2 0 0) (deg 20) 1
-            cutEdgeGraph = createEdgeGraph scissors (polygonOrientation polygon) (cutAll scissors (polygonEdges polygon))
-        Cairo.translate 60 60
-        drawCutEdgeGraph (polygonOrientation polygon) cutEdgeGraph
-    ]
-  where
-    moveRight d line = G.transform (G.translate (d *. direction (perpendicularBisector line))) line
-    nudge = moveRight 2.5 . resizeLineSymmetric (\d -> 0.85*d)
-    arrowSpec = def{_arrowheadSize = 7, _arrowheadRelPos = 0.5, _arrowheadDrawLeft = False}
-
-    drawCutEdgeGraph orientation ceg@(CutEdgeGraph graph) = do
-        let reconstructedPolygons = reconstructPolygons orientation ceg
-        setLineWidth 1
-        for_ (zip [1..] (M.toList graph)) $ \(i, (start, ends)) -> do
-            setColor $ mathematica97 0
-            sketch (Circle start 3)
-            strokePreserve
-            setColor $ mathematica97 0 `withOpacity` 0.3
-            fill
-
-            setColor $ mathematica97 i
-            for_ ends $ \end -> do
-                sketch (Arrow (nudge (Line start end)) arrowSpec)
-                stroke
-        for_ (zip [1..] reconstructedPolygons) $ \(i, polygon) -> do
-            setColor $ mathematica97 i
-            cairoScope $ do
-                sketch polygon
-                setDash [2,2] 0
-                strokePreserve
-                setColor $ mathematica97 i `withOpacity` 0.1
-                fill
-
-            let Vec2 midX midY = polygonAverage polygon
-            moveTo midX midY
-            showTextAligned HCenter VCenter (show i)
-
-sideOfScissorsTest :: TestTree
-sideOfScissorsTest = testProperty "Side of scissors" $
-    \(Gaussian vec@(Vec2 _ y)) ->
-        let scissors = Line (Vec2 0 0) (Vec2 1 0)
-            actual = sideOfScissors scissors vec
-            expected = case compare y 0 of
-                LT -> RightOfLine
-                EQ -> DirectlyOnLine
-                GT -> LeftOfLine
-        in actual === expected
-
 shadeRegularPolygon :: TestTree
-shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/shade_polygon_regular" $ \(w,h) -> do
+shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clipping/shade_polygon_regular" $ \(w,h) -> do
     let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
         shading = shade polygon (deg 30) 24
 
@@ -377,7 +277,7 @@ shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/cut/sh
         stroke
 
 shadeSpiralPolygon :: TestTree
-shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/cut/shade_polygon_spiral" $ \(w,h) -> do
+shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping/shade_polygon_spiral" $ \(w,h) -> do
     let polygon' = spiralPolygon 9 10
         polygon = G.transform (G.transformBoundingBox polygon' [Vec2 0 0, Vec2 w h] def) polygon'
         shading = shade polygon (deg 30) 24
@@ -389,3 +289,66 @@ shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/cut/shad
         setColor (mathematica97 0)
         sketch polygon
         stroke
+
+weilerAthertonTest :: TestTree
+weilerAthertonTest =
+    let p1 = Polygon
+            [ Vec2 40 30
+            , Vec2 140 30
+            , Vec2 140 140
+            , Vec2 120 140
+            , Vec2 120 80
+            , Vec2 100 80
+            , Vec2 100 140
+            , Vec2 80 140
+            , Vec2 80 60
+            , Vec2 60 60
+            , Vec2 60 140
+            , Vec2 40 140 ]
+        p2 = Polygon
+            [ Vec2 180 20
+            , Vec2 130 20
+            , Vec2 130 35
+            , Vec2 120 35
+            , Vec2 120 20
+            , Vec2 110 20
+            , Vec2 110 35
+            , Vec2 100 35
+            , Vec2 100 20
+            , Vec2 90 20
+            , Vec2 90 35
+            , Vec2 80 35
+            , Vec2 80 20
+            , Vec2 70 20
+            , Vec2 70 35
+            , Vec2 60 35
+            , Vec2 60 20
+            , Vec2 20 20
+            , Vec2 20 40
+            , Vec2 170 60
+            , Vec2 50 80
+            , Vec2 170 100
+            , Vec2 10 120
+            , Vec2 180 140
+            ]
+        cutResult = intersectionOfTwoPolygons p1 p2
+
+    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/clipping/polygon-polygon" $ \_ -> do
+        setLineJoin LineJoinRound
+        cairoScope $ do
+            setLineWidth 1
+            setColor (mathematica97 0)
+            sketch p1
+            stroke
+        cairoScope $ do
+            setLineWidth 1
+            setColor (mathematica97 1)
+            sketch p2
+            stroke
+        for_ (zip [2..] cutResult) $ \(i, polygon) -> cairoScope $ do
+            setLineWidth 2
+            sketch polygon
+            setColor (mathematica97 i `withOpacity` 0.2)
+            fillPreserve
+            setColor (mathematica97 i)
+            stroke

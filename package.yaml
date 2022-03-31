@@ -53,7 +53,7 @@ extra-doc-files:
     - docs/differential_equations/2_double_pendulum.svg
     - docs/differential_equations/geodesic_hill_and_valley.svg
     - docs/geometry/convex_hull.svg
-    - docs/geometry/cut/3_complicated.svg
+    - docs/geometry/clipping/3_complicated.svg
     - docs/geometry/ellipses.svg
     - docs/geometry/point_in_polygon.svg
     - docs/hexagonal/gaussian_hexagons.svg
@@ -77,6 +77,8 @@ library:
         - Draw.Color.Schemes.Internal.Haskell
         - Draw.Color.Schemes.Internal.MatPlotLib
         - Draw.Color.Schemes.Internal.Seaborn
+        - Geometry.Algorithms.Clipping.Internal
+        - Geometry.Algorithms.Clipping.PolygonPolygon
         - Geometry.Trajectory.PathSimplifier.Radial
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt

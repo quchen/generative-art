@@ -99,7 +99,7 @@ testDraw line1@(Line start _) line2 = do
             showText $ case ty of
                 Parallel    -> "Parallel"
                 Collinear _ -> "Collinear"
-                _           -> bugError "Unknown intersection type"
+                _           -> error "Unknown intersection type"
 
         Just point -> do
 
@@ -121,7 +121,7 @@ testDraw line1@(Line start _) line2 = do
                         IntersectionVirtualInsideL _ -> "Virtual (but inside left argument)"
                         IntersectionVirtualInsideR _ -> "Virtual (but inside right argument)"
                         IntersectionReal _           -> "Intersection"
-                        _                            -> bugError "Unknown intersection type"
+                        _                            -> error "Unknown intersection type"
 
                 setColor black
                 moveTo x y

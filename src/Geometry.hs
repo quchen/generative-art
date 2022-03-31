@@ -1,7 +1,7 @@
 module Geometry (
       module Geometry.Core
     , module Geometry.Algorithms.Contour
-    , module Geometry.Algorithms.Cut
+    , module Geometry.Algorithms.Clipping
     , module Geometry.Algorithms.Triangulate
     , module Geometry.Bezier
     , module Geometry.Processes.Billard
@@ -9,7 +9,7 @@ module Geometry (
 ) where
 
 import Geometry.Algorithms.Contour
-import Geometry.Algorithms.Cut
+import Geometry.Algorithms.Clipping
 import Geometry.Algorithms.Triangulate
 import Geometry.Bezier
 import Geometry.Core

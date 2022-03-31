@@ -112,7 +112,6 @@ module Geometry.Core (
     , vectorOf
     , cross
     , direction
-    , bugError
     , module Data.Sequential
     , Group(..)
 ) where
@@ -937,9 +936,6 @@ direction = vectorOf . normalizeLine
 -- | Switch defining points of a line.
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
-
-bugError :: String -> a
-bugError msg = errorWithoutStackTrace (msg ++ "\nThis should never happen! Please report it as a bug.")
 
 data LLIntersection
     = IntersectionReal Vec2
