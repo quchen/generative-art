@@ -16,7 +16,7 @@ import Test.TastyAll
 
 
 tests :: TestTree
-tests = testGroup "Cutting things"
+tests = testGroup "Clipping"
     [ testGroup "Line with line"
         [ lineTest
         ]
@@ -31,10 +31,18 @@ tests = testGroup "Cutting things"
         , hatchSpiralPolygon
         ]
     , testGroup "Polygon with polygon"
-        [ intersectionOfDisjointPolygonsTest
-        , intersectionOfSimpleSquares
-        , intersectionWithContainedPolygon
-        , polygonIntersectionStressTest
+        [ testGroup "Intersection"
+            [ intersectionOfDisjointPolygonsTest
+            , intersectionOfSimpleSquaresTest
+            , intersectionWithContainedPolygon
+            , polygonIntersectionStressTest
+            ]
+        , testGroup "Union"
+            [ unionOfSimpleSquaresTest
+            ]
+        , testGroup "Difference"
+            [ differenceOfSimpleSquaresTest
+            ]
         ]
     ]
 
@@ -329,14 +337,14 @@ polygonIntersectionStressTest =
             , Vec2 20 20
             , Vec2 20 40
             , Vec2 170 60
-            , Vec2 50 80
+            , Vec2 45 80
             , Vec2 170 100
             , Vec2 10 120
             , Vec2 180 140
             ]
-        cutResult = intersectionOfTwoPolygons p1 p2
+        cutResult = intersectionPP p1 p2
 
-    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/clipping/polygon-polygon" $ \_ -> do
+    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/clipping/polygon-polygon-intersection" $ \_ -> do
         setLineJoin LineJoinRound
         cairoScope $ do
             setLineWidth 1
@@ -352,27 +360,57 @@ polygonIntersectionStressTest =
             setLineWidth 2
             sketch polygon
             setColor (mathematica97 i `withOpacity` 0.2)
-            fillPreserve
-            setColor (mathematica97 i)
-            stroke
+            fill
 
 intersectionOfDisjointPolygonsTest :: TestTree
 intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons is empty" $ do
     let p1 = boundingBoxPolygon [zero, Vec2 10 10]
         p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
-    assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionOfTwoPolygons p1 p2))
+    assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionPP p1 p2))
 
 intersectionWithContainedPolygon :: TestTree
 intersectionWithContainedPolygon = testCase "One polygon contains the other" $ do
     let large = boundingBoxPolygon [zero, Vec2 20 20]
         contained = G.transform (G.translate (Vec2 5 5)) (boundingBoxPolygon [zero, Vec2 10 10])
-    assertEqual "Intersection should the inner polygon" (Expected [contained]) (Actual (intersectionOfTwoPolygons large contained))
+    assertEqual "Intersection should the inner polygon" (Expected [contained]) (Actual (intersectionPP large contained))
 
-intersectionOfSimpleSquares :: TestTree
-intersectionOfSimpleSquares = testCase "Intersection of simple squares has right area" $ do
+intersectionOfSimpleSquaresTest :: TestTree
+intersectionOfSimpleSquaresTest = testCase "Intersection of simple squares has right area" $ do
     let p1 = boundingBoxPolygon [zero, Vec2 10 10]
         p2 = boundingBoxPolygon [Vec2 5 5, Vec2 15 15]
-        intersection = intersectionOfTwoPolygons p1 p2
+        intersection = intersectionPP p1 p2
     case intersection of
         [singleResultPolygon] -> assertApproxEqual "" (ExpectedWithin 1e-5 (5*5)) (Actual (polygonArea singleResultPolygon))
         other -> assertEqual "Only one result polygon expected" (Expected 1) (Actual (length other))
+
+differenceOfSimpleSquaresTest :: TestTree
+differenceOfSimpleSquaresTest = testVisual "Difference of simple squares" 150 150 "docs/geometry/clipping/polygon-polygon-difference" $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 80 80, Vec2 140 140]
+        difference = differencePP p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] difference) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfSimpleSquaresTest :: TestTree
+unionOfSimpleSquaresTest = testVisual "Union of simple squares" 150 150 "docs/geometry/clipping/polygon-polygon-union" $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 80 80, Vec2 140 140]
+        union = unionPP p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] union) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill

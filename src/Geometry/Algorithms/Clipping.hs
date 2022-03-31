@@ -6,7 +6,9 @@ module Geometry.Algorithms.Clipping (
     , LineType(..)
     , clipPolygonWithLine
 
-    , intersectionOfTwoPolygons
+    , intersectionPP
+    , unionPP
+    , differencePP
 
     , hatch
 ) where
