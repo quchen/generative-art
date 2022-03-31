@@ -33,16 +33,19 @@ tests = testGroup "Clipping"
     , testGroup "Polygon with polygon"
         [ testGroup "Intersection"
             [ intersectionOfDisjointPolygonsTest
-            , intersectionOfSimpleSquaresTest
             , intersectionWithContainedPolygon
+            , intersectionOfSimpleSquaresTest
+            , intersectionOfDisjointSquaresTest
             , polygonIntersectionStressTest
             ]
         , testGroup "Union"
             [ unionOfSimpleSquaresTest
+            , unionOfDisjointSquaresTest
             , polygonUnionStressTest
             ]
         , testGroup "Difference"
             [ differenceOfSimpleSquaresTest
+            , differenceOfDisjointSquaresTest
             , polygonDifferenceStressTest
             ]
         ]
@@ -400,3 +403,37 @@ differenceOfSimpleSquaresTest = polygonBinaryOpSimple
     differencePP
     "difference of simple squares"
     "docs/geometry/clipping/polygon-polygon-difference-simple"
+
+polygonBinaryOpDisjoint :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDisjoint operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 70 140]
+        p2 = boundingBoxPolygon [Vec2 80 10, Vec2 140 140]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfDisjointSquaresTest :: TestTree
+unionOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    unionPP
+    "Union of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-union-disjoint"
+
+intersectionOfDisjointSquaresTest :: TestTree
+intersectionOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    intersectionPP
+    "Intersection of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-intersection-disjoint"
+
+differenceOfDisjointSquaresTest :: TestTree
+differenceOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    differencePP
+    "difference of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-difference-disjoint"
