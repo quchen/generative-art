@@ -31,7 +31,9 @@ tests = testGroup "Cutting things"
         , shadeSpiralPolygon
         ]
     , testGroup "Polygon with polygon"
-        [ weilerAthertonTest
+        [ intersectionOfDisjointPolygonsTest
+        , intersectionOfSimpleSquares
+        , polygonIntersectionStressTest
         ]
     ]
 
@@ -290,8 +292,8 @@ shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping
         sketch polygon
         stroke
 
-weilerAthertonTest :: TestTree
-weilerAthertonTest =
+polygonIntersectionStressTest :: TestTree
+polygonIntersectionStressTest =
     let p1 = Polygon
             [ Vec2 40 30
             , Vec2 140 30
@@ -352,3 +354,18 @@ weilerAthertonTest =
             fillPreserve
             setColor (mathematica97 i)
             stroke
+
+intersectionOfDisjointPolygonsTest :: TestTree
+intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons is empty" $ do
+    let p1 = boundingBoxPolygon [zero, Vec2 10 10]
+        p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
+    assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionOfTwoPolygons p1 p2))
+
+intersectionOfSimpleSquares :: TestTree
+intersectionOfSimpleSquares = testCase "Intersection of simple squares has right area" $ do
+    let p1 = boundingBoxPolygon [zero, Vec2 10 10]
+        p2 = boundingBoxPolygon [Vec2 5 5, Vec2 15 15]
+        intersection = intersectionOfTwoPolygons p1 p2
+    case intersection of
+        [singleResultPolygon] -> assertApproxEqual "" (ExpectedWithin 1e-5 (5*5)) (Actual (polygonArea singleResultPolygon))
+        other -> assertEqual "Only one result polygon expected" (Expected 1) (Actual (length other))
