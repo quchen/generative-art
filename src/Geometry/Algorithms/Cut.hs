@@ -1,18 +1,21 @@
 module Geometry.Algorithms.Cut (
-      cutLine
+      cutLineWithLine
     , CutLine(..)
     , cutPolygon
 
     , LineType(..)
     , clipPolygonWithLine
 
+    , WeilerAtherton.intersectionOfTwoPolygons
+
     , shade
 ) where
 
 
 
-import Geometry.Core
-import Geometry.Algorithms.Cut.Internal
+import           Geometry.Algorithms.Cut.Internal
+import qualified Geometry.Algorithms.Cut.WeilerAtherton as WeilerAtherton
+import           Geometry.Core
 
 -- $setup
 -- >>> import Draw

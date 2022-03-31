@@ -48,6 +48,7 @@ module Geometry.Algorithms.Voronoi (
 import Data.List (foldl')
 
 import Geometry
+import Util
 
 -- $setup
 -- >>> import Draw
@@ -138,5 +139,5 @@ clipCell :: Line -> VoronoiCell a -> VoronoiCell a
 clipCell line f =
     case filter (pointInPolygon (_voronoiSeed f)) (cutPolygon line (_voronoiRegion f)) of
         [p] -> f { _voronoiRegion = p }
-        [] -> bugError "Could not identify the remaining Voronoi cell. Perhaps the seed was outside the cell to start with?"
-        _ -> bugError "`cutPolygon` resulted in overlapping polygons."
+        [] -> bugError "Voronoi.clipCell" "Could not identify the remaining Voronoi cell. Perhaps the seed was outside the cell to start with?"
+        _ -> bugError "Voronoi.clipCell" "`cutPolygon` resulted in overlapping polygons."

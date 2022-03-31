@@ -1,5 +1,7 @@
 module Util (
-    nubOrd
+      nubOrd
+    , bugError
+    , todo
 ) where
 
 
@@ -16,3 +18,10 @@ nubOrd = go S.empty
     go seen (x:xs)
         | S.member x seen = go seen xs
         | otherwise       = x : go (S.insert x seen) xs
+
+bugError :: String -> String -> a
+bugError location msg = errorWithoutStackTrace (location ++ ": " ++ msg ++ "\nThis should never happen! Please report it as a bug.")
+
+{-# WARNING todo "TODO in code" #-}
+todo :: String -> String -> a
+todo location msg = errorWithoutStackTrace (location ++ ": TODO: " ++ msg ++ "\nThis should not be present in live code, but it is! Commence panicking!")

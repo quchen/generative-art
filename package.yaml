@@ -77,6 +77,8 @@ library:
         - Draw.Color.Schemes.Internal.Haskell
         - Draw.Color.Schemes.Internal.MatPlotLib
         - Draw.Color.Schemes.Internal.Seaborn
+        - Geometry.Algorithms.Cut.Internal
+        - Geometry.Algorithms.Cut.WeilerAtherton
         - Geometry.Trajectory.PathSimplifier.Radial
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt

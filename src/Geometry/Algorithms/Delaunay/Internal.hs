@@ -12,6 +12,7 @@ import qualified Util.RTree      as RT
 
 import Geometry
 import Geometry.Algorithms.Voronoi
+import Util
 
 
 
@@ -105,7 +106,7 @@ bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTri
 circumcircle :: Triangle -> Maybe Circle
 circumcircle (Triangle p1 p2 p3) = case maybeCenter of
     Just center -> Just (Circle center (norm (center -. p1)))
-    Nothing -> bugError ("Circumcircle of triangle: Bad intersection " ++ show intersectionOfBisectors)
+    Nothing -> bugError "Delaunay.circumcircle" ("Circumcircle of triangle: Bad intersection " ++ show intersectionOfBisectors)
   where
     intersectionOfBisectors = intersectionLL (perpendicularBisector (Line p1 p2)) (perpendicularBisector (Line p1 p3))
     maybeCenter = intersectionPoint intersectionOfBisectors

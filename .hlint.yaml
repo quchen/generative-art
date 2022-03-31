@@ -31,6 +31,7 @@
 - ignore: {name: "Use fst"}
 - ignore: {name: "Use <$>"}
 - ignore: {name: "Use lambda-case"}
+- ignore: {name: "Use ++"}
 
 # AMP fallout
 - error:

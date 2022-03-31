@@ -8,6 +8,7 @@ import Data.List
 import Data.Ord
 
 import Geometry.Core
+import Util
 
 
 
@@ -31,7 +32,7 @@ clipEar :: Polygon -> (Polygon, Maybe Polygon)
 clipEar parentPolygon = go parentPolygon
   where
     parentOrientation = polygonOrientation parentPolygon
-    bestEar [] = bugError "No ears to cut off"
+    bestEar [] = bugError "Triangulate.clipEar" "No ears to cut off"
     bestEar xs = maximumBy (\(e1,_,_) (e2,_,_) -> comparing polygonArea e1 e2) xs
     onlyEars (candidate, forbiddenPoints, _) = isEar candidate parentOrientation forbiddenPoints
 

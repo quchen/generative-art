@@ -32,6 +32,7 @@ import qualified System.Random.MWC as MWC
 
 import           Geometry
 import qualified Geometry.Coordinates.Hexagonal as Hex
+import           Util
 
 
 
@@ -226,7 +227,7 @@ normals seed
                   x = root1 * cos pi2u2
                   y = root1 * sin pi2u2
               in x : y : go rest
-        go _ = bugError "Can’t happen, input is infinite"
+        go _ = bugError "Chaotic.normals" "Can’t happen, input is infinite"
     in go (R.randomRs (0, 1) (stdGen seed))
 
 -- | Infinite list of Gaussian distributed values.
@@ -242,7 +243,7 @@ vecPair :: ChaosSource seed => (seed -> [Double]) -> seed -> [Vec2]
 vecPair f seed = go (f seed)
   where
     go (x:y:rest) = Vec2 x y : go rest
-    go _ = bugError "Can’t happen, input is infinite"
+    go _ = bugError "Chaotic.vecPair" "Can’t happen, input is infinite"
 
 normalVecs :: ChaosSource seed => seed -> [Vec2]
 normalVecs = vecPair normals
