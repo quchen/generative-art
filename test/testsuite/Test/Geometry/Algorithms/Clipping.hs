@@ -36,16 +36,19 @@ tests = testGroup "Clipping"
             , intersectionWithContainedPolygon
             , intersectionOfSimpleSquaresTest
             , intersectionOfDisjointSquaresTest
+            , intersectionOfDoubleTraversalSquaresTest
             , polygonIntersectionStressTest
             ]
         , testGroup "Union"
             [ unionOfSimpleSquaresTest
             , unionOfDisjointSquaresTest
+            , unionOfDoubleTraversalSquaresTest
             , polygonUnionStressTest
             ]
         , testGroup "Difference"
             [ differenceOfSimpleSquaresTest
             , differenceOfDisjointSquaresTest
+            , differenceOfDoubleTraversalSquaresTest
             , polygonDifferenceStressTest
             ]
         ]
@@ -437,3 +440,37 @@ differenceOfDisjointSquaresTest = polygonBinaryOpDisjoint
     differencePP
     "difference of disjoint squares"
     "docs/geometry/clipping/polygon-polygon-difference-disjoint"
+
+polygonBinaryOpDoubleTraversal :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDoubleTraversal operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 50, Vec2 140 100]
+        p2 = boundingBoxPolygon [Vec2 50 10, Vec2 100 140]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfDoubleTraversalSquaresTest :: TestTree
+unionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    unionPP
+    "Union of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-union-double-traversal"
+
+intersectionOfDoubleTraversalSquaresTest :: TestTree
+intersectionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    intersectionPP
+    "Intersection of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-intersection-double-traversal"
+
+differenceOfDoubleTraversalSquaresTest :: TestTree
+differenceOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    differencePP
+    "difference of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-difference-double-traversal"
