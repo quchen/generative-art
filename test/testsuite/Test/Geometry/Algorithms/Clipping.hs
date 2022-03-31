@@ -33,6 +33,7 @@ tests = testGroup "Cutting things"
     , testGroup "Polygon with polygon"
         [ intersectionOfDisjointPolygonsTest
         , intersectionOfSimpleSquares
+        , intersectionWithContainedPolygon
         , polygonIntersectionStressTest
         ]
     ]
@@ -360,6 +361,12 @@ intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons
     let p1 = boundingBoxPolygon [zero, Vec2 10 10]
         p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
     assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionOfTwoPolygons p1 p2))
+
+intersectionWithContainedPolygon :: TestTree
+intersectionWithContainedPolygon = testCase "One polygon contains the other" $ do
+    let large = boundingBoxPolygon [zero, Vec2 20 20]
+        contained = G.transform (G.translate (Vec2 5 5)) (boundingBoxPolygon [zero, Vec2 10 10])
+    assertEqual "Intersection should the inner polygon" (Expected [contained]) (Actual (intersectionOfTwoPolygons large contained))
 
 intersectionOfSimpleSquares :: TestTree
 intersectionOfSimpleSquares = testCase "Intersection of simple squares has right area" $ do
