@@ -64,7 +64,7 @@ spacedGasket = testVisual "Gasket with slightly spaced initial circles" 300 300 
         stroke
 
     let Circle center r = breadthFirst gasket !! 3
-    circleSketch center (abs r)
+    sketch (Circle center (abs r))
     setColor (rgb 0 0 1)
     stroke
 
@@ -77,10 +77,10 @@ skipGen0 = testVisual "Omitting the generation 0 circles" 300 300 "docs/apolloni
             let center = canvasCenter +. polar angle (2*radius/sqrt 3)
             pure (Circle center radius)
 
-        large = toCircle (newCircle (-) (-) (toApoCircle gen0L) (toApoCircle gen0R) (toApoCircle gen0B))
-        gen1T = toCircle (newCircle (+) (+) (toApoCircle large) (toApoCircle gen0L) (toApoCircle gen0R))
-        gen1L = toCircle (newCircle (+) (-) (toApoCircle large) (toApoCircle gen0L) (toApoCircle gen0B))
-        gen1R = toCircle (newCircle (+) (+) (toApoCircle large) (toApoCircle gen0R) (toApoCircle gen0B))
+        _large = toCircle (newCircle (-) (-) (toApoCircle gen0L) (toApoCircle gen0R) (toApoCircle gen0B))
+        _gen1T = toCircle (newCircle (+) (+) (toApoCircle _large) (toApoCircle gen0L) (toApoCircle gen0R))
+        _gen1L = toCircle (newCircle (+) (-) (toApoCircle _large) (toApoCircle gen0L) (toApoCircle gen0B))
+        _gen1R = toCircle (newCircle (+) (+) (toApoCircle _large) (toApoCircle gen0R) (toApoCircle gen0B))
 
         (a:b:c:_) = drop 5 $ breadthFirst (createGasket 0 gen0L gen0R gen0B)
         gasket = createGasket 1 a b c
@@ -89,7 +89,7 @@ skipGen0 = testVisual "Omitting the generation 0 circles" 300 300 "docs/apolloni
         setLineWidth 1
         let colorValue = rocket (lerp (1, fromIntegral (length gasket)) (1, 0) i)
         setColor colorValue
-        circleSketch center (abs r)
+        sketch (Circle center (abs r))
         stroke
 
 forgettingGen0 :: TestTree

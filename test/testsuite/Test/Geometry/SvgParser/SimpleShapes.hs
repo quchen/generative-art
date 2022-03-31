@@ -4,8 +4,6 @@ module Test.Geometry.SvgParser.SimpleShapes (tests) where
 
 
 
-import           Data.Set  (Set)
-import qualified Data.Set  as S
 import           Data.Text (Text)
 import qualified Data.Text as T
 
