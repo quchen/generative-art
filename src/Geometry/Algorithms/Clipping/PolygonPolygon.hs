@@ -1,5 +1,9 @@
 -- | __INTERNAL MODULE__, not exposed from the package.
-module Geometry.Algorithms.Clipping.PolygonPolygon (intersectionOfTwoPolygons) where
+module Geometry.Algorithms.Clipping.PolygonPolygon (
+      intersectionPP
+    , differencePP
+    , unionPP
+) where
 
 
 
@@ -23,17 +27,20 @@ data CutLine ann
     | Cut ann Vec2 Vec2 Vec2
     deriving (Eq, Ord, Show)
 
--- | Newtype tag to signify the contained polygon is oriented.
-newtype Oriented a = Oriented a
-    deriving (Eq, Ord, Show)
+orientPolygon :: PolygonOrientation -> Polygon -> Polygon
+orientPolygon desiredOrientation polygon
+    | polygonOrientation polygon == desiredOrientation = polygon
+    | otherwise = reversePolygon polygon
 
-orientPolygon :: PolygonOrientation -> Polygon -> Oriented Polygon
-orientPolygon desiredOrientation polygon = if polygonOrientation polygon == desiredOrientation
-    then Oriented polygon
-    else let Polygon ps = polygon in Oriented (Polygon (reverse ps))
+reverseOrientation :: PolygonOrientation -> PolygonOrientation
+reverseOrientation PolygonPositive = PolygonNegative
+reverseOrientation PolygonNegative = PolygonPositive
 
-cutPolygon :: Oriented Polygon -> Polygon -> Oriented [CutLine ()]
-cutPolygon (Oriented subject) knives = Oriented $ do
+reversePolygon :: Polygon -> Polygon
+reversePolygon (Polygon ps) = Polygon (reverse ps)
+
+cutPolygon :: Polygon -> Polygon -> [CutLine ()]
+cutPolygon subject knives = do
     edge@(Line start end) <- polygonEdges subject
     case sortOn (\x -> positionAlongEdge x edge) (multiCutLine edge (polygonEdges knives)) of
         [] -> [NoCut start end]
@@ -51,8 +58,8 @@ positionAlongEdge :: Vec2 -> Line -> Double
 positionAlongEdge p edge@(Line edgeStart _) = dotProduct (vectorOf edge) (vectorOf (Line edgeStart p))
 
 -- | Annotate a line with cuts on whether the cut transitions in or out of another object.
-annotateTransitions :: Oriented [CutLine a] -> Polygon -> Oriented [CutLine Transition]
-annotateTransitions (Oriented vertices) other = Oriented (go initialLocation vertices)
+annotateTransitions :: [CutLine a] -> Polygon -> [CutLine Transition]
+annotateTransitions vertices other = go initialLocation vertices
   where
     initialLocation = case head vertices of -- head is safe here because we only force this if xs is nonempty in go
         NoCut start _ | pointInPolygon start other -> Inside
@@ -64,8 +71,8 @@ annotateTransitions (Oriented vertices) other = Oriented (go initialLocation ver
     go Inside (Cut _ start x end : xs) = Cut Exit start x end : go Outside xs
     go Outside (Cut _ start x end : xs) = Cut Enter start x end : go Inside xs
 
-buildGraph :: Oriented [CutLine Transition] -> (EdgeGraph, Set Vec2)
-buildGraph (Oriented vertices) =
+buildGraph :: [CutLine Transition] -> (EdgeGraph, Set Vec2)
+buildGraph vertices =
     let (graph, enterPoints) = go mempty mempty vertices
     in (EdgeGraph graph, enterPoints)
   where
@@ -79,24 +86,6 @@ data Transition = Enter | Exit deriving (Eq, Ord, Show)
 data PointLocation = Inside | Outside deriving (Eq, Ord, Show)
 data PointType = PRemain Vec2 | PTransition Transition Vec2 deriving (Eq, Ord, Show)
 
--- | Walk a single cycle to reconstruct one polygon.
-reconstructSingleUnionPolygon :: State ReconstructionState (Maybe Polygon)
-reconstructSingleUnionPolygon = jumpToUnvisitedEnter >>= \case
-    Nothing -> pure Nothing
-    Just enter -> do
-        modify' (\s -> s { _graph1Active = True })
-        let loop = do
-                chain <- followUntilExitS
-                currentPos <- gets _currentPos
-                if currentPos /= enter
-                    then do
-                        swapActiveGraph
-                        rest <- loop
-                        pure (chain : rest)
-                    else pure [chain]
-        chains <- loop
-        pure (Just (Polygon (concat chains)))
-
 jumpToUnvisitedEnter :: State ReconstructionState (Maybe Vec2)
 jumpToUnvisitedEnter = do
     unvisitedEnters <- gets (S.minView . _unvisitedEnteringPoints)
@@ -105,6 +94,7 @@ jumpToUnvisitedEnter = do
         Just (enter, rest) -> do
             modify' (\s -> s
                 { _unvisitedEnteringPoints = rest
+                , _graph1Active = True
                 , _currentPos = enter })
             pure (Just enter)
 
@@ -124,20 +114,21 @@ markAsVisited x = modify' (\s -> s { _unvisitedEnteringPoints = S.delete x (_unv
 setCurrentPos :: Vec2 -> State ReconstructionState ()
 setCurrentPos x = modify' (\s -> s { _currentPos = x })
 
-followUntilExitS :: State ReconstructionState [Vec2]
-followUntilExitS = do
+followUntil :: Transition -> State ReconstructionState [Vec2]
+followUntil transition = do
     pos <- gets _currentPos
     EdgeGraph eg <- getActiveGraph
     case M.lookup pos eg of
-        Nothing -> error ("Bad edge graph: " ++ show pos ++ " has no target")
-        Just (PTransition Enter _) -> error "Found enter node searching for an exit"
-        Just (PTransition Exit exit) -> do
-            markAsVisited exit
-            setCurrentPos exit
-            pure [exit]
+        Nothing -> bugError "followUntil" ("Non-looping graph: " ++ show pos ++ " has no target")
+        Just (PTransition t p)
+            | t /= transition -> bugError "followUntil" ("Found " ++ show t ++ " node searching for an " ++ show transition ++ "")
+            | otherwise -> do
+                markAsVisited p
+                setCurrentPos p
+                pure [p]
         Just (PRemain target) -> do
             setCurrentPos target
-            rest <- followUntilExitS
+            rest <- followUntil transition
             pure (target : rest)
 
 data ReconstructionState = ReconstructionState
@@ -148,21 +139,117 @@ data ReconstructionState = ReconstructionState
     , _graph2 :: EdgeGraph -- ^ Graph of the second cut polygon
     } deriving (Eq, Ord, Show)
 
--- | Reconstruct all polygons until the input is exhausted.
-reconstructAllUnionPolygons :: State ReconstructionState [Polygon]
-reconstructAllUnionPolygons = reconstructSingleUnionPolygon >>= \case
+-- | Given a reconstructor of one polygon, run it repeatedly to reconstruct all possible ones.
+reconstructAllPolygons :: State ReconstructionState (Maybe Polygon) -> State ReconstructionState [Polygon]
+reconstructAllPolygons reconstructSingle = reconstructSingle >>= \case
     Nothing -> pure []
     Just polygon -> do
-        rest <- reconstructAllUnionPolygons
+        rest <- reconstructAllPolygons reconstructSingle
         pure (polygon : rest)
 
-weilerAthertonUnion :: Polygon -> Polygon -> [Polygon]
-weilerAthertonUnion polygon1 polygon2 =
-    let op1 = orientPolygon PolygonPositive polygon1
-        op2 = orientPolygon PolygonPositive polygon2
+weilerAthertonIntersection :: Polygon -> Polygon -> [Polygon]
+weilerAthertonIntersection polygon1 polygon2' =
+    let polygon2 = orientPolygon (polygonOrientation polygon1) polygon2'
 
-        op1cut = cutPolygon op1 polygon2
-        op2cut = cutPolygon op2 polygon1
+        op1cut = cutPolygon polygon1 polygon2
+        op2cut = cutPolygon polygon2 polygon1
+
+        op1cutAnnotated = annotateTransitions op1cut polygon2
+        op2cutAnnotated = annotateTransitions op2cut polygon1
+
+        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
+        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
+
+        initialState = ReconstructionState
+            { _currentPos = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
+            , _unvisitedEnteringPoints = op1entersOp2
+            , _graph1Active = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
+            , _graph1 = op1cutGraph
+            , _graph2 = op2cutGraph
+            }
+
+        reconstructIntersection = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
+            Nothing -> pure Nothing
+            Just enter -> do
+                let loop = do
+                        -- We are at an entering point. Follow until we find an exit,
+                        -- then repeat this for the other graph.
+                        chain <- followUntil Exit
+                        swapActiveGraph
+                        currentPos <- gets _currentPos
+                        if currentPos /= enter
+                            then do
+                                rest <- loop
+                                pure (chain : rest)
+                            else pure [chain]
+                chains <- loop
+                pure (Just (Polygon (concat chains)))
+        (polygons, _finalState) = runState reconstructIntersection initialState
+
+    in polygons
+
+-- | All polygons resulting of the intersection of the source polygons.
+intersectionPP :: Polygon -> Polygon -> [Polygon]
+intersectionPP = weilerAthertonIntersection
+
+weilerAthertonDifference :: Polygon -> Polygon -> [Polygon]
+weilerAthertonDifference polygon1 polygon2' =
+    let polygon2 = orientPolygon (reverseOrientation (polygonOrientation polygon1)) polygon2'
+
+        op1cut = cutPolygon polygon1 polygon2
+        op2cut = cutPolygon polygon2 polygon1
+
+        op1cutAnnotated = annotateTransitions op1cut polygon2
+        op2cutAnnotated = annotateTransitions op2cut polygon1
+
+        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
+        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
+
+        initialState = ReconstructionState
+            { _currentPos = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
+            , _unvisitedEnteringPoints = op1entersOp2
+            , _graph1Active = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
+            , _graph1 = op1cutGraph
+            , _graph2 = op2cutGraph
+            }
+
+        reconstructDifference = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
+            Nothing -> pure Nothing
+            Just start -> do
+                let loop = do
+                        -- We are at an entering point. Follow the other polygon until we exit again.
+                        swapActiveGraph
+                        chain1 <- followUntil Exit
+                        -- We are now at an exit point. Follow the other (original) polygon until
+                        -- we’re back at entering.
+                        swapActiveGraph
+                        chain2 <- followUntil Enter
+                        currentPos <- gets _currentPos
+                        rest <- if currentPos /= start
+                            then loop
+                            else pure []
+                        pure (chain1 : chain2 : rest)
+                chains <- loop
+                pure (Just (Polygon (concat chains)))
+
+        (polygons, _finalState) = runState reconstructDifference initialState
+
+    in polygons
+
+-- | All polygons resulting of the difference of the source polygons.
+differencePP
+    :: Polygon -- ^ A
+    -> Polygon -- ^ B
+    -> [Polygon] -- ^ A-B
+differencePP = weilerAthertonDifference
+
+weilerAthertonUnion :: Polygon -> Polygon -> [Polygon]
+weilerAthertonUnion polygon1 polygon2' =
+    let p1Orientation = polygonOrientation polygon1
+        polygon2 = orientPolygon p1Orientation polygon2'
+
+        op1cut = cutPolygon polygon1 polygon2
+        op2cut = cutPolygon polygon2 polygon1
 
         op1cutAnnotated = annotateTransitions op1cut polygon2
         op2cutAnnotated = annotateTransitions op2cut polygon1
@@ -178,10 +265,34 @@ weilerAthertonUnion polygon1 polygon2 =
             , _graph2 = op2cutGraph
             }
 
-        (polygons, _finalState) = runState reconstructAllUnionPolygons initialState
+        reconstructUnion = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
+            Nothing -> pure Nothing
+            Just start -> do
+                let loop = do
+                        -- We are at an entering point. Instead of entering, follow
+                        -- the other polygon.
+                        swapActiveGraph
+                        chain <- followUntil Enter
+                        currentPos <- gets _currentPos
+                        rest <- if currentPos /= start
+                            then loop
+                            else pure []
+                        pure (chain : rest)
+                chains <- loop
+                pure (Just (Polygon (concat chains)))
 
-    in polygons
+        (polygons, _finalState) = runState reconstructUnion initialState
 
--- | All polygons resulting of the intersection of the source polygons.
-intersectionOfTwoPolygons :: Polygon -> Polygon -> [Polygon]
-intersectionOfTwoPolygons = weilerAthertonUnion
+        -- The correct result polygon has the same orientation as the original.
+        -- Polygons going the wrong way round are contained within the correct
+        -- union.
+        removeInnerPolygons = filter (\polygon -> polygonOrientation polygon == p1Orientation)
+
+    in removeInnerPolygons polygons
+
+-- | All polygons resulting of the difference of the source polygons.
+unionPP
+    :: Polygon
+    -> Polygon
+    -> [Polygon]
+unionPP = weilerAthertonUnion

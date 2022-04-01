@@ -16,7 +16,7 @@ import Test.TastyAll
 
 
 tests :: TestTree
-tests = testGroup "Cutting things"
+tests = testGroup "Clipping"
     [ testGroup "Line with line"
         [ lineTest
         ]
@@ -31,11 +31,29 @@ tests = testGroup "Cutting things"
         , hatchSpiralPolygon
         ]
     , testGroup "Polygon with polygon"
-        [ intersectionOfDisjointPolygonsTest
-        , intersectionOfSimpleSquares
-        , polygonIntersectionStressTest
+        [ testGroup "Intersection"
+            [ intersectionOfDisjointPolygonsTest
+            , intersectionOfSimpleSquaresTest
+            , intersectionOfDisjointSquaresTest
+            , intersectionOfDoubleTraversalSquaresTest
+            , polygonIntersectionStressTest
+            ]
+        , testGroup "Union"
+            [ unionOfSimpleSquaresTest
+            , unionOfDisjointSquaresTest
+            , unionOfDoubleTraversalSquaresTest
+            , polygonUnionStressTest
+            ]
+        , testGroup "Difference"
+            [ differenceOfSimpleSquaresTest
+            , differenceOfDisjointSquaresTest
+            , differenceOfDoubleTraversalSquaresTest
+            , polygonDifferenceStressTest
+            ]
         ]
     ]
+
+
 
 lineTest :: TestTree
 lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/clipping/1_line" $ \_ -> do
@@ -292,50 +310,21 @@ hatchSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping
         sketch polygon
         stroke
 
-polygonIntersectionStressTest :: TestTree
-polygonIntersectionStressTest =
+polygonBinaryOpStressTest :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpStressTest operation testName filePath =
     let p1 = Polygon
-            [ Vec2 40 30
-            , Vec2 140 30
-            , Vec2 140 140
-            , Vec2 120 140
-            , Vec2 120 80
-            , Vec2 100 80
-            , Vec2 100 140
-            , Vec2 80 140
-            , Vec2 80 60
-            , Vec2 60 60
-            , Vec2 60 140
-            , Vec2 40 140 ]
+            [ Vec2 40 30, Vec2 140 30, Vec2 140 140, Vec2 120 140, Vec2 120 80,
+            Vec2 100 80, Vec2 100 140, Vec2 80 140, Vec2 80 60, Vec2 60 60, Vec2
+            60 140, Vec2 40 140 ]
         p2 = Polygon
-            [ Vec2 180 20
-            , Vec2 130 20
-            , Vec2 130 35
-            , Vec2 120 35
-            , Vec2 120 20
-            , Vec2 110 20
-            , Vec2 110 35
-            , Vec2 100 35
-            , Vec2 100 20
-            , Vec2 90 20
-            , Vec2 90 35
-            , Vec2 80 35
-            , Vec2 80 20
-            , Vec2 70 20
-            , Vec2 70 35
-            , Vec2 60 35
-            , Vec2 60 20
-            , Vec2 20 20
-            , Vec2 20 40
-            , Vec2 170 60
-            , Vec2 50 80
-            , Vec2 170 100
-            , Vec2 10 120
-            , Vec2 180 140
-            ]
-        cutResult = intersectionOfTwoPolygons p1 p2
+            [ Vec2 180 20, Vec2 130 20, Vec2 130 35, Vec2 120 35, Vec2 120 20,
+            Vec2 110 20, Vec2 110 35, Vec2 100 35, Vec2 100 20, Vec2 90 20, Vec2
+            90 35, Vec2 80 35, Vec2 80 20, Vec2 70 20, Vec2 70 35, Vec2 60 35,
+            Vec2 60 20, Vec2 20 20, Vec2 20 40, Vec2 170 60, Vec2 45 80, Vec2
+            170 100, Vec2 10 120, Vec2 180 140 ]
+        result = operation p1 p2
 
-    in testVisual "Overlap (clip) of two complicated polygons" 200 150 "docs/geometry/clipping/polygon-polygon" $ \_ -> do
+    in testVisual testName 200 150 filePath $ \_ -> do
         setLineJoin LineJoinRound
         cairoScope $ do
             setLineWidth 1
@@ -347,25 +336,134 @@ polygonIntersectionStressTest =
             setColor (mathematica97 1)
             sketch p2
             stroke
-        for_ (zip [2..] cutResult) $ \(i, polygon) -> cairoScope $ do
+        for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
             setLineWidth 2
             sketch polygon
             setColor (mathematica97 i `withOpacity` 0.2)
-            fillPreserve
-            setColor (mathematica97 i)
-            stroke
+            fill
+
+polygonIntersectionStressTest :: TestTree
+polygonIntersectionStressTest = polygonBinaryOpStressTest
+    intersectionPP
+    "Intersection of two complicated polygons"
+    "docs/geometry/clipping/polygon-polygon-intersection"
+
+polygonUnionStressTest :: TestTree
+polygonUnionStressTest = polygonBinaryOpStressTest
+    unionPP
+    "Union of two complicated polygons"
+    "docs/geometry/clipping/polygon-polygon-union"
+
+polygonDifferenceStressTest :: TestTree
+polygonDifferenceStressTest = polygonBinaryOpStressTest
+    differencePP
+    "Difference of two complicated polygons"
+    "docs/geometry/clipping/polygon-polygon-difference"
 
 intersectionOfDisjointPolygonsTest :: TestTree
 intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons is empty" $ do
     let p1 = boundingBoxPolygon [zero, Vec2 10 10]
         p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
-    assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionOfTwoPolygons p1 p2))
+    assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionPP p1 p2))
 
-intersectionOfSimpleSquares :: TestTree
-intersectionOfSimpleSquares = testCase "Intersection of simple squares has right area" $ do
-    let p1 = boundingBoxPolygon [zero, Vec2 10 10]
-        p2 = boundingBoxPolygon [Vec2 5 5, Vec2 15 15]
-        intersection = intersectionOfTwoPolygons p1 p2
-    case intersection of
-        [singleResultPolygon] -> assertApproxEqual "" (ExpectedWithin 1e-5 (5*5)) (Actual (polygonArea singleResultPolygon))
-        other -> assertEqual "Only one result polygon expected" (Expected 1) (Actual (length other))
+polygonBinaryOpSimple :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpSimple operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfSimpleSquaresTest :: TestTree
+unionOfSimpleSquaresTest = polygonBinaryOpSimple
+    unionPP
+    "Union of simple squares"
+    "docs/geometry/clipping/polygon-polygon-union-simple"
+
+intersectionOfSimpleSquaresTest :: TestTree
+intersectionOfSimpleSquaresTest = polygonBinaryOpSimple
+    intersectionPP
+    "Intersection of simple squares"
+    "docs/geometry/clipping/polygon-polygon-intersection-simple"
+
+differenceOfSimpleSquaresTest :: TestTree
+differenceOfSimpleSquaresTest = polygonBinaryOpSimple
+    differencePP
+    "difference of simple squares"
+    "docs/geometry/clipping/polygon-polygon-difference-simple"
+
+polygonBinaryOpDisjoint :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDisjoint operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 70 140]
+        p2 = boundingBoxPolygon [Vec2 80 10, Vec2 140 140]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfDisjointSquaresTest :: TestTree
+unionOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    unionPP
+    "Union of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-union-disjoint"
+
+intersectionOfDisjointSquaresTest :: TestTree
+intersectionOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    intersectionPP
+    "Intersection of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-intersection-disjoint"
+
+differenceOfDisjointSquaresTest :: TestTree
+differenceOfDisjointSquaresTest = polygonBinaryOpDisjoint
+    differencePP
+    "difference of disjoint squares"
+    "docs/geometry/clipping/polygon-polygon-difference-disjoint"
+
+polygonBinaryOpDoubleTraversal :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDoubleTraversal operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 50, Vec2 140 100]
+        p2 = boundingBoxPolygon [Vec2 50 10, Vec2 100 140]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfDoubleTraversalSquaresTest :: TestTree
+unionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    unionPP
+    "Union of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-union-double-traversal"
+
+intersectionOfDoubleTraversalSquaresTest :: TestTree
+intersectionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    intersectionPP
+    "Intersection of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-intersection-double-traversal"
+
+differenceOfDoubleTraversalSquaresTest :: TestTree
+differenceOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
+    differencePP
+    "difference of double traversal cross"
+    "docs/geometry/clipping/polygon-polygon-difference-double-traversal"
