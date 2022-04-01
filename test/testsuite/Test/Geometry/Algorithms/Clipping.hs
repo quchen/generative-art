@@ -33,7 +33,6 @@ tests = testGroup "Clipping"
     , testGroup "Polygon with polygon"
         [ testGroup "Intersection"
             [ intersectionOfDisjointPolygonsTest
-            , intersectionWithContainedPolygon
             , intersectionOfSimpleSquaresTest
             , intersectionOfDisjointSquaresTest
             , intersectionOfDoubleTraversalSquaresTest
@@ -366,12 +365,6 @@ intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons
     let p1 = boundingBoxPolygon [zero, Vec2 10 10]
         p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
     assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionPP p1 p2))
-
-intersectionWithContainedPolygon :: TestTree
-intersectionWithContainedPolygon = testCase "One polygon contains the other" $ do
-    let large = boundingBoxPolygon [zero, Vec2 20 20]
-        contained = G.transform (G.translate (Vec2 5 5)) (boundingBoxPolygon [zero, Vec2 10 10])
-    assertEqual "Intersection should the inner polygon" (Expected [contained]) (Actual (intersectionPP large contained))
 
 polygonBinaryOpSimple :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpSimple operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
