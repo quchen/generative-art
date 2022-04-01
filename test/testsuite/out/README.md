@@ -179,7 +179,9 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/clipping/7_2_calculated_edge_graph.svg)
 
-![Missing image!](../../../docs/geometry/clipping/polygon-clipping.svg)
+![Missing image!](../../../docs/geometry/clipping/hatch_polygon_regular.svg)
+
+![Missing image!](../../../docs/geometry/clipping/hatch_polygon_spiral.svg)
 
 ![Missing image!](../../../docs/geometry/clipping/polygon-polygon.svg)
 
@@ -240,6 +242,8 @@ over quickly.
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatchd_polygon.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg)
 

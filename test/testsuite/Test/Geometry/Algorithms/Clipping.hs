@@ -27,8 +27,8 @@ tests = testGroup "Cutting things"
         , cornerCasesTests
         ]
     , testGroup "Shading"
-        [ shadeRegularPolygon
-        , shadeSpiralPolygon
+        [ hatchRegularPolygon
+        , hatchSpiralPolygon
         ]
     , testGroup "Polygon with polygon"
         [ intersectionOfDisjointPolygonsTest
@@ -263,10 +263,10 @@ assertAreaConserved polygon cutResult = do
             , "Σ cuts   = " ++ show sumOfCutAreas
             , "|Δ|      = " ++ show (abs (originalArea - sumOfCutAreas)) ])))
 
-shadeRegularPolygon :: TestTree
-shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clipping/shade_polygon_regular" $ \(w,h) -> do
+hatchRegularPolygon :: TestTree
+hatchRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clipping/hatch_polygon_regular" $ \(w,h) -> do
     let polygon = G.transform (G.transformBoundingBox (regularPolygon 7) [Vec2 0 0, Vec2 w h] def) (regularPolygon 7)
-        shading = shade polygon (deg 30) 24
+        shading = hatch polygon (deg 30) 24
 
     setLineWidth 1
     cairoScope $ do
@@ -278,11 +278,11 @@ shadeRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clippi
         sketch polygon
         stroke
 
-shadeSpiralPolygon :: TestTree
-shadeSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping/shade_polygon_spiral" $ \(w,h) -> do
+hatchSpiralPolygon :: TestTree
+hatchSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping/hatch_polygon_spiral" $ \(w,h) -> do
     let polygon' = spiralPolygon 9 10
         polygon = G.transform (G.transformBoundingBox polygon' [Vec2 0 0, Vec2 w h] def) polygon'
-        shading = shade polygon (deg 30) 24
+        shading = hatch polygon (deg 30) 24
 
     setLineWidth 1
     cairoScope $ do

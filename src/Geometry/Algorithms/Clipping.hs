@@ -8,7 +8,7 @@ module Geometry.Algorithms.Clipping (
 
     , intersectionOfTwoPolygons
 
-    , shade
+    , hatch
 ) where
 
 
@@ -25,22 +25,22 @@ import Geometry.Core
 -- do shading, hence the name.
 --
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping.hs/shaded_polygon.svg" 100 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping.hs/hatchd_polygon.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 90 10, Vec2 90 90, Vec2 10 90]
---     let shading = shade polygon (deg 30) 10
+--     let shading = hatch polygon (deg 30) 10
 --     sketch polygon
 --     for_ shading sketch
 --     stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg
+-- docs/haddock/Geometry/Algorithms/Clipping.hs/hatchd_polygon.svg
 --
--- <<docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg>>
-shade
+-- <<docs/haddock/Geometry/Algorithms/Clipping.hs/hatchd_polygon.svg>>
+hatch
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.
     -> Double -- ^ Distance between shading lines
     -> [Line]
-shade polygon angle shadeInterval = do
+hatch polygon angle hatchInterval = do
 
     -- We first fill the whole bounding box perimeter with lines evenly spaced
     -- horizontal lines. Afterwards we rotate them around the bounding box center
@@ -52,7 +52,7 @@ shade polygon angle shadeInterval = do
         let graceInterval = 1
         shiftAmount <- takeWhile
             (<= bbCircleR+graceInterval)
-            (iterate (+shadeInterval) (-bbCircleR-graceInterval))
+            (iterate (+hatchInterval) (-bbCircleR-graceInterval))
         pure (transform (translate (Vec2 0 shiftAmount)) (angledLine bbCenter (deg 0) 100))
     let scissors = transform (rotateAround bbCenter angle) scissorsHorizontal
 
