@@ -154,11 +154,9 @@ reconstructAllPolygons reconstructSingle = reconstructSingle >>= \case
         rest <- reconstructAllPolygons reconstructSingle
         pure (polygon : rest)
 
-weilerAthertonIntersection :: Polygon -> Polygon -> [Polygon]
-weilerAthertonIntersection polygon1 polygon2' =
-    let polygon2 = orientPolygon (polygonOrientation polygon1) polygon2'
-
-        op1cut = cutPolygon polygon1 polygon2
+createReconstructionState :: Polygon -> Polygon -> ReconstructionState
+createReconstructionState polygon1 polygon2 =
+    let op1cut = cutPolygon polygon1 polygon2
         op2cut = cutPolygon polygon2 polygon1
 
         op1cutAnnotated = annotateTransitions op1cut polygon2
@@ -167,13 +165,19 @@ weilerAthertonIntersection polygon1 polygon2' =
         (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
         (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
 
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+    in ReconstructionState
+        { _currentPos = bugError "createReconstructionState" "This should be filled when needed by the algorithm, and not used otherwise!"
+        , _unvisitedEnteringPoints = op1entersOp2
+        , _graph1Active = bugError "createReconstructionState" "This should be filled when needed by the algorithm, and not used otherwise!"
+        , _graph1 = op1cutGraph
+        , _graph2 = op2cutGraph
+        }
+
+weilerAthertonIntersection :: Polygon -> Polygon -> [Polygon]
+weilerAthertonIntersection polygon1 polygon2' =
+    let polygon2 = orientPolygon (polygonOrientation polygon1) polygon2'
+
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructIntersection = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
@@ -203,22 +207,7 @@ weilerAthertonDifference :: Polygon -> Polygon -> [Polygon]
 weilerAthertonDifference polygon1 polygon2' =
     let polygon2 = orientPolygon (reverseOrientation (polygonOrientation polygon1)) polygon2'
 
-        op1cut = cutPolygon polygon1 polygon2
-        op2cut = cutPolygon polygon2 polygon1
-
-        op1cutAnnotated = annotateTransitions op1cut polygon2
-        op2cutAnnotated = annotateTransitions op2cut polygon1
-
-        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
-        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
-
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructDifference = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
@@ -255,22 +244,7 @@ weilerAthertonUnion polygon1 polygon2' =
     let p1Orientation = polygonOrientation polygon1
         polygon2 = orientPolygon p1Orientation polygon2'
 
-        op1cut = cutPolygon polygon1 polygon2
-        op2cut = cutPolygon polygon2 polygon1
-
-        op1cutAnnotated = annotateTransitions op1cut polygon2
-        op2cutAnnotated = annotateTransitions op2cut polygon1
-
-        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
-        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
-
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonUnion" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonUnion" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructUnion = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
