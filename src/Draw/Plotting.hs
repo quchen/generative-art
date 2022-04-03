@@ -17,6 +17,8 @@ module Draw.Plotting (
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
     , pause
+    , withFeedrate
+    , withDrawingHeight
 
     -- ** File structure
     , block
@@ -154,6 +156,14 @@ penUp = gets _penState >>= \case
         zTravel <- asks _zTravelHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
         modify (\s -> s { _penState = PenUp })
+
+-- | Locally change the feedrate
+withFeedrate :: Double -> Plot a -> Plot a
+withFeedrate f = local (\settings -> settings { _feedrate = Just f })
+
+-- | Locally adapt the z drawing height (e.g. for changing pen pressure)
+withDrawingHeight :: Double -> Plot a -> Plot a
+withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 
 block :: Plot a -> Plot a
 block (Plot content) = Plot (mapRWS (\(a, s, g) -> (a, s, [GBlock g])) content) <* penUp -- for extra safety
