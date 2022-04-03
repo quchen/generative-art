@@ -47,11 +47,8 @@ main = do
                     comment ("Total line length: " <> TL.pack (show totalLength))
                     comment ("Number of elements to draw: " <> TL.pack (show numElements))
                     plot (Polyline <$> paths)
-                plottingSettings = def
-                    { _previewPlottingArea = True
-                    , _feedrate = Just 1000
-                    }
-                gcodeRaw = runPlot plottingSettings (boundingBox paths) drawing
+                plottingSettings = def { _feedrate = Just 1000 }
+                gcodeRaw = runPlot plottingSettings (boundingBox paths) (previewPlottingArea >> drawing)
             TL.writeFile (_outputFileG options) gcodeRaw
 
 scaleToFit :: HasBoundingBox world => Options -> world -> Transformation

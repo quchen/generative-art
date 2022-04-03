@@ -36,7 +36,7 @@ main = do
     let lambdaGeometry = hexLambda lambdaScale
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
         vecCircuits = fitToPaper options (hex2wire hexCircuits)
-        settings = def { _previewPlottingArea = True, _feedrate = Just 1000 }
+        settings = def { _feedrate = Just 1000 }
         circuitsList = toList vecCircuits
 
     gen <- MWC.create
@@ -51,7 +51,9 @@ main = do
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         let filename = formatToString (string%"_scale-"%int%"_color-"%int%"-"%int%".g") (dropExtension (_outputFileG options)) lambdaScale (i::Int) numColors
-            gCodeText = runPlot settings (boundingBox vecCircuits) (plot wires)
+            gCodeText = runPlot settings (boundingBox vecCircuits) $ do
+                previewPlottingArea
+                plot wires
         TL.writeFile filename gCodeText
 
 hex2wire :: Set [Hex] -> Set Wire

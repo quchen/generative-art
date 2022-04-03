@@ -16,6 +16,7 @@ module Draw.Plotting (
     , lineTo
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
+    , previewPlottingArea
     , pause
     , withFeedrate
     , withDrawingHeight
@@ -63,11 +64,7 @@ data PlottingState = PlottingState
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
-    { _previewPlottingArea :: Bool
-    -- ^ Before plotting, trace this bounding box to preview extents of the plot
-    --   and wait for confirmation. ('def'ault: 'False')
-
-    , _feedrate :: Maybe Double
+    { _feedrate :: Maybe Double
     -- ^ Either set a feedrate, or have an initial check whether one was set
     -- previously. ('def'ault: 'Nothing')
 
@@ -89,8 +86,7 @@ data FinishMove = FinishWithG28 | FinishWithG30
 
 instance Default PlottingSettings where
     def = PlottingSettings
-        { _previewPlottingArea = False
-        , _feedrate = Nothing
+        { _feedrate = Nothing
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _finishMove = Nothing
@@ -115,6 +111,14 @@ gCode instructions = for_ instructions $ \instruction -> do
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = modify' (\s -> s { _penXY = pos })
 
+-- | Trace the plotting area to preview the extents of the plot, and wait for confirmation.
+-- Useful at the start of a plot.
+previewPlottingArea :: Plot ()
+previewPlottingArea = do
+    comment "Preview bounding box"
+    plot =<< gets _boundingBox
+    pause PauseUserConfirm
+
 -- | Quick move for repositioning (without drawing).
 repositionTo :: Vec2 -> Plot ()
 repositionTo target@(Vec2 x y) = do
@@ -134,14 +138,14 @@ lineTo target@(Vec2 x y) = do
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
     feedrate <- asks _feedrate
     penDown
     gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
     feedrate <- asks _feedrate
     penDown
     gCode [ G02_ArcClockwise feedrate mx my x y ]
@@ -202,17 +206,9 @@ addHeaderFooter body = block $ do
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = asks _previewPlottingArea >>= \case
-        True -> do
-            comment "Preview bounding box"
-            plot =<< gets _boundingBox
-            pause PauseUserConfirm
-        False -> pure ()
-
     header = block $ do
         comment "Header"
         feedrateCheck
-        previewBoundingBox
 
     footer = block $ do
         comment "Footer"
