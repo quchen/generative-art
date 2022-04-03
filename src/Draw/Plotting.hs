@@ -52,7 +52,7 @@ import Geometry.Shapes
 import Data.Maybe (fromMaybe)
 
 
-newtype Plot a = Plot (RWS PlottingSettings [GCode] PlottingState a)
+newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState a)
     deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
 data PlottingState = PlottingState
@@ -96,7 +96,7 @@ instance Default PlottingSettings where
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
-    Plot $ tell [instruction]
+    Plot (tell ([instruction], mempty))
     recordDrawingDistance instruction
     recordPenXY instruction
   where
@@ -104,11 +104,11 @@ gCode instructions = for_ instructions $ \instruction -> do
     recordPenXY instruction = do
         Vec2 x0 y0 <- gets _penXY
         case instruction of
-            G00_LinearRapidMove x y _ -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
-            G01_LinearFeedrateMove _ x y _ -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
-            G02_ArcClockwise _ _ _ x y -> setPenXY (Vec2 x y)
+            G00_LinearRapidMove x y _         -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
             G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
-            _otherwise -> pure ()
+            _otherwise                        -> pure ()
 
     recordDrawingDistance :: GCode -> Plot ()
     recordDrawingDistance instruction = do
@@ -135,8 +135,9 @@ gCode instructions = for_ instructions $ \instruction -> do
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = do
     bb <- gets _boundingBox
+    -- NB: This works for straight lines, but misses arcs that move outside the
+    -- plotting area and back inside, possible with e.g. arc interpolation
     unless (pos `insideBoundingBox` bb) $ error "Tried to move pen outside the plotting area!"
-    -- ^ NB: This works for straight lines, but misses arcs that move outside the plotting area and back inside.
     modify' (\s -> s { _penXY = pos })
 
 -- | Trace the plotting area to preview the extents of the plot, and wait for confirmation.
@@ -207,7 +208,7 @@ withDrawingHeight :: Double -> Plot a -> Plot a
 withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapRWS (\(a, s, g) -> (a, s, [GBlock g])) content) <* penUp -- for extra safety
+block (Plot content) = Plot (mapRWS (\(a, s, (gcode, bb)) -> (a, s, ([GBlock gcode], bb))) content) <* penUp -- for extra safety
 
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
@@ -252,7 +253,9 @@ addHeaderFooter body = block $ do
                 gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> BoundingBox -> Plot a -> TL.Text
-runPlot settings bb body = renderGCode (snd (evalRWS finalPlot settings initialState))
+runPlot settings bb body =
+    let (_, (gcode, _bb)) = evalRWS finalPlot settings initialState
+    in renderGCode gcode
   where
     Plot finalPlot = addHeaderFooter body
     initialState = PlottingState
