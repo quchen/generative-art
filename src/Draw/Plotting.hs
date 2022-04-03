@@ -18,6 +18,7 @@ module Draw.Plotting (
     , counterclockwiseArcAroundTo
     , previewPlottingArea
     , pause
+    , PauseMode(..)
     , withFeedrate
     , withDrawingHeight
 
@@ -257,19 +258,25 @@ lineTo target@(Vec2 x y) = do
         penDown
         gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
 
--- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
-counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
-    feedrate <- asks _feedrate
-    penDown
-    gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
-
--- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
-clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
+-- | Arc interpolation, clockwise
+clockwiseArcAroundTo
+    :: Vec2 -- ^ Center location, relative to the current pen position
+    -> Vec2 -- ^ End position
+    -> Plot ()
 clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
     feedrate <- asks _feedrate
     penDown
     gCode [ G02_ArcClockwise feedrate mx my x y ]
+
+-- | Arc interpolation, counterclockwise
+counterclockwiseArcAroundTo
+    :: Vec2 -- ^ Center location, relative to the current pen position
+    -> Vec2 -- ^ End position
+    -> Plot ()
+counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+    feedrate <- asks _feedrate
+    penDown
+    gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
 -- lowered.
@@ -300,16 +307,21 @@ withDrawingHeight :: Double -> Plot a -> Plot a
 withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapRWS (\(a, s, (gcode, bb)) -> (a, s, ([GBlock gcode], bb))) content) <* penUp -- for extra safety
+block (Plot content) = Plot (mapRWS (\(a, s, (gcode, bb)) -> (a, s, ([GBlock gcode], bb))) content)
 
+-- | Add a GCode comment
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
 
+-- | Pause the plot for later resumption at the current state
 pause :: PauseMode -> Plot ()
 pause PauseUserConfirm = penUp >> gCode [ M0_Pause ]
 pause (PauseSeconds seconds) = gCode [ G04_Dwell seconds ]
 
-data PauseMode = PauseUserConfirm | PauseSeconds Double deriving (Eq, Ord, Show)
+data PauseMode
+    = PauseUserConfirm -- ^ Wait until user confirmation (in e.g. a web UI or with a button)
+    | PauseSeconds Double -- ^ Wait for a certain time
+    deriving (Eq, Ord, Show)
 
 addHeaderFooter :: Plot a -> Plot a
 addHeaderFooter body = block $ do
@@ -344,8 +356,8 @@ addHeaderFooter body = block $ do
                 comment "Move to predefined position"
                 gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
-runPlot :: PlottingSettings -> BoundingBox -> Plot a -> TL.Text
-runPlot settings bb body =
+runPlot :: PlottingSettings -> Plot a -> TL.Text
+runPlot settings body =
     let (_, (gcode, _bb)) = evalRWS finalPlot settings initialState
     in renderGCode gcode
   where
@@ -353,10 +365,13 @@ runPlot settings bb body =
     initialState = PlottingState
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
-        , _boundingBox = bb
+        , _boundingBox = mempty
         , _drawingDistance = 0
         }
 
+-- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
+-- are defined in the configuration given in 'runPlot', or by the various utility
+-- functions such as 'withFeedrate' or 'withDrawingHeight'
 class Plotting a where
     plot :: a -> Plot ()
 
@@ -413,6 +428,7 @@ instance Foldable f => Plotting (Polyline f) where
             repositionTo p
             traverse_ lineTo ps
 
+-- | Draw each element (in order)
 instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
     plot x = block $ do
         comment "Sequential"
