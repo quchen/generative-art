@@ -183,6 +183,36 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/clipping/hatch_polygon_spiral.svg)
 
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-difference-complicated.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-difference-disjoint.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-difference-double-traversal.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-difference-fully-subsumed.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-difference-simple.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-intersection-complicated.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-intersection-disjoint.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-intersection-double-traversal.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-intersection-fully-subsumed.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-intersection-simple.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-union-complicated.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-union-disjoint.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-union-double-traversal.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-union-fully-subsumed.svg)
+
+![Missing image!](../../../docs/geometry/clipping/polygon-polygon-union-simple.svg)
+
 ![Missing image!](../../../docs/geometry/clipping/polygon-polygon.svg)
 
 ![Missing image!](../../../docs/geometry/clipping/random_cut_haskell_logo.svg)
@@ -243,9 +273,7 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatchd_polygon.svg)
-
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/shaded_polygon.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay.svg)
 
