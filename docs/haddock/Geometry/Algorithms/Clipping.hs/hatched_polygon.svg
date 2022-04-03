@@ -18,6 +18,7 @@
 </defs>
 <g id="surface178">
 <use xlink:href="#surface182" mask="url(#mask0)"/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 90 10 L 90 90 L 10 90 Z M 75.855469 10 L 90 18.167969 M 55.855469 10 L 90 29.714844 M 35.855469 10 L 90 41.261719 M 15.855469 10 L 90 52.808594 M 10 18.167969 L 90 64.355469 M 10 29.714844 L 90 75.902344 M 10 41.261719 L 90 87.449219 M 10 52.808594 L 74.417969 90 M 10 64.355469 L 54.417969 90 M 10 75.902344 L 34.417969 90 M 10 87.449219 L 14.417969 90 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 90 10 L 90 90 L 10 90 Z M 10 10 "/>
+<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 70 10 L 90 21.546875 M 50 10 L 90 33.09375 M 30 10 L 90 44.640625 M 10 10 L 90 56.1875 M 10 21.546875 L 90 67.734375 M 10 33.09375 L 90 79.28125 M 10 44.640625 L 88.5625 90 M 10 56.1875 L 68.5625 90 M 10 67.734375 L 48.5625 90 M 10 79.28125 L 28.5625 90 "/>
 </g>
 </svg>
