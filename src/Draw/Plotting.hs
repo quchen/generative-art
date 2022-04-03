@@ -16,7 +16,7 @@ module Draw.Plotting (
     , lineTo
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
-    , previewPlottingArea
+    , previewCanvas
     , pause
     , PauseMode(..)
     , withFeedrate
@@ -60,7 +60,7 @@ newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState
 data PlottingState = PlottingState
     { _penState :: PenState
     , _penXY :: Vec2
-    , _boundingBox :: BoundingBox
+    , _drawnShapesBoundingBox :: BoundingBox
     , _drawingDistance :: Double
     } deriving (Eq, Ord, Show)
 
@@ -80,7 +80,15 @@ data PlottingSettings = PlottingSettings
     -- ('def'ault: -1)
 
     , _finishMove :: Maybe FinishMove
-    -- ^ Do a final move after the drawing has ended
+    -- ^ Do a final move after the drawing has ended. ('def'ault: 'Nothing')
+
+    , _previewDrawnShapesBoundingBox :: Bool
+    -- ^ At the beginning of the plot, trace the bounding box of all the GCode
+    -- before actually drawing? Useful as a final check. ('def'ault: 'True')
+
+    , _canvasBoundingBox :: Maybe BoundingBox
+    -- ^ The canvas we’re painting on. Useful to check whether the pen leaves
+    -- the drawing area. ('def'ault: 'Nothing')
     } deriving (Eq, Ord, Show)
 
 -- | Command to issue in the footer
@@ -93,6 +101,8 @@ instance Default PlottingSettings where
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _finishMove = Nothing
+        , _previewDrawnShapesBoundingBox = True
+        , _canvasBoundingBox = Nothing
         }
 
 -- | Add raw GCode to the output.
@@ -105,11 +115,14 @@ gCode instructions = for_ instructions $ \instruction -> do
   where
     setPenXY :: Vec2 -> Plot ()
     setPenXY pos = do
-        bb <- gets _boundingBox
-        -- NB: This works for straight lines, but misses arcs that move outside the
-        -- plotting area and back inside, possible with e.g. arc interpolation
-        unless (pos `insideBoundingBox` bb) $ error "Tried to move pen outside the plotting area!"
+        asks _canvasBoundingBox >>= \case
+            Just bb
+                -- NB: This works for straight lines, but misses arcs that move outside the
+                -- plotting area and back inside, possible with e.g. arc interpolation
+                | not (insideBoundingBox pos bb) -> error "Tried to move pen outside the plotting area!"
+            _otherwise -> pure ()
         modify' (\s -> s { _penXY = pos })
+
 
     recordPenXY :: GCode -> Plot ()
     recordPenXY instruction = do
@@ -233,13 +246,14 @@ whichQuadrant (Vec2 x y)
     | x <  0 && y <  0 = QuadrantUL
     | otherwise        = QuadrantUR
 
--- | Trace the plotting area to preview the extents of the plot, and wait for confirmation.
--- Useful at the start of a plot.
-previewPlottingArea :: Plot ()
-previewPlottingArea = do
+-- | Trace the plotting area to preview the extents of the plot, and wait for
+-- confirmation. Useful at the start of a plot.
+previewCanvas :: Plot ()
+previewCanvas = do
     comment "Preview bounding box"
-    plot =<< gets _boundingBox
-    pause PauseUserConfirm
+    asks _canvasBoundingBox >>= \case
+        Just bb -> plot bb >> pause PauseUserConfirm
+        Nothing -> pure ()
 
 -- | Quick move for repositioning (without drawing).
 repositionTo :: Vec2 -> Plot ()
@@ -358,14 +372,14 @@ addHeaderFooter body = block $ do
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
 runPlot settings body =
-    let (_, (gcode, _bb)) = evalRWS finalPlot settings initialState
+    let (_, _finalState, (gcode, _drawnBB)) = runRWS finalPlot settings initialState
     in renderGCode gcode
   where
     Plot finalPlot = addHeaderFooter body
     initialState = PlottingState
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
-        , _boundingBox = mempty
+        , _drawnShapesBoundingBox = mempty
         , _drawingDistance = 0
         }
 
