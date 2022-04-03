@@ -313,6 +313,16 @@ hatchSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping
         sketch polygon
         stroke
 
+polygonBinaryOpRender :: Polygon -> Polygon -> [Polygon] -> Render ()
+polygonBinaryOpRender p1 p2 result = do
+    setLineJoin LineJoinRound
+    cairoScope $ setColor (mathematica97 0) >> setLineWidth 1 >> sketch p1 >> stroke
+    cairoScope $ setColor (mathematica97 1) >> setLineWidth 1 >> sketch p2 >> stroke
+    cairoScope $ do
+        for_ result sketch
+        setColor (mathematica97 2 `withOpacity` 0.2)
+        fill
+
 polygonBinaryOpStressTest :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpStressTest operation testName filePath =
     let p1 = Polygon
@@ -327,22 +337,7 @@ polygonBinaryOpStressTest operation testName filePath =
             170 100, Vec2 10 120, Vec2 180 140 ]
         result = operation p1 p2
 
-    in testVisual testName 200 150 filePath $ \_ -> do
-        setLineJoin LineJoinRound
-        cairoScope $ do
-            setLineWidth 1
-            setColor (mathematica97 0)
-            sketch p1
-            stroke
-        cairoScope $ do
-            setLineWidth 1
-            setColor (mathematica97 1)
-            sketch p2
-            stroke
-        cairoScope $ do
-            for_ result sketch
-            setColor (mathematica97 2 `withOpacity` 0.2)
-            fill
+    in testVisual testName 200 150 filePath $ \_ -> polygonBinaryOpRender p1 p2 result
 
 polygonIntersectionStressTest :: TestTree
 polygonIntersectionStressTest = polygonBinaryOpStressTest
@@ -369,20 +364,11 @@ intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons
     assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionPP p1 p2))
 
 polygonBinaryOpSimple :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
-polygonBinaryOpSimple operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+polygonBinaryOpSimple operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
         result = operation p1 p2
-    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i)
-        sketch polygon
-        stroke
-    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i `withOpacity` 0.2)
-        sketch polygon
-        fill
+    in testVisual testName 150 150 filePath $ \_ -> polygonBinaryOpRender p1 p2 result
 
 unionOfSimpleSquaresTest :: TestTree
 unionOfSimpleSquaresTest = polygonBinaryOpSimple
@@ -403,20 +389,11 @@ differenceOfSimpleSquaresTest = polygonBinaryOpSimple
     "docs/geometry/clipping/polygon-polygon-difference-simple"
 
 polygonBinaryOpDisjoint :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
-polygonBinaryOpDisjoint operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+polygonBinaryOpDisjoint operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 70 140]
         p2 = boundingBoxPolygon [Vec2 80 10, Vec2 140 140]
         result = operation p1 p2
-    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i)
-        sketch polygon
-        stroke
-    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i `withOpacity` 0.2)
-        sketch polygon
-        fill
+    in testVisual testName 150 150 filePath $ \_ -> polygonBinaryOpRender p1 p2 result
 
 unionOfDisjointSquaresTest :: TestTree
 unionOfDisjointSquaresTest = polygonBinaryOpDisjoint
@@ -437,20 +414,11 @@ differenceOfDisjointSquaresTest = polygonBinaryOpDisjoint
     "docs/geometry/clipping/polygon-polygon-difference-disjoint"
 
 polygonBinaryOpDoubleTraversal :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
-polygonBinaryOpDoubleTraversal operation testName filePath = testVisual testName 150 150 filePath $ \_ -> do
+polygonBinaryOpDoubleTraversal operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 50, Vec2 140 100]
         p2 = boundingBoxPolygon [Vec2 50 10, Vec2 100 140]
         result = operation p1 p2
-    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i)
-        sketch polygon
-        stroke
-    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i `withOpacity` 0.2)
-        sketch polygon
-        fill
+    in testVisual testName 150 150 filePath $ \_ -> polygonBinaryOpRender p1 p2 result
 
 unionOfDoubleTraversalSquaresTest :: TestTree
 unionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
@@ -471,20 +439,11 @@ differenceOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
     "docs/geometry/clipping/polygon-polygon-difference-double-traversal"
 
 polygonBinaryOpFullySubsumed :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
-polygonBinaryOpFullySubsumed operation testName filePath = testVisual testName 100 100 filePath $ \_ -> do
+polygonBinaryOpFullySubsumed operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 90 90]
         p2 = boundingBoxPolygon [Vec2 40 40, Vec2 60 60]
         result = operation p1 p2
-    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i)
-        sketch polygon
-        stroke
-    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
-        setLineWidth 1
-        setColor (mathematica97 i `withOpacity` 0.2)
-        sketch polygon
-        fill
+    in testVisual testName 100 100 filePath $ \_ -> polygonBinaryOpRender p1 p2 result
 
 unionOfFullySubsumedSquaresTest :: TestTree
 unionOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
