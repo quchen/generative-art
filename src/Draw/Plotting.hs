@@ -25,6 +25,7 @@ module Draw.Plotting (
     , comment
 
     -- * Raw G-Code
+    , toWorkingCoordinates
     , penDown
     , penUp
     , gCode
@@ -80,6 +81,13 @@ data PlottingSettings = PlottingSettings
 
     , _finishMove :: Maybe FinishMove
     -- ^ Do a final move after the drawing has ended
+
+    , _mirrorY :: Bool
+    -- ^ Mirror the image along the y axis. This is useful, since in GCode coordinates,
+    -- the origin is bottom left, while in computer graphics, the origin is top left.
+    -- NB: This transformation does not affect raw GCode! So to use '_mirrorY' together
+    -- with raw GCode, you need to do the transformation yourself (see 'toWorkingCoordinates').
+    -- ('def'ault: 'False')
     } deriving (Eq, Ord, Show)
 
 -- | Command to issue in the footer
@@ -93,7 +101,17 @@ instance Default PlottingSettings where
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _finishMove = Nothing
+        , _mirrorY = False
         }
+
+toWorkingCoordinates :: Vec2 -> Plot Vec2
+toWorkingCoordinates p@(Vec2 x y) = do
+    bb@(BoundingBox (Vec2 _ yMin) (Vec2 _ yMax)) <- gets _boundingBox
+    unless (p `insideBoundingBox` bb) $ error "Trying to plot outside the plotting area!"
+    asks _mirrorY >>= \case
+        True -> pure (Vec2 x (yMin + yMax - y))
+        False -> pure (Vec2 x y)
+
 
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
@@ -104,8 +122,9 @@ setPenXY pos = modify' (\s -> s { _penXY = pos })
 
 -- | Quick move for repositioning (without drawing).
 repositionTo :: Vec2 -> Plot ()
-repositionTo target@(Vec2 x y) = do
+repositionTo target = do
     currentXY <- gets _penXY
+    Vec2 x y <- toWorkingCoordinates target
     when (currentXY /= target) $ do
         penUp
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
@@ -113,9 +132,10 @@ repositionTo target@(Vec2 x y) = do
 
 -- | Draw a line from the current position to a target.
 lineTo :: Vec2 -> Plot ()
-lineTo target@(Vec2 x y) = do
+lineTo target = do
     currentXY <- gets _penXY
     feedrate <- asks _feedrate
+    Vec2 x y <- toWorkingCoordinates target
     when (currentXY /= target) $ do
         penDown
         gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
@@ -123,16 +143,24 @@ lineTo target@(Vec2 x y) = do
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+counterclockwiseArcAroundTo center target = do
     feedrate <- asks _feedrate
+    Vec2 mx my <- asks _mirrorY >>= \case
+        True -> let Vec2 x y = center in pure (Vec2 x (-y))
+        False -> pure center
+    Vec2 x y <- toWorkingCoordinates target
     penDown
     gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
     setPenXY target
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+clockwiseArcAroundTo center target = do
     feedrate <- asks _feedrate
+    Vec2 mx my <- asks _mirrorY >>= \case
+        True -> let Vec2 x y = center in pure (Vec2 x (-y))
+        False -> pure center
+    Vec2 x y <- toWorkingCoordinates target
     penDown
     gCode [ G02_ArcClockwise feedrate mx my x y ]
     setPenXY target
