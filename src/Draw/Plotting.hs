@@ -60,7 +60,6 @@ newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState
 data PlottingState = PlottingState
     { _penState :: PenState
     , _penXY :: Vec2
-    , _drawnShapesBoundingBox :: BoundingBox
     , _drawingDistance :: Double
     } deriving (Eq, Ord, Show)
 
@@ -400,7 +399,6 @@ runPlot settings body =
     initialState = PlottingState
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
-        , _drawnShapesBoundingBox = mempty
         , _drawingDistance = 0
         }
 
