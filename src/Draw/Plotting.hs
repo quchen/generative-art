@@ -49,6 +49,7 @@ import Draw.Plotting.GCode
 import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
+import Data.Maybe (fromMaybe)
 
 
 newtype Plot a = Plot (RWS PlottingSettings [GCode] PlottingState a)
@@ -112,10 +113,21 @@ toWorkingCoordinates p@(Vec2 x y) = do
         True -> pure (Vec2 x (yMin + yMax - y))
         False -> pure (Vec2 x y)
 
-
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
-gCode = Plot . tell
+gCode instructions = for_ instructions $ \instruction -> do
+    Plot $ tell [instruction]
+    recordPenXY instruction
+  where
+    recordPenXY :: GCode -> Plot ()
+    recordPenXY instruction = do
+        Vec2 x0 y0 <- gets _penXY
+        case instruction of
+            G00_LinearRapidMove x y _ -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G01_LinearFeedrateMove _ x y _ -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G02_ArcClockwise _ _ _ x y -> setPenXY (Vec2 x y)
+            G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
+            _otherwise -> pure ()
 
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = modify' (\s -> s { _penXY = pos })
@@ -128,7 +140,6 @@ repositionTo target = do
     when (currentXY /= target) $ do
         penUp
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
-        setPenXY target
 
 -- | Draw a line from the current position to a target.
 lineTo :: Vec2 -> Plot ()
@@ -139,7 +150,6 @@ lineTo target = do
     when (currentXY /= target) $ do
         penDown
         gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
-        setPenXY target
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
@@ -151,7 +161,6 @@ counterclockwiseArcAroundTo center target = do
     Vec2 x y <- toWorkingCoordinates target
     penDown
     gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
-    setPenXY target
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
@@ -163,7 +172,6 @@ clockwiseArcAroundTo center target = do
     Vec2 x y <- toWorkingCoordinates target
     penDown
     gCode [ G02_ArcClockwise feedrate mx my x y ]
-    setPenXY target
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
 -- lowered.
