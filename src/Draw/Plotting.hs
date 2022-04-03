@@ -109,7 +109,11 @@ gCode instructions = for_ instructions $ \instruction -> do
             _otherwise -> pure ()
 
 setPenXY :: Vec2 -> Plot ()
-setPenXY pos = modify' (\s -> s { _penXY = pos })
+setPenXY pos = do
+    bb <- gets _boundingBox
+    unless (pos `insideBoundingBox` bb) $ error "Tried to move pen outside the plotting area!"
+    -- ^ NB: This works for straight lines, but misses arcs that move outside the plotting area and back inside.
+    modify' (\s -> s { _penXY = pos })
 
 -- | Trace the plotting area to preview the extents of the plot, and wait for confirmation.
 -- Useful at the start of a plot.
