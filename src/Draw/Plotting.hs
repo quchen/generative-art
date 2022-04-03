@@ -50,6 +50,7 @@ import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
 import Data.Maybe (fromMaybe)
+import Util
 
 
 newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState a)
@@ -99,7 +100,16 @@ gCode instructions = for_ instructions $ \instruction -> do
     Plot (tell ([instruction], mempty))
     recordDrawingDistance instruction
     recordPenXY instruction
+    recordBoundingBox instruction
   where
+    setPenXY :: Vec2 -> Plot ()
+    setPenXY pos = do
+        bb <- gets _boundingBox
+        -- NB: This works for straight lines, but misses arcs that move outside the
+        -- plotting area and back inside, possible with e.g. arc interpolation
+        unless (pos `insideBoundingBox` bb) $ error "Tried to move pen outside the plotting area!"
+        modify' (\s -> s { _penXY = pos })
+
     recordPenXY :: GCode -> Plot ()
     recordPenXY instruction = do
         Vec2 x0 y0 <- gets _penXY
@@ -115,7 +125,7 @@ gCode instructions = for_ instructions $ \instruction -> do
         penState <- gets _penState
         penXY@(Vec2 x0 y0) <- gets _penXY
         when (penState == PenDown) $ case instruction of
-            G00_LinearRapidMove x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G00_LinearRapidMove x y _      -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
             G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
             G02_ArcClockwise _ i j x y -> do
                 let r = norm (Vec2 i j)
@@ -129,16 +139,98 @@ gCode instructions = for_ instructions $ \instruction -> do
                 addDrawingDistance (r * getRad angle)
             _otherwise -> pure ()
 
+    tellBB :: HasBoundingBox object => object -> Plot ()
+    tellBB object = Plot (tell (mempty, boundingBox object))
+
+    recordBoundingBox :: GCode -> Plot ()
+    recordBoundingBox instruction = do
+        penState <- gets _penState
+        current@(Vec2 xCurrent yCurrent) <- gets _penXY
+        when (penState == PenDown) $ case instruction of
+            G00_LinearRapidMove x y _      -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+            G01_LinearFeedrateMove _ x y _ -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+            G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (Vec2 i j) (Vec2 x y))
+            G03_ArcCounterClockwise _ i j x y -> tellBB (CcwArc current (Vec2 i j) (Vec2 x y))
+            _otherwise -> pure ()
+
     addDrawingDistance :: Double -> Plot ()
     addDrawingDistance d = modify (\s -> s { _drawingDistance = _drawingDistance s + d })
 
-setPenXY :: Vec2 -> Plot ()
-setPenXY pos = do
-    bb <- gets _boundingBox
-    -- NB: This works for straight lines, but misses arcs that move outside the
-    -- plotting area and back inside, possible with e.g. arc interpolation
-    unless (pos `insideBoundingBox` bb) $ error "Tried to move pen outside the plotting area!"
-    modify' (\s -> s { _penXY = pos })
+-- | CwArc a r b = Clockwise arc from a to b with center at a+r.
+data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+
+-- | CcwArc a r b = Counterclockwise arc from a to b with center at a+r.
+data CcwArc = CcwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+
+instance HasBoundingBox CwArc where
+    boundingBox (CwArc start centerOffset end) =
+        let radius = norm centerOffset
+            center = start +. centerOffset
+
+            startQuadrant = whichQuadrant (negateV centerOffset)
+            endQuadrant = whichQuadrant (end -. start -. centerOffset)
+            traversedQuadrants = cwQuadrantsFromTo startQuadrant endQuadrant
+
+            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantBL : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantUL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantUR : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantBR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants clockwise")
+            quadrantTransitionPoints _ = []
+
+        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+
+instance HasBoundingBox CcwArc where
+    boundingBox (CcwArc start centerOffset end) =
+        let radius = norm centerOffset
+            center = start +. centerOffset
+
+            startQuadrant = whichQuadrant (negateV centerOffset)
+            endQuadrant = whichQuadrant (end -. start -. centerOffset)
+            traversedQuadrants = ccwQuadrantsFromTo startQuadrant endQuadrant
+
+            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantBR : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantBL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantUL : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantUR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants counterclockwise")
+            quadrantTransitionPoints _ = []
+
+        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+
+data Quadrant = QuadrantBR | QuadrantBL | QuadrantUL | QuadrantUR deriving (Eq, Ord, Show)
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+cwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
+cwQuadrantsFromTo start end | start == end = [start]
+cwQuadrantsFromTo start end = start : cwQuadrantsFromTo (cwNextQuadrant start) end
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+ccwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
+ccwQuadrantsFromTo start end | start == end = [start]
+ccwQuadrantsFromTo start end = start : ccwQuadrantsFromTo (ccwNextQuadrant start) end
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+cwNextQuadrant :: Quadrant -> Quadrant
+cwNextQuadrant QuadrantBR = QuadrantBL
+cwNextQuadrant QuadrantBL = QuadrantUL
+cwNextQuadrant QuadrantUL = QuadrantUR
+cwNextQuadrant QuadrantUR = QuadrantBR
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+ccwNextQuadrant :: Quadrant -> Quadrant
+ccwNextQuadrant QuadrantBL = QuadrantBR
+ccwNextQuadrant QuadrantUL = QuadrantBL
+ccwNextQuadrant QuadrantUR = QuadrantUL
+ccwNextQuadrant QuadrantBR = QuadrantUR
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+whichQuadrant :: Vec2 -> Quadrant
+whichQuadrant (Vec2 x y)
+    | x >= 0 && y >= 0 = QuadrantBR
+    | x <  0 && y >= 0 = QuadrantBL
+    | x <  0 && y <  0 = QuadrantUL
+    | otherwise        = QuadrantUR
 
 -- | Trace the plotting area to preview the extents of the plot, and wait for confirmation.
 -- Useful at the start of a plot.
