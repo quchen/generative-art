@@ -8,6 +8,7 @@ module Geometry.Algorithms.Clipping.PolygonPolygon (
 
 
 import           Control.Monad.Trans.State
+import           Data.Coerce
 import           Data.List
 import           Data.Map                  (Map)
 import qualified Data.Map                  as M
@@ -20,6 +21,9 @@ import Util
 
 
 newtype EdgeGraph = EdgeGraph (Map Vec2 PointType)
+    deriving (Eq, Ord, Show)
+
+newtype UnvisitedEnters = UnvisitedEnters (Set Vec2)
     deriving (Eq, Ord, Show)
 
 data CutLine ann
@@ -71,10 +75,10 @@ annotateTransitions vertices other = go initialLocation vertices
     go Inside (Cut _ start x end : xs) = Cut Exit start x end : go Outside xs
     go Outside (Cut _ start x end : xs) = Cut Enter start x end : go Inside xs
 
-buildGraph :: [CutLine Transition] -> (EdgeGraph, Set Vec2)
+buildGraph :: [CutLine Transition] -> (EdgeGraph, UnvisitedEnters)
 buildGraph vertices =
     let (graph, enterPoints) = go mempty mempty vertices
-    in (EdgeGraph graph, enterPoints)
+    in (EdgeGraph graph, UnvisitedEnters enterPoints)
   where
     go graph enterPoints = \case
         []                         -> (graph, enterPoints)
@@ -88,12 +92,12 @@ data PointType = PRemain Vec2 | PTransition Transition Vec2 deriving (Eq, Ord, S
 
 jumpToUnvisitedEnter :: State ReconstructionState (Maybe Vec2)
 jumpToUnvisitedEnter = do
-    unvisitedEnters <- gets (S.minView . _unvisitedEnteringPoints)
-    case unvisitedEnters of
+    UnvisitedEnters unvisitedEnters <- gets _unvisitedEnteringPoints
+    case S.minView unvisitedEnters of
         Nothing -> pure Nothing
         Just (enter, rest) -> do
             modify' (\s -> s
-                { _unvisitedEnteringPoints = rest
+                { _unvisitedEnteringPoints = UnvisitedEnters rest
                 , _graph1Active = True
                 , _currentPos = enter })
             pure (Just enter)
@@ -109,7 +113,10 @@ getActiveGraph = do
         else gets _graph2
 
 markAsVisited :: Vec2 -> State ReconstructionState ()
-markAsVisited x = modify' (\s -> s { _unvisitedEnteringPoints = S.delete x (_unvisitedEnteringPoints s) })
+markAsVisited x = modify' (\s -> s { _unvisitedEnteringPoints = coerced (S.delete x) (_unvisitedEnteringPoints s) })
+
+coerced :: (Coercible a b, Coercible b a) => (a -> a) -> b -> b
+coerced f = coerce . f . coerce
 
 setCurrentPos :: Vec2 -> State ReconstructionState ()
 setCurrentPos x = modify' (\s -> s { _currentPos = x })
@@ -133,7 +140,7 @@ followUntil transition = do
 
 data ReconstructionState = ReconstructionState
     { _currentPos :: Vec2 -- ^ Used to check when we’re back at the start when walking along the graph
-    , _unvisitedEnteringPoints :: Set Vec2 -- ^ Used as a list of future points to start walking on
+    , _unvisitedEnteringPoints :: UnvisitedEnters -- ^ Used as a list of future points to start walking on
     , _graph1Active :: Bool -- ^ Are we using graph1 (or graph2)?
     , _graph1 :: EdgeGraph -- ^ Graph of the first cut polygon
     , _graph2 :: EdgeGraph -- ^ Graph of the second cut polygon
