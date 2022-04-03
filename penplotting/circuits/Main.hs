@@ -88,7 +88,7 @@ drawWire (Wire ws) = case ws of
         plot (Line start intersection)
         gCode
             [ G91_RelativeMovement
-            , G02_ArcClockwise centerDX centerDY 0 0
+            , G02_ArcClockwise Nothing centerDX centerDY 0 0
             , G90_AbsoluteMovement
             ]
     go (_:rest@(target:_)) = lineTo target >> go rest

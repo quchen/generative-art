@@ -16,7 +16,6 @@ module Draw.Plotting (
     , lineTo
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
-    , setFeedrate
     , pause
 
     -- ** File structure
@@ -116,23 +115,26 @@ repositionTo target@(Vec2 x y) = do
 lineTo :: Vec2 -> Plot ()
 lineTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
+    feedrate <- gets (_feedrate . _plottingSettings)
     when (currentXY /= target) $ do
         penDown
-        gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
+        gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
         setPenXY target
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+    feedrate <- gets (_feedrate . _plottingSettings)
     penDown
-    gCode [ G03_ArcCounterClockwise mx my x y ]
+    gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
     setPenXY target
 
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+    feedrate <- gets (_feedrate . _plottingSettings)
     penDown
-    gCode [ G02_ArcClockwise mx my x y ]
+    gCode [ G02_ArcClockwise feedrate mx my x y ]
     setPenXY target
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
@@ -155,9 +157,6 @@ penUp = gets _penState >>= \case
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
         modify (\s -> s { _penState = PenUp })
 
-setFeedrate :: Double -> Plot ()
-setFeedrate f = gCode [ F_Feedrate f ]
-
 block :: Plot a -> Plot a
 block (Plot content) = Plot (mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content) <* penUp -- for extra safety
 
@@ -178,11 +177,11 @@ addHeaderFooter body = block $ do
     pure a
   where
     feedrateCheck = gets (_feedrate . _plottingSettings) >>= \case
-        Just f -> comment "Initial feedrate" >> setFeedrate f
+        Just _ -> pure ()
         Nothing -> gCode
             [ GComment "NOOP move to make sure feedrate is already set externally"
             , G91_RelativeMovement
-            , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
+            , G01_LinearFeedrateMove Nothing (Just 0) (Just 0) (Just 0)
             , G90_AbsoluteMovement
             ]
 
