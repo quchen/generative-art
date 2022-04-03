@@ -337,45 +337,66 @@ data PauseMode
     | PauseSeconds Double -- ^ Wait for a certain time
     deriving (Eq, Ord, Show)
 
-addHeaderFooter :: Plot a -> Plot a
-addHeaderFooter body = block $ do
-    header
-    a <- body
-    footer
-    pure a
+addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe (BoundingBox, Double) -> [GCode] -> [GCode]
+addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body ++ [footer]
   where
-    feedrateCheck = asks _feedrate >>= \case
-        Just _ -> pure ()
-        Nothing -> gCode
+    feedrateCheck = case feedrate of
+        Just _ -> GBlock []
+        Nothing -> GBlock
             [ GComment "NOOP move to make sure feedrate is already set externally"
             , G91_RelativeMovement
             , G01_LinearFeedrateMove Nothing (Just 0) (Just 0) (Just 0)
             , G90_AbsoluteMovement
             ]
 
-    header = block $ do
-        comment "Header"
-        feedrateCheck
+    boundingBoxCheck = case drawnShapesBoundingBox of
+        Nothing -> GBlock []
+        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock $
+            GComment "Trace GCode bounding box"
+            : intersperse (G04_Dwell 0.5)
+                [ G00_LinearRapidMove (Just x) (Just y) (Just zTravelHeight)
+                | Vec2 x y <- [ Vec2 xMin yMin
+                              , Vec2 xMax yMin
+                              , Vec2 xMax yMax
+                              , Vec2 xMin yMax
+                              , Vec2 xMin yMin] ]
 
-    footer = block $ do
-        comment "Footer"
-        asks _finishMove >>= \case
-            Nothing -> do
-                comment "Lift pen"
-                gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
-            Just FinishWithG28 -> do
-                comment "Move to predefined position"
-                gCode [ G28_GotoPredefinedPosition Nothing Nothing (Just 10) ]
-            Just FinishWithG30 -> do
-                comment "Move to predefined position"
-                gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
+    header = GBlock
+        [ GComment "Header"
+        , feedrateCheck
+        , boundingBoxCheck
+        ]
+
+    footer = GBlock
+        [ GComment "Footer"
+        , finishMoveCheck
+        ]
+
+    finishMoveCheck = case finishMove of
+        Nothing -> GBlock
+            [ GComment "Lift pen"
+            , G00_LinearRapidMove Nothing Nothing (Just 10)
+            ]
+        Just FinishWithG28 -> GBlock
+            [ GComment "Move to predefined position"
+            , G28_GotoPredefinedPosition Nothing Nothing (Just 10)
+            ]
+        Just FinishWithG30 -> GBlock
+            [ GComment "Move to predefined position"
+            , G30_GotoPredefinedPosition Nothing Nothing (Just 10)
+            ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
 runPlot settings body =
-    let (_, _finalState, (gcode, _drawnBB)) = runRWS finalPlot settings initialState
-    in renderGCode gcode
+    let (_, _finalState, (gcode, drawnBB)) = runRWS body' settings initialState
+    in renderGCode
+        (addHeaderFooter
+            (_feedrate settings)
+            (_finishMove settings)
+            (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zDrawingHeight settings) else Nothing)
+            gcode)
   where
-    Plot finalPlot = addHeaderFooter body
+    Plot body' = body
     initialState = PlottingState
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
@@ -391,15 +412,9 @@ class Plotting a where
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = block $ do
+    plot bb = block $ do
         comment "Hover over bounding box"
-        sequence_ . intersperse (pause (PauseSeconds 0.5)) . map repositionTo $
-            [ Vec2 xMin yMin
-            , Vec2 xMax yMin
-            , Vec2 xMax yMax
-            , Vec2 xMin yMax
-            , Vec2 xMin yMin
-            ]
+        plot (boundingBoxPolygon bb)
 
 instance Plotting Line where
     plot (Line start end) = block $ do
