@@ -33,8 +33,7 @@ module Draw.Plotting (
 
 
 
-import Control.Monad.State
-import Control.Monad.Writer
+import Control.Monad.RWS
 import Data.Default.Class
 import Data.List
 import           Data.Foldable
@@ -49,12 +48,11 @@ import Geometry.Core
 import Geometry.Shapes
 
 
-newtype Plot a = Plot (StateT PlottingState (Writer [GCode]) a)
-    deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingState)
+newtype Plot a = Plot (RWS PlottingSettings [GCode] PlottingState a)
+    deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadWriter [GCode], MonadState PlottingState)
 
 data PlottingState = PlottingState
-    { _plottingSettings :: PlottingSettings
-    , _penState :: PenState
+    { _penState :: PenState
     , _penXY :: Vec2
     , _boundingBox :: BoundingBox
     } deriving (Eq, Ord, Show)
@@ -115,7 +113,7 @@ repositionTo target@(Vec2 x y) = do
 lineTo :: Vec2 -> Plot ()
 lineTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
-    feedrate <- gets (_feedrate . _plottingSettings)
+    feedrate <- asks _feedrate
     when (currentXY /= target) $ do
         penDown
         gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
@@ -124,7 +122,7 @@ lineTo target@(Vec2 x y) = do
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
-    feedrate <- gets (_feedrate . _plottingSettings)
+    feedrate <- asks _feedrate
     penDown
     gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
     setPenXY target
@@ -132,7 +130,7 @@ counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
 -- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
 clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
 clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
-    feedrate <- gets (_feedrate . _plottingSettings)
+    feedrate <- asks _feedrate
     penDown
     gCode [ G02_ArcClockwise feedrate mx my x y ]
     setPenXY target
@@ -143,7 +141,7 @@ penDown :: Plot ()
 penDown = gets _penState >>= \case
     PenDown -> pure ()
     PenUp -> do
-        zDrawing <- gets (_zDrawingHeight . _plottingSettings)
+        zDrawing <- asks _zDrawingHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
         modify (\s -> s { _penState = PenDown })
 
@@ -153,12 +151,12 @@ penUp :: Plot ()
 penUp = gets _penState >>= \case
     PenUp -> pure ()
     PenDown -> do
-        zTravel <- gets (_zTravelHeight . _plottingSettings)
+        zTravel <- asks _zTravelHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
         modify (\s -> s { _penState = PenUp })
 
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content) <* penUp -- for extra safety
+block (Plot content) = Plot (mapRWS (\(a, s, g) -> (a, s, [GBlock g])) content) <* penUp -- for extra safety
 
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
@@ -176,7 +174,7 @@ addHeaderFooter body = block $ do
     footer
     pure a
   where
-    feedrateCheck = gets (_feedrate . _plottingSettings) >>= \case
+    feedrateCheck = asks _feedrate >>= \case
         Just _ -> pure ()
         Nothing -> gCode
             [ GComment "NOOP move to make sure feedrate is already set externally"
@@ -185,7 +183,7 @@ addHeaderFooter body = block $ do
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = gets (_previewPlottingArea . _plottingSettings) >>= \case
+    previewBoundingBox = asks _previewPlottingArea >>= \case
         True -> do
             comment "Preview bounding box"
             plot =<< gets _boundingBox
@@ -199,7 +197,7 @@ addHeaderFooter body = block $ do
 
     footer = block $ do
         comment "Footer"
-        gets (_finishMove . _plottingSettings) >>= \case
+        asks _finishMove >>= \case
             Nothing -> do
                 comment "Lift pen"
                 gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
@@ -211,12 +209,11 @@ addHeaderFooter body = block $ do
                 gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
 runPlot :: PlottingSettings -> BoundingBox -> Plot a -> TL.Text
-runPlot settings bb body = renderGCode (execWriter (evalStateT finalPlot initialState))
+runPlot settings bb body = renderGCode (snd (evalRWS finalPlot settings initialState))
   where
     Plot finalPlot = addHeaderFooter body
     initialState = PlottingState
-        { _plottingSettings = settings
-        , _penState = PenUp
+        { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
         , _boundingBox = bb
         }
