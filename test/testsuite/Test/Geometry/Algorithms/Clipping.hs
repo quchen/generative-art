@@ -37,18 +37,21 @@ tests = testGroup "Clipping"
             , intersectionOfDisjointSquaresTest
             , intersectionOfDoubleTraversalSquaresTest
             , polygonIntersectionStressTest
+            , intersectionOfFullySubsumedSquaresTest
             ]
         , testGroup "Union"
             [ unionOfSimpleSquaresTest
             , unionOfDisjointSquaresTest
             , unionOfDoubleTraversalSquaresTest
             , polygonUnionStressTest
+            , unionOfFullySubsumedSquaresTest
             ]
         , testGroup "Difference"
             [ differenceOfSimpleSquaresTest
             , differenceOfDisjointSquaresTest
             , differenceOfDoubleTraversalSquaresTest
             , polygonDifferenceStressTest
+            , differenceOfFullySubsumedSquaresTest
             ]
         ]
     ]
@@ -336,29 +339,28 @@ polygonBinaryOpStressTest operation testName filePath =
             setColor (mathematica97 1)
             sketch p2
             stroke
-        for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
-            setLineWidth 2
-            sketch polygon
-            setColor (mathematica97 i `withOpacity` 0.2)
+        cairoScope $ do
+            for_ result sketch
+            setColor (mathematica97 2 `withOpacity` 0.2)
             fill
 
 polygonIntersectionStressTest :: TestTree
 polygonIntersectionStressTest = polygonBinaryOpStressTest
     intersectionPP
     "Intersection of two complicated polygons"
-    "docs/geometry/clipping/polygon-polygon-intersection"
+    "docs/geometry/clipping/polygon-polygon-intersection-complicated"
 
 polygonUnionStressTest :: TestTree
 polygonUnionStressTest = polygonBinaryOpStressTest
     unionPP
     "Union of two complicated polygons"
-    "docs/geometry/clipping/polygon-polygon-union"
+    "docs/geometry/clipping/polygon-polygon-union-complicated"
 
 polygonDifferenceStressTest :: TestTree
 polygonDifferenceStressTest = polygonBinaryOpStressTest
     differencePP
     "Difference of two complicated polygons"
-    "docs/geometry/clipping/polygon-polygon-difference"
+    "docs/geometry/clipping/polygon-polygon-difference-complicated"
 
 intersectionOfDisjointPolygonsTest :: TestTree
 intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons is empty" $ do
@@ -467,3 +469,37 @@ differenceOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
     differencePP
     "difference of double traversal cross"
     "docs/geometry/clipping/polygon-polygon-difference-double-traversal"
+
+polygonBinaryOpFullySubsumed :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpFullySubsumed operation testName filePath = testVisual testName 100 100 filePath $ \_ -> do
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 90 90]
+        p2 = boundingBoxPolygon [Vec2 40 40, Vec2 60 60]
+        result = operation p1 p2
+    for_ (zip [0..] [p1, p2]) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i)
+        sketch polygon
+        stroke
+    for_ (zip [2..] result) $ \(i, polygon) -> cairoScope $ do
+        setLineWidth 1
+        setColor (mathematica97 i `withOpacity` 0.2)
+        sketch polygon
+        fill
+
+unionOfFullySubsumedSquaresTest :: TestTree
+unionOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
+    unionPP
+    "Union where second polygon is fully inside first"
+    "docs/geometry/clipping/polygon-polygon-union-fully-subsumed"
+
+intersectionOfFullySubsumedSquaresTest :: TestTree
+intersectionOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
+    intersectionPP
+    "Intersection where second polygon is fully inside first"
+    "docs/geometry/clipping/polygon-polygon-intersection-fully-subsumed"
+
+differenceOfFullySubsumedSquaresTest :: TestTree
+differenceOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
+    differencePP
+    "difference where second polygon is fully inside first"
+    "docs/geometry/clipping/polygon-polygon-difference-fully-subsumed"

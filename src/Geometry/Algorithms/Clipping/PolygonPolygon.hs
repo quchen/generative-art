@@ -264,14 +264,11 @@ weilerAthertonUnion polygon1 polygon2' =
 
         (polygons, _finalState) = runState reconstructUnion initialState
 
-        -- The correct result polygon has the same orientation as the original.
-        -- Polygons going the wrong way round are contained within the correct
-        -- union.
-        removeInnerPolygons = filter (\polygon -> polygonOrientation polygon == p1Orientation)
+    in polygons
 
-    in removeInnerPolygons polygons
-
--- | All polygons resulting of the difference of the source polygons.
+-- | All polygons resulting of the union of the source polygons. Note that the
+-- union of polygons may produce holes, which can be recognized by their
+-- orientation, which is opposed to the first argument’s.
 unionPP
     :: Polygon
     -> Polygon
