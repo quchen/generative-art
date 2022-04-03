@@ -59,6 +59,7 @@ data PlottingState = PlottingState
     { _penState :: PenState
     , _penXY :: Vec2
     , _boundingBox :: BoundingBox
+    , _drawingDistance :: Double
     } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
@@ -96,6 +97,7 @@ instance Default PlottingSettings where
 gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
     Plot $ tell [instruction]
+    recordDrawingDistance instruction
     recordPenXY instruction
   where
     recordPenXY :: GCode -> Plot ()
@@ -107,6 +109,28 @@ gCode instructions = for_ instructions $ \instruction -> do
             G02_ArcClockwise _ _ _ x y -> setPenXY (Vec2 x y)
             G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
             _otherwise -> pure ()
+
+    recordDrawingDistance :: GCode -> Plot ()
+    recordDrawingDistance instruction = do
+        penState <- gets _penState
+        penXY@(Vec2 x0 y0) <- gets _penXY
+        when (penState == PenDown) $ case instruction of
+            G00_LinearRapidMove x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G02_ArcClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                addDrawingDistance (r * getRad angle)
+            G03_ArcCounterClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                addDrawingDistance (r * getRad angle)
+            _otherwise -> pure ()
+
+    addDrawingDistance :: Double -> Plot ()
+    addDrawingDistance d = modify (\s -> s { _drawingDistance = _drawingDistance s + d })
 
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = do
@@ -235,6 +259,7 @@ runPlot settings bb body = renderGCode (snd (evalRWS finalPlot settings initialS
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
         , _boundingBox = bb
+        , _drawingDistance = 0
         }
 
 class Plotting a where
