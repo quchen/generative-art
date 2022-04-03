@@ -57,18 +57,19 @@ data PlottingState = PlottingState
     { _plottingSettings :: PlottingSettings
     , _penState :: PenState
     , _penXY :: Vec2
+    , _boundingBox :: BoundingBox
     } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
-    { _previewBoundingBox :: Maybe BoundingBox
+    { _previewPlottingArea :: Bool
     -- ^ Before plotting, trace this bounding box to preview extents of the plot
-    --   and wait for confirmation. ('def'ault: 'Nothing)
+    --   and wait for confirmation. ('def'ault: 'False')
 
     , _feedrate :: Maybe Double
     -- ^ Either set a feedrate, or have an initial check whether one was set
-    -- previously. ('def'ault: 'Nothing)
+    -- previously. ('def'ault: 'Nothing')
 
     , _zTravelHeight :: Double
     -- ^ During travel motion, keep the pen at this height (in absolute
@@ -88,7 +89,7 @@ data FinishMove = FinishWithG28 | FinishWithG30
 
 instance Default PlottingSettings where
     def = PlottingSettings
-        { _previewBoundingBox = Nothing
+        { _previewPlottingArea = False
         , _feedrate = Nothing
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
@@ -185,12 +186,12 @@ addHeaderFooter body = block $ do
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = gets (_previewBoundingBox . _plottingSettings) >>= \case
-        Just bb -> do
+    previewBoundingBox = gets (_previewPlottingArea . _plottingSettings) >>= \case
+        True -> do
             comment "Preview bounding box"
-            plot bb
+            plot =<< gets _boundingBox
             pause PauseUserConfirm
-        Nothing -> pure ()
+        False -> pure ()
 
     header = block $ do
         comment "Header"
@@ -210,14 +211,15 @@ addHeaderFooter body = block $ do
                 comment "Move to predefined position"
                 gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
 
-runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings body = renderGCode (execWriter (evalStateT finalPlot initialState))
+runPlot :: PlottingSettings -> BoundingBox -> Plot a -> TL.Text
+runPlot settings bb body = renderGCode (execWriter (evalStateT finalPlot initialState))
   where
     Plot finalPlot = addHeaderFooter body
     initialState = PlottingState
         { _plottingSettings = settings
         , _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
+        , _boundingBox = bb
         }
 
 class Plotting a where
