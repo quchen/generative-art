@@ -52,7 +52,7 @@ import Geometry.Shapes
 
 
 newtype Plot a = Plot (RWS PlottingSettings [GCode] PlottingState a)
-    deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadWriter [GCode], MonadState PlottingState)
+    deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
 data PlottingState = PlottingState
     { _penState :: PenState
@@ -115,7 +115,7 @@ toWorkingCoordinates p@(Vec2 x y) = do
 
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
-gCode = tell
+gCode = Plot . tell
 
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = modify' (\s -> s { _penXY = pos })
