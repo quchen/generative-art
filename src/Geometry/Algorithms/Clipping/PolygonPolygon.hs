@@ -8,6 +8,7 @@ module Geometry.Algorithms.Clipping.PolygonPolygon (
 
 
 import           Control.Monad.Trans.State
+import           Data.Coerce
 import           Data.List
 import           Data.Map                  (Map)
 import qualified Data.Map                  as M
@@ -20,6 +21,9 @@ import Util
 
 
 newtype EdgeGraph = EdgeGraph (Map Vec2 PointType)
+    deriving (Eq, Ord, Show)
+
+newtype UnvisitedEnters = UnvisitedEnters (Set Vec2)
     deriving (Eq, Ord, Show)
 
 data CutLine ann
@@ -71,10 +75,10 @@ annotateTransitions vertices other = go initialLocation vertices
     go Inside (Cut _ start x end : xs) = Cut Exit start x end : go Outside xs
     go Outside (Cut _ start x end : xs) = Cut Enter start x end : go Inside xs
 
-buildGraph :: [CutLine Transition] -> (EdgeGraph, Set Vec2)
+buildGraph :: [CutLine Transition] -> (EdgeGraph, UnvisitedEnters)
 buildGraph vertices =
     let (graph, enterPoints) = go mempty mempty vertices
-    in (EdgeGraph graph, enterPoints)
+    in (EdgeGraph graph, UnvisitedEnters enterPoints)
   where
     go graph enterPoints = \case
         []                         -> (graph, enterPoints)
@@ -88,12 +92,12 @@ data PointType = PRemain Vec2 | PTransition Transition Vec2 deriving (Eq, Ord, S
 
 jumpToUnvisitedEnter :: State ReconstructionState (Maybe Vec2)
 jumpToUnvisitedEnter = do
-    unvisitedEnters <- gets (S.minView . _unvisitedEnteringPoints)
-    case unvisitedEnters of
+    UnvisitedEnters unvisitedEnters <- gets _unvisitedEnteringPoints
+    case S.minView unvisitedEnters of
         Nothing -> pure Nothing
         Just (enter, rest) -> do
             modify' (\s -> s
-                { _unvisitedEnteringPoints = rest
+                { _unvisitedEnteringPoints = UnvisitedEnters rest
                 , _graph1Active = True
                 , _currentPos = enter })
             pure (Just enter)
@@ -109,7 +113,10 @@ getActiveGraph = do
         else gets _graph2
 
 markAsVisited :: Vec2 -> State ReconstructionState ()
-markAsVisited x = modify' (\s -> s { _unvisitedEnteringPoints = S.delete x (_unvisitedEnteringPoints s) })
+markAsVisited x = modify' (\s -> s { _unvisitedEnteringPoints = coerced (S.delete x) (_unvisitedEnteringPoints s) })
+
+coerced :: (Coercible a b, Coercible b a) => (a -> a) -> b -> b
+coerced f = coerce . f . coerce
 
 setCurrentPos :: Vec2 -> State ReconstructionState ()
 setCurrentPos x = modify' (\s -> s { _currentPos = x })
@@ -133,7 +140,7 @@ followUntil transition = do
 
 data ReconstructionState = ReconstructionState
     { _currentPos :: Vec2 -- ^ Used to check when we’re back at the start when walking along the graph
-    , _unvisitedEnteringPoints :: Set Vec2 -- ^ Used as a list of future points to start walking on
+    , _unvisitedEnteringPoints :: UnvisitedEnters -- ^ Used as a list of future points to start walking on
     , _graph1Active :: Bool -- ^ Are we using graph1 (or graph2)?
     , _graph1 :: EdgeGraph -- ^ Graph of the first cut polygon
     , _graph2 :: EdgeGraph -- ^ Graph of the second cut polygon
@@ -147,11 +154,9 @@ reconstructAllPolygons reconstructSingle = reconstructSingle >>= \case
         rest <- reconstructAllPolygons reconstructSingle
         pure (polygon : rest)
 
-weilerAthertonIntersection :: Polygon -> Polygon -> [Polygon]
-weilerAthertonIntersection polygon1 polygon2' =
-    let polygon2 = orientPolygon (polygonOrientation polygon1) polygon2'
-
-        op1cut = cutPolygon polygon1 polygon2
+createReconstructionState :: Polygon -> Polygon -> ReconstructionState
+createReconstructionState polygon1 polygon2 =
+    let op1cut = cutPolygon polygon1 polygon2
         op2cut = cutPolygon polygon2 polygon1
 
         op1cutAnnotated = annotateTransitions op1cut polygon2
@@ -160,13 +165,19 @@ weilerAthertonIntersection polygon1 polygon2' =
         (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
         (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
 
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonIntersection" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+    in ReconstructionState
+        { _currentPos = bugError "createReconstructionState" "This should be filled when needed by the algorithm, and not used otherwise!"
+        , _unvisitedEnteringPoints = op1entersOp2
+        , _graph1Active = bugError "createReconstructionState" "This should be filled when needed by the algorithm, and not used otherwise!"
+        , _graph1 = op1cutGraph
+        , _graph2 = op2cutGraph
+        }
+
+weilerAthertonIntersection :: Polygon -> Polygon -> [Polygon]
+weilerAthertonIntersection polygon1 polygon2' =
+    let polygon2 = orientPolygon (polygonOrientation polygon1) polygon2'
+
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructIntersection = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
@@ -196,22 +207,7 @@ weilerAthertonDifference :: Polygon -> Polygon -> [Polygon]
 weilerAthertonDifference polygon1 polygon2' =
     let polygon2 = orientPolygon (reverseOrientation (polygonOrientation polygon1)) polygon2'
 
-        op1cut = cutPolygon polygon1 polygon2
-        op2cut = cutPolygon polygon2 polygon1
-
-        op1cutAnnotated = annotateTransitions op1cut polygon2
-        op2cutAnnotated = annotateTransitions op2cut polygon1
-
-        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
-        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
-
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonDifference" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructDifference = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
@@ -248,22 +244,7 @@ weilerAthertonUnion polygon1 polygon2' =
     let p1Orientation = polygonOrientation polygon1
         polygon2 = orientPolygon p1Orientation polygon2'
 
-        op1cut = cutPolygon polygon1 polygon2
-        op2cut = cutPolygon polygon2 polygon1
-
-        op1cutAnnotated = annotateTransitions op1cut polygon2
-        op2cutAnnotated = annotateTransitions op2cut polygon1
-
-        (op1cutGraph, op1entersOp2) = buildGraph op1cutAnnotated
-        (op2cutGraph, _op2entersOp1) = buildGraph op2cutAnnotated
-
-        initialState = ReconstructionState
-            { _currentPos = bugError "weilerAthertonUnion" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _unvisitedEnteringPoints = op1entersOp2
-            , _graph1Active = bugError "weilerAthertonUnion" "This should be filled when needed by the algorithm, and not used otherwise!"
-            , _graph1 = op1cutGraph
-            , _graph2 = op2cutGraph
-            }
+        initialState = createReconstructionState polygon1 polygon2
 
         reconstructUnion = reconstructAllPolygons $ jumpToUnvisitedEnter >>= \case
             Nothing -> pure Nothing
@@ -283,14 +264,11 @@ weilerAthertonUnion polygon1 polygon2' =
 
         (polygons, _finalState) = runState reconstructUnion initialState
 
-        -- The correct result polygon has the same orientation as the original.
-        -- Polygons going the wrong way round are contained within the correct
-        -- union.
-        removeInnerPolygons = filter (\polygon -> polygonOrientation polygon == p1Orientation)
+    in polygons
 
-    in removeInnerPolygons polygons
-
--- | All polygons resulting of the difference of the source polygons.
+-- | All polygons resulting of the union of the source polygons. Note that the
+-- union of polygons may produce holes, which can be recognized by their
+-- orientation, which is opposed to the first argument’s.
 unionPP
     :: Polygon
     -> Polygon

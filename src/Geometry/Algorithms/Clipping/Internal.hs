@@ -1,6 +1,12 @@
 -- | __INTERNAL MODULE__, not exposed from the package.
-module Geometry.Algorithms.Clipping.Internal where
+module Geometry.Algorithms.Clipping.Internal (
+      cutLineWithLine
+    , CutLine(..)
+    , cutPolygon
 
+    , LineType(..)
+    , clipPolygonWithLine
+) where
 
 
 import           Data.List
@@ -376,30 +382,3 @@ clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
     reconstruct (Exiting{} : Exiting {} : _) = bugError "Cut.Internal.clipPolygonWithLine" "Double exit"
     reconstruct [Entering{}] = bugError "Cut.Internal.clipPolygonWithLine" "Standalone enter"
     reconstruct [] = [] -- Input was empty to begin with, otherwise one of the other cases happens
-
-orientPolygonPositive :: Polygon -> Polygon
-orientPolygonPositive polygon = case polygonOrientation polygon of
-    PolygonPositive -> polygon
-    PolygonNegative -> let Polygon ps = polygon in Polygon (reverse ps)
-
-cutGraphPolygonPolygon :: Polygon -> Polygon -> EdgeGraph
-cutGraphPolygonPolygon p1 p2 = buildGraph [start --> end | Edge start end <- collectAllEdges (nonIntersectingEdges <> intersectingEdges)]
-  where
-    collectAllEdges = concatMap S.elems . M.elems
-
-    p1Edges = polygonEdges (orientPolygonPositive p1)
-    p2Edges = polygonEdges (orientPolygonPositive p2)
-
-    intersectingEdges, nonIntersectingEdges :: Map Line (Set Edge)
-    intersectingEdges = M.fromListWith S.union $ do
-        p1Edge@(Line p1Start p1End) <- p1Edges
-        p2Edge@(Line p2Start p2End) <- p2Edges
-        case intersectionLL p1Edge p2Edge of
-            IntersectionReal x ->
-                [ (p1Edge, S.fromList [Edge p1Start x, Edge x p1End])
-                , (p2Edge, S.fromList [Edge p2Start x, Edge x p2End])]
-            _otherwise -> mempty
-
-    nonIntersectingEdges =
-        let allEdges = M.fromList [(edge, S.singleton (Edge start end)) | edge@(Line start end) <- p1Edges <> p2Edges]
-        in allEdges `M.difference` intersectingEdges
