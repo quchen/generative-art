@@ -392,7 +392,7 @@ runPlot settings body =
         (addHeaderFooter
             (_feedrate settings)
             (_finishMove settings)
-            (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zDrawingHeight settings) else Nothing)
+            (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zTravelHeight settings) else Nothing)
             gcode)
   where
     Plot body' = body
