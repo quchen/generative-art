@@ -59,9 +59,7 @@ main = do
 
         plottingSettings = def { _feedrate = Just 1000 }
 
-    T.putStrLn $ runPlot plottingSettings (boundingBox geometry) $ do
-        previewPlottingArea
-        drawing
+    T.putStrLn $ runPlot plottingSettings drawing
 
 geometry :: [Polyline Vector]
 geometry =
