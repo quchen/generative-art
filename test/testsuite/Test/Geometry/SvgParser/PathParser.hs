@@ -39,6 +39,14 @@ tests = testGroup "SVG path parser"
             let path = "M 10 10 m 0 1 l 1 0"
                 expected = S.fromList [[], pairUpLines [Vec2 10 11, Vec2 11 11]]
             assertParsesToPath path expected
+        , testCase "Multi-moves (creating implicit lines); M" $ do
+            let path = "M 1 1 10,10 20 20"
+                expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 10 10, Vec2 20 20])
+            assertParsesToPath path expected
+        , testCase "Multi-moves (creating implicit lines); m" $ do
+            let path = "m 1 1 10,10 20 20"
+                expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 11 11, Vec2 31 31])
+            assertParsesToPath path expected
         , testCase "Absolute lines, closed; M, L, Z" $ do
             let path = "M 1 1 L 5 5 Z"
                 expected = S.singleton (pairUpLines [Vec2 1 1, Vec2 5 5, Vec2 1 1])

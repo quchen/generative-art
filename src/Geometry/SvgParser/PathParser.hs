@@ -9,11 +9,12 @@ module Geometry.SvgParser.PathParser (parse) where
 import           Control.Applicative
 import           Control.Monad.Trans.State
 import           Data.Foldable
-import           Data.Functor
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import qualified Text.Megaparsec            as MP
-import qualified Text.Megaparsec.Char       as MPC
+import           Data.Maybe
+import           Data.Text                 (Text)
+import           Data.Traversable
+import qualified Data.Text                 as T
+import qualified Text.Megaparsec           as MP
+import qualified Text.Megaparsec.Char      as MPC
 
 import Geometry.Bezier
 import Geometry.Core
@@ -31,100 +32,156 @@ vec2 = MP.label "position (x,y)" $ do
 data AbsRel = Absolute | Relative
     deriving (Eq, Ord, Show)
 
-move :: Ord err => MP.Parsec err Text (Vec2 -> Start Vec2)
+move :: Ord err => MP.Parsec err Text (State DrawState [Line])
 move = MP.label "move (mM)" $ do
     absRel <- Absolute <$ char_ 'M' <|> Relative <$ char_ 'm'
-    v <- vec2
-    pure $ case absRel of
-        Absolute -> Start . const v
-        Relative -> Start . (+. v)
+    mM:vs <- some vec2
+    pure $ do
+        Current oldCurrent <- gets _currentPoint
+        let newStart = case absRel of
+                Absolute -> mM
+                Relative -> oldCurrent +. mM
+        modify' $ \s -> s
+            { _startOfTrajectory = Start newStart
+            , _currentPoint = Current newStart }
+        for vs (makeLine absRel)
 
 data DrawState = DrawState
     { _startOfTrajectory :: Start Vec2
     , _currentPoint :: Current Vec2
-    , _bezierReflection :: Maybe Vec2
+    , _bezierReflectionQuadratic :: Maybe Vec2
+    , _bezierReflectionCubic :: Maybe Vec2
     } deriving (Eq, Ord, Show)
 
 -- Safety wrappers so I don’t mix them up
 newtype Start a = Start a deriving (Eq, Ord, Show)
 newtype Current a = Current a deriving (Eq, Ord, Show)
 
-lineXY :: Ord err => MP.Parsec err Text (State DrawState Line)
+lineXY :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineXY = do
     absRel <- Absolute <$ char_ 'L' <|> Relative <$ char_ 'l'
-    p <- vec2
-    pure $ do
-        DrawState start (Current current) _ <- get
-        let new = case absRel of
-                Absolute -> p
-                Relative -> current +. p
-        put (DrawState start (Current new) Nothing)
-        pure (Line current new)
+    ps <- some vec2
+    pure $ traverse (makeLine absRel) ps
 
-lineH :: Ord err => MP.Parsec err Text (State DrawState Line)
+makeLine :: AbsRel -> Vec2 -> State DrawState Line
+makeLine absRel p = do
+    Current current <- gets _currentPoint
+    let new = case absRel of
+            Absolute -> p
+            Relative -> current +. p
+    modify' $ \s -> s
+        { _currentPoint = Current new
+        , _bezierReflectionQuadratic = Nothing
+        , _bezierReflectionCubic = Nothing }
+    pure (Line current new)
+
+lineH :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineH = do
     absRel <- Absolute <$ char_ 'H' <|> Relative <$ char_ 'h'
-    x' <- double
-    pure $ do
-        DrawState start (Current current@(Vec2 x y)) _ <- get
+    xs <- some double
+    pure $ for xs $ \x' -> do
+        Current current@(Vec2 x y) <- gets _currentPoint
         let new = case absRel of
                 Absolute -> Vec2 x' y
                 Relative -> Vec2 (x+x') y
-        put (DrawState start (Current new) Nothing)
+        modify' $ \s -> s
+            { _currentPoint = Current new
+            , _bezierReflectionQuadratic = Nothing
+            , _bezierReflectionCubic = Nothing }
         pure (Line current new)
 
-lineV :: Ord err => MP.Parsec err Text (State DrawState Line)
+lineV :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineV = do
     absRel <- Absolute <$ char_ 'V' <|> Relative <$ char_ 'v'
-    y' <- double
-    pure $ do
-        DrawState start (Current current@(Vec2 x y)) _ <- get
+    ys <- some double
+    pure $ for ys $ \y' -> do
+        Current current@(Vec2 x y) <- gets _currentPoint
         let new = case absRel of
                 Absolute -> Vec2 x y'
                 Relative -> Vec2 x (y+y')
-        put (DrawState start (Current new) Nothing)
+        modify' $ \s -> s
+            { _currentPoint = Current new
+            , _bezierReflectionQuadratic = Nothing
+            , _bezierReflectionCubic = Nothing }
         pure (Line current new)
 
-line :: Ord err => MP.Parsec err Text (State DrawState Line)
+line :: Ord err => MP.Parsec err Text (State DrawState [Line])
 line = MP.label "line (lLhHvV)" $ lineXY <|> lineH <|> lineV
 
-bezier :: Ord err => MP.Parsec err Text (State DrawState Bezier)
-bezier = MP.label "cubical bezier (cCsS)" $ do
+bezierCubic :: Ord err => MP.Parsec err Text (State DrawState [Bezier])
+bezierCubic = MP.label "cubical bezier (cCsS)" $ do
     (absRel, mirrorPreviousControlPoint) <- asum
         [ (Absolute, False) <$ char_ 'C'
         , (Relative, False) <$ char_ 'c'
         , (Absolute, True) <$ char_ 'S'
         , (Relative, True) <$ char_ 's'
         ]
-    helper1 <- if mirrorPreviousControlPoint
-        then pure . Left $ \current bezierReflection -> case bezierReflection of
-            Nothing -> current -- SVG spec says to take the current point as fallback. Bit strange, but okay.
-            Just mirrorMeOnCurrent ->
-                let vecCurrentToP = mirrorMeOnCurrent -. current
-                in current -. vecCurrentToP
-        else fmap Right vec2
-    helper2 <- vec2
-    end <- vec2
-    pure $ do
-        DrawState start (Current current) bezierReflection <- get
-        let [h1', h2', end'] = case absRel of
-                -- In the absolute cases, we take what we get
-                Absolute -> case helper1 of
-                    Right h1 -> [h1, helper2, end]
-                    Left fh1 -> [fh1 current bezierReflection, helper2, end]
-                -- In the relative cases, we have to be careful not to apply the relative offset to the
-                -- point already predetermined by the reflection
-                Relative -> case helper1 of
-                    Right h1 -> map (+. current) [h1, helper2, end]
-                    Left fh1 -> fh1 current bezierReflection : map (+. current) [helper2, end]
-        put (DrawState start (Current end') (Just h2'))
+    controlPoints <- some $ case mirrorPreviousControlPoint of
+        False -> Left <$> ((,,) <$> vec2 <*> vec2 <*> vec2)
+        True -> Right <$> ((,) <$> vec2 <*> vec2)
+    pure $ for controlPoints $ \cps -> do
+        DrawState{_currentPoint = Current current, _bezierReflectionCubic = reflectMe} <- get
+        curve@(Bezier _ _ helper2 end) <- case cps of
+            Left (helper1Raw, helper2Raw, endRaw) -> do
+                let (helper1, helper2, end) = case absRel of
+                        Absolute -> (helper1Raw, helper2Raw, endRaw)
+                        Relative -> (helper1Raw +. current, helper2Raw +. current, endRaw +. current)
+                pure (Bezier current helper1 helper2 end)
+            Right (helper2Raw, endRaw) -> do
+                let helper1 = current -. fromMaybe current reflectMe
+                    (helper2, end) = case absRel of
+                        Absolute -> (helper2Raw, endRaw)
+                        Relative -> (helper2Raw +. current, endRaw +. current)
+                pure (Bezier current helper1 helper2 end)
+        modify' $ \s -> s
+            { _currentPoint = Current end
+            , _bezierReflectionCubic = Just helper2
+            , _bezierReflectionQuadratic = Nothing }
+        pure curve
 
-        pure (Bezier current h1' h2' end')
+bezierQuadratic :: Ord err => MP.Parsec err Text (State DrawState [Bezier])
+bezierQuadratic = MP.label "quadratic bezier (qQtT)" $ do
+    (absRel, mirrorPreviousControlPoint) <- asum
+        [ (Absolute, False) <$ char_ 'Q'
+        , (Relative, False) <$ char_ 'q'
+        , (Absolute, True) <$ char_ 'T'
+        , (Relative, True) <$ char_ 't'
+        ]
+    controlPoints <- some $ case mirrorPreviousControlPoint of
+        False -> Left <$> ((,) <$> vec2 <*> vec2)
+        True -> Right <$> vec2
+    pure $ for controlPoints $ \cps -> do
+        DrawState{_currentPoint = Current current, _bezierReflectionQuadratic = reflectMe} <- get
+        curve@(QuadraticBezier _ helper end) <- case cps of
+            Left (helperRaw, endRaw) -> do
+                let (helper, end) = case absRel of
+                        Absolute -> (helperRaw, endRaw)
+                        Relative -> (helperRaw +. current, endRaw +. current)
+                pure (QuadraticBezier current helper end)
+            Right endRaw -> do
+                let helper = current -. fromMaybe current reflectMe
+                    end = case absRel of
+                        Absolute -> endRaw
+                        Relative -> endRaw +. current
+                pure (QuadraticBezier current helper end)
+        modify' $ \s -> s
+            { _currentPoint = Current end
+            , _bezierReflectionQuadratic = Just helper
+            , _bezierReflectionCubic = Nothing }
+        pure (quadraticToCubical curve)
 
-bezierCubic :: MP.Parsec Text Text a
-bezierCubic = MP.label "" $ do
-    _cubicChar <- asum (map char_ "qQtT")
-    MP.customFailure "Quadratic bezier curves are not supported by the parser"
+data QuadraticBezier = QuadraticBezier Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+
+quadraticToCubical :: QuadraticBezier -> Bezier
+quadraticToCubical (QuadraticBezier qStart qHelper qEnd) =
+    let cStart = qStart
+        cHelper1 = qStart +. 2/3 *. (qHelper -.qStart)
+        cHelper2 = qEnd   +. 2/3 *. (qHelper -.qEnd)
+        cEnd = qEnd
+    in Bezier cStart cHelper1 cHelper2 cEnd
+
+bezier :: Ord err => MP.Parsec err Text (State DrawState [Bezier])
+bezier = bezierQuadratic <|> bezierCubic
 
 ellipticalArc :: MP.Parsec Text Text a
 ellipticalArc = MP.label "" $ do
@@ -135,8 +192,9 @@ closePath :: Ord err => MP.Parsec err Text (State DrawState Line)
 closePath = MP.label "close path (zZ)" $ do
     char_ 'Z' <|> char_ 'z'
     pure $ do
-        DrawState (Start start) (Current current) _ <- get
-        put (DrawState (Start start) (Current start) Nothing) $> Line current start
+        DrawState {_startOfTrajectory = Start start, _currentPoint = Current current} <- get
+        modify' $ \s -> s {_currentPoint = Current start, _bezierReflectionQuadratic = Nothing, _bezierReflectionCubic = Nothing }
+        pure (Line current start)
 
 parse :: Text -> Either Text [[Either Line Bezier]]
 parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.eof) sourceFile input of
@@ -145,38 +203,38 @@ parse input = case MP.parse (MPC.space *> many parseSinglePathInstruction <* MP.
   where
     sourceFile = ""
 
-parseSinglePathInstruction :: MP.Parsec Text Text
-    (
-        Vec2 -> Start Vec2,                    -- Move to beginning, given the point the last drawing stopped (~M instruction)
-        [State DrawState (Either Line Bezier)] -- Draw path
-    )
+parseSinglePathInstruction :: MP.Parsec Text Text [State DrawState (Either [Line] [Bezier])]
 parseSinglePathInstruction = do
-    modifyStart <- move
+    moveLines <- (fmap.fmap) Left move
     states <- MP.many $ asum
         [ (fmap.fmap) Left line
         , (fmap.fmap) Right bezier
-        , bezierCubic
         , ellipticalArc
         ]
-    maybeClosePath <- optional closePath
+    closePathLine <- optional closePath >>= \case
+        Nothing -> pure []
+        Just close -> pure [fmap (\x -> Left [x]) close]
 
-    let states' = case maybeClosePath of
-            Nothing -> states
-            Just closingLine -> states ++ [fmap Left closingLine]
+    pure (moveLines : states ++ closePathLine)
 
-    pure (modifyStart, states')
-
-interpretSingleDrawingInstruction
-    :: Traversable t
-    => Vec2
-    -> (Vec2 -> Start Vec2, t (State DrawState pathSegment))
-    -> (t pathSegment, DrawState)
-interpretSingleDrawingInstruction origin (moveToStart, steps) = runState (sequence steps) (DrawState (moveToStart origin) (let Start s = moveToStart origin in Current s) Nothing)
-
-interpretAllDrawingInstructions :: [(Vec2 -> Start Vec2, [State DrawState pathSegment])] -> [[pathSegment]]
-interpretAllDrawingInstructions = go (DrawState (Start zero) (Current zero) Nothing)
+interpretAllDrawingInstructions :: [[State DrawState (Either [Line] [Bezier])]] -> [[Either Line Bezier]]
+interpretAllDrawingInstructions instructions = evalState (go instructions) initialState
   where
-    go _ [] = []
-    go (DrawState (Start startPoint) _ _) (i:is) =
-        let (path, state') = interpretSingleDrawingInstruction startPoint i
-        in path : go state' is
+    initialState = DrawState
+        { _startOfTrajectory = Start zero
+        , _currentPoint = Current zero
+        , _bezierReflectionQuadratic = Nothing
+        , _bezierReflectionCubic = Nothing
+        }
+
+    go :: [[State DrawState (Either [Line] [Bezier])]] -> State DrawState [[Either Line Bezier]]
+    go [] = pure []
+    go (is:iss) = do
+        paths <- fmap flatten (sequence is)
+        rest <- go iss
+        pure (paths : rest)
+
+    flatten :: [Either [Line] [Bezier]] -> [Either Line Bezier]
+    flatten [] = []
+    flatten (Left ls : xs) = map Left ls ++ flatten xs
+    flatten (Right bs : xs) = map Right bs ++ flatten xs
