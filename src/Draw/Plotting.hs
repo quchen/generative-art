@@ -157,9 +157,8 @@ gCode instructions = for_ instructions $ \instruction -> do
 
     recordBoundingBox :: GCode -> Plot ()
     recordBoundingBox instruction = do
-        penState <- gets _penState
         current@(Vec2 xCurrent yCurrent) <- gets _penXY
-        when (penState == PenDown) $ case instruction of
+        case instruction of
             G00_LinearRapidMove x y _      -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
             G01_LinearFeedrateMove _ x y _ -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
             G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (Vec2 i j) (Vec2 x y))
