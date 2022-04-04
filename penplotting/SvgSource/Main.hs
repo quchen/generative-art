@@ -50,6 +50,8 @@ main = do
                 plottingSettings = def
                     { _previewBoundingBox = Just (boundingBox paths)
                     , _feedrate = Just 1000
+                    , _zTravelHeight = 2
+                    , _zDrawingHeight = -2
                     }
                 gcodeRaw = runPlot plottingSettings drawing
             TL.writeFile (_outputFileG options) gcodeRaw
