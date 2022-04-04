@@ -43,7 +43,9 @@ move = MP.label "move (mM)" $ do
                 Relative -> oldCurrent +. mM
         modify' $ \s -> s
             { _startOfTrajectory = Start newStart
-            , _currentPoint = Current newStart }
+            , _currentPoint = Current newStart
+            , _bezierReflectionQuadratic = Nothing
+            , _bezierReflectionCubic = Nothing }
         for vs (makeLine absRel)
 
 data DrawState = DrawState
