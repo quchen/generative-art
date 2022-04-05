@@ -84,7 +84,7 @@ haskellLogoWithColors = zip haskellLogoCentered haskellLogoColors
 
 
 findPointsInPolygon :: RT.RTree Vec2 -> Polygon -> [Vec2]
-findPointsInPolygon points poly = filter (`pointInPolygon` poly) (RT.lookupRange (boundingBox poly) points)
+findPointsInPolygon points poly = filter (`pointInPolygon` poly) (RT.fullyContainedIn (boundingBox poly) points)
 
 colorizePolygon :: RT.RTree Vec2 -> Polygon -> () -> Color Double
 colorizePolygon ditheringPoints voronoiRegion _ = average $ colorizePoint <$> ditheringPointsInRegion
