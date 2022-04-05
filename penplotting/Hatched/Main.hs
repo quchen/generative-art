@@ -9,9 +9,13 @@ import qualified Geometry.Shapes as Shapes (haskellLogo)
 import qualified Graphics.Rendering.Cairo as C
 import Data.List (sortOn)
 import qualified Data.Text.Lazy.IO as T
+import Draw (render)
+import Draw.Plotting.GCode.Preview (preview)
+import Draw.Plotting (generateGCode)
+import qualified Data.Text.Lazy.IO as TL
 
 -- DIN A4
-picWidth, picHeight :: Double
+picWidth, picHeight :: Num a => a
 picWidth = 297
 picHeight = 210
 
@@ -24,8 +28,9 @@ main = do
         hatchesWithPressure = concat $ zipWith (\p hs -> fmap (, p) hs) [2, 5, 10, 10] hatches
         sortedHatches = sortOn (\(Line (Vec2 _ y) _, _) -> y) $ sortOn (\(Line (Vec2 x _) _, _) -> x) hatchesWithPressure
         settings = def { _feedrate = Just 30000, _zTravelHeight = 1 }
-        gcode = runPlot settings $ for_ sortedHatches $ \(Line p q, pressure) -> do
+        gcode = generateGCode settings $ for_ sortedHatches $ \(Line p q, pressure) -> do
             withDrawingHeight (-pressure) $ do
                 repositionTo p
                 lineTo q
-    T.putStrLn gcode
+    TL.writeFile "haskell-logo-hatched.g" (renderGCode gcode)
+    render "haskell-logo-hatched.g.svg" picWidth picHeight (C.setLineWidth 0.1 >> preview gcode)

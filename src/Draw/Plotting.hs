@@ -8,6 +8,8 @@ module Draw.Plotting (
     , PlottingSettings(..)
     , FinishMove(..)
     , runPlot
+    , generateGCode
+    , renderGCode
 
     -- * 'Plotting' shapes
     , Plotting(..)
@@ -418,14 +420,16 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
             ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings body =
+runPlot settings = renderGCode . generateGCode settings
+
+generateGCode :: PlottingSettings -> Plot a -> [GCode]
+generateGCode settings body =
     let (_, _finalState, (gcode, drawnBB)) = runRWS body' settings initialState
-    in renderGCode
-        (addHeaderFooter
+    in addHeaderFooter
             (_feedrate settings)
             (_finishMove settings)
             (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zTravelHeight settings) else Nothing)
-            gcode)
+            gcode
   where
     Plot body' = body
     initialState = PlottingState
@@ -433,6 +437,7 @@ runPlot settings body =
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
         , _drawingDistance = 0
         }
+
 
 -- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
 -- are defined in the configuration given in 'runPlot', or by the various utility
