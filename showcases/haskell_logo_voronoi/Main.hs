@@ -64,8 +64,7 @@ mainHaskellLogo = do
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
-            { _poissonWidth  = picWidth
-            , _poissonHeight = picHeight
+            { _poissonShape = boundingBox [zero, Vec2 picWidth picHeight]
             , _poissonRadius = adaptiveRadius
             , _poissonK      = 4
             }

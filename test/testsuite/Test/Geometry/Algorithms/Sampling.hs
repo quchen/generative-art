@@ -29,8 +29,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
             stroke
             points <- liftIO $ poissonDisc gen PoissonDiscParams
                 { _poissonK      = 4
-                , _poissonWidth  = width
-                , _poissonHeight = height
+                , _poissonShape = boundingBox [zero, Vec2 width height]
                 , _poissonRadius = radius
                 }
             drawPoints points

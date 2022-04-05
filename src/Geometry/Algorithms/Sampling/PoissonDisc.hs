@@ -23,8 +23,7 @@ import Geometry
 
 -- | Configuration for 'poissonDisc' sampling.
 data PoissonDiscParams = PoissonDiscParams
-    { _poissonWidth  :: !Int    -- ^ 'def'ault 256.
-    , _poissonHeight :: !Int    -- ^ 'def'ault 256.
+    { _poissonShape  :: !BoundingBox -- ^ 'def'ault @boundingBox [zero, Vec2 256 256]@.
     , _poissonRadius :: !Double -- ^ Minimum distance between points. 'def'ault 100.
     , _poissonK      :: !Int    -- ^ How many attempts to find a neighbouring point should be made?
                                 --   The higher this is, the denser the resulting point set will be.
@@ -32,8 +31,7 @@ data PoissonDiscParams = PoissonDiscParams
 
 instance Default PoissonDiscParams where
     def = PoissonDiscParams
-        { _poissonWidth  = 256
-        , _poissonHeight = 256
+        { _poissonShape  = boundingBox [zero, Vec2 256 256]
         , _poissonRadius = 100
         , _poissonK      = 32
         }
@@ -88,8 +86,7 @@ modify' = PoissonT . lift . S.modify'
 -- points = 'Control.Monad.ST.runST' $ do
 --     gen <- 'create'
 --     'poissonDisc' gen 'PoissonDiscParams'
---         { '_poissonWidth'  = 80
---         , '_poissonHeight' = 80
+--         { _poissonShape = boundingBox [zero, Vec2 80 80]
 --         , '_poissonRadius' = 8
 --         , '_poissonK'      = 4
 --         }
@@ -100,9 +97,7 @@ poissonDisc
     -> PoissonDiscParams
     -> m [Vec2]
 poissonDisc gen params = do
-    let PoissonDiscParams{..} = params
-        minV = zero
-        maxV = Vec2 (fromIntegral _poissonWidth) (fromIntegral _poissonHeight)
+    let PoissonDiscParams{_poissonShape = BoundingBox minV maxV} = params
     initialSample <- uniformRM (minV, maxV) gen
     let initialState = PoissonDiscState
             { _gen           = gen
@@ -154,14 +149,11 @@ nextCandidates v = do
     PoissonDiscParams{..} <- asks id
     phi0 <- lift (rad <$> uniformRM (0, 2*pi) _gen)
     let deltaPhi = rad (2*pi / fromIntegral _poissonK)
-        candidates = filter (isWithinBounds _poissonWidth _poissonHeight)
+        candidates = filter (`insideBoundingBox` _poissonShape)
             [ v +. polar (phi0 +. i *. deltaPhi) r
             | let r = _poissonRadius + 0.000001
             , i <- [1..fromIntegral _poissonK] ]
     pure candidates
-
-  where
-    isWithinBounds w h (Vec2 x y) = x >= 0 && x <= fromIntegral w && y >= 0 && y <= fromIntegral h
 
 addSample :: Monad m => Vec2 -> PoissonT m ()
 addSample sample = do
