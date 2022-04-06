@@ -68,7 +68,7 @@ main = do
             | trajectory <- geometry
             , part <- simplifyTrajectoryRadial 2 <$> splitIntoInsideParts trajectory ]
 
-        plottingSettings = def { _feedrate = Just 15000, _zTravelHeight = 5, _zDrawingHeight = -2 }
+        plottingSettings = def { _feedrate = Just 6000, _zTravelHeight = 5, _zDrawingHeight = -2 }
 
     T.putStrLn $ runPlot plottingSettings drawing
     pure ()
