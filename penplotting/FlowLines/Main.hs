@@ -77,16 +77,16 @@ mkGeometry :: IO [Polyline Vector]
 mkGeometry = do
     gen <- initialize (V.fromList [fromIntegral noiseSeed])
     startPoints <- poissonDisc gen PoissonDiscParams
-        { _poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) height_mm ]
+        { _poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) (height_mm / 10) ]
         , _poissonK = 3
-        , _poissonRadius = 8
+        , _poissonRadius = 5
         }
     let mkTrajectory start =
               Polyline
             . map (\(_t, pos) -> pos)
             . takeWhile
-                (\(t, pos) -> t <= 50 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
-            $ fieldLine velocityField start
+                (\(t, pos) -> t <= 200 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
+            $ fieldLine velocityField (G.transform (G.scale' 1 10) start)
     pure ((coerce . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints)
 
 drawFieldLine :: Polyline Vector -> Render ()
