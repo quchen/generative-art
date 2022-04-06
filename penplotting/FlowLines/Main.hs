@@ -66,9 +66,9 @@ main = do
     let drawing = sequence
             [ plot (Polyline part)
             | trajectory <- geometry
-            , part <- splitIntoInsideParts trajectory ]
+            , part <- simplifyTrajectoryRadial 2 <$> splitIntoInsideParts trajectory ]
 
-        plottingSettings = def { _feedrate = Just 1000 }
+        plottingSettings = def { _feedrate = Just 15000, _zTravelHeight = 5, _zDrawingHeight = -2 }
 
     T.putStrLn $ runPlot plottingSettings drawing
     pure ()
@@ -91,7 +91,7 @@ mkGeometry = do
 
 drawFieldLine :: Polyline Vector -> Render ()
 drawFieldLine (Polyline polyLine) = cairoScope $ do
-    let simplified = simplifyTrajectoryRadial 1 polyLine
+    let simplified = simplifyTrajectoryRadial 2 polyLine
     unless (null (drop 2 simplified)) $ do
         sketch (bezierSmoothen simplified)
         stroke
