@@ -30,9 +30,13 @@ a4width_mm, a4height_mm :: Num a => a
 a4width_mm = 297
 a4height_mm = 210
 
+a2width_mm, a2height_mm :: Num a => a
+a2width_mm = 594
+a2height_mm = 420
+
 width_mm, height_mm :: Num a => a
-width_mm = a4width_mm
-height_mm = a4height_mm
+width_mm = a2width_mm
+height_mm = a2height_mm
 
 drawBB :: BoundingBox
 drawBB = boundingBox (Vec2 10 10, Vec2 (width_mm-10) (height_mm-10))
