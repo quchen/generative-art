@@ -9,8 +9,7 @@
 --         poissonDisc gen PoissonDiscParams
 --             { _poissonRadius = width * height / 1600
 --             , _poissonK      = 4
---             , _poissonWidth  = round width
---             , _poissonHeight = round height
+--             , _poissonShape = boundingBox [zero, Vec2 width height]
 --             }
 --     let delaunay = lloydRelaxation 3 (bowyerWatson (boundingBox [zero, Vec2 width height]) randomPoints)
 --     setLineJoin LineJoinBevel

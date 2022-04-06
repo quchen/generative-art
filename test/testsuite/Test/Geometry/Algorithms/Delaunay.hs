@@ -65,8 +65,7 @@ randomDelaunay width height = do
         poissonDisc gen PoissonDiscParams
             { _poissonRadius = fromIntegral (width * height) / 1000
             , _poissonK      = 4
-            , _poissonWidth  = width
-            , _poissonHeight = height
+            , _poissonShape = boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]
             }
     pure $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 (fromIntegral width) (fromIntegral height))) randomPoints
 

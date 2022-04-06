@@ -37,8 +37,7 @@ main = do
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = 1440 * sqrt (0.75 / count)
         samplingProps = PoissonDiscParams
-            { _poissonWidth  = 1440
-            , _poissonHeight = 1440
+            { _poissonShape = boundingBox [zero, Vec2 1440 1440]
             , _poissonRadius = adaptiveRadius
             , _poissonK      = 4
             }

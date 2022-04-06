@@ -4,6 +4,7 @@ module Geometry.Algorithms.Delaunay.Internal (
 
 
 
+import           Data.Foldable
 import           Data.List
 import qualified Data.Map.Strict as M
 import           Data.Maybe
@@ -53,7 +54,7 @@ edges (Triangle p1 p2 p3) = [Line p1 p2, Line p2 p3, Line p3 p1]
 
 -- | Extract the polygons out of a 'DelaunayTriangulation'.
 getPolygons :: DelaunayTriangulation -> [Polygon]
-getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> RT.toList (_dtTriangulation delaunay)
+getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> toList (_dtTriangulation delaunay)
   where
     deleteInitialPolygon = filter (not . hasCommonCorner (_dtInitialPolygon delaunay))
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
@@ -77,7 +78,7 @@ bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTri
     validNewPoint = if newPoint `insideBoundingBox` _dtBounds
         then newPoint
         else error "bowyerWatsonStep: user error: Tried to add a point outside the bounding box"
-    badTriangles = filter ((validNewPoint `inside`) . _dtCircle) (RT.lookupContainsRange (boundingBox validNewPoint) _dtTriangulation)
+    badTriangles = filter ((validNewPoint `inside`) . _dtCircle) (RT.fullyContains (boundingBox validNewPoint) _dtTriangulation)
     goodTriangles = foldr RT.delete _dtTriangulation badTriangles
     outerPolygon = collectPolygon $ go (edges . _dtTriangle =<< badTriangles) M.empty
       where
@@ -129,7 +130,7 @@ toVoronoi delaunay = Voronoi
     }
 
 vertexGraph :: DelaunayTriangulation -> M.Map Vec2 (S.Set Vec2)
-vertexGraph delaunay = go (_dtTriangle <$> RT.toList (_dtTriangulation delaunay)) M.empty
+vertexGraph delaunay = go (_dtTriangle <$> toList (_dtTriangulation delaunay)) M.empty
   where
     go [] = id
     go (Triangle a b c : rest) = go rest
