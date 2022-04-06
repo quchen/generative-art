@@ -20,6 +20,9 @@ import           Numerics.DifferentialEquation
 import           Numerics.Functions
 import           Numerics.VectorAnalysis
 import           Data.Coerce
+import Geometry.Algorithms.Sampling
+import System.Random.MWC (initialize)
+import qualified Data.Vector as V
 
 
 
@@ -43,13 +46,17 @@ noiseSeed = 519496
 
 main :: IO ()
 main = do
-    render "out/vector_fields.png" width_mm height_mm $ do
+    geometry <- mkGeometry
+
+    render "out/vector_fields.svg" width_mm height_mm $ do
+
         cairoScope $ do
-            setColor white
+            setColor black
             C.paint
 
         cairoScope $ do
-            setLineWidth 1
+            setColor white
+            setLineWidth 0.3
             for_ geometry drawFieldLine
 
     let drawing = sequence
@@ -60,21 +67,27 @@ main = do
         plottingSettings = def { _feedrate = Just 1000 }
 
     T.putStrLn $ runPlot plottingSettings drawing
+    pure ()
 
-geometry :: [Polyline Vector]
-geometry =
-    let startPoints = [Vec2 0 y | y <- [-50, -45..height_mm+50]]
-        mkTrajectory start =
+mkGeometry :: IO [Polyline Vector]
+mkGeometry = do
+    gen <- initialize (V.fromList [fromIntegral noiseSeed])
+    startPoints <- poissonDisc gen PoissonDiscParams
+        { _poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) height_mm ]
+        , _poissonK = 3
+        , _poissonRadius = 8
+        }
+    let mkTrajectory start =
               Polyline
             . map (\(_t, pos) -> pos)
             . takeWhile
-                (\(t, pos) -> t <= 400 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
+                (\(t, pos) -> t <= 50 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
             $ fieldLine velocityField start
-    in (coerce . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints
+    pure ((coerce . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts . mkTrajectory)) startPoints)
 
 drawFieldLine :: Polyline Vector -> Render ()
 drawFieldLine (Polyline polyLine) = cairoScope $ do
-    let simplified = simplifyTrajectoryRadial 3 polyLine
+    let simplified = simplifyTrajectoryRadial 1 polyLine
     unless (null (drop 2 simplified)) $ do
         sketch (bezierSmoothen simplified)
         stroke
@@ -104,7 +117,7 @@ velocityField :: Vec2 -> Vec2
 velocityField p@(Vec2 x y) = Vec2 1 0 +. perturbationStrength *. rotationField p
   where
     perturbationStrength =
-        1.4
+        0.8
         * logisticRamp (0.6*width_mm) (width_mm/6) x
         * gaussianFalloff (0.5*height_mm) (0.4*height_mm) y
 
@@ -117,5 +130,5 @@ fieldLine f p0 = rungeKuttaAdaptiveStep (ODE.fieldLine f) p0 t0 dt0 tolNorm tol
     t0 = 0
     dt0 = 1
     -- Decrease exponent for more accurate results
-    tol = 1e-3
+    tol = 1e-4
     tolNorm = norm
