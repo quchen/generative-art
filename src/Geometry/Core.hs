@@ -31,6 +31,8 @@ module Geometry.Core (
 
     -- ** Polylines
     , Polyline(..)
+    , polylineLength
+    , polylineEdges
 
     -- ** Polygons
     , Polygon(..)
@@ -1127,6 +1129,16 @@ instance HasBoundingBox Ellipse where
 
 instance Transform Ellipse where
     transform t (Ellipse t') = Ellipse (t <> t')
+
+-- | Total length of a 'Polyline'.
+polylineLength :: Sequential f => Polyline f -> Double
+polylineLength = foldl' (+) 0 . map lineLength . polylineEdges
+
+-- | All lines composing a 'Polyline' (in order).
+polylineEdges :: Sequential f => Polyline f -> [Line]
+polylineEdges (Polyline points) =
+    let pointsList = toList points
+    in zipWith Line pointsList (tail (cycle pointsList))
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
