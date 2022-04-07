@@ -10,7 +10,6 @@ import qualified Data.Text                 as T
 import qualified Data.Text.IO              as T
 import qualified Data.Text.Lazy            as TL
 import qualified Data.Text.Lazy.IO         as TL
-import qualified Data.Vector               as V
 import           Options.Applicative
 import           Options.Applicative.Types
 import           System.Exit
@@ -64,10 +63,10 @@ scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 w
     Options{_margin=margin, _height=height, _width=width} = options
     margin2 = Vec2 margin margin
 
-polyLineLength :: Sequential vector => vector Vec2 -> Double
+polyLineLength :: Sequential list => list Vec2 -> Double
 polyLineLength xs =
-    let xsVec = toVector xs
-    in V.foldl' (+) 0 (V.zipWith (\start end -> lineLength (Line start end)) xsVec (V.tail xsVec))
+    let xsList = toList xs
+    in foldl' (+) 0 (zipWith (\start end -> lineLength (Line start end)) xsList (tail (cycle xsList)))
 
 pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
