@@ -1173,6 +1173,10 @@ countEdgeTraversals p edges' = length intersections
             _other -> False)
         edges
 
+-- | Is the point inside the polygon?
+--
+-- Note: this is unreliable when the point is exactly on an edge.
+--
 -- <<docs/geometry/point_in_polygon.svg>>
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
