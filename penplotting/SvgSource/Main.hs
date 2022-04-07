@@ -4,13 +4,15 @@ module Main (main) where
 
 
 
-import qualified Data.Set            as S
-import qualified Data.Text           as T
-import qualified Data.Text.IO        as T
-import qualified Data.Text.Lazy      as TL
-import qualified Data.Text.Lazy.IO   as TL
-import qualified Data.Vector         as V
+import           Control.Monad
+import qualified Data.Set                  as S
+import qualified Data.Text                 as T
+import qualified Data.Text.IO              as T
+import qualified Data.Text.Lazy            as TL
+import qualified Data.Text.Lazy.IO         as TL
+import qualified Data.Vector               as V
 import           Options.Applicative
+import           Options.Applicative.Types
 import           System.Exit
 
 import Draw
@@ -151,13 +153,16 @@ commandLineOptions = execParser parserOpts
 
     sizeReader :: ReadM (Double, Double)
     sizeReader = do
-            w <- auto
-            _ <- eitherReader $ \case
-                "x" -> Right ()
-                "×" -> Right ()
-                _ -> Left "expected width/height separator: x"
-            h <- auto
-            pure (w,h)
+        argStr <- readerAsk
+        let wh = do
+                (w, c:rest) <- reads argStr
+                guard (c == 'x' || c == '×')
+                (h, rest') <- reads rest
+                guard (null rest')
+                pure (w,h)
+        case wh of
+            [(w,h)] -> pure (w,h)
+            _other -> readerError $ "Argument is not of the form <width>x<height>: " ++ argStr
 
 paper_a4_long, paper_a4_short, paper_a3_short, paper_a3_long, paper_a2_short, paper_a2_long :: Double
 paper_a4_long = 297
