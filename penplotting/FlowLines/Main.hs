@@ -57,12 +57,9 @@ main = do
             | trajectory <- geometry
             , part <- splitIntoInsideParts trajectory ]
 
-        plottingSettings = def
-            { _previewBoundingBox = Just (boundingBox geometry)
-            , _feedrate = Just 1000
-            }
+        plottingSettings = def { _feedrate = Just 1000 }
 
-    T.putStrLn (runPlot plottingSettings drawing)
+    T.putStrLn $ runPlot plottingSettings drawing
 
 geometry :: [Polyline Vector]
 geometry =

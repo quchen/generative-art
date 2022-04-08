@@ -36,7 +36,7 @@ main = do
     let lambdaGeometry = hexLambda lambdaScale
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
         vecCircuits = fitToPaper options (hex2wire hexCircuits)
-        settings = def { _previewBoundingBox = Just (boundingBox vecCircuits), _feedrate = Just 1000 }
+        settings = def { _feedrate = Just 1000 }
         circuitsList = toList vecCircuits
 
     gen <- MWC.create
@@ -88,7 +88,7 @@ drawWire (Wire ws) = case ws of
         plot (Line start intersection)
         gCode
             [ G91_RelativeMovement
-            , G02_ArcClockwise centerDX centerDY 0 0
+            , G02_ArcClockwise Nothing centerDX centerDY 0 0
             , G90_AbsoluteMovement
             ]
     go (_:rest@(target:_)) = lineTo target >> go rest

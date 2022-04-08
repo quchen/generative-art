@@ -21,9 +21,9 @@ data GCode
     | M0_Pause
 
     | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G0 X Y Z
-    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 X Y Z
-    | G02_ArcClockwise Double Double Double Double -- ^ G02 I J X Y
-    | G03_ArcCounterClockwise Double Double Double Double -- ^ G03 I J X Y
+    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 F X Y Z
+    | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ G02 F I J X Y
+    | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ G03 F I J X Y
     | G04_Dwell Double
     | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G28 X Y Z
     | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
@@ -44,11 +44,11 @@ renderGcodeIndented !level = \case
     G00_LinearRapidMove Nothing Nothing Nothing -> errorComment "G00 requires at least one coordinate argument; omitting empty G00"
     G00_LinearRapidMove x y z -> indent (bformat ("G0" % optional "X" % optional "Y" % optional "Z") x y z)
 
-    G01_LinearFeedrateMove Nothing Nothing Nothing -> errorComment "G01 requires at least one coordinate argument; omitting empty G01"
-    G01_LinearFeedrateMove x y z -> indent (bformat ("G1" % optional "X" % optional "Y" % optional "Z") x y z)
+    G01_LinearFeedrateMove _ Nothing Nothing Nothing -> errorComment "G01 requires at least one coordinate argument; omitting empty G01"
+    G01_LinearFeedrateMove f x y z -> indent (bformat ("G1" % optional "F" % optional "X" % optional "Y" % optional "Z") f x y z)
 
-    G02_ArcClockwise        i j x y -> indent (bformat ("G2" % required "X" % required "Y" % required "I" % required "J") x y i j)
-    G03_ArcCounterClockwise i j x y -> indent (bformat ("G3" % required "X" % required "Y" % required "I" % required "J") x y i j)
+    G02_ArcClockwise        f i j x y -> indent (bformat ("G2" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
+    G03_ArcCounterClockwise f i j x y -> indent (bformat ("G3" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
 
     G04_Dwell s -> indent (bformat ("G4" % required "P") s)
 

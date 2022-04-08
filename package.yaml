@@ -188,6 +188,12 @@ executables:
         dependencies:
             - generative-art
             - optparse-applicative
+    penplotting-hatched:
+        main: Main.hs
+        source-dirs: penplotting/Hatched
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
+        dependencies:
+            - generative-art
 
 tests:
     testsuite:

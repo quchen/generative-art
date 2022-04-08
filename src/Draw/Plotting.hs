@@ -16,8 +16,11 @@ module Draw.Plotting (
     , lineTo
     , clockwiseArcAroundTo
     , counterclockwiseArcAroundTo
-    , setFeedrate
+    , previewCanvas
     , pause
+    , PauseMode(..)
+    , withFeedrate
+    , withDrawingHeight
 
     -- ** File structure
     , block
@@ -34,8 +37,7 @@ module Draw.Plotting (
 
 
 
-import Control.Monad.State
-import Control.Monad.Writer
+import Control.Monad.RWS
 import Data.Default.Class
 import Data.List
 import           Data.Foldable
@@ -48,27 +50,25 @@ import Draw.Plotting.GCode
 import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
+import Data.Maybe (fromMaybe)
+import Util
 
 
-newtype Plot a = Plot (StateT PlottingState (Writer [GCode]) a)
-    deriving (Functor, Applicative, Monad, MonadWriter [GCode], MonadState PlottingState)
+newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState a)
+    deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
 data PlottingState = PlottingState
-    { _plottingSettings :: PlottingSettings
-    , _penState :: PenState
+    { _penState :: PenState
     , _penXY :: Vec2
+    , _drawingDistance :: Double
     } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
-    { _previewBoundingBox :: Maybe BoundingBox
-    -- ^ Before plotting, trace this bounding box to preview extents of the plot
-    --   and wait for confirmation. ('def'ault: 'Nothing)
-
-    , _feedrate :: Maybe Double
+    { _feedrate :: Maybe Double
     -- ^ Either set a feedrate, or have an initial check whether one was set
-    -- previously. ('def'ault: 'Nothing)
+    -- previously. ('def'ault: 'Nothing')
 
     , _zTravelHeight :: Double
     -- ^ During travel motion, keep the pen at this height (in absolute
@@ -79,7 +79,15 @@ data PlottingSettings = PlottingSettings
     -- ('def'ault: -1)
 
     , _finishMove :: Maybe FinishMove
-    -- ^ Do a final move after the drawing has ended
+    -- ^ Do a final move after the drawing has ended. ('def'ault: 'Nothing')
+
+    , _previewDrawnShapesBoundingBox :: Bool
+    -- ^ At the beginning of the plot, trace the bounding box of all the GCode
+    -- before actually drawing? Useful as a final check. ('def'ault: 'True')
+
+    , _canvasBoundingBox :: Maybe BoundingBox
+    -- ^ The canvas we’re painting on. Useful to check whether the pen leaves
+    -- the drawing area. ('def'ault: 'Nothing')
     } deriving (Eq, Ord, Show)
 
 -- | Command to issue in the footer
@@ -88,19 +96,162 @@ data FinishMove = FinishWithG28 | FinishWithG30
 
 instance Default PlottingSettings where
     def = PlottingSettings
-        { _previewBoundingBox = Nothing
-        , _feedrate = Nothing
+        { _feedrate = Nothing
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _finishMove = Nothing
+        , _previewDrawnShapesBoundingBox = True
+        , _canvasBoundingBox = Nothing
         }
 
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
-gCode = tell
+gCode instructions = for_ instructions $ \instruction -> do
+    Plot (tell ([instruction], mempty))
+    recordDrawingDistance instruction
+    recordPenXY instruction
+    recordBoundingBox instruction
+  where
+    setPenXY :: Vec2 -> Plot ()
+    setPenXY pos = do
+        asks _canvasBoundingBox >>= \case
+            Just bb
+                -- NB: This works for straight lines, but misses arcs that move outside the
+                -- plotting area and back inside, possible with e.g. arc interpolation
+                | not (insideBoundingBox pos bb) -> error "Tried to move pen outside the plotting area!"
+            _otherwise -> pure ()
+        modify' (\s -> s { _penXY = pos })
 
-setPenXY :: Vec2 -> Plot ()
-setPenXY pos = modify' (\s -> s { _penXY = pos })
+
+    recordPenXY :: GCode -> Plot ()
+    recordPenXY instruction = do
+        Vec2 x0 y0 <- gets _penXY
+        case instruction of
+            G00_LinearRapidMove x y _         -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+            G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
+            G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
+            _otherwise                        -> pure ()
+
+    recordDrawingDistance :: GCode -> Plot ()
+    recordDrawingDistance instruction = do
+        penState <- gets _penState
+        penXY@(Vec2 x0 y0) <- gets _penXY
+        when (penState == PenDown) $ case instruction of
+            G00_LinearRapidMove x y _      -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G02_ArcClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                addDrawingDistance (r * getRad angle)
+            G03_ArcCounterClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                addDrawingDistance (r * getRad angle)
+            _otherwise -> pure ()
+
+    tellBB :: HasBoundingBox object => object -> Plot ()
+    tellBB object = Plot (tell (mempty, boundingBox object))
+
+    recordBoundingBox :: GCode -> Plot ()
+    recordBoundingBox instruction = do
+        current@(Vec2 xCurrent yCurrent) <- gets _penXY
+        case instruction of
+            G00_LinearRapidMove x y _      -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+            G01_LinearFeedrateMove _ x y _ -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+            G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (Vec2 i j) (Vec2 x y))
+            G03_ArcCounterClockwise _ i j x y -> tellBB (CcwArc current (Vec2 i j) (Vec2 x y))
+            _otherwise -> pure ()
+
+    addDrawingDistance :: Double -> Plot ()
+    addDrawingDistance d = modify (\s -> s { _drawingDistance = _drawingDistance s + d })
+
+-- | CwArc a r b = Clockwise arc from a to b with center at a+r.
+data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+
+-- | CcwArc a r b = Counterclockwise arc from a to b with center at a+r.
+data CcwArc = CcwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+
+instance HasBoundingBox CwArc where
+    boundingBox (CwArc start centerOffset end) =
+        let radius = norm centerOffset
+            center = start +. centerOffset
+
+            startQuadrant = whichQuadrant (negateV centerOffset)
+            endQuadrant = whichQuadrant (end -. start -. centerOffset)
+            traversedQuadrants = cwQuadrantsFromTo startQuadrant endQuadrant
+
+            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantBL : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantUL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantUR : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantBR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants clockwise")
+            quadrantTransitionPoints _ = []
+
+        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+
+instance HasBoundingBox CcwArc where
+    boundingBox (CcwArc start centerOffset end) =
+        let radius = norm centerOffset
+            center = start +. centerOffset
+
+            startQuadrant = whichQuadrant (negateV centerOffset)
+            endQuadrant = whichQuadrant (end -. start -. centerOffset)
+            traversedQuadrants = ccwQuadrantsFromTo startQuadrant endQuadrant
+
+            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantBR : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantBL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantUL : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantUR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
+            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants counterclockwise")
+            quadrantTransitionPoints _ = []
+
+        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+
+data Quadrant = QuadrantBR | QuadrantBL | QuadrantUL | QuadrantUR deriving (Eq, Ord, Show)
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+cwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
+cwQuadrantsFromTo start end | start == end = [start]
+cwQuadrantsFromTo start end = start : cwQuadrantsFromTo (cwNextQuadrant start) end
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+ccwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
+ccwQuadrantsFromTo start end | start == end = [start]
+ccwQuadrantsFromTo start end = start : ccwQuadrantsFromTo (ccwNextQuadrant start) end
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+cwNextQuadrant :: Quadrant -> Quadrant
+cwNextQuadrant QuadrantBR = QuadrantBL
+cwNextQuadrant QuadrantBL = QuadrantUL
+cwNextQuadrant QuadrantUL = QuadrantUR
+cwNextQuadrant QuadrantUR = QuadrantBR
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+ccwNextQuadrant :: Quadrant -> Quadrant
+ccwNextQuadrant QuadrantBL = QuadrantBR
+ccwNextQuadrant QuadrantUL = QuadrantBL
+ccwNextQuadrant QuadrantUR = QuadrantUL
+ccwNextQuadrant QuadrantBR = QuadrantUR
+
+-- | Quadrants are in Cairo coordinates (y pointing downwards!)
+whichQuadrant :: Vec2 -> Quadrant
+whichQuadrant (Vec2 x y)
+    | x >= 0 && y >= 0 = QuadrantBR
+    | x <  0 && y >= 0 = QuadrantBL
+    | x <  0 && y <  0 = QuadrantUL
+    | otherwise        = QuadrantUR
+
+-- | Trace the plotting area to preview the extents of the plot, and wait for
+-- confirmation. Useful at the start of a plot.
+previewCanvas :: Plot ()
+previewCanvas = do
+    comment "Preview bounding box"
+    asks _canvasBoundingBox >>= \case
+        Just bb -> plot bb >> pause PauseUserConfirm
+        Nothing -> pure ()
 
 -- | Quick move for repositioning (without drawing).
 repositionTo :: Vec2 -> Plot ()
@@ -109,30 +260,35 @@ repositionTo target@(Vec2 x y) = do
     when (currentXY /= target) $ do
         penUp
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
-        setPenXY target
 
 -- | Draw a line from the current position to a target.
 lineTo :: Vec2 -> Plot ()
 lineTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
+    feedrate <- asks _feedrate
     when (currentXY /= target) $ do
         penDown
-        gCode [ G01_LinearFeedrateMove (Just x) (Just y) Nothing ]
-        setPenXY target
+        gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
 
--- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
-counterclockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+-- | Arc interpolation, clockwise
+clockwiseArcAroundTo
+    :: Vec2 -- ^ Center location, relative to the current pen position
+    -> Vec2 -- ^ End position
+    -> Plot ()
+clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+    feedrate <- asks _feedrate
     penDown
-    gCode [ G03_ArcCounterClockwise mx my x y ]
-    setPenXY target
+    gCode [ G02_ArcClockwise feedrate mx my x y ]
 
--- | Center is always given in _relative_ coordinates, but target in G90 (absolute) or G91 (relative) coordinates!
-clockwiseArcAroundTo :: Vec2 -> Vec2 -> Plot ()
-clockwiseArcAroundTo (Vec2 mx my) target@(Vec2 x y) = do
+-- | Arc interpolation, counterclockwise
+counterclockwiseArcAroundTo
+    :: Vec2 -- ^ Center location, relative to the current pen position
+    -> Vec2 -- ^ End position
+    -> Plot ()
+counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+    feedrate <- asks _feedrate
     penDown
-    gCode [ G02_ArcClockwise mx my x y ]
-    setPenXY target
+    gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
 -- lowered.
@@ -140,7 +296,7 @@ penDown :: Plot ()
 penDown = gets _penState >>= \case
     PenDown -> pure ()
     PenUp -> do
-        zDrawing <- gets (_zDrawingHeight . _plottingSettings)
+        zDrawing <- asks _zDrawingHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
         modify (\s -> s { _penState = PenDown })
 
@@ -150,90 +306,112 @@ penUp :: Plot ()
 penUp = gets _penState >>= \case
     PenUp -> pure ()
     PenDown -> do
-        zTravel <- gets (_zTravelHeight . _plottingSettings)
+        zTravel <- asks _zTravelHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
         modify (\s -> s { _penState = PenUp })
 
-setFeedrate :: Double -> Plot ()
-setFeedrate f = gCode [ F_Feedrate f ]
+-- | Locally change the feedrate
+withFeedrate :: Double -> Plot a -> Plot a
+withFeedrate f = local (\settings -> settings { _feedrate = Just f })
+
+-- | Locally adapt the z drawing height (e.g. for changing pen pressure)
+withDrawingHeight :: Double -> Plot a -> Plot a
+withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapStateT (mapWriter (\(a, g) -> (a, [GBlock g]))) content) <* penUp -- for extra safety
+block (Plot content) = Plot (mapRWS (\(a, s, (gcode, bb)) -> (a, s, ([GBlock gcode], bb))) content)
 
+-- | Add a GCode comment
 comment :: TL.Text -> Plot ()
 comment txt = gCode [ GComment txt ]
 
+-- | Pause the plot for later resumption at the current state
 pause :: PauseMode -> Plot ()
 pause PauseUserConfirm = penUp >> gCode [ M0_Pause ]
 pause (PauseSeconds seconds) = gCode [ G04_Dwell seconds ]
 
-data PauseMode = PauseUserConfirm | PauseSeconds Double deriving (Eq, Ord, Show)
+data PauseMode
+    = PauseUserConfirm -- ^ Wait until user confirmation (in e.g. a web UI or with a button)
+    | PauseSeconds Double -- ^ Wait for a certain time
+    deriving (Eq, Ord, Show)
 
-addHeaderFooter :: Plot a -> Plot a
-addHeaderFooter body = block $ do
-    header
-    a <- body
-    footer
-    pure a
+addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe (BoundingBox, Double) -> [GCode] -> [GCode]
+addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body ++ [footer]
   where
-    feedrateCheck = gets (_feedrate . _plottingSettings) >>= \case
-        Just f -> comment "Initial feedrate" >> setFeedrate f
-        Nothing -> gCode
+    feedrateCheck = case feedrate of
+        Just _ -> GBlock []
+        Nothing -> GBlock
             [ GComment "NOOP move to make sure feedrate is already set externally"
             , G91_RelativeMovement
-            , G01_LinearFeedrateMove (Just 0) (Just 0) (Just 0)
+            , G01_LinearFeedrateMove Nothing (Just 0) (Just 0) (Just 0)
             , G90_AbsoluteMovement
             ]
 
-    previewBoundingBox = gets (_previewBoundingBox . _plottingSettings) >>= \case
-        Just bb -> do
-            comment "Preview bounding box"
-            plot bb
-            pause PauseUserConfirm
-        Nothing -> pure ()
+    boundingBoxCheck = case drawnShapesBoundingBox of
+        Nothing -> GBlock []
+        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock $
+            GComment "Trace GCode bounding box"
+            : intersperse (G04_Dwell 0.5)
+                [ G00_LinearRapidMove (Just x) (Just y) (Just zTravelHeight)
+                | Vec2 x y <- [ Vec2 xMin yMin
+                              , Vec2 xMax yMin
+                              , Vec2 xMax yMax
+                              , Vec2 xMin yMax
+                              , Vec2 xMin yMin] ]
 
-    header = block $ do
-        comment "Header"
-        feedrateCheck
-        previewBoundingBox
+    header = GBlock
+        [ GComment "Header"
+        , feedrateCheck
+        , boundingBoxCheck
+        ]
 
-    footer = block $ do
-        comment "Footer"
-        gets (_finishMove . _plottingSettings) >>= \case
-            Nothing -> do
-                comment "Lift pen"
-                gCode [ G00_LinearRapidMove Nothing Nothing (Just 10) ]
-            Just FinishWithG28 -> do
-                comment "Move to predefined position"
-                gCode [ G28_GotoPredefinedPosition Nothing Nothing (Just 10) ]
-            Just FinishWithG30 -> do
-                comment "Move to predefined position"
-                gCode [ G30_GotoPredefinedPosition Nothing Nothing (Just 10) ]
+    footer = GBlock
+        [ GComment "Footer"
+        , finishMoveCheck
+        ]
+
+    finishMoveCheck = case finishMove of
+        Nothing -> GBlock
+            [ GComment "Lift pen"
+            , G00_LinearRapidMove Nothing Nothing (Just 10)
+            ]
+        Just FinishWithG28 -> GBlock
+            [ GComment "Move to predefined position"
+            , G28_GotoPredefinedPosition Nothing Nothing (Just 10)
+            ]
+        Just FinishWithG30 -> GBlock
+            [ GComment "Move to predefined position"
+            , G30_GotoPredefinedPosition Nothing Nothing (Just 10)
+            ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings body = renderGCode (execWriter (evalStateT finalPlot initialState))
+runPlot settings body =
+    let (_, _finalState, (gcode, drawnBB)) = runRWS body' settings initialState
+    in renderGCode
+        (addHeaderFooter
+            (_feedrate settings)
+            (_finishMove settings)
+            (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zTravelHeight settings) else Nothing)
+            gcode)
   where
-    Plot finalPlot = addHeaderFooter body
+    Plot body' = body
     initialState = PlottingState
-        { _plottingSettings = settings
-        , _penState = PenUp
+        { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
+        , _drawingDistance = 0
         }
 
+-- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
+-- are defined in the configuration given in 'runPlot', or by the various utility
+-- functions such as 'withFeedrate' or 'withDrawingHeight'
 class Plotting a where
     plot :: a -> Plot ()
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) = block $ do
+    plot bb = block $ do
         comment "Hover over bounding box"
-        sequence_ . intersperse (pause (PauseSeconds 0.5)) . map repositionTo $
-            [ Vec2 xMin yMin
-            , Vec2 xMax yMin
-            , Vec2 xMax yMax
-            , Vec2 xMin yMax
-            , Vec2 xMin yMin
-            ]
+        plot (boundingBoxPolygon bb)
 
 instance Plotting Line where
     plot (Line start end) = block $ do
@@ -276,6 +454,7 @@ instance Foldable f => Plotting (Polyline f) where
             repositionTo p
             traverse_ lineTo ps
 
+-- | Draw each element (in order)
 instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
     plot x = block $ do
         comment "Sequential"

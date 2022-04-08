@@ -12,6 +12,7 @@ import System.FilePath.Glob
 import qualified Test.Data.Tree.Extended
 import qualified Test.Draw
 import qualified Test.Draw.Color
+import qualified Test.Draw.Plotting
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Clipping
 import qualified Test.Geometry.Algorithms.Delaunay
@@ -57,6 +58,7 @@ tests = testGroup "Test suite"
     [ Test.Data.Tree.Extended.tests
     , Test.Draw.tests
     , Test.Draw.Color.tests
+    , Test.Draw.Plotting.tests
     , Test.Geometry.Algorithms.Contour.tests
     , Test.Geometry.Algorithms.Clipping.tests
     , Test.Geometry.Algorithms.Delaunay.tests

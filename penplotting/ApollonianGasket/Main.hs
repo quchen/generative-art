@@ -36,7 +36,9 @@ gasketScaled :: Tree Circle
 gasketScaled = unsafelyTransform (G.transformBoundingBox (foldMap boundingBox gasket) (Vec2 margin margin, Vec2 pageWidth pageHeight -. Vec2 margin margin) def) gasket
 
 plotterSettings :: PlottingSettings
-plotterSettings = def { _previewBoundingBox = Just (foldMap boundingBox gasketScaled), _feedrate = Just 1000 }
+plotterSettings = def { _feedrate = Just 1000 }
 
 main :: IO ()
-main = T.putStrLn (runPlot plotterSettings (plot (toList gasketScaled)))
+main = T.putStrLn (runPlot plotterSettings drawing)
+  where
+    drawing = plot (toList gasketScaled)
