@@ -7,6 +7,7 @@ packages:
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/SvgSource
+    - penplotting/Voronoi
     - showcases/circuits
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
