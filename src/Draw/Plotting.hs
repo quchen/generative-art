@@ -78,6 +78,11 @@ data PlottingSettings = PlottingSettings
     -- ^ When drawing, keep the pen at this height (in absolute coordinates).
     -- ('def'ault: -1)
 
+    , _zLoweringFeedrate :: Maybe Double
+    -- ^ Use this feedrate for lowering the pen. On fast machines, lowering it
+    -- at max speed might lead to unwanted vibrations. 'Nothing' means as fast
+    -- as possible. ('def'ault: 'Nothing')
+
     , _finishMove :: Maybe FinishMove
     -- ^ Do a final move after the drawing has ended. ('def'ault: 'Nothing')
 
@@ -99,6 +104,7 @@ instance Default PlottingSettings where
         { _feedrate = Nothing
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
+        , _zLoweringFeedrate = Nothing
         , _finishMove = Nothing
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
@@ -297,7 +303,10 @@ penDown = gets _penState >>= \case
     PenDown -> pure ()
     PenUp -> do
         zDrawing <- asks _zDrawingHeight
-        gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
+        zFeedrate <- asks _zLoweringFeedrate
+        case zFeedrate of
+            Nothing -> gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
+            Just fr -> gCode [ G01_LinearFeedrateMove (Just fr) Nothing Nothing (Just zDrawing) ]
         modify (\s -> s { _penState = PenDown })
 
 -- | If the pen is down, lift it to travel height. Do nothing if it is already
