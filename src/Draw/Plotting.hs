@@ -38,7 +38,7 @@ module Draw.Plotting (
 
 
 
-import Control.Monad.RWS
+import Control.Monad.RWS hiding (modify)
 import Data.Default.Class
 import Data.List
 import           Data.Foldable
@@ -57,6 +57,11 @@ import Util
 
 newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState a)
     deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
+
+{-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
+modify, _don'tReportModifyAsUnused :: a
+modify = error "Use modify'. There’s no reason to lazily update the state."
+_don'tReportModifyAsUnused = modify
 
 data PlottingState = PlottingState
     { _penState :: PenState
@@ -173,7 +178,7 @@ gCode instructions = for_ instructions $ \instruction -> do
             _otherwise -> pure ()
 
     addDrawingDistance :: Double -> Plot ()
-    addDrawingDistance d = modify (\s -> s { _drawingDistance = _drawingDistance s + d })
+    addDrawingDistance d = modify' (\s -> s { _drawingDistance = _drawingDistance s + d })
 
 -- | CwArc a r b = Clockwise arc from a to b with center at a+r.
 data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
@@ -308,7 +313,7 @@ penDown = gets _penState >>= \case
         case zFeedrate of
             Nothing -> gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
             Just fr -> gCode [ G01_LinearFeedrateMove (Just fr) Nothing Nothing (Just zDrawing) ]
-        modify (\s -> s { _penState = PenDown })
+        modify' (\s -> s { _penState = PenDown })
 
 -- | If the pen is down, lift it to travel height. Do nothing if it is already
 -- lifted.
@@ -318,7 +323,7 @@ penUp = gets _penState >>= \case
     PenDown -> do
         zTravel <- asks _zTravelHeight
         gCode [ G00_LinearRapidMove Nothing Nothing (Just zTravel) ]
-        modify (\s -> s { _penState = PenUp })
+        modify' (\s -> s { _penState = PenUp })
 
 -- | Locally change the feedrate
 withFeedrate :: Double -> Plot a -> Plot a
