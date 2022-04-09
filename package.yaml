@@ -86,32 +86,12 @@ library:
         - Geometry.Trajectory.ReassembleLines
 
 executables:
-    haskell-logo-billard:
-        main:        Main.hs
-        source-dirs: showcases/haskell_logo_billard
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    haskell-logo-shattered:
-        main:        Main.hs
-        source-dirs: showcases/haskell_logo_shattered
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
     vector-fields:
         main: Main.hs
         source-dirs: showcases/vector_fields
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
         dependencies:
             - generative-art
-    haskell-logo-voronoi:
-        main: Main.hs
-        source-dirs: showcases/haskell_logo_voronoi
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
-        dependencies:
-            - generative-art
-            - Noise
-            - optparse-applicative
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive
