@@ -1,4 +1,4 @@
 .stack-work/
 *.png
 !showcases/*.png
-generative-art.cabal
+*.cabal
