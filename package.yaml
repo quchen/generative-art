@@ -2,9 +2,12 @@ name:       generative-art
 version:    0.1.0.0
 github:     quchen/generative-art
 license:    BSD3
-author:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail
-maintainer: David »quchen« Luposchainsky – dluposchainsky (λ) gmail
-copyright:  "2018 David Luposchainsky"
+author:
+    - David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+    - Franz Thoma – f.m.thoma (λ) gmail
+copyright:
+    - 2018–2022 David Luposchainsky
+    - 2018–2022 Franz Thoma
 
 extra-source-files:
     - README.md
@@ -84,117 +87,6 @@ library:
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
         - Geometry.Trajectory.ReassembleLines
-
-executables:
-    haskell-logo-billard:
-        main:        Main.hs
-        source-dirs: showcases/haskell_logo_billard
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    haskell-logo-shattered:
-        main:        Main.hs
-        source-dirs: showcases/haskell_logo_shattered
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    vector-fields:
-        main: Main.hs
-        source-dirs: showcases/vector_fields
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    haskell-logo-voronoi:
-        main: Main.hs
-        source-dirs: showcases/haskell_logo_voronoi
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
-        dependencies:
-            - generative-art
-            - Noise
-            - optparse-applicative
-    voronoi-3d:
-        main: Main.hs
-        source-dirs: showcases/voronoi_3d
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
-        dependencies:
-            - generative-art
-            - Noise
-    voronoi-interactive:
-        main: Main.hs
-        source-dirs: app/voronoi_interactive
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - threepenny-gui
-            - temporary
-    particle-shooter:
-        main: Main.hs
-        source-dirs: showcases/particle_shooter
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    circuits:
-        main: Main.hs
-        source-dirs: showcases/circuits
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    truchetti:
-        main: Main.hs
-        source-dirs: showcases/truchetti
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    truchet:
-        main: Main.hs
-        source-dirs: showcases/truchet
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    pulsar:
-        main: Main.hs
-        source-dirs: showcases/pulsar
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - cassava
-            - bytestring
-            - vector-algorithms
-    penplotting-gasket:
-        main: Main.hs
-        source-dirs: penplotting/ApollonianGasket
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    penplotting-flowlines:
-        main: Main.hs
-        source-dirs: penplotting/FlowLines
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - optparse-applicative
-    penplotting-circuits:
-        main: Main.hs
-        source-dirs: penplotting/circuits
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - filepath
-            - formatting
-            - optparse-applicative
-    penplotting-svg:
-        main: Main.hs
-        source-dirs: penplotting/SvgSource
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - optparse-applicative
-    penplotting-hatched:
-        main: Main.hs
-        source-dirs: penplotting/Hatched
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
 
 tests:
     testsuite:
