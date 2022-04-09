@@ -88,16 +88,6 @@ library:
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
         - Geometry.Trajectory.ReassembleLines
 
-executables:
-    voronoi-interactive:
-        main: Main.hs
-        source-dirs: app/voronoi_interactive
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - threepenny-gui
-            - temporary
-
 tests:
     testsuite:
         main:        Main.hs

@@ -1,6 +1,7 @@
 flags: {}
 packages:
     - .
+    - app/voronoi_interactive
     - penplotting/ApollonianGasket
     - penplotting/circuits
     - penplotting/FlowLines
