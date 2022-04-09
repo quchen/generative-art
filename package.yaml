@@ -2,9 +2,12 @@ name:       generative-art
 version:    0.1.0.0
 github:     quchen/generative-art
 license:    BSD3
-author:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail
-maintainer: David »quchen« Luposchainsky – dluposchainsky (λ) gmail
-copyright:  "2018 David Luposchainsky"
+author:
+    - David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+    - Franz Thoma – f.m.thoma (λ) gmail
+copyright:
+    - 2018–2022 David Luposchainsky
+    - 2018–2022 Franz Thoma
 
 extra-source-files:
     - README.md
