@@ -5,7 +5,7 @@ license:    BSD3
 author:
     - David Luposchainsky
 copyright:
-    - 2022 David Luposchainsky"
+    - 2022 David Luposchainsky
 
 default-extensions:
     - LambdaCase
