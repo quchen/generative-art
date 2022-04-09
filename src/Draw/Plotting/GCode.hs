@@ -43,7 +43,7 @@ renderGcodeIndented !level = \case
     GComment comment -> indent ("; " <> TL.fromLazyText comment)
     GBlock content   -> mconcat (intersperse "\n" (map (renderGcodeIndented (level+1)) content))
     F_Feedrate f     -> indent (bformat ("F " % double) f)
-    M0_Pause         -> indent "M0 ; Pause/wait for user input"
+    M0_Pause         -> indent "M0 (Pause/wait for user input)"
 
     G00_LinearRapidMove Nothing Nothing Nothing -> errorComment "G00 requires at least one coordinate argument; omitting empty G00"
     G00_LinearRapidMove x y z -> indent (bformat ("G0" % optional "X" % optional "Y" % optional "Z") x y z)
@@ -61,6 +61,9 @@ renderGcodeIndented !level = \case
 
     G28_GotoPredefinedPosition x y z -> indent (bformat ("G28" % optional "X" % optional "Y" % optional "Z") x y z)
     G30_GotoPredefinedPosition x y z -> indent (bformat ("G30" % optional "X" % optional "Y" % optional "Z") x y z)
+
+    G90_AbsoluteMovement -> indent "G90 (G9(0) => abs(0)lute movement)"
+    G91_RelativeMovement -> indent "G91 (G9(1) => re(1)ative movement)"
 
     G93_Feedrate_TravelInFractionofMinute -> "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
     G94_Feedrate_UnitsPerMinute -> "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
