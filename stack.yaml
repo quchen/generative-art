@@ -1,6 +1,11 @@
 flags: {}
 packages:
     - .
+    - penplotting/ApollonianGasket
+    - penplotting/circuits
+    - penplotting/FlowLines
+    - penplotting/Hatched
+    - penplotting/SvgSource
     - showcases/circuits
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
