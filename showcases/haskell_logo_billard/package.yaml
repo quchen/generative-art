@@ -3,7 +3,6 @@ version:    0.1.0.0
 github:     quchen/generative-art
 license:    BSD3
 author:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail
-maintainer: David »quchen« Luposchainsky – dluposchainsky (λ) gmail
 copyright:  "2018 David Luposchainsky"
 
 dependencies:

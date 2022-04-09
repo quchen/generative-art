@@ -3,7 +3,6 @@ version:    0.1.0.0
 github:     quchen/generative-art
 license:    BSD3
 author:     Franz Thoma
-maintainer: Franz Thoma
 copyright:  "2018-2022 Franz Thoma"
 
 dependencies:
