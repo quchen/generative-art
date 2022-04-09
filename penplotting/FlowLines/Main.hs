@@ -57,7 +57,7 @@ main = do
 
         plottingSettings = def { _feedrate = Just 6000, _zTravelHeight = 5, _zDrawingHeight = -2 }
 
-    T.putStrLn $ runPlot plottingSettings drawing
+    T.writeFile (_outputFileG options) $ runPlot plottingSettings drawing
     pure ()
 
 mkGeometry :: Options -> IO [Polyline Vector]
