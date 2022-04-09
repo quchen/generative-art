@@ -381,6 +381,7 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
 
     setDefaultModes = GBlock
         [ GComment "Normalize modal settings"
+        , G17_Plane_XY
         , G21_UseMm
         , G90_AbsoluteMovement
         , G94_Feedrate_UnitsPerMinute

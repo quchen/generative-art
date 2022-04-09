@@ -25,6 +25,9 @@ data GCode
     | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ G02 F I J X Y
     | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ G03 F I J X Y
     | G04_Dwell Double
+    | G17_Plane_XY
+    | G18_Plane_ZX
+    | G19_Plane_YZ
     | G20_UseInches
     | G21_UseMm
     | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G28 X Y Z
@@ -56,6 +59,9 @@ renderGcodeIndented !level = \case
 
     G04_Dwell s -> indent (bformat ("G4" % required "P") s)
 
+    G17_Plane_XY -> "G17 (Use XY plane)"
+    G18_Plane_ZX -> "G18 (Use ZX plane)"
+    G19_Plane_YZ -> "G19 (Use YZ plane)"
     G20_UseInches -> error "Inches aren’t going to happen here, sorry."
     G21_UseMm -> "G01 (Use mm)"
 
