@@ -349,15 +349,18 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
 
     boundingBoxCheck = case drawnShapesBoundingBox of
         Nothing -> GBlock []
-        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock $
-            GComment "Trace GCode bounding box"
-            : intersperse (G04_Dwell 0.5)
+        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock . mconcat $
+            [ [GComment "Trace GCode bounding box"]
+            , intersperse (G04_Dwell 0.5)
                 [ G00_LinearRapidMove (Just x) (Just y) (Just zTravelHeight)
                 | Vec2 x y <- [ Vec2 xMin yMin
                               , Vec2 xMax yMin
                               , Vec2 xMax yMax
                               , Vec2 xMin yMax
                               , Vec2 xMin yMin] ]
+            , [M0_Pause]
+            ]
+
 
     header = GBlock
         [ GComment "Header"
