@@ -25,6 +25,8 @@ data GCode
     | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ G02 F I J X Y
     | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ G03 F I J X Y
     | G04_Dwell Double
+    | G20_UseInches
+    | G21_UseMm
     | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G28 X Y Z
     | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
     | G90_AbsoluteMovement
@@ -53,6 +55,9 @@ renderGcodeIndented !level = \case
     G03_ArcCounterClockwise f i j x y -> indent (bformat ("G3" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
 
     G04_Dwell s -> indent (bformat ("G4" % required "P") s)
+
+    G20_UseInches -> error "Inches aren’t going to happen here, sorry."
+    G21_UseMm -> "G01 (Use mm)"
 
     G28_GotoPredefinedPosition x y z -> indent (bformat ("G28" % optional "X" % optional "Y" % optional "Z") x y z)
     G30_GotoPredefinedPosition x y z -> indent (bformat ("G30" % optional "X" % optional "Y" % optional "Z") x y z)
