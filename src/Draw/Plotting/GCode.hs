@@ -29,6 +29,8 @@ data GCode
     | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
     | G90_AbsoluteMovement
     | G91_RelativeMovement
+    | G93_Feedrate_TravelInFractionofMinute
+    | G94_Feedrate_UnitsPerMinute
 
 renderGCode :: [GCode] -> TL.Text
 renderGCode [GBlock xs] = renderGCode xs -- Remove indentation if it's a single top-level block
@@ -55,8 +57,8 @@ renderGcodeIndented !level = \case
     G28_GotoPredefinedPosition x y z -> indent (bformat ("G28" % optional "X" % optional "Y" % optional "Z") x y z)
     G30_GotoPredefinedPosition x y z -> indent (bformat ("G30" % optional "X" % optional "Y" % optional "Z") x y z)
 
-    G90_AbsoluteMovement -> indent "G90 ; G9(0) => abs(0)lute movement"
-    G91_RelativeMovement -> indent "G91 ; G9(1) => re(1)ative movement"
+    G93_Feedrate_TravelInFractionofMinute -> "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
+    G94_Feedrate_UnitsPerMinute -> "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
   where
     indentation = "    "
     indent x = TL.fromLazyText (TL.replicate (fromIntegral level) indentation) <> x
