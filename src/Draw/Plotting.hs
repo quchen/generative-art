@@ -6,6 +6,7 @@ module Draw.Plotting (
     -- * 'Plot' type
       Plot()
     , PlottingSettings(..)
+    , FinishMove(..)
     , runPlot
 
     -- * 'Plotting' shapes
@@ -389,11 +390,11 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
             ]
         Just FinishWithG28 -> GBlock
             [ GComment "Move to predefined position"
-            , G28_GotoPredefinedPosition Nothing Nothing (Just 10)
+            , G28_GotoPredefinedPosition Nothing Nothing (Just 30)
             ]
         Just FinishWithG30 -> GBlock
             [ GComment "Move to predefined position"
-            , G30_GotoPredefinedPosition Nothing Nothing (Just 10)
+            , G30_GotoPredefinedPosition Nothing Nothing (Just 30)
             ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text

@@ -53,6 +53,7 @@ main = do
                     , _zLoweringFeedrate = Just 1000
                     , _zTravelHeight = 2
                     , _zDrawingHeight = -2
+                    , _finishMove = Just FinishWithG28
                     }
                 gcodeRaw = runPlot plottingSettings drawing
             TL.writeFile (_outputFileG options) gcodeRaw
