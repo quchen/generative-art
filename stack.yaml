@@ -1,9 +1,15 @@
 flags: {}
 packages:
     - .
+    - showcases/circuits
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
     - showcases/haskell_logo_voronoi
+    - showcases/particle_shooter
+    - showcases/pulsar
+    - showcases/truchet
+    - showcases/truchetti
+    - showcases/vector_fields
     - showcases/voronoi_3d
 extra-deps:
     - cairo-0.13.8.1@sha256:1938aaeb5d3504678d995774dfe870f6b66cbd43d336b692fa8779b23b2b67a9,4075

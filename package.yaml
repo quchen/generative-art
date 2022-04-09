@@ -89,12 +89,6 @@ library:
         - Geometry.Trajectory.ReassembleLines
 
 executables:
-    vector-fields:
-        main: Main.hs
-        source-dirs: showcases/vector_fields
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
     voronoi-interactive:
         main: Main.hs
         source-dirs: app/voronoi_interactive
@@ -103,39 +97,6 @@ executables:
             - generative-art
             - threepenny-gui
             - temporary
-    particle-shooter:
-        main: Main.hs
-        source-dirs: showcases/particle_shooter
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    circuits:
-        main: Main.hs
-        source-dirs: showcases/circuits
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    truchetti:
-        main: Main.hs
-        source-dirs: showcases/truchetti
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    truchet:
-        main: Main.hs
-        source-dirs: showcases/truchet
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-    pulsar:
-        main: Main.hs
-        source-dirs: showcases/pulsar
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults]
-        dependencies:
-            - generative-art
-            - cassava
-            - bytestring
-            - vector-algorithms
     penplotting-gasket:
         main: Main.hs
         source-dirs: penplotting/ApollonianGasket
