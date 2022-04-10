@@ -9,12 +9,14 @@ copyright:
 
 default-extensions:
     - RecordWildCards
+    - OverloadedStrings
 
 dependencies:
     - generative-art
     - base
     - cairo
     - mwc-random
+    - text
     - vector
 
 executables:
