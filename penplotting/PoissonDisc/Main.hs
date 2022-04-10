@@ -31,7 +31,7 @@ main = do
         r0 = 25
         samplingProps = PoissonDiscParams
             { _poissonShape = bb
-            , _poissonRadius = \p -> r0 * (1 + 0.4 * noise p)
+            , _poissonRadius = \p -> r0 * (1 + 0.6 * noise p)
             , _poissonK = 100
             }
     samples <- poissonDisc gen samplingProps
