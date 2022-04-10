@@ -51,7 +51,7 @@ import           Data.Set                 (Set)
 import qualified Data.Set                 as S
 import           Graphics.Rendering.Cairo as C hiding (x, y)
 
-import           Draw          hiding (polygonSketch)
+import           Draw
 import           Geometry.Core as G hiding
     (Polygon, pointInPolygon, rotateAround)
 import qualified Geometry.Core as G

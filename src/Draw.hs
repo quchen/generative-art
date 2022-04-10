@@ -56,16 +56,6 @@ module Draw (
     , for_
     , module Data.Foldable
     , module Data.Default.Class
-
-    -- * Deprecated
-    , lineSketch
-    , bezierSketch
-    , arrowSketch
-    , circleSketch
-    , crossSketch
-    , pathSketch
-    , polygonSketch
-    , boundingBoxSketch
 ) where
 
 
@@ -162,10 +152,6 @@ instance Sequential f => Sketch (f Bezier) where
             moveToVec start
             for_ ps $ \(Bezier _ (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) -> curveTo x1 y1 x2 y2 x3 y3
 
-bezierSketch :: Sequential f => f Bezier -> Render ()
-bezierSketch = sketch
-{-# DEPRECATED bezierSketch "use `sketch` instead" #-}
-
 data ArrowSpec = ArrowSpec
     { _arrowheadRelPos    :: !Double -- ^ Relative position of the arrow head, from 0 (start) to 1 (end). 0.5 paints the arrow in the center. ('def'ault: 1)
     , _arrowheadSize      :: !Double -- ^ Length of each of the sides of the arrow head. ('def'ault: 10)
@@ -222,13 +208,25 @@ instance Sketch Arrow where
                 lineToVec arrowTip
             (False, False) -> pure ()
 
-arrowSketch :: Line -> ArrowSpec -> Render ()
-arrowSketch line spec = sketch (Arrow line spec)
-{-# DEPRECATED arrowSketch "use `sketch (Arrow line spec)` instead" #-}
-
 -- | Sketch a shape that can then be made visible by drawing functions such as 'stroke' or 'fill'.
 class Sketch a where
     sketch :: a -> Render ()
+
+instance (Sketch a, Sketch b) => Sketch (Either a b) where
+    sketch (Left l) = sketch l
+    sketch (Right r) = sketch r
+
+instance (Sketch a, Sketch b) => Sketch (a,b) where
+    sketch (a,b) = sketch a >> sketch b
+
+instance (Sketch a, Sketch b, Sketch c) => Sketch (a,b,c) where
+    sketch (a,b,c) = sketch a >> sketch b >> sketch c
+
+instance (Sketch a, Sketch b, Sketch c, Sketch d) => Sketch (a,b,c,d) where
+    sketch (a,b,c,d) = sketch a >> sketch b >> sketch c >> sketch d
+
+instance (Sketch a, Sketch b, Sketch c, Sketch d, Sketch e) => Sketch (a,b,c,d,e) where
+    sketch (a,b,c,d,e) = sketch a >> sketch b >> sketch c >> sketch d >> sketch e
 
 -- |
 -- >>> :{
@@ -305,10 +303,6 @@ instance Sketch Ellipse where
         C.transform (toCairoMatrix t)
         sketch (Circle zero 1)
 
-circleSketch :: Vec2 -> Double -> Render ()
-circleSketch center r = sketch (Circle center r)
-{-# DEPRECATED circleSketch "use `sketch (Circle center radius)` instead" #-}
-
 -- | 'sketch' a cross like ×. Sometimes useful to decorate a line with for e.g.
 -- strikethrough effects, or to contrast the o in tic tac toe.
 --
@@ -336,13 +330,6 @@ instance Sketch Cross where
         sketch line1
         sketch line2
 
-crossSketch
-    :: Vec2
-    -> Double
-    -> Render ()
-crossSketch center r = sketch (Cross center r)
-{-# DEPRECATED crossSketch "use `sketch (Cross center r)` instead" #-}
-
 -- | Sketch part of a circle.
 arcSketch
     :: Vec2   -- ^ Center
@@ -362,14 +349,6 @@ arcSketchNegative
     -> Render ()
 arcSketchNegative (Vec2 x y) r angleStart angleEnd
   = arcNegative x y r (getRad angleStart) (getRad angleEnd)
-
-pathSketch :: Sequential f => f Vec2 -> Render ()
-pathSketch = sketch
-{-# DEPRECATED pathSketch "use `sketch` instead" #-}
-
-polygonSketch :: Polygon -> Render ()
-polygonSketch = sketch
-{-# DEPRECATED polygonSketch "use `sketch` instead" #-}
 
 -- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
 --
@@ -392,10 +371,6 @@ instance Sketch BoundingBox where
         lineTo xhi yhi
         moveTo xhi ylo
         lineTo xlo yhi
-
-boundingBoxSketch :: BoundingBox -> Render ()
-boundingBoxSketch = sketch
-{-# DEPRECATED boundingBoxSketch "use `sketch` instead" #-}
 
 data CartesianParams = CartesianParams
     { _cartesianMinX    :: !Int
