@@ -28,11 +28,11 @@ main = do
     noise <- simplex2 def { _simplexFrequency = 1/150 , _simplexOctaves = 2 } gen
 
     let bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
-        r0 = 20
+        r0 = 25
         samplingProps = PoissonDiscParams
             { _poissonShape = bb
-            , _poissonRadius = \p -> r0 * (1 + 0.7 * noise p)
-            , _poissonK = 8
+            , _poissonRadius = \p -> r0 * (1 + 0.4 * noise p)
+            , _poissonK = 100
             }
     samples <- poissonDisc gen samplingProps
 
@@ -44,7 +44,7 @@ main = do
 
 drawSample :: (Vec2, Vec2, Double) -> Render ()
 drawSample (sample, parent, radius) = do
-    --sketch (Line parent sample)
-    --C.stroke
+    sketch (Line parent sample)
+    C.stroke
     sketch (Circle sample (radius/2))
     C.stroke

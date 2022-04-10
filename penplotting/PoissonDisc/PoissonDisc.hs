@@ -2,6 +2,7 @@ module PoissonDisc where
 
 
 
+import           Control.Monad
 import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import qualified Control.Monad.Trans.Reader as R
@@ -110,13 +111,11 @@ data PoissonDiscState s = PoissonDiscState
 sampleLoop :: PrimMonad m => PoissonT m ()
 sampleLoop = gets (H.uncons . _activeSamples) >>= \case
     Nothing -> pure ()
-    Just (H.Entry _ (closestActiveSample, parent, r), heap') -> do
+    Just (H.Entry _ (closestActiveSample, parent, radius), heap') -> do
 
-        poissonRadius <- asks _poissonRadius
+        candidates <- nextCandidates (closestActiveSample, radius)
 
-        candidates <- nextCandidates closestActiveSample
-
-        let validPoint candidate = do
+        let validPoint (candidate, r) = do
                 allSamples <- gets _allSamples
                 pure (not (any (\(p, r') -> norm (candidate -. p) <= 0.5*(r+r')) allSamples))
 
@@ -125,8 +124,8 @@ sampleLoop = gets (H.uncons . _activeSamples) >>= \case
         case newSample of
             Nothing -> modify' (\s -> s
                 { _activeSamples = heap'
-                , _result = (closestActiveSample, parent, r) : _result s })
-            Just sample -> addSample (sample, closestActiveSample, poissonRadius sample)
+                , _result = (closestActiveSample, parent, radius) : _result s })
+            Just (sample, radius') -> addSample (sample, closestActiveSample, radius')
 
         sampleLoop
 
@@ -134,17 +133,16 @@ findM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m (Maybe a)
 findM p = foldr (\x xs -> p x >>= \u -> if u then pure (Just x) else xs) (pure Nothing)
 
 -- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
-nextCandidates :: PrimMonad m => Vec2 -> PoissonT m [Vec2]
-nextCandidates v = do
+nextCandidates :: PrimMonad m => (Vec2, Double) -> PoissonT m [(Vec2, Double)]
+nextCandidates (v, r) = do
     PoissonDiscState{..} <- gets id
     PoissonDiscParams{..} <- asks id
-    phi0 <- lift (rad <$> uniformRM (0, 2*pi) _gen)
-    let deltaPhi = rad (2*pi / fromIntegral _poissonK)
-        candidates = filter (`insideBoundingBox` _poissonShape)
-            [ v +. polar (phi0 +. i *. deltaPhi) r
-            | let r = _poissonRadius v + 0.000001
-            , i <- [1..fromIntegral _poissonK] ]
-    pure candidates
+    candidates <- replicateM _poissonK $ do
+        phi <- lift (rad <$> uniformRM (0, 2*pi) _gen)
+        r' <- lift (uniformRM (r, 2*r) _gen)
+        let v' = v +. polar phi r'
+        pure (v', _poissonRadius v')
+    pure (filter ((`insideBoundingBox` _poissonShape) . fst) candidates)
 
 addSample :: Monad m => (Vec2, Vec2, Double) -> PoissonT m ()
 addSample (sample, parent, radius) = do
