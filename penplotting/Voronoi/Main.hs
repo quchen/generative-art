@@ -12,6 +12,7 @@ import           Draw.Plotting
 import           Geometry                     as G
 import           Geometry.Algorithms.Delaunay
 import           Geometry.Algorithms.Sampling
+import           Geometry.Algorithms.SimplexNoise
 import           Geometry.Algorithms.Voronoi
 import           Graphics.Rendering.Cairo     as C
 
@@ -22,7 +23,40 @@ picWidth = 500
 picHeight = 500
 
 main :: IO ()
-main = do
+main = mainVoronoiDithering >> mainVoronoiDelaunay
+
+mainVoronoiDithering :: IO ()
+mainVoronoiDithering = do
+    gen <- initialize (V.fromList [1234])
+    let center = Vec2 (picWidth / 2) (picHeight / 2)
+        count = 500
+        -- constructed so that we have roughly `count` points
+        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
+        samplingProps = PoissonDiscParams
+            { _poissonShape = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
+            , _poissonRadius = adaptiveRadius
+            , _poissonK = 4
+            }
+    points <- poissonDisc gen samplingProps
+    print (length points)
+    let delaunay = lloydRelaxation 8 $ bowyerWatson (boundingBox (Vec2 0 0, Vec2 picWidth picHeight)) points
+        voronoi = toVoronoi delaunay
+
+    cellSize <- (((*0.5) . (+1)) .) <$> simplex2 def { _simplexFrequency = 1/100 , _simplexOctaves = 2 } gen
+
+    let resizeCell poly = G.transform (scaleAround centroid (cellSize centroid)) poly
+            where centroid = polygonCentroid poly
+        isInnerCell (Polygon ps) = all (\(Vec2 x y) -> x > 0 && y > 0 && x < picWidth && y < picHeight) ps
+        polygons = resizeCell <$> filter isInnerCell (_voronoiRegion <$> _voronoiCells voronoi)
+
+    render "out/voronoi-dithering.png" picWidth picHeight $ do
+        setColor black
+        C.paint
+        for_ polygons $ drawPoly white
+
+
+mainVoronoiDelaunay :: IO ()
+mainVoronoiDelaunay = do
     gen <- initialize (V.fromList [1234])
     let center = Vec2 (picWidth / 2) (picHeight / 2)
         count = 200
