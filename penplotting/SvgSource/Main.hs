@@ -4,19 +4,18 @@ module Main (main) where
 
 
 
-import           Control.Monad
-import qualified Data.Set                  as S
-import qualified Data.Text                 as T
-import qualified Data.Text.IO              as T
-import qualified Data.Text.Lazy            as TL
-import qualified Data.Text.Lazy.IO         as TL
+import qualified Data.Set            as S
+import qualified Data.Text           as T
+import qualified Data.Text.IO        as T
+import qualified Data.Text.Lazy      as TL
+import qualified Data.Text.Lazy.IO   as TL
 import           Options.Applicative
-import           Options.Applicative.Types
 import           System.Exit
 
 import Draw
 import Draw.Plotting
-import Geometry           as G
+import Draw.Plotting.CmdArgs
+import Geometry              as G
 import Geometry.Shapes
 import Geometry.SvgParser
 
@@ -61,7 +60,7 @@ main = do
 scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
 scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def
   where
-    Options{_margin=margin, _height=height, _width=width} = options
+    Options{_canvas=Canvas{_canvasMargin=margin, _canvasHeight=height, _canvasWidth=width}} = options
     margin2 = Vec2 margin margin
 
 polyLineLength :: Sequential list => list Vec2 -> Double
@@ -85,15 +84,13 @@ data Options = Options
     { _inputFileSvg :: FilePath
     , _outputFileG :: FilePath
 
-    , _width :: Double
-    , _height :: Double
-    , _margin :: Double
+    , _canvas :: Canvas
     } deriving (Eq, Ord, Show)
 
 commandLineOptions :: IO Options
 commandLineOptions = execParser parserOpts
   where
-    progOpts = (\i o (x,y) margin -> Options i o x y margin)
+    progOpts = Options
         <$> strOption (mconcat
             [ long "input"
             , short 'f'
@@ -106,68 +103,9 @@ commandLineOptions = execParser parserOpts
             , metavar "<file>"
             , help "Output GCode file"
             ])
-        <*> asum
-            [ option sizeReader $ mconcat
-                [ long "size"
-                , short 's'
-                , metavar "[mm]"
-                , help "Output size, format: <width>x<height>"
-                ]
-            , flag' (paper_a4_long, paper_a4_short) $ mconcat
-                [ long "a4-landscape"
-                , help "DIN A4, landscape orientation (271 mm × 210 mm)"
-                ]
-            , flag' (paper_a4_short, paper_a4_long) $ mconcat
-                [ long "a4-portrait"
-                , help "DIN A4, portrait orientation (210 mm × 271 mm)"
-                ]
-            , flag' (paper_a3_long, paper_a3_short) $ mconcat
-                [ long "a3-landscape"
-                , help "DIN A3, landscape orientation (420 mm × 271 mm)"
-                ]
-            , flag' (paper_a3_short, paper_a3_long) $ mconcat
-                [ long "a3-portrait"
-                , help "DIN A3, portrait orientation (271 mm × 420 mm)"
-                ]
-            , flag' (paper_a2_long, paper_a2_short) $ mconcat
-                [ long "a2-landscape"
-                , help "DIN A2, landscape orientation (594 mm × 420 mm)"
-                ]
-            , flag' (paper_a2_short, paper_a2_long) $ mconcat
-                [ long "a2-portrait"
-                , help "DIN A2, portrait orientation (420 mm × 594 mm)"
-                ]
-            ]
-        <*> option auto (mconcat
-            [ long "margin"
-            , metavar "[mm]"
-            , value 10
-            , showDefaultWith (\x -> show x <> " mm")
-            , help "Ensure this much blank space to the edge"
-            ])
+        <*> canvasP
 
     parserOpts = info (progOpts <**> helper)
       ( fullDesc
      <> progDesc "Convert SVG to GCode"
      <> header "Not that much of SVG is supported, bear with me…" )
-
-    sizeReader :: ReadM (Double, Double)
-    sizeReader = do
-        argStr <- readerAsk
-        let wh = do
-                (w, c:rest) <- reads argStr
-                guard (c == 'x' || c == '×')
-                (h, rest') <- reads rest
-                guard (null rest')
-                pure (w,h)
-        case wh of
-            [(w,h)] -> pure (w,h)
-            _other -> readerError $ "Argument is not of the form <width>x<height>: " ++ argStr
-
-paper_a4_long, paper_a4_short, paper_a3_short, paper_a3_long, paper_a2_short, paper_a2_long :: Double
-paper_a4_long = 297
-paper_a4_short = 210
-paper_a3_short = paper_a4_long
-paper_a3_long = 420
-paper_a2_short = paper_a3_long
-paper_a2_long = 594

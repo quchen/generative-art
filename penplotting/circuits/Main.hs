@@ -17,6 +17,7 @@ import           System.FilePath
 import qualified System.Random.MWC   as MWC
 
 import Draw.Plotting
+import Draw.Plotting.CmdArgs
 import Draw.Plotting.GCode
 import Geometry                       as G
 import Geometry.Coordinates.Hexagonal as Hex
@@ -60,7 +61,7 @@ hex2wire = G.transform mirrorYCoords (S.map (Wire . map (toVec2 1)))
 fitToPaper :: (Transform geo, HasBoundingBox geo) => Options -> geo -> geo
 fitToPaper opts geo = G.transform (G.transformBoundingBox geo (Vec2 margin margin, Vec2 w h -. Vec2 margin margin) def) geo
   where
-    Options {_width=w, _height=h, _margin=margin} = opts
+    Options {_canvas=Canvas{_canvasWidth=w, _canvasHeight=h, _canvasMargin=margin}} = opts
 
 newtype Wire = Wire [Vec2]
     deriving (Eq, Ord, Show)
@@ -135,15 +136,13 @@ data Options = Options
     , _numColors :: Int
     , _lambdaScale :: Int
 
-    , _width :: Double
-    , _height :: Double
-    , _margin :: Double
+    , _canvas :: Canvas
     } deriving (Eq, Ord, Show)
 
 commandLineOptions :: IO Options
 commandLineOptions = execParser parserOpts
   where
-    progOpts = (\o colors lambdaScale (x,y) margin -> Options o colors lambdaScale x y margin)
+    progOpts = Options
         <$> strOption (mconcat
             [ long "output"
             , short 'o'
@@ -164,65 +163,9 @@ commandLineOptions = execParser parserOpts
             , showDefault
             , help "Fineness of the circuit pattern. Higher is finer."
             ])
-        <*> asum
-            [ option sizeReader $ mconcat
-                [ long "size"
-                , short 's'
-                , metavar "[mm]"
-                , help "Output size, format: <width>x<height>"
-                ]
-            , flag' (paper_a4_long, paper_a4_short) $ mconcat
-                [ long "a4-landscape"
-                , help "DIN A4, landscape orientation (271 mm × 210 mm)"
-                ]
-            , flag' (paper_a4_short, paper_a4_long) $ mconcat
-                [ long "a4-portrait"
-                , help "DIN A4, portrait orientation (210 mm × 271 mm)"
-                ]
-            , flag' (paper_a3_long, paper_a3_short) $ mconcat
-                [ long "a3-landscape"
-                , help "DIN A3, landscape orientation (420 mm × 271 mm)"
-                ]
-            , flag' (paper_a3_short, paper_a3_long) $ mconcat
-                [ long "a3-portrait"
-                , help "DIN A3, portrait orientation (271 mm × 420 mm)"
-                ]
-            , flag' (paper_a2_long, paper_a2_short) $ mconcat
-                [ long "a2-landscape"
-                , help "DIN A2, landscape orientation (594 mm × 420 mm)"
-                ]
-            , flag' (paper_a2_short, paper_a2_long) $ mconcat
-                [ long "a2-portrait"
-                , help "DIN A2, portrait orientation (420 mm × 594 mm)"
-                ]
-            ]
-        <*> option auto (mconcat
-            [ long "margin"
-            , metavar "[mm]"
-            , value 10
-            , showDefaultWith (\x -> show x <> " mm")
-            , help "Ensure this much blank space to the edge"
-            ])
+        <*> canvasP
 
     parserOpts = info (progOpts <**> helper)
       ( fullDesc
      <> progDesc "Convert SVG to GCode"
      <> header "Not that much of SVG is supported, bear with me…" )
-
-    sizeReader :: ReadM (Double, Double)
-    sizeReader = do
-            w <- auto
-            _ <- eitherReader $ \case
-                "x" -> Right ()
-                "×" -> Right ()
-                _ -> Left "expected width/height separator: x"
-            h <- auto
-            pure (w,h)
-
-paper_a4_long, paper_a4_short, paper_a3_short, paper_a3_long, paper_a2_short, paper_a2_long :: Double
-paper_a4_long = 297
-paper_a4_short = 210
-paper_a3_short = paper_a4_long
-paper_a3_long = 420
-paper_a2_short = paper_a3_long
-paper_a2_long = 594
