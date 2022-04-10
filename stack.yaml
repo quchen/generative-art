@@ -5,6 +5,7 @@ packages:
     - penplotting/ApollonianGasket
     - penplotting/circuits
     - penplotting/FlowLines
+    - penplotting/GaussianHexagons
     - penplotting/Hatched
     - penplotting/PoissonDisc
     - penplotting/SvgSource
