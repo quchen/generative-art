@@ -27,32 +27,47 @@ main = mainVoronoiDithering >> mainVoronoiDelaunay
 
 mainVoronoiDithering :: IO ()
 mainVoronoiDithering = do
-    gen <- initialize (V.fromList [1234])
+    gen <- initialize (V.fromList [1237])
     let center = Vec2 (picWidth / 2) (picHeight / 2)
-        count = 500
+        bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
+        count = 600
         -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
-            { _poissonShape = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
+            { _poissonShape = bb
             , _poissonRadius = adaptiveRadius
             , _poissonK = 4
             }
     points <- poissonDisc gen samplingProps
     print (length points)
-    let delaunay = lloydRelaxation 8 $ bowyerWatson (boundingBox (Vec2 0 0, Vec2 picWidth picHeight)) points
+    let delaunay = lloydRelaxation 8 $ bowyerWatson bb points
         voronoi = toVoronoi delaunay
 
-    cellSize <- (((*0.5) . (+1)) .) <$> simplex2 def { _simplexFrequency = 1/100 , _simplexOctaves = 2 } gen
+    noise <- simplex2 def { _simplexFrequency = 1/150 , _simplexOctaves = 2 } gen
+
+    let cellSize p = 0.5 * (1 + noise p) * exp (-0.00001 * norm (p -. center) ^ 2)
 
     let resizeCell poly = G.transform (scaleAround centroid (cellSize centroid)) poly
             where centroid = polygonCentroid poly
-        isInnerCell (Polygon ps) = all (\(Vec2 x y) -> x > 0 && y > 0 && x < picWidth && y < picHeight) ps
+        isInnerCell polygon = insideBoundingBox (G.transform (scaleAround center 1.05) polygon) bb
         polygons = resizeCell <$> filter isInnerCell (_voronoiRegion <$> _voronoiCells voronoi)
 
     render "out/voronoi-dithering.png" picWidth picHeight $ do
         setColor black
         C.paint
         for_ polygons $ drawPoly white
+
+    let settings = def
+            { _feedrate = Just 3000
+            , _zTravelHeight = 5
+            , _zDrawingHeight = -2
+            , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)
+            }
+        removeMargin = G.transform (G.translate (Vec2 (-50) (-50)))
+    TL.writeFile "voronoi-delaunay.g" $ runPlot settings $ do
+        comment "To be plotted with white, silver or gold pen on 50cmx50cm black paper, with a margin of 5cm."
+        comment "Place the origin on the inside of the margin, i.e. at X50 Y50 from the paper corner."
+        for_ (removeMargin polygons) plot
 
 
 mainVoronoiDelaunay :: IO ()
