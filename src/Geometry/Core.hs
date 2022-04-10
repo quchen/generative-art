@@ -129,6 +129,7 @@ import           Data.Default.Class
 import           Data.Fixed
 import           Data.Foldable
 import           Data.List
+import           Data.List.Extended
 import qualified Data.Map            as M
 import qualified Data.Set            as S
 import           Data.Vector         (Vector)
@@ -136,7 +137,6 @@ import qualified System.Random.MWC   as MWC
 import           Text.Printf
 
 import Data.Sequential
-import Util
 
 
 
