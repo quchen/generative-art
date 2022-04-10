@@ -5,16 +5,17 @@ module Geometry.Algorithms.Sampling.PoissonDisc (
 
 
 
+import           Control.Monad
 import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import qualified Control.Monad.Trans.Reader as R
 import qualified Control.Monad.Trans.State  as S
 import           Data.Default.Class
-import           Data.Heap                  (Entry, Heap)
-import qualified Data.Heap                  as H
 import           Data.Map                   (Map)
 import qualified Data.Map                   as M
 import           Data.Maybe
+import           Data.Set                   (Set)
+import qualified Data.Set                   as S
 import           System.Random.MWC
 
 import Geometry
@@ -112,18 +113,21 @@ poissonDisc gen params = do
 data PoissonDiscState s = PoissonDiscState
     { _gen           :: !(Gen s)
     , _grid          :: !(Map (Int, Int) Vec2)
-    , _activeSamples :: !(Heap (Entry Double Vec2))
+    , _activeSamples :: !(Set Vec2)
     , _result        :: ![Vec2]
     , _initialPoint  :: !Vec2
     }
 
 sampleLoop :: PrimMonad m => PoissonT m ()
-sampleLoop = gets (H.uncons . _activeSamples) >>= \case
-    Nothing -> pure ()
-    Just (H.Entry _ closestActiveSample, heap') -> do
+sampleLoop = do
+    numActiveSamples <- gets (S.size . _activeSamples)
+    when (numActiveSamples > 0) $ do
+        randomSampleIndex <- gets _gen >>= lift . uniformRM (0, numActiveSamples - 1)
+        randomActiveSample <- gets (S.elemAt randomSampleIndex . _activeSamples)
+
         r <- asks _poissonRadius
 
-        candidates <- nextCandidates closestActiveSample
+        candidates <- nextCandidates randomActiveSample
 
         let validPoint candidate = do
                 neighbours <- neighbouringSamples candidate
@@ -133,8 +137,8 @@ sampleLoop = gets (H.uncons . _activeSamples) >>= \case
 
         case newSample of
             Nothing -> modify' (\s -> s
-                { _activeSamples = heap'
-                , _result = closestActiveSample : _result s })
+                { _activeSamples = S.delete randomActiveSample (_activeSamples s)
+                , _result = randomActiveSample : _result s })
             Just sample -> addSample sample
 
         sampleLoop
@@ -162,7 +166,7 @@ addSample sample = do
     distanceFromInitial <- do
         initial <- gets _initialPoint
         pure (norm (sample -. initial))
-    modify' (\s -> s { _activeSamples = H.insert (H.Entry distanceFromInitial sample) (_activeSamples s) })
+    modify' (\s -> s { _activeSamples = S.insert sample (_activeSamples s) })
 
 -- A cell in the grid has a side length of r/sqrt(2). Therefore, to detect
 -- collisions, we need to search a space of 5x5 cells at max.
