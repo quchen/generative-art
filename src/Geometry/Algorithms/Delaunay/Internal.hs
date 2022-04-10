@@ -61,7 +61,7 @@ getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> toList
 
 -- | Calculate the Delaunay triangulation of a set of vertices using the Bowyer-Watson algorithm.
 bowyerWatson :: HasBoundingBox bounds => bounds -> [Vec2] -> DelaunayTriangulation
-bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
+bowyerWatson bounds ps = foldl' bowyerWatsonStep initialDelaunay (filter (`insideBoundingBox` boundingBox bounds) ps)
   where
     initialTriangles = [triangle v1 v2 v4, triangle v2 v3 v4]
     initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (boundingBoxCenter bounds) 2) (boundingBoxPolygon bounds)
@@ -75,10 +75,7 @@ bowyerWatson bounds = foldl' bowyerWatsonStep initialDelaunay
 bowyerWatsonStep :: DelaunayTriangulation -> Vec2 -> DelaunayTriangulation
 bowyerWatsonStep delaunay@DelaunayTriangulation{..} newPoint = delaunay { _dtTriangulation = foldr RT.insert goodTriangles newTriangles }
   where
-    validNewPoint = if newPoint `insideBoundingBox` _dtBounds
-        then newPoint
-        else error "bowyerWatsonStep: user error: Tried to add a point outside the bounding box"
-    badTriangles = filter ((validNewPoint `inside`) . _dtCircle) (RT.fullyContains (boundingBox validNewPoint) _dtTriangulation)
+    badTriangles = filter ((newPoint `inside`) . _dtCircle) (RT.fullyContains (boundingBox newPoint) _dtTriangulation)
     goodTriangles = foldr RT.delete _dtTriangulation badTriangles
     outerPolygon = collectPolygon $ go (edges . _dtTriangle =<< badTriangles) M.empty
       where
