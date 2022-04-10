@@ -39,7 +39,7 @@ module Geometry.Algorithms.Voronoi (
     , mkVoronoi
     , addPoint
 
-    -- * Internal
+    -- * Internal>
     , updateCell
 ) where
 
