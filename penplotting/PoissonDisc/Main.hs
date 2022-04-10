@@ -27,12 +27,12 @@ main = do
     gen <- initialize (V.fromList [1237])
     let center = Vec2 (picWidth / 2) (picHeight / 2)
         bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
-        count = 600
+        count = 100
         -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
             { _poissonShape = bb
-            , _poissonRadius = adaptiveRadius
+            , _poissonRadius = \p -> adaptiveRadius / (1 + 0.01 * norm (p -. center))
             , _poissonK = 8
             }
     samples <- poissonDisc gen samplingProps
@@ -41,11 +41,11 @@ main = do
         setColor white
         C.paint
         setColor black
-        for_ samples $ drawSample (adaptiveRadius/2)
+        for_ samples drawSample
 
-drawSample :: Double -> (Vec2, Vec2) -> Render ()
-drawSample radius (sample, parent) = do
+drawSample :: (Vec2, Vec2, Double) -> Render ()
+drawSample (sample, parent, radius) = do
     sketch (Line parent sample)
     C.stroke
-    sketch (Circle sample radius)
+    sketch (Circle sample (radius/2))
     C.stroke
