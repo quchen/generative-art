@@ -63,13 +63,13 @@ renderGcodeIndented !level = \case
     G18_Plane_ZX -> "G18 (Use ZX plane)"
     G19_Plane_YZ -> "G19 (Use YZ plane)"
     G20_UseInches -> error "Inches aren’t going to happen here, sorry."
-    G21_UseMm -> "G01 (Use mm)"
+    G21_UseMm -> "G21 (Use mm)"
 
     G28_GotoPredefinedPosition x y z -> indent (bformat ("G28" % optional "X" % optional "Y" % optional "Z") x y z)
     G30_GotoPredefinedPosition x y z -> indent (bformat ("G30" % optional "X" % optional "Y" % optional "Z") x y z)
 
-    G90_AbsoluteMovement -> indent "G90 (G9(0) => abs(0)lute movement)"
-    G91_RelativeMovement -> indent "G91 (G9(1) => re(1)ative movement)"
+    G90_AbsoluteMovement -> indent "G90 ;(G9(0) => abs(0)lute movement)"
+    G91_RelativeMovement -> indent "G91 ;(G9(1) => re(1)ative movement)"
 
     G93_Feedrate_TravelInFractionofMinute -> "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
     G94_Feedrate_UnitsPerMinute -> "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
