@@ -355,8 +355,15 @@ data PauseMode
 drawingDistance :: Plot Double
 drawingDistance = gets _drawingDistance
 
-addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe BoundingBox -> Double -> [GCode] -> [GCode]
-addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight body = mconcat [[header], body, [footer]]
+addHeaderFooter
+    :: Maybe feedrate
+    -> Maybe FinishMove
+    -> Maybe BoundingBox
+    -> Double
+    -> Double
+    -> [GCode]
+    -> [GCode]
+addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanceDrawn_mm body = mconcat [[header], body, [footer]]
   where
     feedrateCheck = case feedrate of
         Just _ -> GBlock []
@@ -395,11 +402,14 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight body = 
         , G94_Feedrate_UnitsPerMinute
         ]
 
+    reportDrawingDistance = GComment (format ("Total drawing distance: " % fixed 1 % "m") (distanceDrawn_mm/1000))
+
     header = GBlock
         [ GComment "Header"
         , setDefaultModes
         , feedrateCheck
         , boundingBoxCheck
+        , reportDrawingDistance
         ]
 
     footer = GBlock
@@ -425,13 +435,14 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight body = 
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
 runPlot settings body =
-    let (_, _finalState, (gcode, drawnBB)) = runRWS body' settings initialState
+    let (_, finalState, (gcode, drawnBB)) = runRWS body' settings initialState
     in renderGCode
         (addHeaderFooter
             (_feedrate settings)
             (_finishMove settings)
             (if _previewDrawnShapesBoundingBox settings then Just drawnBB else Nothing)
             (_zTravelHeight settings)
+            (_drawingDistance finalState)
             gcode)
   where
     Plot body' = body
