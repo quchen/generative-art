@@ -29,6 +29,7 @@ dependencies:
     - mtl
     - mwc-random
     - Noise
+    - optparse-applicative
     - parallel
     - primitive
     - random
