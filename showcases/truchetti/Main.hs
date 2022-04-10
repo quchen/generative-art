@@ -5,6 +5,7 @@ module Main (main) where
 
 
 import           Data.List
+import           Data.List.Extended
 import qualified Data.Map                 as M
 import           Data.Traversable
 import qualified Data.Vector              as V
@@ -14,7 +15,6 @@ import           System.Random.MWC
 import Draw
 import Geometry
 import Geometry.Coordinates.Hexagonal
-import Util
 
 
 
