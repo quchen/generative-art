@@ -3,6 +3,7 @@ module Test.Uncategorized.Trajectory (tests) where
 
 
 import           Data.Foldable
+import           Data.List.Extended
 import           Data.Maybe
 import qualified Data.Set                 as S
 import           Data.Vector.Extended     (Vector)
@@ -14,7 +15,6 @@ import Draw
 import Geometry               as G
 import Geometry.Shapes        as G
 import Numerics.Interpolation
-import Util
 
 import Test.TastyAll
 

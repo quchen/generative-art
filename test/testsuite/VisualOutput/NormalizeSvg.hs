@@ -1,17 +1,19 @@
 module VisualOutput.NormalizeSvg (normalizeSvgFile) where
 
+
+
 import           Control.Monad
 import           Data.Foldable
-import           Data.List
+import           Data.List.Extended
 import           Data.Ord
-import           Data.Text       (Text)
-import qualified Data.Text       as T
-import qualified Data.Text.IO    as T
+import           Data.Text          (Text)
+import qualified Data.Text          as T
+import qualified Data.Text.IO       as T
 import           System.FilePath
 import           System.IO
 import           Text.Regex.TDFA
 
-import Util
+
 
 -- | Cairo has nondeterministic output, since it seems to generate its running IDs from some shared counter.
 -- This remedies that by renumbering all offending fields by time of occurrence in

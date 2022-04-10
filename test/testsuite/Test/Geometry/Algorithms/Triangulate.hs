@@ -4,6 +4,7 @@ module Test.Geometry.Algorithms.Triangulate (tests) where
 
 import           Control.Monad.ST
 import           Data.Foldable
+import           Data.List.Extended
 import           Data.Traversable
 import qualified Data.Vector                     as V
 import           Graphics.Rendering.Cairo        as Cairo hiding
@@ -15,7 +16,6 @@ import           System.Random.MWC.Distributions
 import Draw
 import Geometry
 import Geometry.Shapes
-import Util
 
 import Test.TastyAll
 
