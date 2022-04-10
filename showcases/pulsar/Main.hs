@@ -10,7 +10,7 @@ import qualified Data.Vector                as V
 import qualified Data.Vector.Algorithms.Tim as Tim
 import           Draw
 import           Geometry                   as G
-import           Graphics.Rendering.Cairo   as C
+import           Graphics.Rendering.Cairo   as C hiding (x, y)
 import           Numerics.Interpolation
 
 

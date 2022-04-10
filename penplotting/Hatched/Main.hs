@@ -4,15 +4,13 @@ module Main (main) where
 import Draw.Plotting
 import Draw
 import Geometry
-import Geometry.Algorithms.Clipping
 import qualified Geometry.Shapes as Shapes (haskellLogo)
-import qualified Graphics.Rendering.Cairo as C
 import Data.List (sortOn)
 import qualified Data.Text.Lazy.IO as T
 
 -- DIN A4
-picWidth, picHeight :: Double
-picWidth = 297
+_picWidth, picHeight :: Double
+_picWidth = 297
 picHeight = 210
 
 haskellLogo :: [Polygon]

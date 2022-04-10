@@ -7,9 +7,9 @@ import           Data.Coerce
 import           Data.List
 import qualified Data.Text.Lazy.IO        as T
 import qualified Data.Vector              as V
-import qualified Graphics.Rendering.Cairo as C
+import           Graphics.Rendering.Cairo as C hiding (x, y)
 import           Options.Applicative
-import           System.Random.MWC (initialize)
+import           System.Random.MWC        (initialize)
 
 
 import qualified Data.Set                        as S
@@ -18,12 +18,11 @@ import           Draw
 import           Draw.Plotting
 import           Geometry                        as G
 import           Geometry.Algorithms.PerlinNoise
+import           Geometry.Algorithms.Sampling
 import qualified Geometry.Processes.FlowField    as ODE
-import           Graphics.Rendering.Cairo
 import           Numerics.DifferentialEquation
 import           Numerics.Functions
 import           Numerics.VectorAnalysis
-import Geometry.Algorithms.Sampling
 
 
 

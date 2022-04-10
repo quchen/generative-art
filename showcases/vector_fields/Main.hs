@@ -2,16 +2,15 @@ module Main (main) where
 
 
 
-import           Control.Monad
-import qualified Graphics.Rendering.Cairo        as C
-import           System.Random.MWC
-import           System.Random.MWC.Distributions
+import Control.Monad
+import Graphics.Rendering.Cairo        as C hiding (x, y)
+import System.Random.MWC
+import System.Random.MWC.Distributions
 
 import           Draw
 import           Geometry                        as G
 import           Geometry.Algorithms.PerlinNoise
 import qualified Geometry.Processes.FlowField    as ODE
-import           Graphics.Rendering.Cairo
 import           Numerics.DifferentialEquation
 import           Numerics.Functions
 import           Numerics.VectorAnalysis

@@ -6,7 +6,7 @@ import           Data.List
 import           Data.Maybe
 import           Data.Ord
 import qualified Data.Vector              as V
-import           Graphics.Rendering.Cairo as C
+import           Graphics.Rendering.Cairo as C hiding (height, width, x, y)
 import           Math.Noise               (Perlin (..), getValue, perlin)
 import           Prelude                  hiding ((**))
 import           System.Random.MWC
