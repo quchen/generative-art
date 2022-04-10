@@ -342,7 +342,7 @@ comment txt = gCode [ GComment txt ]
 
 -- | Pause the plot for later resumption at the current state
 pause :: PauseMode -> Plot ()
-pause PauseUserConfirm = penUp >> gCode [ M0_Pause ]
+pause PauseUserConfirm = gCode [ M0_Pause ]
 pause (PauseSeconds seconds) = gCode [ G04_Dwell seconds ]
 
 data PauseMode
