@@ -6,6 +6,7 @@ packages:
     - penplotting/circuits
     - penplotting/FlowLines
     - penplotting/Hatched
+    - penplotting/PoissonDisc
     - penplotting/SvgSource
     - penplotting/Voronoi
     - showcases/circuits
