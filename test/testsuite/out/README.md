@@ -273,6 +273,12 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw.hs/radialCoordinateSystem.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/difference.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/intersection.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/union.svg)
+
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay.svg)
