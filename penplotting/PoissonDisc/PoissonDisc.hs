@@ -150,7 +150,7 @@ nextCandidates (v, r) = do
     PoissonDiscParams{..} <- asks id
     candidates <- replicateM _poissonK $ do
         phi <- lift (rad <$> uniformRM (0, 2*pi) _gen)
-        r' <- lift (uniformRM (r, 2*r) _gen)
+        r' <- lift (uniformRM (0.5*r, 2*r) _gen)
         let v' = v +. polar phi r'
         pure (v', _poissonRadius v')
     pure (filter ((`insideBoundingBox` _poissonShape) . fst) candidates)
