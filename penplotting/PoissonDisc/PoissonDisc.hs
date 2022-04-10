@@ -101,7 +101,7 @@ poissonDisc gen params = do
 
 data PoissonDiscState s = PoissonDiscState
     { _gen           :: !(Gen s)
-    , _allSamples    :: !(Heap Vec2)
+    , _allSamples    :: !(Heap (Vec2, Double))
     , _activeSamples :: !(Heap (Entry Double (Vec2, Vec2, Double)))
     , _result        :: ![(Vec2, Vec2, Double)]
     , _initialPoint  :: !Vec2
@@ -118,7 +118,7 @@ sampleLoop = gets (H.uncons . _activeSamples) >>= \case
 
         let validPoint candidate = do
                 allSamples <- gets _allSamples
-                pure (not (any (\p -> norm (candidate -. p) <= r) allSamples))
+                pure (not (any (\(p, r') -> norm (candidate -. p) <= 0.5*(r+r')) allSamples))
 
         newSample <- findM validPoint candidates
 
@@ -148,7 +148,7 @@ nextCandidates v = do
 
 addSample :: Monad m => (Vec2, Vec2, Double) -> PoissonT m ()
 addSample (sample, parent, radius) = do
-    modify' (\s -> s { _allSamples = H.insert sample (_allSamples s) })
+    modify' (\s -> s { _allSamples = H.insert (sample, radius) (_allSamples s) })
     distanceFromInitial <- do
         initial <- gets _initialPoint
         pure (norm (sample -. initial))
