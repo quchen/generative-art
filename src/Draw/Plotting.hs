@@ -47,6 +47,7 @@ import qualified Data.Set       as S
 import qualified Data.Text.Lazy as TL
 import           Data.Vector    (Vector)
 import qualified Data.Vector    as V
+import           Formatting     hiding (center)
 
 import Draw.Plotting.GCode
 import Geometry.Bezier
@@ -369,7 +370,9 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
     boundingBoxCheck = case drawnShapesBoundingBox of
         Nothing -> GBlock []
         Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock . mconcat $
-            [ [GComment "Trace GCode bounding box"]
+            [ [GComment "Trace bounding box"]
+            , [GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)]
+            , [GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)]
             , [G93_Feedrate_TravelInFractionofMinute]
             , intersperse (G04_Dwell 0.5)
                 -- 60/n ==> n seconds to move
