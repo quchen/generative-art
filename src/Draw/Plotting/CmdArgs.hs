@@ -37,31 +37,31 @@ canvasP = f <$> paperSizeP <*> orientationP <*> marginP
 
 paperSizeP :: Parser (Double, Double)
 paperSizeP = asum
-    [ option customSizeReader $ mconcat
-        [ long "size"
-        , short 's'
-        , metavar "[mm]"
-        , help "Custom output size, format: <length>x<length>"
-        ]
-    , flag' (paper_a5_long, paper_a5_short) $ mconcat
-        [ long "a5"
-        , help "DIN A5 (210 mm × 148 mm)"
-        ]
-    , flag' (paper_a4_long, paper_a4_short) $ mconcat
-        [ long "a4"
-        , help "DIN A4 (271 mm × 210 mm)"
-        ]
-    , flag' (paper_a3_long, paper_a3_short) $ mconcat
-        [ long "a3"
-        , help "DIN A3 (420 mm × 271 mm)"
+    [ flag' (paper_a1_long, paper_a1_short) $ mconcat
+        [ long "a1"
+        , help "DIN A1 (841 mm × 594 mm)"
         ]
     , flag' (paper_a2_long, paper_a2_short) $ mconcat
         [ long "a2"
         , help "DIN A2 (594 mm × 420 mm)"
         ]
-    , flag' (paper_a1_long, paper_a1_short) $ mconcat
-        [ long "a1"
-        , help "DIN A1 (841 mm × 594 mm)"
+    , flag' (paper_a3_long, paper_a3_short) $ mconcat
+        [ long "a3"
+        , help "DIN A3 (420 mm × 271 mm)"
+        ]
+    , flag' (paper_a4_long, paper_a4_short) $ mconcat
+        [ long "a4"
+        , help "DIN A4 (271 mm × 210 mm)"
+        ]
+    , flag' (paper_a5_long, paper_a5_short) $ mconcat
+        [ long "a5"
+        , help "DIN A5 (210 mm × 148 mm)"
+        ]
+    , option customSizeReader $ mconcat
+        [ long "size"
+        , short 's'
+        , metavar "[mm]"
+        , help "Custom output size, format: <length>x<length>"
         ]
     ]
 
@@ -72,7 +72,7 @@ orientationP = asum
     [ flag' Landscape $ mconcat
         [ long "landscape" ]
     , flag' Portrait $ mconcat
-        [ long "landscape" ]
+        [ long "portrait" ]
     ]
 
 marginP :: Parser Double
