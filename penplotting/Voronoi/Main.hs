@@ -9,7 +9,6 @@ import           System.Random.MWC
 
 import           Draw
 import           Draw.Plotting
-import           Draw.Plotting.GCode
 import           Geometry                     as G
 import           Geometry.Algorithms.Delaunay
 import           Geometry.Algorithms.Sampling
@@ -59,10 +58,13 @@ main = do
         comment "Start with a black pen."
         for_ (removeMargin $ filter polygonInRange $ getPolygons delaunay) plot
         repositionTo zero
-        gCode [ G00_LinearRapidMove Nothing Nothing (Just 0) ]
+        withDrawingHeight 0 penDown
         pause PauseUserConfirm
         comment "Now change to a white pen."
-        for_ (removeMargin $ filter polygonInRange $ _voronoiRegion <$> _voronoiCells voronoi) plot
+        penUp
+        withFeedrate 3000 $ do -- Lower feedrate for white pen, and draw twice
+            for_ (removeMargin $ filter polygonInRange $ _voronoiRegion <$> _voronoiCells voronoi) plot
+            for_ (removeMargin $ filter polygonInRange $ _voronoiRegion <$> _voronoiCells voronoi) plot
 
 drawPoly :: Color Double -> Polygon -> Render ()
 drawPoly _ (Polygon []) = pure ()
