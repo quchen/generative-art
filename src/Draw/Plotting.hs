@@ -355,8 +355,8 @@ data PauseMode
 drawingDistance :: Plot Double
 drawingDistance = gets _drawingDistance
 
-addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe (BoundingBox, Double) -> [GCode] -> [GCode]
-addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body ++ [footer]
+addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe BoundingBox -> Double -> [GCode] -> [GCode]
+addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight body = mconcat [[header], body, [footer]]
   where
     feedrateCheck = case feedrate of
         Just _ -> GBlock []
@@ -369,19 +369,20 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
 
     boundingBoxCheck = case drawnShapesBoundingBox of
         Nothing -> GBlock []
-        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax), zTravelHeight) -> GBlock . mconcat $
+        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) -> GBlock . mconcat $
             [ [GComment "Trace bounding box"]
             , [GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)]
             , [GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)]
             , [G93_Feedrate_TravelInFractionofMinute]
-            , intersperse (G04_Dwell 0.5)
+            , [ G00_LinearRapidMove (Just xMin) (Just yMin) (Just zTravelHeight)
+              , G04_Dwell 0.5
                 -- 60/n ==> n seconds to move
-                [ G01_LinearFeedrateMove (Just (60/3)) (Just x) (Just y) (Just zTravelHeight)
-                | Vec2 x y <- [ Vec2 xMin yMin
-                              , Vec2 xMax yMin
-                              , Vec2 xMax yMax
-                              , Vec2 xMin yMax
-                              , Vec2 xMin yMin] ]
+              , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
+              , G04_Dwell 0.5
+              , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
+              , G04_Dwell 0.5
+              , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
+              ]
             , [G94_Feedrate_UnitsPerMinute]
             , [M0_Pause]
             ]
@@ -413,11 +414,13 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body 
             ]
         Just FinishWithG28 -> GBlock
             [ GComment "Move to predefined position"
-            , G28_GotoPredefinedPosition Nothing Nothing (Just 30)
+            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+            , G28_GotoPredefinedPosition Nothing Nothing Nothing
             ]
         Just FinishWithG30 -> GBlock
             [ GComment "Move to predefined position"
-            , G30_GotoPredefinedPosition Nothing Nothing (Just 30)
+            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+            , G30_GotoPredefinedPosition Nothing Nothing Nothing
             ]
 
 runPlot :: PlottingSettings -> Plot a -> TL.Text
@@ -427,7 +430,8 @@ runPlot settings body =
         (addHeaderFooter
             (_feedrate settings)
             (_finishMove settings)
-            (if _previewDrawnShapesBoundingBox settings then Just (drawnBB, _zTravelHeight settings) else Nothing)
+            (if _previewDrawnShapesBoundingBox settings then Just drawnBB else Nothing)
+            (_zTravelHeight settings)
             gcode)
   where
     Plot body' = body
