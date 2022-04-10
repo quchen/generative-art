@@ -59,11 +59,11 @@ renderGcodeIndented !level = \case
 
     G04_Dwell s -> indent (bformat ("G4" % required "P") s)
 
-    G17_Plane_XY -> "G17 (Use XY plane)"
-    G18_Plane_ZX -> "G18 (Use ZX plane)"
-    G19_Plane_YZ -> "G19 (Use YZ plane)"
+    G17_Plane_XY -> indent "G17 (Use XY plane)"
+    G18_Plane_ZX -> indent "G18 (Use ZX plane)"
+    G19_Plane_YZ -> indent "G19 (Use YZ plane)"
     G20_UseInches -> error "Inches aren’t going to happen here, sorry."
-    G21_UseMm -> "G21 (Use mm)"
+    G21_UseMm -> indent "G21 (Use mm)"
 
     G28_GotoPredefinedPosition x y z -> indent (bformat ("G28" % optional "X" % optional "Y" % optional "Z") x y z)
     G30_GotoPredefinedPosition x y z -> indent (bformat ("G30" % optional "X" % optional "Y" % optional "Z") x y z)
@@ -71,8 +71,8 @@ renderGcodeIndented !level = \case
     G90_AbsoluteMovement -> indent "G90 ;(G9(0) => abs(0)lute movement)"
     G91_RelativeMovement -> indent "G91 ;(G9(1) => re(1)ative movement)"
 
-    G93_Feedrate_TravelInFractionofMinute -> "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
-    G94_Feedrate_UnitsPerMinute -> "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
+    G93_Feedrate_TravelInFractionofMinute -> indent "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
+    G94_Feedrate_UnitsPerMinute -> indent "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
   where
     indentation = "    "
     indent x = TL.fromLazyText (TL.replicate (fromIntegral level) indentation) <> x
