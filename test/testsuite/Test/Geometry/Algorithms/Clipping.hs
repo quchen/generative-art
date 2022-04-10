@@ -8,7 +8,7 @@ import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
 import Geometry.Algorithms.Clipping
-import Geometry.Core           as G
+import Geometry.Core                as G
 import Geometry.Shapes
 
 import Test.TastyAll
@@ -313,17 +313,29 @@ hatchSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping
         sketch polygon
         stroke
 
-polygonBinaryOpRender :: Polygon -> Polygon -> [Polygon] -> Render ()
+polygonBinaryOpRender :: Polygon -> Polygon -> [(Polygon, IslandOrHole)] -> Render ()
 polygonBinaryOpRender p1 p2 result = do
     setLineJoin LineJoinRound
     cairoScope $ setColor (mathematica97 0) >> setLineWidth 1 >> sketch p1 >> stroke
     cairoScope $ setColor (mathematica97 1) >> setLineWidth 1 >> sketch p2 >> stroke
     cairoScope $ do
-        for_ result sketch
-        setColor (mathematica97 2 `withOpacity` 0.2)
-        fill
+        for_ (zip [2..] result) $ \(i, (polygon, ty)) -> cairoScope $ do
+            cairoScope $ do
+                setLineWidth 1
+                sketch polygon
+                setColor (mathematica97 i `withOpacity` 0.2)
+                fillPreserve
+                setColor black
+                case ty of
+                    Island -> pure ()
+                    Hole -> setDash [2,2] 0
+                stroke
+            let Polygon corners = polygon
+            for_ corners $ \corner -> cairoScope $ do
+                sketch (Circle corner 1.5)
+                fill
 
-polygonBinaryOpStressTest :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpStressTest :: (Polygon -> Polygon -> [(Polygon, IslandOrHole)]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpStressTest operation testName filePath =
     let p1 = Polygon
             [ Vec2 40 30, Vec2 140 30, Vec2 140 140, Vec2 120 140, Vec2 120 80,
@@ -363,7 +375,7 @@ intersectionOfDisjointPolygonsTest = testCase "Intersection of disjoint polygons
         p2 = boundingBoxPolygon [Vec2 20 20, Vec2 30 30]
     assertEqual "Intersection should be empty" (Expected []) (Actual (intersectionPP p1 p2))
 
-polygonBinaryOpSimple :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpSimple :: (Polygon -> Polygon -> [(Polygon, IslandOrHole)]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpSimple operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
@@ -373,22 +385,22 @@ polygonBinaryOpSimple operation testName filePath =
 unionOfSimpleSquaresTest :: TestTree
 unionOfSimpleSquaresTest = polygonBinaryOpSimple
     unionPP
-    "Union of simple squares"
+    "Simple squares"
     "docs/geometry/clipping/polygon-polygon-union-simple"
 
 intersectionOfSimpleSquaresTest :: TestTree
 intersectionOfSimpleSquaresTest = polygonBinaryOpSimple
     intersectionPP
-    "Intersection of simple squares"
+    "Simple squares"
     "docs/geometry/clipping/polygon-polygon-intersection-simple"
 
 differenceOfSimpleSquaresTest :: TestTree
 differenceOfSimpleSquaresTest = polygonBinaryOpSimple
     differencePP
-    "difference of simple squares"
+    "Simple squares"
     "docs/geometry/clipping/polygon-polygon-difference-simple"
 
-polygonBinaryOpDisjoint :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDisjoint :: (Polygon -> Polygon -> [(Polygon, IslandOrHole)]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpDisjoint operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 70 140]
         p2 = boundingBoxPolygon [Vec2 80 10, Vec2 140 140]
@@ -398,22 +410,22 @@ polygonBinaryOpDisjoint operation testName filePath =
 unionOfDisjointSquaresTest :: TestTree
 unionOfDisjointSquaresTest = polygonBinaryOpDisjoint
     unionPP
-    "Union of disjoint squares"
+    "Disjoint squares"
     "docs/geometry/clipping/polygon-polygon-union-disjoint"
 
 intersectionOfDisjointSquaresTest :: TestTree
 intersectionOfDisjointSquaresTest = polygonBinaryOpDisjoint
     intersectionPP
-    "Intersection of disjoint squares"
+    "Disjoint squares"
     "docs/geometry/clipping/polygon-polygon-intersection-disjoint"
 
 differenceOfDisjointSquaresTest :: TestTree
 differenceOfDisjointSquaresTest = polygonBinaryOpDisjoint
     differencePP
-    "difference of disjoint squares"
+    "Disjoint squares"
     "docs/geometry/clipping/polygon-polygon-difference-disjoint"
 
-polygonBinaryOpDoubleTraversal :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpDoubleTraversal :: (Polygon -> Polygon -> [(Polygon, IslandOrHole)]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpDoubleTraversal operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 50, Vec2 140 100]
         p2 = boundingBoxPolygon [Vec2 50 10, Vec2 100 140]
@@ -423,22 +435,22 @@ polygonBinaryOpDoubleTraversal operation testName filePath =
 unionOfDoubleTraversalSquaresTest :: TestTree
 unionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
     unionPP
-    "Union of double traversal cross"
+    "Double traversal cross"
     "docs/geometry/clipping/polygon-polygon-union-double-traversal"
 
 intersectionOfDoubleTraversalSquaresTest :: TestTree
 intersectionOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
     intersectionPP
-    "Intersection of double traversal cross"
+    "Double traversal cross"
     "docs/geometry/clipping/polygon-polygon-intersection-double-traversal"
 
 differenceOfDoubleTraversalSquaresTest :: TestTree
 differenceOfDoubleTraversalSquaresTest = polygonBinaryOpDoubleTraversal
     differencePP
-    "difference of double traversal cross"
+    "Double traversal cross"
     "docs/geometry/clipping/polygon-polygon-difference-double-traversal"
 
-polygonBinaryOpFullySubsumed :: (Polygon -> Polygon -> [Polygon]) -> TestName -> FilePath -> TestTree
+polygonBinaryOpFullySubsumed :: (Polygon -> Polygon -> [(Polygon, IslandOrHole)]) -> TestName -> FilePath -> TestTree
 polygonBinaryOpFullySubsumed operation testName filePath =
     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 90 90]
         p2 = boundingBoxPolygon [Vec2 40 40, Vec2 60 60]
@@ -448,17 +460,17 @@ polygonBinaryOpFullySubsumed operation testName filePath =
 unionOfFullySubsumedSquaresTest :: TestTree
 unionOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
     unionPP
-    "Union where second polygon is fully inside first"
+    "Second polygon is fully inside first"
     "docs/geometry/clipping/polygon-polygon-union-fully-subsumed"
 
 intersectionOfFullySubsumedSquaresTest :: TestTree
 intersectionOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
     intersectionPP
-    "Intersection where second polygon is fully inside first"
+    "Second polygon is fully inside first"
     "docs/geometry/clipping/polygon-polygon-intersection-fully-subsumed"
 
 differenceOfFullySubsumedSquaresTest :: TestTree
 differenceOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
     differencePP
-    "difference where second polygon is fully inside first"
+    "Second polygon is fully inside first"
     "docs/geometry/clipping/polygon-polygon-difference-fully-subsumed"

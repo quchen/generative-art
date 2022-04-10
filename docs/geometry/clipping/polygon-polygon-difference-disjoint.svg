@@ -3,5 +3,10 @@
 <g id="id1">
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 10 140 L 70 140 L 70 10 Z M 10 10 "/>
 <path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 80 10 L 80 140 L 140 140 L 140 10 Z M 80 10 "/>
+<path style="fill-rule:nonzero;fill:rgb(56.0181%,69.1569%,19.4885%);fill-opacity:0.2;stroke-width:1;stroke-linecap:butt;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 10 140 L 70 140 L 70 10 Z M 10 10 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;" d="M 11.5 10 C 11.5 12 8.5 12 8.5 10 C 8.5 8 11.5 8 11.5 10 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;" d="M 11.5 140 C 11.5 142 8.5 142 8.5 140 C 8.5 138 11.5 138 11.5 140 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;" d="M 71.5 140 C 71.5 142 68.5 142 68.5 140 C 68.5 138 71.5 138 71.5 140 "/>
+<path style=" stroke:none;fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;" d="M 71.5 10 C 71.5 12 68.5 12 68.5 10 C 68.5 8 71.5 8 71.5 10 "/>
 </g>
 </svg>

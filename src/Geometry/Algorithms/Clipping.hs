@@ -6,6 +6,7 @@ module Geometry.Algorithms.Clipping (
     , LineType(..)
     , clipPolygonWithLine
 
+    , IslandOrHole(..)
     , intersectionPP
     , unionPP
     , differencePP
@@ -16,7 +17,8 @@ module Geometry.Algorithms.Clipping (
 
 
 import Geometry.Algorithms.Clipping.Internal
-import Geometry.Algorithms.Clipping.PolygonPolygon
+import Geometry.Algorithms.Clipping.MargalitKnott
+    (IslandOrHole (..), differencePP, intersectionPP, unionPP)
 import Geometry.Core
 
 -- $setup
