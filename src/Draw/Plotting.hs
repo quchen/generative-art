@@ -22,6 +22,7 @@ module Draw.Plotting (
     , PauseMode(..)
     , withFeedrate
     , withDrawingHeight
+    , drawingDistance
 
     -- ** File structure
     , block
@@ -349,6 +350,9 @@ data PauseMode
     = PauseUserConfirm -- ^ Wait until user confirmation (in e.g. a web UI or with a button)
     | PauseSeconds Double -- ^ Wait for a certain time
     deriving (Eq, Ord, Show)
+
+drawingDistance :: Plot Double
+drawingDistance = gets _drawingDistance
 
 addHeaderFooter :: Maybe feedrate -> Maybe FinishMove -> Maybe (BoundingBox, Double) -> [GCode] -> [GCode]
 addHeaderFooter feedrate finishMove drawnShapesBoundingBox body = header : body ++ [footer]

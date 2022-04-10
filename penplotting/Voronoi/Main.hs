@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import qualified Data.Vector         as V
+import qualified Data.Text.Lazy      as TL
 import qualified Data.Text.Lazy.IO   as TL
 import           Prelude             hiding ((**))
 import           System.Random.MWC
@@ -45,14 +46,14 @@ mainVoronoiDithering = do
 
     noise <- simplex2 def { _simplexFrequency = 1/150 , _simplexOctaves = 2 } gen
 
-    let cellSize p = 0.5 * (1 + noise p) * exp (-0.00001 * norm (p -. center) ^ 2)
+    let scaleFactor p = 0.45 * (1 + noise p) * exp (-0.00001 * norm (p -. center) ^ 2)
 
-    let resizeCell poly = G.transform (scaleAround centroid (cellSize centroid)) poly
+    let resizeCell poly@(Polygon ps) = Polygon $ fmap (\p -> G.transform (scaleAround centroid (scaleFactor (centroid +. 0.5 *. (p -. centroid)))) p) ps
             where centroid = polygonCentroid poly
         isInnerCell polygon = insideBoundingBox (G.transform (scaleAround center 1.05) polygon) bb
         polygons = resizeCell <$> filter isInnerCell (_voronoiRegion <$> _voronoiCells voronoi)
 
-    render "out/voronoi-dithering.png" picWidth picHeight $ do
+    render "out/voronoi-dithering.svg" picWidth picHeight $ do
         setColor black
         C.paint
         for_ polygons $ drawPoly white
@@ -64,10 +65,12 @@ mainVoronoiDithering = do
             , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)
             }
         removeMargin = G.transform (G.translate (Vec2 (-50) (-50)))
-    TL.writeFile "voronoi-delaunay.g" $ runPlot settings $ do
+    TL.writeFile "voronoi-dithering.g" $ runPlot settings $ do
         comment "To be plotted with white, silver or gold pen on 50cmx50cm black paper, with a margin of 5cm."
         comment "Place the origin on the inside of the margin, i.e. at X50 Y50 from the paper corner."
         for_ (removeMargin polygons) plot
+        totalLength <- drawingDistance
+        comment ("Total length: " <> TL.pack (show (round (totalLength/10))) <> "cm")
 
 
 mainVoronoiDelaunay :: IO ()
@@ -120,7 +123,7 @@ drawPoly _ (Polygon []) = pure ()
 drawPoly color poly = do
     sketch poly
     setColor color
-    setLineWidth 1
+    setLineWidth 0.5
     stroke
 
 grey :: Color Double
