@@ -13,8 +13,6 @@ import qualified Data.Heap                  as H
 import           Data.Map                   (Map)
 import qualified Data.Map                   as M
 import           Data.Maybe
-import           Data.Set                   (Set)
-import qualified Data.Set                   as S
 import           System.Random.MWC
 
 import Geometry
@@ -105,17 +103,17 @@ poissonDisc gen params = do
 data PoissonDiscState s = PoissonDiscState
     { _gen           :: !(Gen s)
     , _allSamples    :: !(Heap (Vec2, Double))
-    , _activeSamples :: !(Set (Vec2, Vec2, Double))
+    , _activeSamples :: !(Heap (Entry Double (Vec2, Vec2, Double)))
     , _result        :: ![(Vec2, Vec2, Double)]
     , _initialPoint  :: !Vec2
     }
 
 sampleLoop :: PrimMonad m => PoissonT m ()
-sampleLoop = nextActiveSample >>= \case
+sampleLoop = gets (H.uncons . _activeSamples) >>= \case
     Nothing -> pure ()
-    Just (randomActiveSample, parent, radius) -> do
+    Just (H.Entry _ (closestActiveSample, parent, radius), heap') -> do
 
-        candidates <- nextCandidates (randomActiveSample, radius)
+        candidates <- nextCandidates (closestActiveSample, radius)
 
         let validPoint (candidate, r) = do
                 allSamples <- gets _allSamples
@@ -125,20 +123,11 @@ sampleLoop = nextActiveSample >>= \case
 
         case newSample of
             Nothing -> modify' (\s -> s
-                { _activeSamples = S.delete (randomActiveSample, parent, radius) (_activeSamples s)
-                , _result = (randomActiveSample, parent, radius) : _result s })
-            Just (sample, radius') -> addSample (sample, randomActiveSample, radius')
+                { _activeSamples = heap'
+                , _result = (closestActiveSample, parent, radius) : _result s })
+            Just (sample, radius') -> addSample (sample, closestActiveSample, radius')
 
         sampleLoop
-
-nextActiveSample :: PrimMonad m => PoissonT m (Maybe (Vec2, Vec2, Double))
-nextActiveSample = do
-    activeSamples <- gets _activeSamples
-    case S.size activeSamples of
-        0 -> pure Nothing
-        n -> do
-            i <- gets _gen >>= lift . uniformRM (0, n - 1)
-            pure (Just (S.elemAt i activeSamples))
 
 findM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m (Maybe a)
 findM p = foldr (\x xs -> p x >>= \u -> if u then pure (Just x) else xs) (pure Nothing)
@@ -161,4 +150,4 @@ addSample (sample, parent, radius) = do
     distanceFromInitial <- do
         initial <- gets _initialPoint
         pure (norm (sample -. initial))
-    modify' (\s -> s { _activeSamples = S.insert (sample, parent, radius) (_activeSamples s) })
+    modify' (\s -> s { _activeSamples = H.insert (H.Entry distanceFromInitial (sample, parent, radius)) (_activeSamples s) })
