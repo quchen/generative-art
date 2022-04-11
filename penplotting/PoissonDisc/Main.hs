@@ -26,12 +26,10 @@ main = do
     gen <- initialize (V.fromList [1237])
     let center = Vec2 (picWidth / 2) (picHeight / 2)
         bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
-        count = 100
-        -- constructed so that we have roughly `count` points
-        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
+        r0 = 50
         samplingProps = PoissonDiscParams
             { _poissonShape = bb
-            , _poissonRadius = \p -> adaptiveRadius / (1 + 0.01 * norm (p -. center))
+            , _poissonRadius = \p -> r0 / (1 + 0.01 * norm (p -. center))
             , _poissonK = 100
             }
     samples <- poissonDisc gen samplingProps

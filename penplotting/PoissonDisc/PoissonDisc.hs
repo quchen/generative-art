@@ -7,12 +7,8 @@ import           Control.Monad.Primitive
 import           Control.Monad.Trans.Class
 import qualified Control.Monad.Trans.Reader as R
 import qualified Control.Monad.Trans.State  as S
-import           Data.Default.Class
 import           Data.Heap                  (Entry, Heap)
 import qualified Data.Heap                  as H
-import           Data.Map                   (Map)
-import qualified Data.Map                   as M
-import           Data.Maybe
 import           System.Random.MWC
 
 import Geometry
@@ -139,7 +135,7 @@ nextCandidates (v, r) = do
     PoissonDiscParams{..} <- asks id
     candidates <- replicateM _poissonK $ do
         phi <- lift (rad <$> uniformRM (0, 2*pi) _gen)
-        r' <- lift (uniformRM (0.5*r, 2*r) _gen)
+        r' <- lift (uniformRM (0.5*r, 1.5*r) _gen)
         let v' = v +. polar phi r'
         pure (v', _poissonRadius v')
     pure (filter ((`insideBoundingBox` _poissonShape) . fst) candidates)
