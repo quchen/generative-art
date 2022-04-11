@@ -31,16 +31,20 @@ main = do
         r0 = 25
         samplingProps = PoissonDiscParams
             { _poissonShape = bb
-            , _poissonRadius = \p -> r0 * (1 + 0.6 * noise p)
+            , _poissonRadius = \p -> r0 * (1 + 0.4 * noise p)
             , _poissonK = 100
             }
     samples <- poissonDisc gen samplingProps
 
-    render "out/poisson-disc.png" picWidth picHeight $ do
-        setColor white
-        C.paint
-        setColor black
-        for_ samples drawSample
+    let drawing = do
+            setColor white
+            C.paint
+            setColor black
+            C.setLineWidth 0.5
+            for_ samples drawSample
+
+    render "out/poisson-disc.svg" picWidth picHeight drawing
+    render "out/poisson-disc.png" picWidth picHeight drawing
 
 drawSample :: (Vec2, Vec2, Double) -> Render ()
 drawSample (sample, parent, radius) = do
