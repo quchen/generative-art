@@ -390,6 +390,8 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
             , G04_Dwell 0.5
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
             , G94_Feedrate_UnitsPerMinute
             , M0_Pause
             ]
