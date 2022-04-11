@@ -376,22 +376,22 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
 
     boundingBoxCheck = case drawnShapesBoundingBox of
         Nothing -> GBlock []
-        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) -> GBlock . mconcat $
-            [ [GComment "Trace bounding box"]
-            , [GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)]
-            , [GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)]
-            , [G93_Feedrate_TravelInFractionofMinute]
-            , [ G00_LinearRapidMove (Just xMin) (Just yMin) (Just zTravelHeight)
-              , G04_Dwell 0.5
-                -- 60/n ==> n seconds to move
-              , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
-              , G04_Dwell 0.5
-              , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
-              , G04_Dwell 0.5
-              , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
-              ]
-            , [G94_Feedrate_UnitsPerMinute]
-            , [M0_Pause]
+        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) -> GBlock
+            [ GComment "Trace bounding box"
+            , GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)
+            , GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)
+            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+            , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+            , G93_Feedrate_TravelInFractionofMinute
+            , G04_Dwell 0.5
+            -- 60/n ==> n seconds to move
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
+            , G94_Feedrate_UnitsPerMinute
+            , M0_Pause
             ]
 
     setDefaultModes = GBlock
