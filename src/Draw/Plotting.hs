@@ -11,6 +11,7 @@ module Draw.Plotting (
 
     -- ** Raw GCode handling
     , runPlotRaw
+    , PlottingState(..)
     , renderGCode
 
     -- * 'Plotting' shapes
@@ -40,6 +41,7 @@ module Draw.Plotting (
     -- * Utilities
     , minimizePenHovering
     , minimizePenHoveringBy
+    , module Data.Default.Class
 ) where
 
 
@@ -450,23 +452,29 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
 --
 -- For tinkering with the GCode AST, see 'runPlotRaw'.
 runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings body = renderGCode (runPlotRaw settings body)
+runPlot settings body =
+    let (rawGCode, _) = runPlotRaw settings body
+    in renderGCode rawGCode
 
 -- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
--- get 'TL.Text' out of the 'GCode'.
+-- get 'TL.Text' out of the ['GCode'].
 --
 -- This may be useful for special tweaks and testing, but it is also very brittle
 -- when the GCode generator changes. Use with caution!
-runPlotRaw :: PlottingSettings -> Plot a -> [GCode]
+runPlotRaw
+    :: PlottingSettings
+    -> Plot a
+    -> ([GCode], (PlottingState, BoundingBox)) -- ^ Generated GCode, along with the final plotting state and the 'BoundingBox' of all movements.
 runPlotRaw settings body =
     let (_, finalState, (gcode, drawnBB)) = runRWS body' settings initialState
-    in addHeaderFooter
-        (_feedrate settings)
-        (_finishMove settings)
-        (if _previewDrawnShapesBoundingBox settings then Just drawnBB else Nothing)
-        (_zTravelHeight settings)
-        (_drawingDistance finalState)
-        gcode
+        rawGCode = addHeaderFooter
+            (_feedrate settings)
+            (_finishMove settings)
+            (if _previewDrawnShapesBoundingBox settings then Just drawnBB else Nothing)
+            (_zTravelHeight settings)
+            (_drawingDistance finalState)
+            gcode
+    in (rawGCode, (finalState, drawnBB))
   where
     Plot body' = body
     initialState = PlottingState
