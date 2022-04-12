@@ -36,6 +36,7 @@ data GCode
     | G91_RelativeMovement
     | G93_Feedrate_TravelInFractionofMinute
     | G94_Feedrate_UnitsPerMinute
+    deriving (Eq, Ord, Show)
 
 renderGCode :: [GCode] -> TL.Text
 renderGCode [GBlock xs] = renderGCode xs -- Remove indentation if it's a single top-level block
