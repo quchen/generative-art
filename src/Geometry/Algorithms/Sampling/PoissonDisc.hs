@@ -162,11 +162,9 @@ nextCandidates v = do
 addSample :: Monad m => Vec2 -> PoissonT m ()
 addSample sample = do
     cell <- gridCell sample
-    modify' (\s -> s { _grid = M.insert cell sample (_grid s)})
-    distanceFromInitial <- do
-        initial <- gets _initialPoint
-        pure (norm (sample -. initial))
-    modify' (\s -> s { _activeSamples = S.insert sample (_activeSamples s) })
+    modify' (\s -> s
+        { _grid = M.insert cell sample (_grid s)
+        , _activeSamples = S.insert sample (_activeSamples s) })
 
 -- A cell in the grid has a side length of r/sqrt(2). Therefore, to detect
 -- collisions, we need to search a space of 5x5 cells at max.

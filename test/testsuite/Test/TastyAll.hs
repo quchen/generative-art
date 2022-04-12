@@ -27,8 +27,8 @@ module Test.TastyAll (
 
 
 import Control.Applicative
-import Control.Monad
 import Control.Exception
+import Control.Monad
 import Data.Colour.RGBSpace     as Colour
 import Data.Colour.SRGB         as Colour
 import Data.List
@@ -37,13 +37,13 @@ import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Geometry
 
+import           Geometry.SvgParser.SimpleShapes
 import           Test.Arbitrary
 import           Test.Tasty
-import           Test.Tasty.HUnit      hiding (assertEqual)
-import qualified Test.Tasty.HUnit      as HUnit
+import           Test.Tasty.HUnit                hiding (assertEqual)
+import qualified Test.Tasty.HUnit                as HUnit
 import           Test.Tasty.QuickCheck
 import           VisualOutput.NormalizeSvg
-import Geometry.SvgParser.SimpleShapes
 
 
 
