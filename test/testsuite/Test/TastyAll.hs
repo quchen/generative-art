@@ -160,6 +160,9 @@ instance EqApprox Vec2 where
 instance EqApprox Line where
     approxEqual tol (Line a b) (Line c d) = approxEqual tol (a,b) (c,d)
 
+instance EqApprox BoundingBox where
+    approxEqual tol (BoundingBox a b) (BoundingBox c d) = approxEqual tol (a,b) (c,d)
+
 instance EqApprox Circle where
     approxEqual tol (Circle c1 r1) (Circle c2 r2) = approxEqual tol (c1,r1) (c2,r2)
 

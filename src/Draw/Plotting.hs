@@ -166,12 +166,12 @@ gCode instructions = for_ instructions $ \instruction -> do
                 let r = norm (Vec2 i j)
                     center = penXY +. Vec2 i j
                     angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-                addDrawingDistance (r * getRad angle)
+                addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
             G03_ArcCounterClockwise _ i j x y -> do
                 let r = norm (Vec2 i j)
                     center = penXY +. Vec2 i j
                     angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-                addDrawingDistance (r * getRad angle)
+                addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
             _otherwise -> pure ()
 
     tellBB :: HasBoundingBox object => object -> Plot ()
@@ -512,14 +512,21 @@ instance Plotting Circle where
         -- position.
         currentXY <- gets _penXY
         let radialLine@(Line _ start) = resizeLine (const radius) (Line center currentXY)
-            Line _ oppositeOfStart = resizeLine negate radialLine
 
-        repositionTo start
-        -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t do
-        -- anything when we plot it with a single arc »from start to itself«. We work
-        -- around this by explicitly chaining two half circles.
-        clockwiseArcAroundTo (vectorOf (lineReverse radialLine)) oppositeOfStart
-        clockwiseArcAroundTo (vectorOf radialLine) start
+        if isNaN (lineLength radialLine) || lineLength radialLine < 1
+            then do
+                let startFallback@(Vec2 xStart yStart) = currentXY -. Vec2 radius 0
+                repositionTo startFallback
+                clockwiseArcAroundTo (Vec2 radius 0) (Vec2 (xStart + 2*radius) yStart)
+                clockwiseArcAroundTo (Vec2 (-radius) 0) (Vec2 xStart yStart)
+            else do
+                let Line _ oppositeOfStart = resizeLine negate radialLine
+                repositionTo start
+                -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t do
+                -- anything when we plot it with a single arc »from start to itself«. We work
+                -- around this by explicitly chaining two half circles.
+                clockwiseArcAroundTo (vectorOf (lineReverse radialLine)) oppositeOfStart
+                clockwiseArcAroundTo (vectorOf radialLine) start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
