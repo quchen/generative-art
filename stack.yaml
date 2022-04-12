@@ -1,15 +1,19 @@
 flags: {}
 packages:
     - .
+
     - app/voronoi_interactive
+
     - penplotting/ApollonianGasket
     - penplotting/circuits
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/Kilometer
+    - penplotting/PenChangeCalibration
     - penplotting/PoissonDisc
     - penplotting/SvgSource
     - penplotting/Voronoi
+
     - showcases/circuits
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
@@ -20,6 +24,7 @@ packages:
     - showcases/truchetti
     - showcases/vector_fields
     - showcases/voronoi_3d
+
 extra-deps:
     - cairo-0.13.8.1@sha256:1938aaeb5d3504678d995774dfe870f6b66cbd43d336b692fa8779b23b2b67a9,4075
     - gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
