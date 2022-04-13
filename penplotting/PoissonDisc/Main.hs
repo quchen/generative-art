@@ -22,7 +22,10 @@ picHeight = 440
 
 main :: IO ()
 main = do
+    renderPoissonDisc "poisson-disc" =<< samplesRadial
 
+samplesRadial :: IO [(Vec2, Vec2, Double)]
+samplesRadial = do
     gen <- initialize (V.fromList [1237])
     let center = Vec2 (picWidth / 2) (picHeight / 2)
         bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
@@ -32,7 +35,10 @@ main = do
             , _poissonRadius = \p -> r0 / (1 + 0.01 * norm (p -. center))
             , _poissonK = 100
             }
-    samples <- poissonDisc gen samplingProps
+    poissonDisc gen samplingProps
+
+renderPoissonDisc :: String -> [(Vec2, Vec2, Double)] -> IO ()
+renderPoissonDisc baseName samples = do
 
     let drawingCairo = do
             setColor white
@@ -40,8 +46,8 @@ main = do
             setColor black
             for_ samples drawSample
 
-    render "out/poisson-disc.svg" picWidth picHeight drawingCairo
-    render "out/poisson-disc.png" picWidth picHeight drawingCairo
+    render ("out/" <> baseName <> ".svg") picWidth picHeight drawingCairo
+    render ("out/" <> baseName <> ".png") picWidth picHeight drawingCairo
 
     let circles = minimizePenHoveringBy (\(Circle c _) -> (c, c)) $ S.fromList $ fmap (\(c, _, r) -> Circle c (r/2)) samples
         connectingLines = fmap Polyline $ minimizePenHovering $ S.fromList $ (\(to, from, _) -> [from, to]) <$> samples
@@ -65,7 +71,7 @@ main = do
             , _canvasBoundingBox = Nothing
             }
 
-    TL.writeFile "poisson-disc.g" $ runPlot settings drawingPlot
+    TL.writeFile (baseName <> ".g") $ runPlot settings drawingPlot
 
 drawSample :: (Vec2, Vec2, Double) -> Render ()
 drawSample (sample, parent, radius) = do
