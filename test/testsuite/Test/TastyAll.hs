@@ -119,7 +119,7 @@ infix 4 ~==
 -- | Approximate version of Quickcheck’s counterexample-printing '==='.
 (~===) :: (Show a, EqApprox a) => a -> a -> Property
 x ~=== y = counterexample
-    (show x ++ " is not approximately " ++ show y)
+    (show x ++ "\nis not approximately\n" ++ show y)
     (approxEqual (Tolerance 1e-10) x y)
 infix 4 ~===
 

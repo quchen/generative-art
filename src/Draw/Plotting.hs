@@ -60,7 +60,6 @@ import Draw.Plotting.GCode
 import Geometry.Bezier
 import Geometry.Core
 import Geometry.Shapes
-import Util
 
 
 
@@ -132,8 +131,8 @@ gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
     Plot (tell ([instruction], mempty))
     recordDrawingDistance instruction
-    recordPenXY instruction
     recordBoundingBox instruction
+    recordPenXY instruction -- NB: this is last because the other recorders depend on the pen position!
   where
     setPenXY :: Vec2 -> Plot ()
     setPenXY pos = do
@@ -183,88 +182,81 @@ gCode instructions = for_ instructions $ \instruction -> do
         case instruction of
             G00_LinearRapidMove x y _      -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
             G01_LinearFeedrateMove _ x y _ -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
-            G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (Vec2 i j) (Vec2 x y))
-            G03_ArcCounterClockwise _ i j x y -> tellBB (CcwArc current (Vec2 i j) (Vec2 x y))
+            G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (current +. Vec2 i j) (Vec2 x y))
+            G03_ArcCounterClockwise _ i j x y -> tellBB (CcwArc current (current +. Vec2 i j) (Vec2 x y))
             _otherwise -> pure ()
 
     addDrawingDistance :: Double -> Plot ()
     addDrawingDistance d = modify' (\s -> s { _drawingDistance = _drawingDistance s + d })
 
--- | CwArc a r b = Clockwise arc from a to b with center at a+r.
+-- | CwArc a c b = Clockwise arc from a to b with center at c.
 data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
 
--- | CcwArc a r b = Counterclockwise arc from a to b with center at a+r.
+-- | CcwArc a c b = Counterclockwise arc from a to b with center at c.
 data CcwArc = CcwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
 
 instance HasBoundingBox CwArc where
-    boundingBox (CwArc start centerOffset end) =
-        let radius = norm centerOffset
-            center = start +. centerOffset
-
-            startQuadrant = whichQuadrant (negateV centerOffset)
-            endQuadrant = whichQuadrant (end -. start -. centerOffset)
-            traversedQuadrants = cwQuadrantsFromTo startQuadrant endQuadrant
-
-            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantBL : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantUL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantUR : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantBR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants clockwise")
-            quadrantTransitionPoints _ = []
-
-        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+    boundingBox (CwArc start center end) =
+        boundingBoxArc True start center end
 
 instance HasBoundingBox CcwArc where
-    boundingBox (CcwArc start centerOffset end) =
-        let radius = norm centerOffset
-            center = start +. centerOffset
+    boundingBox (CcwArc start center end) =
+        boundingBoxArc False start center end
 
-            startQuadrant = whichQuadrant (negateV centerOffset)
-            endQuadrant = whichQuadrant (end -. start -. centerOffset)
-            traversedQuadrants = ccwQuadrantsFromTo startQuadrant endQuadrant
+boundingBoxArc
+    :: Bool -- ^ True = clockwise
+    -> Vec2 -- ^ Arc start
+    -> Vec2 -- ^ Center
+    -> Vec2 -- ^ End
+    -> BoundingBox
+boundingBoxArc clockwise start center end =
+    let radius = norm (start -. center)
+        startQuadrant = whichQuadrant center start
+        endQuadrant = whichQuadrant center end
+    in boundingBox (start, end, quadrantTransitionPoints clockwise center radius startQuadrant endQuadrant)
 
-            quadrantTransitionPoints (QuadrantBL : rest@(QuadrantBR : _)) = (center +. Vec2 0 radius) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantUL : rest@(QuadrantBL : _)) = (center -. Vec2 radius 0) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantUR : rest@(QuadrantUL : _)) = (center -. Vec2 0 radius) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (QuadrantBR : rest@(QuadrantUR : _)) = (center +. Vec2 radius 0) : quadrantTransitionPoints rest
-            quadrantTransitionPoints (q1:q2:_) = bugError "quadrantTransitionPoints" (show q2 ++ " is not after " ++ show q1 ++ " when traversing quadrants counterclockwise")
-            quadrantTransitionPoints _ = []
+quadrantTransitionPoints :: Bool -> Vec2 -> Double -> Quadrant -> Quadrant -> [Vec2]
+quadrantTransitionPoints clockwise center radius = if clockwise then go else flip go
+  where
+    rightP = center +. Vec2 radius 0
+    leftP = center -. Vec2 radius 0
+    bottomP = center +. Vec2 0 radius
+    topP = center -. Vec2 0 radius
 
-        in boundingBox (start : end : quadrantTransitionPoints traversedQuadrants)
+    go QuadrantBR QuadrantBR = []
+    go QuadrantBR QuadrantBL = [bottomP]
+    go QuadrantBR QuadrantTL = [bottomP, leftP]
+    go QuadrantBR QuadrantTR = [bottomP, leftP, topP]
 
-data Quadrant = QuadrantBR | QuadrantBL | QuadrantUL | QuadrantUR deriving (Eq, Ord, Show)
+    go QuadrantBL QuadrantBR = [leftP, topP, rightP]
+    go QuadrantBL QuadrantBL = []
+    go QuadrantBL QuadrantTL = [leftP]
+    go QuadrantBL QuadrantTR = [leftP, topP]
+
+    go QuadrantTL QuadrantBR = [topP, rightP]
+    go QuadrantTL QuadrantBL = [topP, rightP, bottomP]
+    go QuadrantTL QuadrantTL = []
+    go QuadrantTL QuadrantTR = [topP]
+
+    go QuadrantTR QuadrantBR = [rightP]
+    go QuadrantTR QuadrantBL = [rightP, bottomP]
+    go QuadrantTR QuadrantTL = [rightP, bottomP, leftP]
+    go QuadrantTR QuadrantTR = []
+
+data Quadrant = QuadrantBR | QuadrantBL | QuadrantTL | QuadrantTR deriving (Eq, Ord, Show)
 
 -- | Quadrants are in Cairo coordinates (y pointing downwards!)
-cwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
-cwQuadrantsFromTo start end | start == end = [start]
-cwQuadrantsFromTo start end = start : cwQuadrantsFromTo (cwNextQuadrant start) end
-
--- | Quadrants are in Cairo coordinates (y pointing downwards!)
-ccwQuadrantsFromTo :: Quadrant -> Quadrant -> [Quadrant]
-ccwQuadrantsFromTo start end | start == end = [start]
-ccwQuadrantsFromTo start end = start : ccwQuadrantsFromTo (ccwNextQuadrant start) end
-
--- | Quadrants are in Cairo coordinates (y pointing downwards!)
-cwNextQuadrant :: Quadrant -> Quadrant
-cwNextQuadrant QuadrantBR = QuadrantBL
-cwNextQuadrant QuadrantBL = QuadrantUL
-cwNextQuadrant QuadrantUL = QuadrantUR
-cwNextQuadrant QuadrantUR = QuadrantBR
-
--- | Quadrants are in Cairo coordinates (y pointing downwards!)
-ccwNextQuadrant :: Quadrant -> Quadrant
-ccwNextQuadrant QuadrantBL = QuadrantBR
-ccwNextQuadrant QuadrantUL = QuadrantBL
-ccwNextQuadrant QuadrantUR = QuadrantUL
-ccwNextQuadrant QuadrantBR = QuadrantUR
-
--- | Quadrants are in Cairo coordinates (y pointing downwards!)
-whichQuadrant :: Vec2 -> Quadrant
-whichQuadrant (Vec2 x y)
-    | x >= 0 && y >= 0 = QuadrantBR
-    | x <  0 && y >= 0 = QuadrantBL
-    | x <  0 && y <  0 = QuadrantUL
-    | otherwise        = QuadrantUR
+whichQuadrant
+    :: Vec2 -- ^ Center
+    -> Vec2 -- ^ Which quadrant is this point in?
+    -> Quadrant
+whichQuadrant center point
+    | dx >= 0 && dy >= 0 = QuadrantBR
+    | dx <  0 && dy >= 0 = QuadrantBL
+    | dx <  0 && dy <  0 = QuadrantTL
+    | otherwise          = QuadrantTR
+  where
+    Vec2 dx dy = point -. center
 
 -- | Trace the plotting area to preview the extents of the plot, and wait for
 -- confirmation. Useful at the start of a plot.
@@ -294,23 +286,27 @@ lineTo target@(Vec2 x y) = do
 
 -- | Arc interpolation, clockwise
 clockwiseArcAroundTo
-    :: Vec2 -- ^ Center location, relative to the current pen position
+    :: Vec2 -- ^ Center location
     -> Vec2 -- ^ End position
     -> Plot ()
-clockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+clockwiseArcAroundTo center (Vec2 x y) = do
+    start <- gets _penXY
+    let Vec2 centerXRel centerYRel = vectorOf (Line start center)
     feedrate <- asks _feedrate
     penDown
-    gCode [ G02_ArcClockwise feedrate mx my x y ]
+    gCode [ G02_ArcClockwise feedrate centerXRel centerYRel x y ]
 
 -- | Arc interpolation, counterclockwise
 counterclockwiseArcAroundTo
-    :: Vec2 -- ^ Center location, relative to the current pen position
+    :: Vec2 -- ^ Center location
     -> Vec2 -- ^ End position
     -> Plot ()
-counterclockwiseArcAroundTo (Vec2 mx my) (Vec2 x y) = do
+counterclockwiseArcAroundTo center (Vec2 x y) = do
+    start <- gets _penXY
+    let Vec2 centerXRel centerYRel = vectorOf (Line start center)
     feedrate <- asks _feedrate
     penDown
-    gCode [ G03_ArcCounterClockwise feedrate mx my x y ]
+    gCode [ G03_ArcCounterClockwise feedrate centerXRel centerYRel x y ]
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
 -- lowered.
@@ -505,28 +501,20 @@ instance Plotting Circle where
     plot (Circle center radius) = block $ do
         comment "Circle"
 
-        -- The naive way of painting a circle is by always starting them e.g. on
-        -- the very left. This requires some unnecessary pen hovering, and for some
-        -- pens creates a visible »pen down« dot. We therefore go the more
-        -- complicated route here: start the circle at the point closest to the pen
-        -- position.
-        currentXY <- gets _penXY
-        let radialLine@(Line _ start) = resizeLine (const radius) (Line center currentXY)
+        -- -- The naive way of painting a circle is by always starting them e.g. on
+        -- -- the very left. This requires some unnecessary pen hovering, and for some
+        -- -- pens creates a visible »pen down« dot. We therefore go the more
+        -- -- complicated route here: start the circle at the point closest to the pen
+        -- -- position.
 
-        if isNaN (lineLength radialLine) || lineLength radialLine < 1
-            then do
-                let startFallback@(Vec2 xStart yStart) = currentXY -. Vec2 radius 0
-                repositionTo startFallback
-                clockwiseArcAroundTo (Vec2 radius 0) (Vec2 (xStart + 2*radius) yStart)
-                clockwiseArcAroundTo (Vec2 (-radius) 0) (Vec2 xStart yStart)
-            else do
-                let Line _ oppositeOfStart = resizeLine negate radialLine
-                repositionTo start
-                -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t do
-                -- anything when we plot it with a single arc »from start to itself«. We work
-                -- around this by explicitly chaining two half circles.
-                clockwiseArcAroundTo (vectorOf (lineReverse radialLine)) oppositeOfStart
-                clockwiseArcAroundTo (vectorOf radialLine) start
+        -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
+        -- do anything when we plot it with a single arc »from start to itself«. We
+        -- work around this by explicitly chaining two half circles.
+
+        let start = center -. Vec2 radius 0
+        repositionTo start
+        clockwiseArcAroundTo center (center +. Vec2 radius 0)
+        clockwiseArcAroundTo center start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
