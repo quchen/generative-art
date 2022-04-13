@@ -65,7 +65,7 @@ import Geometry.Shapes
 
 -- | 'Plot' represents penplotting directives, and is manipulated using functions
 -- such as 'plot' and 'gCode'.
-newtype Plot a = Plot (RWS PlottingSettings ([GCode], BoundingBox) PlottingState a)
+newtype Plot a = Plot (RWS PlottingSettings [GCode] PlottingState a)
     deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
 {-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
@@ -77,6 +77,7 @@ data PlottingState = PlottingState
     { _penState :: PenState
     , _penXY :: Vec2
     , _drawingDistance :: Double
+    , _drawnBoundingBox :: BoundingBox
     } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
@@ -129,65 +130,66 @@ instance Default PlottingSettings where
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
-    Plot (tell ([instruction], mempty))
+    Plot (tell [instruction])
     recordDrawingDistance instruction
     recordBoundingBox instruction
+    checkPlotDoesNotLeaveCanvas
     recordPenXY instruction -- NB: this is last because the other recorders depend on the pen position!
-  where
-    setPenXY :: Vec2 -> Plot ()
-    setPenXY pos = do
-        asks _canvasBoundingBox >>= \case
-            Just bb
-                -- NB: This works for straight lines, but misses arcs that move outside the
-                -- plotting area and back inside, possible with e.g. arc interpolation
-                | not (insideBoundingBox pos bb) -> error "Tried to move pen outside the plotting area!"
-            _otherwise -> pure ()
-        modify' (\s -> s { _penXY = pos })
 
-    recordPenXY :: GCode -> Plot ()
-    recordPenXY instruction = do
-        Vec2 x0 y0 <- gets _penXY
-        case instruction of
-            G00_LinearRapidMove x y _         -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
-            G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
-            G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
-            G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
-            _otherwise                        -> pure ()
+setPenXY :: Vec2 -> Plot ()
+setPenXY pos = modify' (\s -> s { _penXY = pos })
 
-    recordDrawingDistance :: GCode -> Plot ()
-    recordDrawingDistance instruction = do
-        penState <- gets _penState
-        penXY@(Vec2 x0 y0) <- gets _penXY
-        when (penState == PenDown) $ case instruction of
-            G00_LinearRapidMove x y _      -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
-            G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
-            G02_ArcClockwise _ i j x y -> do
-                let r = norm (Vec2 i j)
-                    center = penXY +. Vec2 i j
-                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-                addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
-            G03_ArcCounterClockwise _ i j x y -> do
-                let r = norm (Vec2 i j)
-                    center = penXY +. Vec2 i j
-                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-                addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
-            _otherwise -> pure ()
+checkPlotDoesNotLeaveCanvas :: Plot ()
+checkPlotDoesNotLeaveCanvas = asks _canvasBoundingBox >>= \case
+    Nothing -> pure ()
+    Just canvasBB -> do
+        drawnBB <- gets _drawnBoundingBox
+        unless (drawnBB `insideBoundingBox` canvasBB) (error "Tried to move pen outside the canvas!")
 
-    tellBB :: HasBoundingBox object => object -> Plot ()
-    tellBB object = Plot (tell (mempty, boundingBox object))
+recordPenXY :: GCode -> Plot ()
+recordPenXY instruction = do
+    Vec2 x0 y0 <- gets _penXY
+    case instruction of
+        G00_LinearRapidMove x y _         -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+        G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
+        G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
+        G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
+        _otherwise                        -> pure ()
 
-    recordBoundingBox :: GCode -> Plot ()
-    recordBoundingBox instruction = do
-        current@(Vec2 xCurrent yCurrent) <- gets _penXY
-        case instruction of
-            G00_LinearRapidMove x y _      -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
-            G01_LinearFeedrateMove _ x y _ -> tellBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
-            G02_ArcClockwise _ i j x y        -> tellBB (CwArc  current (current +. Vec2 i j) (Vec2 x y))
-            G03_ArcCounterClockwise _ i j x y -> tellBB (CcwArc current (current +. Vec2 i j) (Vec2 x y))
-            _otherwise -> pure ()
+recordDrawingDistance :: GCode -> Plot ()
+recordDrawingDistance instruction = do
+    penState <- gets _penState
+    penXY@(Vec2 x0 y0) <- gets _penXY
+    when (penState == PenDown) $ case instruction of
+        G00_LinearRapidMove x y _      -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+        G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+        G02_ArcClockwise _ i j x y -> do
+            let r = norm (Vec2 i j)
+                center = penXY +. Vec2 i j
+                angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+            addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
+        G03_ArcCounterClockwise _ i j x y -> do
+            let r = norm (Vec2 i j)
+                center = penXY +. Vec2 i j
+                angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+            addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
+        _otherwise -> pure ()
 
-    addDrawingDistance :: Double -> Plot ()
-    addDrawingDistance d = modify' (\s -> s { _drawingDistance = _drawingDistance s + d })
+recordBB :: HasBoundingBox object => object -> Plot ()
+recordBB object = modify' (\s -> s { _drawnBoundingBox = _drawnBoundingBox s <> boundingBox object })
+
+recordBoundingBox :: GCode -> Plot ()
+recordBoundingBox instruction = do
+    current@(Vec2 xCurrent yCurrent) <- gets _penXY
+    case instruction of
+        G00_LinearRapidMove x y _      -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+        G01_LinearFeedrateMove _ x y _ -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+        G02_ArcClockwise _ i j x y        -> recordBB (CwArc  current (current +. Vec2 i j) (Vec2 x y))
+        G03_ArcCounterClockwise _ i j x y -> recordBB (CcwArc current (current +. Vec2 i j) (Vec2 x y))
+        _otherwise -> pure ()
+
+addDrawingDistance :: Double -> Plot ()
+addDrawingDistance d = modify' (\s -> s { _drawingDistance = _drawingDistance s + d })
 
 -- | CwArc a c b = Clockwise arc from a to b with center at c.
 data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
@@ -342,7 +344,7 @@ withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 -- | Group the commands generated by the arguments in a block. This is purely
 -- cosmetical for the generated GCode.
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapRWS (\(a, s, (gcode, bb)) -> (a, s, ([GBlock gcode], bb))) content)
+block (Plot content) = Plot (mapRWS (\(a, s, gcode) -> (a, s, [GBlock gcode])) content)
 
 -- | Add a GCode comment.
 comment :: TL.Text -> Plot ()
@@ -460,23 +462,24 @@ runPlot settings body =
 runPlotRaw
     :: PlottingSettings
     -> Plot a
-    -> ([GCode], (PlottingState, BoundingBox)) -- ^ Generated GCode, along with the final plotting state and the 'BoundingBox' of all movements.
+    -> ([GCode], PlottingState)
 runPlotRaw settings body =
-    let (_, finalState, (gcode, drawnBB)) = runRWS body' settings initialState
+    let (_, finalState, gcode) = runRWS body' settings initialState
         rawGCode = addHeaderFooter
             (_feedrate settings)
             (_finishMove settings)
-            (if _previewDrawnShapesBoundingBox settings then Just drawnBB else Nothing)
+            (if _previewDrawnShapesBoundingBox settings then Just (_drawnBoundingBox finalState) else Nothing)
             (_zTravelHeight settings)
             (_drawingDistance finalState)
             gcode
-    in (rawGCode, (finalState, drawnBB))
+    in (rawGCode, finalState)
   where
     Plot body' = body
     initialState = PlottingState
         { _penState = PenUp
         , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
         , _drawingDistance = 0
+        , _drawnBoundingBox = mempty
         }
 
 -- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
