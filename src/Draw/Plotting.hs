@@ -526,13 +526,17 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
                 ]
             ]
 
--- | Convert the 'Plot' paths to raw GCode 'TL.Text'.
+-- | Convert the 'Plot' paths to raw GCode 'TL.Text', along with access to a simple
+-- Cairo-based preview function.
 --
 -- For tinkering with the GCode AST, see 'runPlotRaw'.
-runPlot :: PlottingSettings -> Plot a -> (TL.Text, C.Render ())
+runPlot
+    :: PlottingSettings
+    -> Plot a
+    -> (TL.Text, BoundingBox, C.Render ()) -- ^ Generated GCode, and 'C.Render' to draw a preview (using the provided 'BoundingBox' to size the image).
 runPlot settings body =
-    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview = cairoPreview}, _) = runPlotRaw settings body
-    in (renderGCode rawGCode, cairoPreview)
+    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview = cairoPreview}, _finalState, totalBB) = runPlotRaw settings body
+    in (renderGCode rawGCode, totalBB, cairoPreview)
 
 -- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
 -- get 'TL.Text' out of the ['GCode'].
@@ -542,7 +546,7 @@ runPlot settings body =
 runPlotRaw
     :: PlottingSettings
     -> Plot a
-    -> (PlottingWriterLog, PlottingState)
+    -> (PlottingWriterLog, PlottingState, BoundingBox)
 runPlotRaw settings body =
     let (_, finalState, writerLog) = runRWS body' settings initialState
         rawGCode = addHeaderFooter settings writerLog finalState
@@ -558,7 +562,8 @@ runPlotRaw settings body =
                     D.sketch (boundingBoxPolygon bb)
                     C.stroke
             _plottingCairoPreview writerLog
-    in (writerLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, finalState)
+        totalBB = _drawnBoundingBox finalState <> fromMaybe mempty (_canvasBoundingBox settings)
+    in (writerLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, finalState, totalBB)
   where
     Plot body' = body
     initialState = PlottingState
