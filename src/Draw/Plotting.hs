@@ -391,31 +391,35 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
             [ GComment "Trace bounding box"
             , GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)
             , GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)
-            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
-            , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
-            , G93_Feedrate_TravelInFractionofMinute
-            , G04_Dwell 0.5
-            -- 60/n ==> n seconds to move
-            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
-            , G04_Dwell 0.5
-            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
-            , G04_Dwell 0.5
-            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
-            , G04_Dwell 0.5
-            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
-            , G94_Feedrate_UnitsPerMinute
-            , M0_Pause
+            , GBlock
+                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+                , G93_Feedrate_TravelInFractionofMinute
+                , G04_Dwell 0.5
+                -- 60/n ==> n seconds to move
+                , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
+                , G04_Dwell 0.5
+                , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
+                , G04_Dwell 0.5
+                , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
+                , G04_Dwell 0.5
+                , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
+                , G94_Feedrate_UnitsPerMinute
+                , M0_Pause
+                ]
             ]
 
     setDefaultModes = GBlock
         [ GComment "Normalize modal settings"
-        , G17_Plane_XY
-        , G21_UseMm
-        , G90_AbsoluteMovement
-        , G94_Feedrate_UnitsPerMinute
+        , GBlock
+            [ G17_Plane_XY
+            , G21_UseMm
+            , G90_AbsoluteMovement
+            , G94_Feedrate_UnitsPerMinute
+            ]
         ]
 
-    reportDrawingDistance = GComment (format ("Total drawing distance: " % fixed 1 % "m") (distanceDrawn_mm/1000))
+    reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (distanceDrawn_mm/1000))]
 
     header = GBlock
         [ GComment "Header"
@@ -433,17 +437,21 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
     finishMoveCheck = case finishMove of
         Nothing -> GBlock
             [ GComment "Lift pen"
-            , G00_LinearRapidMove Nothing Nothing (Just 10)
+            , GBlock [G00_LinearRapidMove Nothing Nothing (Just 10)]
             ]
         Just FinishWithG28 -> GBlock
             [ GComment "Move to predefined position"
-            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
-            , G28_GotoPredefinedPosition Nothing Nothing Nothing
+            , GBlock
+                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                , G28_GotoPredefinedPosition Nothing Nothing Nothing
+                ]
             ]
         Just FinishWithG30 -> GBlock
             [ GComment "Move to predefined position"
-            , G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
-            , G30_GotoPredefinedPosition Nothing Nothing Nothing
+            , GBlock
+                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                , G30_GotoPredefinedPosition Nothing Nothing Nothing
+                ]
             ]
 
 -- | Convert the 'Plot' paths to raw GCode 'TL.Text'.
@@ -490,106 +498,114 @@ class Plotting a where
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot bb = block $ do
+    plot bb = do
         comment "Hover over bounding box"
-        plot (boundingBoxPolygon bb)
+        block (plot (boundingBoxPolygon bb))
 
 instance Plotting Line where
-    plot (Line start end) = block $ do
+    plot (Line start end) = do
         comment "Line"
-        repositionTo start
-        lineTo end
+        block $ do
+            repositionTo start
+            lineTo end
 
 instance Plotting Circle where
-    plot (Circle center radius) = block $ do
+    plot (Circle center radius) = do
         comment "Circle"
+        block $ do
+            -- -- The naive way of painting a circle is by always starting them e.g. on
+            -- -- the very left. This requires some unnecessary pen hovering, and for some
+            -- -- pens creates a visible »pen down« dot. We therefore go the more
+            -- -- complicated route here: start the circle at the point closest to the pen
+            -- -- position.
 
-        -- -- The naive way of painting a circle is by always starting them e.g. on
-        -- -- the very left. This requires some unnecessary pen hovering, and for some
-        -- -- pens creates a visible »pen down« dot. We therefore go the more
-        -- -- complicated route here: start the circle at the point closest to the pen
-        -- -- position.
+            -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
+            -- do anything when we plot it with a single arc »from start to itself«. We
+            -- work around this by explicitly chaining two half circles.
 
-        -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
-        -- do anything when we plot it with a single arc »from start to itself«. We
-        -- work around this by explicitly chaining two half circles.
-
-        let start = center -. Vec2 radius 0
-        repositionTo start
-        clockwiseArcAroundTo center (center +. Vec2 radius 0)
-        clockwiseArcAroundTo center start
+            let start = center -. Vec2 radius 0
+            repositionTo start
+            clockwiseArcAroundTo center (center +. Vec2 radius 0)
+            clockwiseArcAroundTo center start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
-    plot (Ellipse trafo) = block $ do
+    plot (Ellipse trafo) = do
         comment "Ellipse"
-        plot (transform trafo (regularPolygon 64))
+        block (plot (transform trafo (regularPolygon 64)))
 
 instance Foldable f => Plotting (Polyline f) where
     plot (Polyline xs) = go (toList xs)
       where
         go [] = pure ()
-        go (p:ps) = block $ do
+        go (p:ps) = do
             comment "Polyline"
-            repositionTo p
-            traverse_ lineTo ps
+            block $ do
+                repositionTo p
+                traverse_ lineTo ps
 
 -- | Draw each element (in order)
 instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
-    plot x = block $ do
+    plot x = do
         comment "Sequential"
-        traverse_ plot x
+        block (traverse_ plot x)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b) => Plotting (a,b) where
-    plot (a,b) = block $ do
+    plot (a,b) = do
         comment "2-tuple"
-        plot a
-        plot b
+        block $ do
+            plot a
+            plot b
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
-    plot (a,b,c) = block $ do
+    plot (a,b,c) = do
         comment "3-tuple"
-        plot a
-        plot b
-        plot c
+        block $ do
+            plot a
+            plot b
+            plot c
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
-    plot (a,b,c,d) = block $ do
+    plot (a,b,c,d) = do
         comment "4-tuple"
-        plot a
-        plot b
-        plot c
-        plot d
+        block $ do
+            plot a
+            plot b
+            plot c
+            plot d
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
-    plot (a,b,c,d,e) = block $ do
+    plot (a,b,c,d,e) = do
         comment "5-tuple"
-        plot a
-        plot b
-        plot c
-        plot d
-        plot e
+        block $ do
+            plot a
+            plot b
+            plot c
+            plot d
+            plot e
 
 instance Plotting Polygon where
     plot (Polygon []) = pure ()
-    plot (Polygon (p:ps)) = block $ do -- Like polyline, but closes up the shape
+    plot (Polygon (p:ps)) = do -- Like polyline, but closes up the shape
         comment "Polygon"
-        repositionTo p
-        traverse_ lineTo ps
-        lineTo p
+        block $ do
+            repositionTo p
+            traverse_ lineTo ps
+            lineTo p
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
 -- happens to put more points in places with more curvature.
 instance Plotting Bezier where
-    plot bezier@(Bezier a _ _ _) = block $ do
+    plot bezier@(Bezier a _ _ _) = do
         comment "Bezier (cubic)"
-        repositionTo a
-        traverse_ lineTo (bezierSubdivideT 32 bezier)
+        block $ do
+            repositionTo a
+            traverse_ lineTo (bezierSubdivideT 32 bezier)
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs
