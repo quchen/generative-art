@@ -74,10 +74,10 @@ modify = error "Use modify'. There’s no reason to lazily update the state."
 _don'tReportModifyAsUnused = modify
 
 data PlottingState = PlottingState
-    { _penState :: PenState
-    , _penXY :: Vec2
-    , _drawingDistance :: Double
-    , _drawnBoundingBox :: BoundingBox
+    { _penState :: !PenState
+    , _penXY :: !Vec2
+    , _drawingDistance :: !Double
+    , _drawnBoundingBox :: !BoundingBox
     } deriving (Eq, Ord, Show)
 
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
