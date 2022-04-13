@@ -47,20 +47,22 @@ module Draw.Plotting (
 
 
 
-import           Control.Monad.RWS  hiding (modify)
+import           Control.Monad.RWS        hiding (modify)
 import           Data.Default.Class
 import           Data.Foldable
-import qualified Data.Set           as S
-import qualified Data.Text.Lazy     as TL
-import           Data.Vector        (Vector)
-import qualified Data.Vector        as V
-import           Formatting         hiding (center)
+import qualified Data.Set                 as S
+import qualified Data.Text.Lazy           as TL
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
+import           Formatting               hiding (center)
+import qualified Graphics.Rendering.Cairo as C hiding (x, y)
 
-import Data.Maybe          (fromMaybe)
-import Draw.Plotting.GCode
-import Geometry.Bezier
-import Geometry.Core
-import Geometry.Shapes
+import           Data.Maybe          (fromMaybe)
+import qualified Draw                as D
+import           Draw.Plotting.GCode
+import           Geometry.Bezier
+import           Geometry.Core
+import           Geometry.Shapes
 
 
 
@@ -72,13 +74,14 @@ newtype Plot a = Plot (RWS PlottingSettings PlottingWriterLog PlottingState a)
 data PlottingWriterLog = PlottingWriterLog
     { _plottedGCode :: ![GCode]
     , _penTravelDistance :: !Double
-    } deriving (Eq, Ord, Show)
+    , _plottingCairoPreview :: C.Render ()
+    }
 
 instance Semigroup PlottingWriterLog where
-    PlottingWriterLog code1 travel1 <> PlottingWriterLog code2 travel2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2)
+    PlottingWriterLog code1 travel1 render1 <> PlottingWriterLog code2 travel2 render2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2) (render1 >> render2)
 
 instance Monoid PlottingWriterLog where
-    mempty = PlottingWriterLog mempty 0
+    mempty = PlottingWriterLog mempty 0 (pure ())
 
 {-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
 modify, _don'tReportModifyAsUnused :: a
@@ -144,6 +147,7 @@ gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
     Plot (tell mempty{_plottedGCode = [instruction]})
     recordDrawingDistance instruction
+    recordCairoPreview instruction
     recordBoundingBox instruction
     checkPlotDoesNotLeaveCanvas
     recordPenXY instruction -- NB: this is last because the other recorders depend on the pen position!
@@ -166,7 +170,58 @@ recordPenXY instruction = do
         G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
         G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
         G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
-        _otherwise                        -> pure ()
+        _otherwise -> pure ()
+
+tellCairo :: C.Render () -> Plot ()
+tellCairo c = Plot (tell mempty{_plottingCairoPreview = D.cairoScope c})
+
+recordCairoPreview :: GCode -> Plot ()
+recordCairoPreview instruction = do
+    start@(Vec2 currentX currentY) <- gets _penXY
+    penState <- gets _penState
+    let paintStyle = case penState of
+            PenUp -> D.setColor (D.mathematica97 0)
+            PenDown -> D.setColor (D.mathematica97 1)
+        fastStyle = C.setDash [4,4] 0
+        feedrateStyle = pure ()
+    case instruction of
+        G00_LinearRapidMove x y _ -> tellCairo $ do
+            fastStyle
+            paintStyle
+            let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+            D.sketch (Line start end)
+            C.stroke
+        G01_LinearFeedrateMove _ x y _ -> tellCairo $ do
+            feedrateStyle
+            paintStyle
+            let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+            D.sketch (Line start end)
+            C.stroke
+        G02_ArcClockwise _ i j x y -> tellCairo $ do
+            feedrateStyle
+            paintStyle
+            let radius = norm centerOffset
+                centerOffset = Vec2 i j
+                center@(Vec2 centerX centerY) = start +. centerOffset
+                end = Vec2 x y
+                startAngle = angleOfLine (Line start center)
+                endAngle = angleOfLine (Line end center)
+            D.moveToVec start
+            C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
+            C.stroke
+        G03_ArcCounterClockwise _ i j x y -> tellCairo $ do
+            feedrateStyle
+            paintStyle
+            let radius = norm centerOffset
+                centerOffset = Vec2 i j
+                center@(Vec2 centerX centerY) = start +. centerOffset
+                end = Vec2 x y
+                startAngle = angleOfLine (Line start center)
+                endAngle = angleOfLine (Line end center)
+            D.moveToVec start
+            C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
+            C.stroke
+        _otherwise -> pure ()
 
 recordDrawingDistance :: GCode -> Plot ()
 recordDrawingDistance instruction = do
@@ -474,10 +529,10 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
 -- | Convert the 'Plot' paths to raw GCode 'TL.Text'.
 --
 -- For tinkering with the GCode AST, see 'runPlotRaw'.
-runPlot :: PlottingSettings -> Plot a -> TL.Text
+runPlot :: PlottingSettings -> Plot a -> (TL.Text, C.Render ())
 runPlot settings body =
-    let (PlottingWriterLog{_plottedGCode=rawGCode}, _) = runPlotRaw settings body
-    in renderGCode rawGCode
+    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview = cairoPreview}, _) = runPlotRaw settings body
+    in (renderGCode rawGCode, cairoPreview)
 
 -- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
 -- get 'TL.Text' out of the ['GCode'].
