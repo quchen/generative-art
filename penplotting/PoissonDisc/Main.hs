@@ -11,6 +11,7 @@ import           System.Random.MWC
 import           Draw
 import           Draw.Plotting
 import           Geometry                     as G
+import           Geometry.Algorithms.SimplexNoise
 import           Graphics.Rendering.Cairo     as C
 import           PoissonDisc
 
@@ -22,7 +23,8 @@ picHeight = 440
 
 main :: IO ()
 main = do
-    renderPoissonDisc "poisson-disc" =<< samplesRadial
+    renderPoissonDisc "poisson-disc-radial" =<< samplesRadial
+    renderPoissonDisc "poisson-disc-noise" =<< samplesNoise
 
 samplesRadial :: IO [(Vec2, Vec2, Double)]
 samplesRadial = do
@@ -37,6 +39,18 @@ samplesRadial = do
             }
     poissonDisc gen samplingProps
 
+samplesNoise :: IO [(Vec2, Vec2, Double)]
+samplesNoise = do
+    gen <- initialize (V.fromList [1237])
+    noise <- simplex2 def { _simplexFrequency = 1/150 , _simplexOctaves = 2 } gen
+    let bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
+        r0 = 30
+        samplingProps = PoissonDiscParams
+            { _poissonShape = bb
+            , _poissonRadius = \p -> r0 * (1 + 0.5 * noise p)
+            , _poissonK = 100
+            }
+    poissonDisc gen samplingProps
 renderPoissonDisc :: String -> [(Vec2, Vec2, Double)] -> IO ()
 renderPoissonDisc baseName samples = do
 
