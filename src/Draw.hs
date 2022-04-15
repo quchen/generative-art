@@ -5,6 +5,7 @@
 module Draw (
     -- * SVG and PNG file handling
       render
+    , standardMathCoordinates
     , haddockRender
 
     -- * Drawing presets
@@ -101,6 +102,16 @@ fromExtension filePath
 render :: FilePath -> Int -> Int -> Render () -> IO ()
 render filepath w h actions =
     withSurface (fromExtension filepath) filepath w h (\surface -> renderWith surface actions)
+
+-- | Cairo has the zero on the bottom left by default. Calling this function sets
+-- the zero to the bottom left, yielding a standard mathematical coordinate system:
+-- zero is on the bottom left, x/y extend to the right/top.
+standardMathCoordinates
+    :: Double -- ^ Height of the canvas
+    -> Render ()
+standardMathCoordinates height = do
+    C.scale 1 (-1)
+    C.translate 0 height
 
 -- | Usable by doctests for rendering explanatory little pictures in Haddock.
 haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
