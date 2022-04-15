@@ -22,21 +22,22 @@ main = do
     let particles = runST $ do
             gen <- create
             qs <- poissonDisc gen def
-                { _poissonShape = BoundingBox zero (Vec2 600 400)
-                , _poissonRadius = 20
+                { _poissonShape = BoundingBox (Vec2 50 50) (Vec2 550 350)
+                , _poissonRadius = 30
                 , _poissonK = 4
                 }
-            ps <- replicateM (length qs) $ gaussianVec2 zero 4 gen
+            ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
             pure (NBody $ zipWith PhaseSpace ps qs)
         masses = pure 1
+        externalPotential = harmonicPotential (34, 24) (Vec2 300 200)
         interactionPotential = coulombPotential 100
         toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)
         tolerance = 0.1
         initialStep = 1
         t0 = 0
-        tmax = 50
+        tmax = 100
         trajectories = getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
-            rungeKuttaAdaptiveStep (const (nBody zero interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
+            rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
 
     render "out/brownian-motion.png" 600 400 $ do
         setColor white
