@@ -16,6 +16,8 @@ dependencies:
     - generative-art
     - base
     - cairo
+    - formatting
+    - mtl
     - mwc-random
 
 executables:

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 module Main (main) where
 
@@ -5,6 +6,8 @@ module Main (main) where
 
 import Control.Monad
 import Control.Monad.ST
+import Control.Monad.State.Class
+import Formatting (format, fixed, int, (%))
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
 import System.Random.MWC.Distributions
@@ -53,13 +56,20 @@ main = do
     let feedrate = 12000
         settings = def { _feedrate = feedrate, _zDrawingHeight = -10, _zTravelHeight = 5 }
     writeGCodeFile "brownian-motion.g" $ runPlot settings $
-        for_ trajectories $ \trajectory -> do
+        for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
             let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
             repositionTo q0
             penDown
             for_ tqs $ \(t, Vec2 x y) ->
                 gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t - tmax) / 10)) ]
             penUp
+            when (i `mod` 10 == 0) $ withDrawingHeight 0 $ do
+                repositionTo zero
+                penDown
+                dl <- gets _drawingDistance
+                comment (format ("Sharpen pencil (" % int % ") at " % fixed 1 % "m") (i `div` 10) (dl/1000))
+                pause PauseUserConfirm
+                penUp
 
 gaussianVec2
     :: Vec2 -- ^ Mean
