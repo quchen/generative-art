@@ -23,7 +23,7 @@ main = do
             gen <- create
             qs <- poissonDisc gen def
                 { _poissonShape = BoundingBox zero (Vec2 600 400)
-                , _poissonRadius = 30
+                , _poissonRadius = 20
                 , _poissonK = 4
                 }
             ps <- replicateM (length qs) $ gaussianVec2 zero 4 gen
@@ -34,7 +34,8 @@ main = do
         tolerance = 0.1
         initialStep = 1
         t0 = 0
-        trajectories = getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<100) . fst) $
+        tmax = 50
+        trajectories = getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
             rungeKuttaAdaptiveStep (const (nBody zero interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
 
     render "out/brownian-motion.png" 600 400 $ do
@@ -44,7 +45,7 @@ main = do
             moveToVec q0
             for_ trajectory $ \(t, PhaseSpace {..}) -> do
                 lineToVec q
-                setColor (black `withOpacity` (1 - t/100))
+                setColor (black `withOpacity` (1 - t/tmax))
                 C.stroke
                 moveToVec q
 
@@ -56,7 +57,7 @@ main = do
             repositionTo q0
             penDown
             for_ tqs $ \(t, Vec2 x y) ->
-                gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t - 100) / 10)) ]
+                gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t - tmax) / 10)) ]
             penUp
 
 gaussianVec2
