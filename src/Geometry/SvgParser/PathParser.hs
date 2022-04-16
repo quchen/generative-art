@@ -35,7 +35,7 @@ data AbsRel = Absolute | Relative
 move :: Ord err => MP.Parsec err Text (State DrawState [Line])
 move = MP.label "move (mM)" $ do
     absRel <- Absolute <$ char_ 'M' <|> Relative <$ char_ 'm'
-    mM:vs <- some vec2
+    mM:vs <- someMaybeCommaSep vec2
     pure $ do
         Current oldCurrent <- gets _currentPoint
         let newStart = case absRel of
@@ -62,7 +62,7 @@ newtype Current a = Current a deriving (Eq, Ord, Show)
 lineXY :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineXY = do
     absRel <- Absolute <$ char_ 'L' <|> Relative <$ char_ 'l'
-    ps <- some vec2
+    ps <- someMaybeCommaSep vec2
     pure $ traverse (makeLine absRel) ps
 
 makeLine :: AbsRel -> Vec2 -> State DrawState Line
@@ -80,7 +80,7 @@ makeLine absRel p = do
 lineH :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineH = do
     absRel <- Absolute <$ char_ 'H' <|> Relative <$ char_ 'h'
-    xs <- some double
+    xs <- someMaybeCommaSep double
     pure $ for xs $ \x' -> do
         Current current@(Vec2 x y) <- gets _currentPoint
         let new = case absRel of
@@ -95,7 +95,7 @@ lineH = do
 lineV :: Ord err => MP.Parsec err Text (State DrawState [Line])
 lineV = do
     absRel <- Absolute <$ char_ 'V' <|> Relative <$ char_ 'v'
-    ys <- some double
+    ys <- someMaybeCommaSep double
     pure $ for ys $ \y' -> do
         Current current@(Vec2 x y) <- gets _currentPoint
         let new = case absRel of
@@ -118,7 +118,7 @@ bezierCubic = MP.label "cubical bezier (cCsS)" $ do
         , (Absolute, True) <$ char_ 'S'
         , (Relative, True) <$ char_ 's'
         ]
-    controlPoints <- some $ case mirrorPreviousControlPoint of
+    controlPoints <- someMaybeCommaSep $ case mirrorPreviousControlPoint of
         False -> Left <$> ((,,) <$> vec2 <*> vec2 <*> vec2)
         True -> Right <$> ((,) <$> vec2 <*> vec2)
     pure $ for controlPoints $ \cps -> do
@@ -149,7 +149,7 @@ bezierQuadratic = MP.label "quadratic bezier (qQtT)" $ do
         , (Absolute, True) <$ char_ 'T'
         , (Relative, True) <$ char_ 't'
         ]
-    controlPoints <- some $ case mirrorPreviousControlPoint of
+    controlPoints <- someMaybeCommaSep $ case mirrorPreviousControlPoint of
         False -> Left <$> ((,) <$> vec2 <*> vec2)
         True -> Right <$> vec2
     pure $ for controlPoints $ \cps -> do

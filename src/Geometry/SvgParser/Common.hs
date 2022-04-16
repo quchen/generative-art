@@ -4,6 +4,7 @@ module Geometry.SvgParser.Common (
       lexeme
     , double
     , char_
+    , someMaybeCommaSep
 ) where
 
 
@@ -30,3 +31,6 @@ double = MP.label "number" $ lexeme $ MPCLex.signed (pure ()) $
 
 char_ :: Ord err => Char -> MP.Parsec err Text ()
 char_ c = lexeme (MPC.char c) $> ()
+
+someMaybeCommaSep :: Ord err => MP.Parsec err Text a -> MP.Parsec err Text [a]
+someMaybeCommaSep p = MP.sepBy1 p (char_ ',' <|> MPC.space)
