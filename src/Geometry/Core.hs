@@ -954,13 +954,15 @@ data LLIntersection
         -- ^ The intersection lies in the infinite continuations of both lines.
 
     | Parallel
-        -- ^ Lines are parallel
+        -- ^ Lines are parallel.
 
     | Collinear (Maybe Line)
-        -- ^ Lines are on the same line, and maybe even overlap.
+        -- ^ Lines are collinear, and maybe overlap along a 'Line' segment.
 
     deriving (Eq, Ord, Show)
 
+-- | The single point of intersection of two lines, or 'Nothing' for none (or
+-- collinear).
 intersectionPoint :: LLIntersection -> Maybe Vec2
 intersectionPoint (IntersectionReal v)           = Just v
 intersectionPoint (IntersectionVirtualInsideL v) = Just v
@@ -1145,27 +1147,28 @@ polylineEdges (Polyline points) =
 --
 -- The most basic use case is 'pointInPolygon', but it can also be used to find
 -- out whether something is inside more complicated objects, such as nested
--- polygons (e.g. polygons with holes).
+-- polygons (polygons with holes).
 countEdgeTraversals
     :: Foldable list
     => Vec2      -- ^ Point to check
-    -> list Line -- ^ Geometry
+    -> list Line -- ^ Geometry. Each segment must form a closed trajectory (or the ray may escape without registering).
     -> Int       -- ^ Number of edges crossed
-countEdgeTraversals p edges' = length intersections
+countEdgeTraversals subjectPoint edges'
+    | overlappingBoundingBoxes subjectPoint edgesBB = length intersections
+    | otherwise = 0
+
   where
-    -- The test ray comes from outside the polygon, and ends at the point to be
-    -- tested.
-    --
-    -- This ray is numerically sensitive, because exactly crossing a corner of
-    -- the polygon counts as two traversals (with each adjacent edge), when it
-    -- should only be one.  For this reason, we subtract 1 from the y coordinate
-    -- as well to get a bit of an odd angle, greatly reducing the chance of
-    -- exactly hitting a corner on the way.
     edges = toList edges'
-    testRay = Line (Vec2 (leftmostPolyX - 1) (pointY - 1)) p
-      where
-        leftmostPolyX = minimum (edges >>= \(Line (Vec2 x1 _) (Vec2 x2 _)) -> [x1,x2])
-        Vec2 _ pointY = p
+    edgesBB@(BoundingBox (Vec2 leftmostX _) _) = boundingBox edges
+
+    -- The test ray starts beyond the geometry, and ends at the point to be tested.
+    --
+    -- This ray is numerically sensitive, because exactly crossing a corner of the
+    -- polygon might count as 0, 1 or 2 edges traversed. For this reason, we
+    -- subtract 1 from the y coordinate as well to get a bit of an odd angle,
+    -- greatly reducing the chance of exactly hitting a corner on the way.
+    testRay = Line (Vec2 (leftmostX - 1) (pointY - 1)) subjectPoint
+    Vec2 _ pointY = subjectPoint
 
     intersections = filter (\edge ->
         case intersectionLL testRay edge of
