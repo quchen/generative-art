@@ -31,7 +31,7 @@ main = do
     tiling <- randomTiling gen plane
 
     let drawing = do
-            cairoScope (setColor backgroundColor >> C.paint)
+            cairoScope (setColor black >> C.paint)
             for_ (M.toList tiling) $ \(hex, tile) -> drawTile hex tile
 
     render "out/penplotting-truchetti.png" picWidth picHeight drawing
@@ -72,11 +72,12 @@ drawTile hex (Tile as) = for_ as $ drawArc hex
 drawArc :: Hex -> ((Direction, Direction), ()) -> C.Render ()
 drawArc hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
-    C.setLineWidth (cellSize / 2)
+    C.setLineWidth (3/8 * cellSize)
+    C.setLineCap C.LineCapRound
     setColor white
     C.stroke
     sketchArc d1 d2
-    C.setLineWidth (3/8 * cellSize)
+    C.setLineWidth (1/8 * cellSize)
     C.setLineCap C.LineCapRound
     setColor black
     C.stroke
