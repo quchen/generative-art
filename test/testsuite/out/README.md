@@ -253,6 +253,12 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw.hs/cartesianCoordinateSystem.svg)
 
+![Missing image!](../../../docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg)
+
+![Missing image!](../../../docs/haddock/Draw.hs/coordinate_system_math_standard.svg)
+
+![Missing image!](../../../docs/haddock/Draw.hs/coordinate_system_math_standard_centered.svg)
+
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Arrow.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/instance_Sketch_Bezier.svg)
