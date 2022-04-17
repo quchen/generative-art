@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import qualified Graphics.Rendering.Cairo as C
+import qualified Data.Text.Lazy.IO as TL
 
 import Geometry
 import Draw
@@ -16,11 +17,13 @@ picHeight = 420
 
 main :: IO ()
 main = do
-    render "out/fan-pattern.png" picWidth picHeight drawing
-    render "out/fan-pattern.svg" picWidth picHeight drawing
+    render "out/fan-pattern.png" picWidth picHeight cairoDrawing
+    render "out/fan-pattern.svg" picWidth picHeight cairoDrawing
+    let settings = def
+    TL.writeFile "fan-pattern.g" $ runPlot settings gcodeDrawing
 
-drawing :: C.Render ()
-drawing = cairoScope $ do
+cairoDrawing :: C.Render ()
+cairoDrawing = cairoScope $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 0.8
@@ -41,6 +44,7 @@ drawing = cairoScope $ do
                     IntersectionVirtual p -> p
                     IntersectionVirtualInsideL p -> p
                     IntersectionVirtualInsideR p -> p
+                    _otherwise -> error "Lines must intersect"
                 radius' = norm (center' -. startPoint)
                 (startAngle, endAngle) =
                     let Vec2 dx dy = (pointOnArc -. center')
@@ -50,3 +54,28 @@ drawing = cairoScope $ do
                         else (deg 180, rad (atan2 dy dx))
             arcSketch center' radius' startAngle endAngle
             C.stroke
+
+gcodeDrawing :: Plot ()
+gcodeDrawing = do
+    let radius = 50
+        gridX = Vec2 radius 0
+        gridY = Vec2 0 radius
+    for_ [(2 * x + y `mod` 2, y) | x <- [0..10], y <- [0..10]] $ \(x, y) -> do
+        let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
+        repositionTo (center -. gridX)
+        clockwiseArcAroundTo center (center +. gridX)
+        repositionTo (center +. (gridX -. Vec2 2 0))
+        counterclockwiseArcAroundTo center (center -. (gridX -. Vec2 2 0))
+        for_ (deg <$> [12, 24 .. 168]) $ \a -> do
+            let startPoint = center +. gridY
+                pointOnArc = center +. (radius - 2) *. Vec2 (cos (getRad a)) (-sin (getRad a))
+                center' = case intersectionLL (angledLine startPoint (deg 0) 1) (perpendicularBisector (Line startPoint pointOnArc)) of
+                    IntersectionReal p -> p
+                    IntersectionVirtual p -> p
+                    IntersectionVirtualInsideL p -> p
+                    IntersectionVirtualInsideR p -> p
+                    _otherwise -> error "Lines must intersect"
+            repositionTo startPoint
+            if getDeg a < 180
+                then counterclockwiseArcAroundTo center' pointOnArc
+                else clockwiseArcAroundTo center' pointOnArc

@@ -14,8 +14,7 @@ dependencies:
     - generative-art
     - base
     - cairo
-    - containers
-    - mwc-random
+    - text
     - vector
 
 executables:
