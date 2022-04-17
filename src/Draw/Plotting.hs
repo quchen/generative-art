@@ -524,6 +524,8 @@ instance Plotting Circle where
     plot (Circle center radius) = do
         comment "Circle"
         block $ do
+
+            -- TODO: implement the following again
             -- -- The naive way of painting a circle is by always starting them e.g. on
             -- -- the very left. This requires some unnecessary pen hovering, and for some
             -- -- pens creates a visible »pen down« dot. We therefore go the more
@@ -563,41 +565,19 @@ instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b) => Plotting (a,b) where
-    plot (a,b) = do
-        comment "2-tuple"
-        block $ do
-            plot a
-            plot b
+    plot (a,b) = comment "2-tuple" >> block (plot a >> plot b)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
-    plot (a,b,c) = do
-        comment "3-tuple"
-        block $ do
-            plot a
-            plot b
-            plot c
+    plot (a,b,c) = comment "3-tuple" >> block (plot a >> plot b >> plot c)
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
-    plot (a,b,c,d) = do
-        comment "4-tuple"
-        block $ do
-            plot a
-            plot b
-            plot c
-            plot d
+    plot (a,b,c,d) = comment "4-tuple" >> block (plot a >> plot b >> plot c >> plot d)
 
 -- | Draw each element (in order)
 instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
-    plot (a,b,c,d,e) = do
-        comment "5-tuple"
-        block $ do
-            plot a
-            plot b
-            plot c
-            plot d
-            plot e
+    plot (a,b,c,d,e) = comment "5-tuple" >> block (plot a >> plot b >> plot c >> plot d >> plot e)
 
 instance Plotting Polygon where
     plot (Polygon []) = pure ()
