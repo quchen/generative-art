@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main (main) where
 
@@ -9,7 +11,7 @@ import           Data.List.Extended
 import qualified Data.Map                 as M
 import           Data.Traversable
 import qualified Data.Vector              as V
-import           Graphics.Rendering.Cairo as C
+import qualified Graphics.Rendering.Cairo as C
 import           System.Random.MWC
 
 import Draw
@@ -69,42 +71,62 @@ randomTile = \gen -> do
 drawTile :: Hex -> Tile () -> C.Render ()
 drawTile hex (Tile as) = for_ as $ drawArc hex
 
-drawArc :: Hex -> ((Direction, Direction), ()) -> C.Render ()
-drawArc hex ((d1, d2), i) = cairoScope $ do
-    sketchArc d1 d2
-    C.setLineWidth (3/8 * cellSize)
-    C.setLineCap C.LineCapRound
-    setColor white
-    C.stroke
-    sketchArc d1 d2
-    C.setLineWidth (1/8 * cellSize)
-    C.setLineCap C.LineCapRound
-    setColor black
-    C.stroke
+data Arc = Arc
+    { _arcCenter :: Vec2
+    , _arcRadius :: Double
+    , _arcStartAngle :: Angle
+    , _arcEndAngle :: Angle
+    }
+
+instance Sketch Arc where
+    sketch Arc{..} = Draw.arcSketch _arcCenter _arcRadius _arcStartAngle _arcEndAngle
+
+data ArcSketch = forall a. Sketch a => ArcSketch a
+
+instance Sketch ArcSketch where
+    sketch (ArcSketch s) = sketch s
+
+arc :: Hex -> ((Direction, Direction), ()) -> [ArcSketch]
+arc hex ((d1, d2), ()) = [sketchArc d1 d2]
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
     nextCenter d = toVec2 cellSize (move d 1 hex)
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
 
-    sketchArc L  R  = moveToVec (side L)  >> lineToVec (side R)
-    sketchArc UL DR = moveToVec (side UL) >> lineToVec (side DR)
-    sketchArc UR DL = moveToVec (side DL) >> lineToVec (side UR)
+    sketchArc :: Direction -> Direction -> ArcSketch
 
-    sketchArc L  UR = arcSketch (nextCenter UL) (1.5 * cellSize) (deg 30)  (deg 90)
-    sketchArc UL R  = arcSketch (nextCenter UR) (1.5 * cellSize) (deg 90)  (deg 150)
-    sketchArc UR DR = arcSketch (nextCenter R)  (1.5 * cellSize) (deg 150) (deg 210)
-    sketchArc R  DL = arcSketch (nextCenter DR) (1.5 * cellSize) (deg 210) (deg 270)
-    sketchArc DR L  = arcSketch (nextCenter DL) (1.5 * cellSize) (deg 270) (deg 330)
-    sketchArc DL UL = arcSketch (nextCenter L)  (1.5 * cellSize) (deg 330) (deg 30)
+    sketchArc L  R  = ArcSketch $ Line (side L)  (side R)
+    sketchArc UL DR = ArcSketch $ Line (side UL) (side DR)
+    sketchArc UR DL = ArcSketch $ Line (side DL) (side UR)
 
-    sketchArc L  UL = arcSketch (corner L  UL) (0.5 * cellSize) (deg 330) (deg 90)
-    sketchArc UL UR = arcSketch (corner UL UR) (0.5 * cellSize) (deg 30)  (deg 150)
-    sketchArc UR R  = arcSketch (corner UR R)  (0.5 * cellSize) (deg 90)  (deg 210)
-    sketchArc R  DR = arcSketch (corner R  DR) (0.5 * cellSize) (deg 150) (deg 270)
-    sketchArc DR DL = arcSketch (corner DR DL) (0.5 * cellSize) (deg 210) (deg 330)
-    sketchArc DL L  = arcSketch (corner DL L)  (0.5 * cellSize) (deg 270) (deg 30)
+    sketchArc L  UR = ArcSketch $ Arc (nextCenter UL) (1.5 * cellSize) (deg 30)  (deg 90)
+    sketchArc UL R  = ArcSketch $ Arc (nextCenter UR) (1.5 * cellSize) (deg 90)  (deg 150)
+    sketchArc UR DR = ArcSketch $ Arc (nextCenter R)  (1.5 * cellSize) (deg 150) (deg 210)
+    sketchArc R  DL = ArcSketch $ Arc (nextCenter DR) (1.5 * cellSize) (deg 210) (deg 270)
+    sketchArc DR L  = ArcSketch $ Arc (nextCenter DL) (1.5 * cellSize) (deg 270) (deg 330)
+    sketchArc DL UL = ArcSketch $ Arc (nextCenter L)  (1.5 * cellSize) (deg 330) (deg 30)
+
+    sketchArc L  UL = ArcSketch $ Arc (corner L  UL) (0.5 * cellSize) (deg 330) (deg 90)
+    sketchArc UL UR = ArcSketch $ Arc (corner UL UR) (0.5 * cellSize) (deg 30)  (deg 150)
+    sketchArc UR R  = ArcSketch $ Arc (corner UR R)  (0.5 * cellSize) (deg 90)  (deg 210)
+    sketchArc R  DR = ArcSketch $ Arc (corner R  DR) (0.5 * cellSize) (deg 150) (deg 270)
+    sketchArc DR DL = ArcSketch $ Arc (corner DR DL) (0.5 * cellSize) (deg 210) (deg 330)
+    sketchArc DL L  = ArcSketch $ Arc (corner DL L)  (0.5 * cellSize) (deg 270) (deg 30)
 
     sketchArc d  d' | d == d' = error ("Illegal tile " ++ show (d, d'))
 
     sketchArc d  d' = sketchArc d' d
+
+drawArc :: Hex -> ((Direction, Direction), ()) -> C.Render ()
+drawArc hex ((d1, d2), i) = cairoScope $ do
+    for_ (arc hex ((d1, d2), ())) sketch
+    C.setLineWidth (3/8 * cellSize)
+    C.setLineCap C.LineCapRound
+    setColor white
+    C.stroke
+    for_ (arc hex ((d1, d2), ())) sketch
+    C.setLineWidth (1/8 * cellSize)
+    C.setLineCap C.LineCapRound
+    setColor black
+    C.stroke
