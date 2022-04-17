@@ -100,7 +100,12 @@ fromExtension filePath
     | otherwise = error ("Unknown file extension: " <> filePath <> ", expecting .png or .svg")
 
 -- | Renders the drawing as PNG or SVG, depending on the file extension.
-render :: FilePath -> Int -> Int -> Render () -> IO ()
+render
+    :: FilePath
+    -> Int -- ^ Height (px for PNG, pt for SVG)
+    -> Int -- ^ Width (px for PNG, pt for SVG)
+    -> Render ()
+    -> IO ()
 render filepath w h actions =
     withSurface (fromExtension filepath) filepath w h (\surface -> renderWith surface actions)
 
