@@ -2,24 +2,14 @@ module Main (main) where
 
 
 
-import           Data.Coerce
 import           Data.Default.Class
 import           Data.Foldable
-import           Data.List             (sortOn)
-import qualified Data.Text             as T
-import qualified Data.Text.IO          as T
-import qualified Data.Text.Lazy        as TL
-import qualified Data.Text.Lazy.IO     as T
-import qualified Data.Text.Lazy.IO     as TL
-import           Draw
+import qualified Data.Text.Lazy.IO      as TL
 import           Draw.Plotting
 import           Draw.Plotting.CmdArgs
-import           Geometry              as G
-import           Geometry.Shapes
-import           Geometry.SvgParser
+import           Geometry               as G
+import           Numerics.Interpolation
 import           Options.Applicative
-import           System.Exit
-import Numerics.Interpolation
 
 
 
