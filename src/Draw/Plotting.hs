@@ -386,18 +386,12 @@ data PauseMode
 drawingDistance :: Plot Double
 drawingDistance = gets _drawingDistance
 
-addHeaderFooter
-    :: Maybe feedrate
-    -> Maybe FinishMove
-    -> Maybe BoundingBox
-    -> Double
-    -> Double
-    -> Double
-    -> [GCode]
-    -> [GCode]
-addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanceDrawn_mm distanceTravelled_mm body = mconcat [[header], body, [footer]]
+addHeaderFooter :: PlottingSettings -> PlottingWriterLog -> PlottingState -> [GCode]
+addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer]]
   where
-    feedrateCheck = case feedrate of
+    body = _plottedGCode writerLog
+
+    feedrateCheck = case _feedrate settings of
         Just _ -> GBlock []
         Nothing -> GBlock
             [ GComment "NOOP move to make sure feedrate is already set externally"
@@ -406,14 +400,14 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
             , G90_AbsoluteMovement
             ]
 
-    boundingBoxCheck = case drawnShapesBoundingBox of
-        Nothing -> GBlock []
-        Just (BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) -> GBlock
+    boundingBoxCheck = case (_previewDrawnShapesBoundingBox settings, _drawnBoundingBox finalState) of
+        (False, _) -> GBlock []
+        (True, BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax)) -> GBlock
             [ GComment "Trace bounding box"
             , GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)
             , GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)
             , GBlock
-                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
                 , G93_Feedrate_TravelInFractionofMinute
                 , G04_Dwell 0.5
@@ -440,8 +434,8 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
             ]
         ]
 
-    reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (distanceDrawn_mm/1000))]
-    reportTravelDistance = GBlock [GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (distanceTravelled_mm/1000))]
+    reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (_drawingDistance finalState /1000))]
+    reportTravelDistance = GBlock [GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (_penTravelDistance writerLog/1000))]
 
     header = GBlock
         [ GComment "Header"
@@ -457,7 +451,7 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
         , finishMoveCheck
         ]
 
-    finishMoveCheck = case finishMove of
+    finishMoveCheck = case _finishMove settings of
         Nothing -> GBlock
             [ GComment "Lift pen"
             , GBlock [G00_LinearRapidMove Nothing Nothing (Just 10)]
@@ -465,14 +459,14 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
         Just FinishWithG28 -> GBlock
             [ GComment "Move to predefined position"
             , GBlock
-                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G28_GotoPredefinedPosition Nothing Nothing Nothing
                 ]
             ]
         Just FinishWithG30 -> GBlock
             [ GComment "Move to predefined position"
             , GBlock
-                [ G00_LinearRapidMove Nothing Nothing (Just zTravelHeight)
+                [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G30_GotoPredefinedPosition Nothing Nothing Nothing
                 ]
             ]
@@ -495,15 +489,8 @@ runPlotRaw
     -> Plot a
     -> (PlottingWriterLog, PlottingState)
 runPlotRaw settings body =
-    let (_, finalState, writerLog@PlottingWriterLog{_plottedGCode=gcode}) = runRWS body' settings initialState
-        rawGCode = addHeaderFooter
-            (_feedrate settings)
-            (_finishMove settings)
-            (if _previewDrawnShapesBoundingBox settings then Just (_drawnBoundingBox finalState) else Nothing)
-            (_zTravelHeight settings)
-            (_drawingDistance finalState)
-            (_penTravelDistance writerLog)
-            gcode
+    let (_, finalState, writerLog) = runRWS body' settings initialState
+        rawGCode = addHeaderFooter settings writerLog finalState
     in (writerLog{_plottedGCode=rawGCode}, finalState)
   where
     Plot body' = body
