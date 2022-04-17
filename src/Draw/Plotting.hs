@@ -69,15 +69,16 @@ import Geometry.Shapes
 newtype Plot a = Plot (RWS PlottingSettings PlottingWriterLog PlottingState a)
     deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
-newtype PlottingWriterLog = PlottingWriterLog
-    { _plottedGCode :: [GCode]
+data PlottingWriterLog = PlottingWriterLog
+    { _plottedGCode :: ![GCode]
+    , _penTravelDistance :: !Double
     } deriving (Eq, Ord, Show)
 
 instance Semigroup PlottingWriterLog where
-    PlottingWriterLog code1 <> PlottingWriterLog code2 = PlottingWriterLog (code1 <> code2)
+    PlottingWriterLog code1 travel1 <> PlottingWriterLog code2 travel2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2)
 
 instance Monoid PlottingWriterLog where
-    mempty = PlottingWriterLog mempty
+    mempty = PlottingWriterLog mempty 0
 
 {-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
 modify, _don'tReportModifyAsUnused :: a
@@ -171,20 +172,25 @@ recordDrawingDistance :: GCode -> Plot ()
 recordDrawingDistance instruction = do
     penState <- gets _penState
     penXY@(Vec2 x0 y0) <- gets _penXY
-    when (penState == PenDown) $ case instruction of
-        G00_LinearRapidMove x y _      -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
-        G01_LinearFeedrateMove _ x y _ -> addDrawingDistance (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
-        G02_ArcClockwise _ i j x y -> do
-            let r = norm (Vec2 i j)
-                center = penXY +. Vec2 i j
-                angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-            addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
-        G03_ArcCounterClockwise _ i j x y -> do
-            let r = norm (Vec2 i j)
-                center = penXY +. Vec2 i j
-                angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
-            addDrawingDistance (r * getRad (normalizeAngle (deg 0) angle))
-        _otherwise -> pure ()
+    let distanceTravelled = case instruction of
+            G00_LinearRapidMove x y _      -> Just (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G01_LinearFeedrateMove _ x y _ -> Just (norm (penXY -. Vec2 (fromMaybe x0 x) (fromMaybe y0 y)))
+            G02_ArcClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                Just (r * getRad (normalizeAngle (deg 0) angle))
+            G03_ArcCounterClockwise _ i j x y -> do
+                let r = norm (Vec2 i j)
+                    center = penXY +. Vec2 i j
+                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                Just (r * getRad (normalizeAngle (deg 0) angle))
+            _otherwise -> Nothing
+
+    case (penState, distanceTravelled) of
+        (PenUp, Just d) -> addTravelDistance d
+        (PenDown, Just d) -> addDrawingDistance d
+        (_, Nothing) -> pure ()
 
 recordBB :: HasBoundingBox object => object -> Plot ()
 recordBB object = modify' (\s -> s { _drawnBoundingBox = _drawnBoundingBox s <> boundingBox object })
@@ -201,6 +207,9 @@ recordBoundingBox instruction = do
 
 addDrawingDistance :: Double -> Plot ()
 addDrawingDistance d = modify' (\s -> s { _drawingDistance = _drawingDistance s + d })
+
+addTravelDistance :: Double -> Plot ()
+addTravelDistance d = Plot (tell mempty{_penTravelDistance = d})
 
 -- | CwArc a c b = Clockwise arc from a to b with center at c.
 data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
