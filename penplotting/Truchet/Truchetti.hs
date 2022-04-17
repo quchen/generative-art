@@ -28,20 +28,14 @@ cellSize = 20
 main :: IO ()
 main = do
     gen <- initialize (V.fromList [123, 988])
-    tiling <- indexStrands <$> randomTiling gen plane
+    tiling <- randomTiling gen plane
 
     let drawing = do
             cairoScope (setColor backgroundColor >> C.paint)
-            for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
+            for_ (M.toList tiling) $ \(hex, tile) -> drawTile hex tile
 
     render "out/penplotting-truchetti.png" picWidth picHeight drawing
     render "out/penplotting-truchetti.svg" picWidth picHeight drawing
-
-colorScheme :: Int -> Color Double
-colorScheme = twilight . (*1.21) . fromIntegral
-
-backgroundColor :: Color Double
-backgroundColor = blend 0.5 (colorScheme 0) white
 
 plane :: [Hex]
 plane = hexagonsInRange 15 origin
@@ -72,59 +66,19 @@ randomTile = \gen -> do
     pure (tiles V.! rnd)
   where countTiles = V.length tiles
 
-indexStrands :: Tiling () -> Tiling Int
-indexStrands = \tiling -> goStrands 0 (strands tiling) (fmap (fmap (const 0)) tiling)
-  where
-    goStrands _ [] t = t
-    goStrands n (s:ss) t = goStrand n s (goStrands (n+1) ss t)
+drawTile :: Hex -> Tile () -> C.Render ()
+drawTile hex (Tile as) = for_ as $ drawArc hex
 
-    goStrand _ [] t = t
-    goStrand n ((hex, (directions, _)) : xs) t = M.adjust (updateIndex n directions) hex (goStrand n xs t)
-
-    updateIndex n (d1, d2) (Tile xs) = Tile $ flip fmap xs $ \(directions', n') -> if
-        | (d1, d2) == directions' -> (directions', n)
-        | (d2, d1) == directions' -> (directions', n)
-        | otherwise -> (directions', n')
-
-
-strands :: Tiling a -> [[(Hex, ((Direction, Direction), a))]]
-strands tiling = case M.lookupMin tiling of
-    Nothing -> []
-    Just (startHex, tile) -> case tile of
-        Tile [] -> strands (M.delete startHex tiling)
-        Tile (((d, d'), a):ts) ->
-            let (s, tiling') = strand tiling startHex d
-                (s', tiling'') = strand tiling' startHex d'
-            in (reverse s ++ [(startHex, ((d, d'), a))] ++ s') : strands (M.insert startHex (Tile ts) tiling'')
-
-strand :: Tiling a -> Hex -> Direction -> ([(Hex, ((Direction, Direction), a))], Tiling a)
-strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
-    Nothing -> ([], tiling)
-    Just (Tile ds)
-        | ([((_, d'), a)], ds') <- partition ((== reverseDirection d) . fst . fst) ds ->
-            let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', ((reverseDirection d, d'), a)) : s', tiling')
-        | ([((d', _), a)], ds') <- partition ((== reverseDirection d) . snd . fst) ds ->
-            let (s', tiling') = strand (M.insert hex' (Tile ds') tiling) hex' d'
-            in  ((hex', ((reverseDirection d, d'), a)) : s', tiling')
-        | otherwise -> ([], tiling)
-
-reverseDirection :: Direction -> Direction
-reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
-
-drawTile :: (Int -> Color Double) -> Hex -> Tile Int -> C.Render ()
-drawTile colors hex (Tile as) = for_ as $ drawArc colors hex
-
-drawArc :: (Int -> Color Double) -> Hex -> ((Direction, Direction), Int) -> C.Render ()
-drawArc colors hex ((d1, d2), i) = cairoScope $ do
+drawArc :: Hex -> ((Direction, Direction), ()) -> C.Render ()
+drawArc hex ((d1, d2), i) = cairoScope $ do
     sketchArc d1 d2
     C.setLineWidth (cellSize / 2)
-    setColor (backgroundColor `withOpacity` 0.7)
+    setColor white
     C.stroke
     sketchArc d1 d2
     C.setLineWidth (3/8 * cellSize)
     C.setLineCap C.LineCapRound
-    setColor (colors i)
+    setColor black
     C.stroke
   where
     center = toVec2 cellSize hex
