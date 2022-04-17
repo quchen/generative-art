@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import qualified Graphics.Rendering.Cairo as C
+import qualified Graphics.Rendering.Cairo.Matrix as C
 import qualified Data.Text.Lazy.IO as TL
 
 import Geometry
@@ -12,15 +13,21 @@ import Draw.Plotting
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 594
-picHeight = 420
+picWidth = 600
+picHeight = 450
 
 main :: IO ()
 main = do
     render "out/fan-pattern.png" picWidth picHeight cairoDrawing
     render "out/fan-pattern.svg" picWidth picHeight cairoDrawing
     let settings = def
-    TL.writeFile "fan-pattern.g" $ runPlot settings gcodeDrawing
+    let (gcode, preview) = runPlot settings gcodeDrawing
+    TL.writeFile "fan-pattern.g" gcode
+    render "out/fan-pattern.png" picWidth picHeight $ do
+        cairoScope (setColor white >> C.paint)
+        C.transform (C.Matrix 1 0 0 (-1) 0 picHeight)
+        _ <- preview
+        pure ()
 
 cairoDrawing :: C.Render ()
 cairoDrawing = cairoScope $ do
@@ -30,7 +37,7 @@ cairoDrawing = cairoScope $ do
     let radius = 50
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
-    for_ [(2 * x + y `mod` 2, y) | x <- [0..10], y <- [0..10]] $ \(x, y) -> do
+    for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
         let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
         arcSketchNegative center radius (deg 0) (deg 180)
         C.stroke
@@ -57,18 +64,19 @@ cairoDrawing = cairoScope $ do
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = do
+    repositionTo zero
     let radius = 50
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
-    for_ [(2 * x + y `mod` 2, y) | x <- [0..10], y <- [0..10]] $ \(x, y) -> do
+    for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
         let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
         repositionTo (center -. gridX)
         clockwiseArcAroundTo center (center +. gridX)
         repositionTo (center +. (gridX -. Vec2 2 0))
         counterclockwiseArcAroundTo center (center -. (gridX -. Vec2 2 0))
         for_ (deg <$> [12, 24 .. 168]) $ \a -> do
-            let startPoint = center +. gridY
-                pointOnArc = center +. (radius - 2) *. Vec2 (cos (getRad a)) (-sin (getRad a))
+            let startPoint = center -. gridY
+                pointOnArc = center +. (radius - 2) *. Vec2 (-cos (getRad a)) (sin (getRad a))
                 center' = case intersectionLL (angledLine startPoint (deg 0) 1) (perpendicularBisector (Line startPoint pointOnArc)) of
                     IntersectionReal p -> p
                     IntersectionVirtual p -> p
@@ -76,6 +84,7 @@ gcodeDrawing = do
                     IntersectionVirtualInsideR p -> p
                     _otherwise -> error "Lines must intersect"
             repositionTo startPoint
-            if getDeg a < 180
+            if getDeg a < 90
                 then counterclockwiseArcAroundTo center' pointOnArc
                 else clockwiseArcAroundTo center' pointOnArc
+            pure ()
