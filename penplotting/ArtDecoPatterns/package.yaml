@@ -1,0 +1,26 @@
+name:       penplotting-art-deco-patterns
+version:    0.1.0.0
+github:     quchen/generative-art
+license:    BSD3
+author:
+    - Franz Thoma
+copyright:
+    - 2022 Franz Thoma
+
+default-extensions:
+    - MultiWayIf
+
+dependencies:
+    - generative-art
+    - base
+    - cairo
+    - containers
+    - mwc-random
+    - vector
+
+executables:
+    penplotting-fan-pattern:
+        main: FanPattern.hs
+        other-modules: []
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]

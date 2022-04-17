@@ -5,6 +5,7 @@ packages:
     - app/voronoi_interactive
 
     - penplotting/ApollonianGasket
+    - penplotting/ArtDecoPatterns
     - penplotting/Bezier
     - penplotting/circuits
     - penplotting/DelaunayVoronoi
