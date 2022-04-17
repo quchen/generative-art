@@ -19,28 +19,23 @@ import Geometry.Coordinates.Hexagonal
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 2560
-picHeight = 1440
-
-scaleFactor :: Double
-scaleFactor = 0.5
+picWidth = 700
+picHeight = 500
 
 cellSize :: Num a => a
-cellSize = 64
+cellSize = 20
 
 main :: IO ()
 main = do
-    let file = "out/truchetti.png"
-        scaledWidth = round (scaleFactor * picWidth)
-        scaledHeight = round (scaleFactor * picHeight)
-
     gen <- initialize (V.fromList [123, 988])
     tiling <- indexStrands <$> randomTiling gen plane
 
-    render file scaledWidth scaledHeight $ do
-        C.scale scaleFactor scaleFactor
-        cairoScope (setColor backgroundColor >> C.paint)
-        for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
+    let drawing = do
+            cairoScope (setColor backgroundColor >> C.paint)
+            for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
+
+    render "out/penplotting-truchetti.png" picWidth picHeight drawing
+    render "out/penplotting-truchetti.svg" picWidth picHeight drawing
 
 colorScheme :: Int -> Color Double
 colorScheme = twilight . (*1.21) . fromIntegral

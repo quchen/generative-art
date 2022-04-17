@@ -37,10 +37,13 @@ main = do
     gen <- initialize (V.fromList [123, 988])
     tiling <- indexStrands <$> randomTiling gen plane
 
-    render file scaledWidth scaledHeight $ do
-        C.scale scaleFactor scaleFactor
-        cairoScope (setColor backgroundColor >> C.paint)
-        for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
+    let drawing = do
+            C.scale scaleFactor scaleFactor
+            cairoScope (setColor backgroundColor >> C.paint)
+            for_ (M.toList tiling) $ \(hex, tile) -> drawTile colorScheme hex tile
+
+    render "out/penplotting-truchetti.png" scaledWidth scaledHeight drawing
+    render "out/penplotting-truchetti.svg" scaledWidth scaledHeight drawing
 
 colorScheme :: Int -> Color Double
 colorScheme = twilight . (*1.21) . fromIntegral
