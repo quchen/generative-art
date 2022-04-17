@@ -392,9 +392,10 @@ addHeaderFooter
     -> Maybe BoundingBox
     -> Double
     -> Double
+    -> Double
     -> [GCode]
     -> [GCode]
-addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanceDrawn_mm body = mconcat [[header], body, [footer]]
+addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanceDrawn_mm distanceTravelled_mm body = mconcat [[header], body, [footer]]
   where
     feedrateCheck = case feedrate of
         Just _ -> GBlock []
@@ -440,6 +441,7 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
         ]
 
     reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (distanceDrawn_mm/1000))]
+    reportTravelDistance = GBlock [GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (distanceTravelled_mm/1000))]
 
     header = GBlock
         [ GComment "Header"
@@ -447,6 +449,7 @@ addHeaderFooter feedrate finishMove drawnShapesBoundingBox zTravelHeight distanc
         , feedrateCheck
         , boundingBoxCheck
         , reportDrawingDistance
+        , reportTravelDistance
         ]
 
     footer = GBlock
@@ -499,6 +502,7 @@ runPlotRaw settings body =
             (if _previewDrawnShapesBoundingBox settings then Just (_drawnBoundingBox finalState) else Nothing)
             (_zTravelHeight settings)
             (_drawingDistance finalState)
+            (_penTravelDistance writerLog)
             gcode
     in (writerLog{_plottedGCode=rawGCode}, finalState)
   where
