@@ -5,7 +5,8 @@
 module Draw (
     -- * SVG and PNG file handling
       render
-    , standardMathCoordinates
+    , CoordinateSystem(..)
+    , coordinateSystem
     , haddockRender
 
     -- * Drawing presets
@@ -103,15 +104,129 @@ render :: FilePath -> Int -> Int -> Render () -> IO ()
 render filepath w h actions =
     withSurface (fromExtension filepath) filepath w h (\surface -> renderWith surface actions)
 
--- | Cairo has the zero on the bottom left by default. Calling this function sets
--- the zero to the bottom left, yielding a standard mathematical coordinate system:
--- zero is on the bottom left, x/y extend to the right/top.
-standardMathCoordinates
-    :: Double -- ^ Height of the canvas
-    -> Render ()
-standardMathCoordinates height = do
-    C.scale 1 (-1)
-    C.translate 0 height
+-- | Argument to 'coordinateSystem' to pick zero location and axis direction.
+data CoordinateSystem
+    = CairoStandard_ZeroTopLeft_XRight_YDown
+
+        -- ^ __Left-handed coordinate system.__ Standard Cairo/computer graphics
+        -- coordinates. Zero is on the top left, and the Y axis points downwards.
+        -- Even though this is common in computer graphics, working geometrically
+        -- with a left-handed coordinate system can be a bit awkward and
+        -- surprising.
+        --
+        -- <<docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg>>
+        --
+        -- === __(Expand to see the code for the picture)__
+        -- >>> :{
+        -- haddockRender "Draw.hs/coordinate_system_cairo_standard.svg" 100 80 $ do
+        --     cairoScope $ do
+        --         C.translate 10 10
+        --         setColor black
+        --         setLineWidth 1
+        --         rectangle 0 0 80 60
+        --         setDash [2,2] 0
+        --         stroke
+        --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
+        --     C.translate 10 10
+        --     cairoScope $ do
+        --         sketch (Arrow (angledLine zero (deg 0) 80) def)
+        --         sketch (Arrow (angledLine zero (deg 90) 60) def)
+        --         stroke
+        --     cairoScope $ do
+        --         setColor (mathematica97 1)
+        --         let radius = 20
+        --         arc 0 0 radius 0 (pi/2)
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
+        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         stroke
+        -- :}
+        -- docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg
+
+    | MathStandard_ZeroBottomLeft_XRight_YUp Double
+        -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
+        -- zero on the bottom left. Needs the image’s height as arguments for
+        -- technical reasons.
+        --
+        -- <<docs/haddock/Draw.hs/coordinate_system_math_standard.svg>>
+        --
+        -- === __(Expand to see the code for the picture)__
+        -- >>> :{
+        -- haddockRender "Draw.hs/coordinate_system_math_standard.svg" 100 80 $ do
+        --     cairoScope $ do
+        --         C.translate 10 10
+        --         setColor black
+        --         setLineWidth 1
+        --         rectangle 0 0 80 60
+        --         setDash [2,2] 0
+        --         stroke
+        --     coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp 80)
+        --     C.translate 10 10
+        --     cairoScope $ do
+        --         sketch (Arrow (angledLine zero (deg 0) 80) def)
+        --         sketch (Arrow (angledLine zero (deg 90) 60) def)
+        --         stroke
+        --     cairoScope $ do
+        --         setColor (mathematica97 1)
+        --         let radius = 20
+        --         arc 0 0 radius 0 (pi/2)
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
+        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         stroke
+        -- :}
+        -- docs/haddock/Draw.hs/coordinate_system_math_standard.svg
+
+
+    | MathStandard_ZeroCenter_XRight_YUp Double Double
+        -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
+        -- zero in the center. Needs the image’s width and height as arguments for
+        -- technical reasons.
+        --
+        -- <<docs/haddock/Draw.hs/coordinate_system_math_standard_centered.svg>>
+        --
+        -- === __(Expand to see the code for the picture)__
+        -- >>> :{
+        -- haddockRender "Draw.hs/coordinate_system_math_standard_centered.svg" 100 80 $ do
+        --     cairoScope $ do
+        --         C.translate 10 10
+        --         setColor black
+        --         setLineWidth 1
+        --         rectangle 0 0 80 60
+        --         setDash [2,2] 0
+        --         stroke
+        --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 100 80)
+        --     cairoScope $ do
+        --         sketch (Arrow (angledLine zero (deg 0) 40) def)
+        --         sketch (Arrow (angledLine zero (deg 90) 30) def)
+        --         stroke
+        --         setColor (mathematica97 0 `withOpacity` 0.3)
+        --         sketch (angledLine zero (deg 0) (-40))
+        --         sketch (angledLine zero (deg 90) (-30))
+        --         stroke
+        --     cairoScope $ do
+        --         setColor (mathematica97 1)
+        --         let radius = 15
+        --         arc 0 0 radius 0 (pi/2)
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
+        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         stroke
+        -- :}
+        -- docs/haddock/Draw.hs/coordinate_system_math_standard_centered.svg
+
+    deriving (Eq, Ord, Show)
+
+-- | Choose a coordinate system.
+coordinateSystem :: CoordinateSystem -> Render ()
+coordinateSystem cosy = do
+    C.identityMatrix
+    case cosy of
+        CairoStandard_ZeroTopLeft_XRight_YDown -> pure ()
+        MathStandard_ZeroBottomLeft_XRight_YUp height -> do
+            C.translate 0 height
+            C.scale 1 (-1)
+        MathStandard_ZeroCenter_XRight_YUp width height -> do
+            C.translate 0 height
+            C.scale 1 (-1)
+            C.translate (width/2) (height/2)
 
 -- | Usable by doctests for rendering explanatory little pictures in Haddock.
 haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
