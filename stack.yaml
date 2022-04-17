@@ -13,6 +13,7 @@ packages:
     - penplotting/PoissonDisc
     - penplotting/Pressure
     - penplotting/SvgSource
+    - penplotting/Truchet
     - penplotting/Voronoi
 
     - showcases/circuits
