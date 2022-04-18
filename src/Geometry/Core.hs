@@ -646,6 +646,9 @@ instance HasBoundingBox BoundingBox where
 instance HasBoundingBox Vec2 where
     boundingBox v = BoundingBox v v
 
+instance HasBoundingBox a => HasBoundingBox (Maybe a) where
+    boundingBox = foldMap boundingBox
+
 instance (HasBoundingBox a, HasBoundingBox b) => HasBoundingBox (Either a b) where
     boundingBox = bifoldMap boundingBox boundingBox
 

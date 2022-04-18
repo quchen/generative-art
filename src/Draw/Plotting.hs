@@ -6,6 +6,7 @@ module Draw.Plotting (
     -- * 'Plot' type
       Plot()
     , runPlot
+    , runPlotToFiles
     , PlottingSettings(..)
     , FinishMove(..)
 
@@ -52,6 +53,7 @@ import           Data.Default.Class
 import           Data.Foldable
 import qualified Data.Set                 as S
 import qualified Data.Text.Lazy           as TL
+import qualified Data.Text.Lazy.IO        as TL
 import           Data.Vector              (Vector)
 import qualified Data.Vector              as V
 import           Formatting               hiding (center)
@@ -526,6 +528,23 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
                 ]
             ]
 
+decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
+decorateCairoPreview settings finalState = D.cairoScope $ do
+    let drawnBB = if _previewDrawnShapesBoundingBox settings
+            then Just (_drawnBoundingBox finalState)
+            else Nothing
+        zeroMarker = do
+            D.sketch (Line (Vec2 (-10) 0) (Vec2 10 0))
+            D.sketch (Line (Vec2 0 (-10)) (Vec2 0 10))
+            C.stroke
+    D.setColor (D.mathematica97 2)
+    zeroMarker
+    for_ [drawnBB, _canvasBoundingBox settings] $ \case
+        Nothing -> pure ()
+        Just bb -> do
+            D.sketch (boundingBoxPolygon bb)
+            C.stroke
+
 -- | Convert the 'Plot' paths to raw GCode 'TL.Text', along with access to a simple
 -- Cairo-based preview function.
 --
@@ -537,6 +556,18 @@ runPlot
 runPlot settings body =
     let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview = cairoPreview}, _finalState, totalBB) = runPlotRaw settings body
     in (renderGCode rawGCode, totalBB, cairoPreview)
+
+runPlotToFiles
+    :: PlottingSettings
+    -> Plot a
+    -> FilePath
+    -> IO ()
+runPlotToFiles settings body filePath = do
+    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, _finalState, totalBB) = runPlotRaw settings body
+    TL.writeFile (filePath <> ".g") (renderGCode rawGCode)
+
+    let (BoundingBox _ (Vec2 width height)) = totalBB
+    D.render (filePath <> ".svg") (round width) (round height) cairoPreview
 
 -- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
 -- get 'TL.Text' out of the ['GCode'].
@@ -550,20 +581,13 @@ runPlotRaw
 runPlotRaw settings body =
     let (_, finalState, writerLog) = runRWS body' settings initialState
         rawGCode = addHeaderFooter settings writerLog finalState
-        cairoPreview = do
-            let drawnBB = if _previewDrawnShapesBoundingBox settings
-                    then Just (_drawnBoundingBox finalState)
-                    else Nothing
-                drawBB colorIx bb = D.cairoScope $ do
-                    D.setColor (D.mathematica97 colorIx)
-                    D.sketch (boundingBoxPolygon bb)
-                    C.stroke
-            for_ [drawnBB, canvasBB] $ \case
-                Just bb -> drawBB 2 bb
-                Nothing -> pure ()
-            _plottingCairoPreview writerLog
+        cairoPreview = decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog
         canvasBB = _canvasBoundingBox settings
-        totalBB = _drawnBoundingBox finalState <> fromMaybe mempty canvasBB
+        totalBB = mconcat
+            [ _drawnBoundingBox finalState
+            , boundingBox canvasBB
+            , boundingBox (zero :: Vec2)
+            ]
     in (writerLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, finalState, totalBB)
   where
     Plot body' = body
