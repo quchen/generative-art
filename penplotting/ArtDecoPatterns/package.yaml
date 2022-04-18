@@ -22,3 +22,8 @@ executables:
         other-modules: []
         source-dirs: .
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
+    penplotting-fish-scales-pattern:
+        main: FishScales.hs
+        other-modules: []
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]

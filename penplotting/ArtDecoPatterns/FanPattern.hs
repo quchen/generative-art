@@ -58,7 +58,6 @@ cairoDrawing = cairoScope $ do
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = do
-    repositionTo zero
     let radius = 50
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
