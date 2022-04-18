@@ -206,10 +206,10 @@ recordCairoPreview instruction = do
                 centerOffset = Vec2 i j
                 center@(Vec2 centerX centerY) = start +. centerOffset
                 end = Vec2 x y
-                startAngle = angleOfLine (Line start center)
-                endAngle = angleOfLine (Line end center)
+                startAngle = angleOfLine (Line center start)
+                endAngle = angleOfLine (Line center end)
             D.moveToVec start
-            C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
+            C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
             C.stroke
         G03_ArcCounterClockwise _ i j x y -> tellCairo $ do
             feedrateStyle
@@ -218,10 +218,10 @@ recordCairoPreview instruction = do
                 centerOffset = Vec2 i j
                 center@(Vec2 centerX centerY) = start +. centerOffset
                 end = Vec2 x y
-                startAngle = angleOfLine (Line start center)
-                endAngle = angleOfLine (Line end center)
+                startAngle = angleOfLine (Line center start)
+                endAngle = angleOfLine (Line center end)
             D.moveToVec start
-            C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
+            C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
             C.stroke
         _otherwise -> pure ()
 
