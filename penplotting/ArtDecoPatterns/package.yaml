@@ -9,13 +9,12 @@ copyright:
 
 default-extensions:
     - MultiWayIf
+    - RecordWildCards
 
 dependencies:
     - generative-art
     - base
     - cairo
-    - text
-    - vector
 
 executables:
     penplotting-fan-pattern:

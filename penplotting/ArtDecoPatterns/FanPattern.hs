@@ -3,8 +3,6 @@ module Main (main) where
 
 
 import qualified Graphics.Rendering.Cairo as C
-import qualified Graphics.Rendering.Cairo.Matrix as C
-import qualified Data.Text.Lazy.IO as TL
 
 import Geometry
 import Draw
@@ -21,13 +19,9 @@ main = do
     render "out/fan-pattern.png" picWidth picHeight cairoDrawing
     render "out/fan-pattern.svg" picWidth picHeight cairoDrawing
     let settings = def
-    let (gcode, preview) = runPlot settings gcodeDrawing
-    TL.writeFile "fan-pattern.g" gcode
-    render "out/fan-pattern.png" picWidth picHeight $ do
-        cairoScope (setColor white >> C.paint)
-        C.transform (C.Matrix 1 0 0 (-1) 0 picHeight)
-        _ <- preview
-        pure ()
+    let RunPlotResult{..} = runPlot settings gcodeDrawing
+    _writeGCodeFile "fan-pattern.g"
+    _writePreviewFile "out/fan-pattern.png"
 
 cairoDrawing :: C.Render ()
 cairoDrawing = cairoScope $ do
