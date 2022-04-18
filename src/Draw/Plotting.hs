@@ -11,6 +11,7 @@ module Draw.Plotting (
     , FinishMove(..)
 
     -- ** Raw GCode handling
+    , TinkeringInternals(..)
     , PlottingWriterLog(..)
     , PlottingState(..)
     , renderGCode
@@ -548,7 +549,13 @@ decorateCairoPreview settings finalState = D.cairoScope $ do
 data RunPlotResult = RunPlotResult
     { _writeGCodeFile :: FilePath -> IO ()
     , _writePreviewFile :: FilePath -> IO ()
-    , _tinkeringInternals :: (PlottingSettings, PlottingWriterLog, PlottingState)
+    , _tinkeringInternals :: TinkeringInternals
+    }
+
+data TinkeringInternals = TinkeringInternals
+    { _tinkeringSettings :: PlottingSettings
+    , _tinkeringWriterLog :: PlottingWriterLog
+    , _tinkeringState :: PlottingState
     }
 
 -- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
@@ -591,7 +598,11 @@ runPlot settings body =
     in RunPlotResult
         { _writeGCodeFile = \filePath -> TL.writeFile filePath rawGCode
         , _writePreviewFile  = \filePath ->  D.render filePath (round width) (round height) decoratedCairoPreview
-        , _tinkeringInternals = (settings, decoratedWriterLog, finalState)
+        , _tinkeringInternals = TinkeringInternals
+            { _tinkeringSettings = settings
+            , _tinkeringWriterLog = decoratedWriterLog
+            , _tinkeringState = finalState
+            }
         }
 
 -- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
