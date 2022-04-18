@@ -6,12 +6,11 @@ module Draw.Plotting (
     -- * 'Plot' type
       Plot()
     , runPlot
-    , runPlotToFiles
+    , RunPlotResult(..)
     , PlottingSettings(..)
     , FinishMove(..)
 
     -- ** Raw GCode handling
-    , runPlotRaw
     , PlottingWriterLog(..)
     , PlottingState(..)
     , renderGCode
@@ -545,57 +544,54 @@ decorateCairoPreview settings finalState = D.cairoScope $ do
             D.sketch (boundingBoxPolygon bb)
             C.stroke
 
--- | Convert the 'Plot' paths to raw GCode 'TL.Text', along with access to a simple
--- Cairo-based preview function.
+-- | Result of 'runPlot'; unifies convenience API and internals for tinkering.
+data RunPlotResult = RunPlotResult
+    { _writeGCodeFile :: FilePath -> IO ()
+    , _writePreviewFile :: FilePath -> IO ()
+    , _tinkeringInternals :: (PlottingSettings, PlottingWriterLog, PlottingState)
+    }
+
+-- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
 --
--- For tinkering with the GCode AST, see 'runPlotRaw'.
+-- @
+-- let plotResult = 'runPlot' settings body
+-- '_writeGCodeFile' plotResult "output.g"
+-- '_writePreviewFile' plotResult "output.png"
+-- @
 runPlot
     :: PlottingSettings
     -> Plot a
-    -> (TL.Text, BoundingBox, C.Render ()) -- ^ Generated GCode, and 'C.Render' to draw a preview (using the provided 'BoundingBox' to size the image).
+    -> RunPlotResult
 runPlot settings body =
-    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview = cairoPreview}, _finalState, totalBB) = runPlotRaw settings body
-    in (renderGCode rawGCode, totalBB, cairoPreview)
-
-runPlotToFiles
-    :: PlottingSettings
-    -> Plot a
-    -> FilePath
-    -> IO ()
-runPlotToFiles settings body filePath = do
-    let (PlottingWriterLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, _finalState, totalBB) = runPlotRaw settings body
-    TL.writeFile (filePath <> ".g") (renderGCode rawGCode)
-
-    let (BoundingBox _ (Vec2 width height)) = totalBB
-    D.render (filePath <> ".svg") (round width) (round height) cairoPreview
-
--- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
--- get 'TL.Text' out of the ['GCode'].
---
--- This may be useful for special tweaks and testing, but it is also very brittle
--- when the GCode generator changes. Use with caution!
-runPlotRaw
-    :: PlottingSettings
-    -> Plot a
-    -> (PlottingWriterLog, PlottingState, BoundingBox)
-runPlotRaw settings body =
     let (_, finalState, writerLog) = runRWS body' settings initialState
-        rawGCode = addHeaderFooter settings writerLog finalState
-        cairoPreview = decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog
+        Plot body' = body
+        initialState = PlottingState
+            { _penState = PenUp
+            , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
+            , _drawingDistance = 0
+            , _drawnBoundingBox = mempty
+            }
+
+        decoratedGCode = addHeaderFooter settings writerLog finalState
+        rawGCode = renderGCode decoratedGCode
+
+        decoratedCairoPreview = D.cairoScope (fitToCanvas >> decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog)
         canvasBB = _canvasBoundingBox settings
         totalBB = mconcat
             [ _drawnBoundingBox finalState
             , boundingBox canvasBB
             , boundingBox (zero :: Vec2)
             ]
-    in (writerLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, finalState, totalBB)
-  where
-    Plot body' = body
-    initialState = PlottingState
-        { _penState = PenUp
-        , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
-        , _drawingDistance = 0
-        , _drawnBoundingBox = mempty
+        (width, height) = boundingBoxSize totalBB
+        fitToCanvas =
+            let trafo = transformBoundingBox totalBB (boundingBox [zero, Vec2 width height]) def
+            in C.transform (D.toCairoMatrix trafo)
+
+        decoratedWriterLog = writerLog{_plottedGCode=decoratedGCode, _plottingCairoPreview=decoratedCairoPreview}
+    in RunPlotResult
+        { _writeGCodeFile = \filePath -> TL.writeFile filePath rawGCode
+        , _writePreviewFile  = \filePath ->  D.render filePath (round width) (round height) decoratedCairoPreview
+        , _tinkeringInternals = (settings, decoratedWriterLog, finalState)
         }
 
 -- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics
