@@ -548,14 +548,24 @@ decorateCairoPreview settings finalState = D.cairoScope $ do
 -- | Result of 'runPlot'; unifies convenience API and internals for tinkering.
 data RunPlotResult = RunPlotResult
     { _writeGCodeFile :: FilePath -> IO ()
+        -- ^ Write the generated GCode to the provided 'FilePath'.
+
     , _writePreviewFile :: FilePath -> IO ()
+        -- ^ Write the generated GCode preview to the provided 'FilePath'.
+
     , _tinkeringInternals :: TinkeringInternals
+        -- ^ Internals calculated along the way. Useful for tinkering and testing.
     }
 
 data TinkeringInternals = TinkeringInternals
-    { _tinkeringSettings :: PlottingSettings
+    { _tinkeringSettings :: PlottingSettings -- ^ The settings used to run the plot.
     , _tinkeringWriterLog :: PlottingWriterLog
+        -- ^ Writer log, decorated with information only available after the plot
+        -- finishes. The GCode has header and footer, the Cairo preview includes
+        -- bounding boxes, etc.
     , _tinkeringState :: PlottingState
+        -- ^ Final state after running the plot. Includes data such as the
+        -- total pen travel distance.
     }
 
 -- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
