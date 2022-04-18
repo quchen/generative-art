@@ -546,7 +546,19 @@ runPlotRaw
 runPlotRaw settings body =
     let (_, finalState, writerLog) = runRWS body' settings initialState
         rawGCode = addHeaderFooter settings writerLog finalState
-    in (writerLog{_plottedGCode=rawGCode}, finalState)
+        cairoPreview = do
+            when (_previewDrawnShapesBoundingBox settings) . D.cairoScope $ do
+                D.setColor (D.mathematica97 2)
+                D.sketch (boundingBoxPolygon (_drawnBoundingBox finalState))
+                C.stroke
+            case _canvasBoundingBox settings of
+                Nothing -> pure ()
+                Just bb -> D.cairoScope $ do
+                    D.setColor (D.mathematica97 2)
+                    D.sketch (boundingBoxPolygon bb)
+                    C.stroke
+            _plottingCairoPreview writerLog
+    in (writerLog{_plottedGCode=rawGCode, _plottingCairoPreview=cairoPreview}, finalState)
   where
     Plot body' = body
     initialState = PlottingState
