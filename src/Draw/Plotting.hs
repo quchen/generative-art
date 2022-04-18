@@ -409,7 +409,7 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
             , GBlock
                 [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
-                , G93_Feedrate_TravelInFractionofMinute
+                , G93_Feedrate_TravelInFractionOfMinute
                 , G04_Dwell 0.5
                 -- 60/n ==> n seconds to move
                 , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
@@ -509,9 +509,22 @@ class Plotting a where
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot bb = do
+    plot (BoundingBox start@(Vec2 xMin yMin) (Vec2 xMax yMax)) = do
         comment "Hover over bounding box"
-        block (plot (boundingBoxPolygon bb))
+        repositionTo start
+        gCode
+            [ G93_Feedrate_TravelInFractionOfMinute
+            , G04_Dwell 0.5
+            -- 60/n ==> n seconds to move
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
+            , G04_Dwell 0.5
+            , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
+            , G94_Feedrate_UnitsPerMinute
+            ]
 
 instance Plotting Line where
     plot (Line start end) = do

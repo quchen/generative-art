@@ -34,7 +34,7 @@ data GCode
     | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
     | G90_AbsoluteMovement
     | G91_RelativeMovement
-    | G93_Feedrate_TravelInFractionofMinute
+    | G93_Feedrate_TravelInFractionOfMinute
     | G94_Feedrate_UnitsPerMinute
     deriving (Eq, Ord, Show)
 
@@ -72,7 +72,7 @@ renderGcodeIndented !level = \case
     G90_AbsoluteMovement -> indent "G90 ;(G9(0) => abs(0)lute movement)"
     G91_RelativeMovement -> indent "G91 ;(G9(1) => re(1)ative movement)"
 
-    G93_Feedrate_TravelInFractionofMinute -> indent "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
+    G93_Feedrate_TravelInFractionOfMinute -> indent "G93 (feedrate is time to travel in fractions of one minute: F1000 = make the move in 60/1000 min)"
     G94_Feedrate_UnitsPerMinute -> indent "G94 (feedrate is units per minute: F1000 = move at 1000 mm/min)"
   where
     indentation = "    "
