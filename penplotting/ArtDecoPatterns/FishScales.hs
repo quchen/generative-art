@@ -31,25 +31,24 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = do
-    let radius = 50
-        gridX = Vec2 radius 0
-        gridY = Vec2 0 radius
-    for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
-        let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
-        for_ [0, 15, 20, 25, 29] $ \i -> do
-            let grid'  = gridX -. Vec2 i 0
-                grid'' = gridX -. Vec2 (i + 0.5) 0
-                (start, end) =
-                    let a = radius
-                        b = radius * sqrt 2
-                        c = radius - i
-                        gamma = acos ((a^2 + b^2 - c^2) / (2*a*b))
-                    in ( center -. gridX -. gridY +. polar (deg 45 +. rad gamma) radius
-                       , center +. gridX -. gridY +. polar (deg 135 -. rad gamma) radius
-                       )
-
-            repositionTo start
-            clockwiseArcAroundTo center end
-            lineTo (end -. Vec2 0 0.5)
-            counterclockwiseArcAroundTo center (start +. Vec2 0 0.5)
+gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
+    let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
+    for_ [0, 1, 6, 7, 8, 9, 10, 15, 20, 21, 22, 23, 24, 28] $ \i -> do
+        let (start1, end1) = arcStartEnd center i
+            (end2, start2) = arcStartEnd center (i+0.5)
+        repositionTo start1
+        clockwiseArcAroundTo center end1
+        lineTo start2
+        counterclockwiseArcAroundTo center end2
+  where
+    radius = 50
+    gridX = Vec2 radius 0
+    gridY = Vec2 0 radius
+    arcStartEnd center i =
+        let a = radius
+            b = radius * sqrt 2
+            c = radius - i
+            gamma = acos ((a^2 + b^2 - c^2) / (2*a*b))
+        in ( center -. gridX -. gridY +. polar (deg 45 +. rad gamma) radius
+            , center +. gridX -. gridY +. polar (deg 135 -. rad gamma) radius
+            )
