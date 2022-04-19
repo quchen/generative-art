@@ -11,6 +11,12 @@ import Geometry.Core
 
 
 
+-- $setup
+-- >>> import Draw as D
+-- >>> import qualified Graphics.Rendering.Cairo as C
+
+
+
 -- | Haskell logo, in the order @[left, lambda, upper dash, lower dash]@.
 --
 -- The logo is scaled so that the height of the logo is @1@.
@@ -21,6 +27,18 @@ import Geometry.Core
 --
 -- The orientation is in mathematically positive direction, i.e. clockwise in
 -- screen coordinates.
+--
+-- <<docs/haddock/Geometry/Shapes.hs/haskell_logo.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Shapes.hs/haskell_logo.svg" 130 100 $ do
+--     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
+--     for_ haskellLogo $ \polygon -> do
+--         sketch (transform (translate (Vec2 10 10) <> scale 80) polygon)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Shapes.hs/haskell_logo.svg
 haskellLogo :: [Polygon]
 haskellLogo = rescaleNormalizePolygons haskellLogoRaw
 
@@ -42,6 +60,18 @@ haskellLogoRaw = [left, lambda, upper, lower]
     lower  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 481.890625 184.25, Vec2 481.890625 240.945312]
 
 -- | Rectangular spiral. Useful as an example for very much non-convex polygons.
+--
+-- <<docs/haddock/Geometry/Shapes.hs/spiral_polygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Shapes.hs/spiral_polygon.svg" 100 100 $ do
+--     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 100 100)
+--     let polygon = spiralPolygon 8 10
+--     sketch polygon
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Shapes.hs/spiral_polygon.svg
 spiralPolygon
     :: Int -- ^ Winding number
     -> Double -- ^ Width
@@ -62,6 +92,17 @@ spiralPolygon n width = Polygon (scanl (+.) (Vec2 0 0) relativeSpiral)
 
 -- | Regular n-gon with radius 1, oriented in mathematically positive direction,
 -- and starting with the first corner on the positive x axis.
+--
+-- <<docs/haddock/Geometry/Shapes.hs/regular_pentagon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Shapes.hs/regular_pentagon.svg" 100 100 $ do
+--     let polygon = transform (translate (Vec2 50 50) <> scale 45) (regularPolygon 5)
+--     sketch polygon
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Shapes.hs/regular_pentagon.svg
 regularPolygon :: Int -> Polygon
 regularPolygon n =
     let angleStepSize = 360/fromIntegral n
