@@ -711,6 +711,7 @@ boundingBoxIntersection a b =
         | minY >= maxY -> Nothing
         | otherwise -> Just (BoundingBox (Vec2 minX minY) (Vec2 maxX maxY))
 
+-- | Width and height of a 'BoundingBox'.
 boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
 boundingBoxSize x = (abs deltaX, abs deltaY)
   where
@@ -896,7 +897,7 @@ polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 -- Angles are not 'Ord', since the cyclic structure is very error-prone when
 -- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Write
 -- your own comparators such as @'comparing' 'getDeg'@ paired with 'normalizeAngle'
--- if you _really_ want to compare them directly. Often times, using the
+-- if you /really/ want to compare them directly. Often times, using the
 -- 'dotProduct' (measure same-direction-ness) or cross product via 'det' (measure
 -- leftness/rightness) is a much better choice to express what you want.
 newtype Angle = Rad Double
@@ -942,9 +943,9 @@ normalizeAngle
     -> Angle -- ^ Normalized angle [start ... start + one revolution]
 normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
 
--- | Directional vector of a line, i.e. the vector pointing from start to end.
--- The norm of the vector is the length of the line. Use 'normalizeLine' to make
--- it unit length.
+-- | Directional vector of a line, i.e. the vector pointing from start to end. The
+-- norm of the vector is the length of the line. Use 'direction' if you need a
+-- result of length 1.
 vectorOf :: Line -> Vec2
 vectorOf (Line start end) = end -. start
 
