@@ -22,12 +22,12 @@ main = do
             , _previewPenTravelColor = Nothing
             , _previewDecorate = False
             }
-    let RunPlotResult{..} = runPlot settings gcodeDrawing
-    writeGCodeFile "fish-scales-pattern.g" _plotGCode
+    let result = runPlot settings gcodeDrawing
+    writeGCodeFile "fish-scales-pattern.g" result
     render "out/fish-scales-pattern.png" picWidth picHeight $ do
         cairoScope (setColor black >> C.paint)
         C.transform (C.Matrix 1 0 0 (-1) 0 picHeight)
-        _plotPreview
+        _plotPreview result
         pure ()
 
 gcodeDrawing :: Plot ()
