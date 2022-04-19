@@ -532,14 +532,28 @@ mirrorXCoords = scale' (-1) 1
 mirrorYCoords :: Transformation
 mirrorYCoords = scale' 1 (-1)
 
--- | Shear with a factor along x/y axis. @'shear' 0 0 = 'mempty'@.
+-- | Shear with a factor along x/y axis relative to zero. @'shear' 0 0 = 'mempty'@.
 --
 -- \[
 -- \text{shear}(p,q)
 --     = \left(\begin{array}{cc|c} 1 & -p & 0 \\ -q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- (The minus signs are probably because of Cairo’s left-handed coordinate system. Or because I haven’t tested this enough…)
+-- <<docs/haddock/Core.hs/shear.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/shear.svg" 100 100 $ do
+--     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
+--         square' = transform (shear 0.5 0.1) square
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch square'
+--     C.stroke
+-- :}
+-- docs/haddock/Core.hs/shear.svg
 shear
     :: Double
     -> Double
