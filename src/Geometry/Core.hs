@@ -373,10 +373,6 @@ instance Transform (Polyline Vector) where transform t (Polyline xs) = Polyline 
 instance Transform Transformation where
     transform = (<>)
 
-instance {-# OVERLAPPABLE #-} (Functor f, Sequential f, Transform a) => Transform (f a) where
-                            -- Sequential so we don’t clash with the surprising Foldables such as tuples and Either
-    transform t = fmap (transform t)
-
 -- | Points mapped to the same point will unify to a single entry
 instance (Ord a, Transform a) => Transform (S.Set a) where
     transform t = S.map (transform t)
@@ -384,19 +380,25 @@ instance (Ord a, Transform a) => Transform (S.Set a) where
 instance Transform a => Transform (M.Map k a) where
     transform t = fmap (transform t)
 
-instance {-# OVERLAPPING #-} (Transform a, Transform b) => Transform (Either a b) where
+instance Transform a => Transform [a] where
+    transform t = fmap (transform t)
+
+instance Transform a => Transform (Vector a) where
+    transform t = fmap (transform t)
+
+instance (Transform a, Transform b) => Transform (Either a b) where
     transform t = bimap (transform t) (transform t)
 
-instance {-# OVERLAPPING #-} (Transform a, Transform b) => Transform (a,b) where
+instance (Transform a, Transform b) => Transform (a,b) where
     transform t (a,b) = (transform t a, transform t b)
 
-instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c) => Transform (a,b,c) where
+instance (Transform a, Transform b, Transform c) => Transform (a,b,c) where
     transform t (a,b,c) = (transform t a, transform t b, transform t c)
 
-instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
+instance (Transform a, Transform b, Transform c, Transform d) => Transform (a,b,c,d) where
     transform t (a,b,c,d) = (transform t a, transform t b, transform t c, transform t d)
 
-instance {-# OVERLAPPING #-} (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
+instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Transform (a,b,c,d,e) where
     transform t (a,b,c,d,e) = (transform t a, transform t b, transform t c, transform t d, transform t e)
 
 -- | Translate the argument by an offset given by the vector. @'translate' ('Vec2' 0 0) = 'mempty'@.
@@ -664,8 +666,10 @@ instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d
 instance (HasBoundingBox a, HasBoundingBox b, HasBoundingBox c, HasBoundingBox d, HasBoundingBox e) => HasBoundingBox (a,b,c,d,e) where
     boundingBox (a,b,c,d,e) = boundingBox a <> boundingBox b <> boundingBox c <> boundingBox d <> boundingBox e
 
-instance {-# OVERLAPPABLE #-} (Sequential f, HasBoundingBox a) => HasBoundingBox (f a) where
-                            -- Sequential so we don’t clash with the surprising Foldables such as tuples and Either
+instance (HasBoundingBox a) => HasBoundingBox [a] where
+    boundingBox = foldMap boundingBox
+
+instance (HasBoundingBox a) => HasBoundingBox (Vector a) where
     boundingBox = foldMap boundingBox
 
 instance (HasBoundingBox a) => HasBoundingBox (S.Set a) where

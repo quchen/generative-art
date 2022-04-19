@@ -755,11 +755,11 @@ instance (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
     plot (a,b,c) = comment "3-tuple" >> block (plot a >> plot b >> plot c)
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
+instance (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
     plot (a,b,c,d) = comment "4-tuple" >> block (plot a >> plot b >> plot c >> plot d)
 
 -- | Draw each element (in order)
-instance {-# OVERLAPPING #-} (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
+instance (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
     plot (a,b,c,d,e) = comment "5-tuple" >> block (plot a >> plot b >> plot c >> plot d >> plot e)
 
 instance Plotting Polygon where
