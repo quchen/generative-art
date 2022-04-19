@@ -1156,9 +1156,18 @@ convexHull points
     in Polygon (drop 1 (go (<=) [] pointsSorted) ++ drop 1 (reverse (go (>=) [] pointsSorted)))
 
 -- | Orientation of a polygon
-data PolygonOrientation = PolygonPositive | PolygonNegative
+data PolygonOrientation
+    = PolygonPositive -- ^ Counter-clockwise when plotted on a standard math coordinate system
+    | PolygonNegative -- ^ Clockwise
     deriving (Eq, Ord, Show)
 
+-- |
+--
+-- >>> polygonOrientation (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
+-- PolygonPositive
+--
+-- >>> polygonOrientation (Polygon [Vec2 0 0, Vec2 0 100, Vec2 100 100, Vec2 100 0])
+-- PolygonNegative
 polygonOrientation :: Polygon -> PolygonOrientation
 polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
@@ -1380,11 +1389,17 @@ cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
 det :: Mat2 -> Double
 det (Mat2 a11 a12 a21 a22) = a11*a22 - a12*a21
 
--- http://mathworld.wolfram.com/PolygonArea.html
+-- | Area of a polygon.
 polygonArea :: Polygon -> Double
 polygonArea = abs . signedPolygonArea
 
--- | Sign depends on orientation.
+-- | Area of a polygon. The result’s sign depends on orientation: 'PolygonPositive' 'Polygon's have positive area.
+--
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
+-- 10000.0
+--
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 0 100, Vec2 100 100, Vec2 100 0])
+-- -10000.0
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith cross ps (tail (cycle ps))
