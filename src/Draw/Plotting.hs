@@ -8,6 +8,7 @@ module Draw.Plotting (
     , runPlot
     , GCode()
     , writeGCodeFile
+    , renderPreview
     , RunPlotResult(..)
     , PlottingSettings(..)
     , FinishMove(..)
@@ -576,7 +577,8 @@ data RunPlotResult = RunPlotResult
         -- ^ The generated G code. Use 'writeGCodeFile' to store it to a file.
 
     , _plotPreview :: C.Render ()
-        -- ^ Preview for the generated GCode. Use 'Draw.render' to convert it to an SVG or PNG file.
+        -- ^ Preview for the generated GCode. Use 'renderPreview' to convert it
+        -- to an SVG or PNG file, or 'D.render' for more control in rendering.
 
     , _plotBoundingBox :: BoundingBox
         -- ^ The 'BoundingBox' of the resulting plot.
@@ -589,7 +591,7 @@ data RunPlotResult = RunPlotResult
         -- @
         -- let bb = '_plotBoundingBox' result
         --     (w, h) = 'boundingBoxSize' bb
-        --     trafo = 'transformBoundingBox' bb (BoundingBox zero (Vec2 width height))
+        --     trafo = 'transformBoundingBox' bb ('BoundingBox' 'zero' ('Vec2' w h)) 'def'
         -- 'D.render' previewFileName w h $ do
         --     'C.transform ('D.toCairoMatrix' trafo)
         --     '_plotPreview' result
@@ -610,8 +612,17 @@ data TinkeringInternals = TinkeringInternals
         -- total pen travel distance.
     }
 
-writeGCodeFile :: FilePath -> [GCode] -> IO ()
-writeGCodeFile file = TL.writeFile file . renderGCode
+writeGCodeFile :: FilePath -> RunPlotResult -> IO ()
+writeGCodeFile file = TL.writeFile file . renderGCode . _plotGCode
+
+renderPreview :: FilePath -> RunPlotResult -> IO ()
+renderPreview file result = do
+    let bb = _plotBoundingBox result
+        (w, h) = boundingBoxSize bb
+        trafo = transformBoundingBox bb (BoundingBox zero (Vec2 w h)) def
+    D.render file (round w) (round h) $ do
+        C.transform (D.toCairoMatrix trafo)
+        _plotPreview result
 
 -- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
 --
