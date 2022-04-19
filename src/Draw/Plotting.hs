@@ -212,7 +212,7 @@ recordCairoPreview instruction = do
         let paintStyle = case penState of
                 PenUp -> D.setColor (fromJust (_previewPenTravelColor settings))
                 PenDown -> D.setColor (_previewPenColor settings)
-            fastStyle = C.setDash [4,4] 0
+            fastStyle = C.setLineWidth (_previewPenWidth settings) >> C.setDash [1,1] 0
             feedrateStyle = C.setLineWidth (_previewPenWidth settings)
         case instruction of
             G00_LinearRapidMove x y _ -> tellCairo $ do
