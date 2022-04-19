@@ -140,6 +140,12 @@ import Data.Sequential
 
 
 
+-- $setup
+-- >>> import qualified Draw as D
+-- >>> import qualified Graphics.Rendering.Cairo as C
+
+
+
 data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
 
 instance NFData Vec2 where rnf _ = ()
@@ -409,21 +415,61 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 -- \]
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
+--
+-- <<docs/haddock/Core.hs/translate.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/translate.svg" 100 30 $ do
+--     let point = Vec2 10 10
+--         offset = Vec2 80 10
+--         point' = transform (translate offset) point
+--     C.setLineWidth 1
+--     D.sketch (Circle point 5)
+--     D.sketch (Circle point' 5)
+--     C.fill
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (D.Arrow (Line point point') def) >> C.stroke
+-- :}
+-- docs/haddock/Core.hs/translate.svg
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
--- | Rotate around zero in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
+-- | Rotate around 'zero' in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
 --
 -- \[
 -- \text{rotate}(\alpha) = \left(\begin{array}{cc|c} \cos(\alpha) & -\sin(\alpha) & 0 \\ \sin(\alpha) & \cos(\alpha) & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- Note that this rotation is understood in Cairo coordinates, which uses a
--- left-handed coordinate system, hence the minus sign compared to the standard
--- mathematical rotation matrix.
---
---
 -- To rotate around a different point, use 'rotateAround'.
+--
+-- <<docs/haddock/Core.hs/rotate.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/rotate.svg" 100 70 $ do
+--     let point = Vec2 90 10
+--         angle = deg 30
+--         point' = transform (rotate angle) point
+--     C.setLineWidth 1
+--     D.cairoScope $ do
+--         D.sketch (Circle point 5, Circle point' 5)
+--         C.fill
+--     D.setColor (D.mathematica97 1)
+--     let line = Line zero point
+--         line' = Line zero point'
+--     D.cairoScope $ do
+--         C.setDash [1,1] 0
+--         D.sketch (line, line')
+--         C.stroke
+--     D.cairoScope $ do
+--         let angle = angleOfLine line
+--             angle' = angleOfLine line'
+--         C.arc 0 0 (lineLength line)(getRad angle) (getRad angle')
+--         D.sketch (D.Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{D._arrowDrawBody=False})
+--         C.stroke
+-- :}
+-- docs/haddock/Core.hs/rotate.svg
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
   where

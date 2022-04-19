@@ -241,6 +241,7 @@ haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
+        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
         cartesianCoordinateSystem def
             { _cartesianAlpha = 0.5
             , _renderAxisLabels=False
