@@ -1351,13 +1351,46 @@ validatePolygon = \polygon -> do
                          , IntersectionReal _ <- [intersectionLL edge1 edge2]
                          ]
 
--- | Average of polygon vertices
+-- | Average of polygon vertices. Note that this is not the same as
+-- 'polygonAverage', which is much less influenced by clustered corners.
+--
+-- <<docs/haddock/Core.hs/polygon_average.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/polygon_average.svg" 100 100 $ do
+--     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
+--         averate = polygonAverage polygon
+--     D.sketch polygon
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (Circle averate 5)
+--     D.sketch (D.Cross averate 5)
+--     C.stroke
+-- :}
+-- docs/haddock/Core.hs/polygon_average.svg
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
     in (1/num) *. total
 
--- | The centroid or center of mass of a polygon
+-- | The centroid or center of mass of a polygon. Note that this is not the same as 'polygonAverage'!
+--
+-- <<docs/haddock/Core.hs/polygon_centroid.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/polygon_centroid.svg" 100 100 $ do
+--     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
+--         centroid = polygonCentroid polygon
+--     D.sketch polygon
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (Circle centroid 5)
+--     D.sketch (D.Cross centroid 5)
+--     C.stroke
+-- :}
+-- docs/haddock/Core.hs/polygon_centroid.svg
 polygonCentroid :: Polygon -> Vec2
 polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
@@ -1395,11 +1428,11 @@ polygonArea = abs . signedPolygonArea
 
 -- | Area of a polygon. The result’s sign depends on orientation: 'PolygonPositive' 'Polygon's have positive area.
 --
--- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
--- 10000.0
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 10 0, Vec2 10 10, Vec2 0 10])
+-- 100.0
 --
--- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 0 100, Vec2 100 100, Vec2 100 0])
--- -10000.0
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 0 10, Vec2 10 10, Vec2 10 0])
+-- -100.0
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith cross ps (tail (cycle ps))
