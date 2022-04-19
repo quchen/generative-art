@@ -483,6 +483,22 @@ rotateAround :: Vec2 -> Angle -> Transformation
 rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate pivot)
 
 -- | Scale the geometry relative to zero, maintaining aspect ratio.
+--
+-- <<docs/haddock/Core.hs/scale.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/scale.svg" 100 100 $ do
+--     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
+--         square' = transform (scale 2) square
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch square'
+--     C.stroke
+-- :}
+-- docs/haddock/Core.hs/scale.svg
 scale :: Double -> Transformation
 scale x = scale' x x
 
@@ -1374,6 +1390,23 @@ signedPolygonArea (Polygon ps)
   = let determinants = zipWith cross ps (tail (cycle ps))
     in sum determinants / 2
 
+-- | Check whether the polygon is convex.
+--
+-- <<docs/haddock/Core.hs/is_convex.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/is_convex.svg" 200 100 $ do
+--     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
+--         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
+--     for_ [convex, concave] $ \polygon -> do
+--         if isConvex polygon
+--             then D.setColor (D.mathematica97 0)
+--             else D.setColor (D.mathematica97 1)
+--         D.sketch polygon
+--         C.stroke
+-- :}
+-- docs/haddock/Core.hs/is_convex.svg
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
