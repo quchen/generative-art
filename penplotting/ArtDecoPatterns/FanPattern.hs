@@ -76,17 +76,22 @@ gcodeDrawing = do
         clockwiseArcAroundTo center (center +. gridX)
         repositionTo (center +. (gridX -. Vec2 2 0))
         counterclockwiseArcAroundTo center (center -. (gridX -. Vec2 2 0))
-        for_ (deg <$> [12, 24 .. 168]) $ \a -> do
+        for_ (zip (deg <$> [12, 24 .. 84]) (cycle [True, False])) $ \(alpha, clockwise) -> do
             let startPoint = center -. gridY
-                pointOnArc = center +. (radius - 2) *. Vec2 (-cos (getRad a)) (sin (getRad a))
+                pointOnArc = center +. (radius - 2) *. Vec2 (-cos (getRad alpha)) (sin (getRad alpha))
                 center' = case intersectionLL (angledLine startPoint (deg 0) 1) (perpendicularBisector (Line startPoint pointOnArc)) of
                     IntersectionReal p -> p
                     IntersectionVirtual p -> p
                     IntersectionVirtualInsideL p -> p
                     IntersectionVirtualInsideR p -> p
                     _otherwise -> error "Lines must intersect"
-            repositionTo startPoint
-            if getDeg a < 90
-                then counterclockwiseArcAroundTo center' pointOnArc
-                else clockwiseArcAroundTo center' pointOnArc
-            pure ()
+                (mirrorCenter, mirrorPointOnArc) = transform (mirrorAlong (angledLine startPoint (deg 90) 1)) (center', pointOnArc)
+            if clockwise
+                then do
+                    repositionTo pointOnArc
+                    clockwiseArcAroundTo center' startPoint
+                    clockwiseArcAroundTo mirrorCenter mirrorPointOnArc
+                else do
+                    repositionTo mirrorPointOnArc
+                    counterclockwiseArcAroundTo mirrorCenter startPoint
+                    counterclockwiseArcAroundTo center' pointOnArc
