@@ -578,6 +578,23 @@ data RunPlotResult = RunPlotResult
     , _plotPreview :: C.Render ()
         -- ^ Preview for the generated GCode. Use 'Draw.render' to convert it to an SVG or PNG file.
 
+    , _plotBoundingBox :: BoundingBox
+        -- ^ The 'BoundingBox' of the resulting plot.
+
+    , _totalBoundingBox :: BoundingBox
+        -- ^ The total 'BoundingBox' of the preview, including origin and canvas.
+        --
+        -- Example to show the entire bounding box in the preview:
+        --
+        -- @
+        -- let bb = '_plotBoundingBox' result
+        --     (w, h) = 'boundingBoxSize' bb
+        --     trafo = 'transformBoundingBox' bb (BoundingBox zero (Vec2 width height))
+        -- 'D.render' previewFileName w h $ do
+        --     'C.transform ('D.toCairoMatrix' trafo)
+        --     '_plotPreview' result
+        -- @
+
     , _plotInternals :: TinkeringInternals
         -- ^ Internals calculated along the way. Useful for tinkering and testing.
     }
@@ -619,22 +636,20 @@ runPlot settings body =
 
         decoratedGCode = addHeaderFooter settings writerLog finalState
 
-        decoratedCairoPreview = D.cairoScope (fitToCanvas >> decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog)
+        decoratedCairoPreview = D.cairoScope (decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog)
         canvasBB = _canvasBoundingBox settings
         totalBB = mconcat
             [ _drawnBoundingBox finalState
             , boundingBox canvasBB
             , boundingBox (zero :: Vec2)
             ]
-        (width, height) = boundingBoxSize totalBB
-        fitToCanvas =
-            let trafo = transformBoundingBox totalBB (boundingBox [zero, Vec2 width height]) def
-            in C.transform (D.toCairoMatrix trafo)
 
         decoratedWriterLog = writerLog{_plottedGCode=decoratedGCode, _plottingCairoPreview=decoratedCairoPreview}
     in RunPlotResult
         { _plotGCode = decoratedGCode
         , _plotPreview = decoratedCairoPreview
+        , _plotBoundingBox = _drawnBoundingBox finalState
+        , _totalBoundingBox = totalBB
         , _plotInternals = TinkeringInternals
             { _tinkeringSettings = settings
             , _tinkeringWriterLog = decoratedWriterLog
