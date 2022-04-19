@@ -1,4 +1,4 @@
-module VisualOutput.NormalizeSvg (normalizeSvgFile) where
+module Draw.NormalizeSvg (normalizeSvgFile) where
 
 
 

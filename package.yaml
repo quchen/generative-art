@@ -24,6 +24,7 @@ dependencies:
     - data-r-tree
     - deepseq
     - dlist
+    - filepath
     - formatting
     - heaps
     - megaparsec
@@ -34,6 +35,7 @@ dependencies:
     - parallel
     - primitive
     - random
+    - regex-tdfa
     - text
     - tf-random
     - transformers
@@ -108,8 +110,6 @@ tests:
             - transformers
             - directory
             - text
-            - filepath
-            - regex-tdfa
             - Glob
 
     doctest:

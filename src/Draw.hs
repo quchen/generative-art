@@ -73,6 +73,7 @@ import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
+import Draw.NormalizeSvg
 import Geometry                      as G
 
 
@@ -249,6 +250,7 @@ haddockRender filename w h actions = do
             }
         setColor (mathematica97 0)
         actions
+    normalizeSvgFile filepath
     putStrLn filepath
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.

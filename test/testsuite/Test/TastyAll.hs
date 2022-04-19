@@ -32,9 +32,10 @@ import Control.Monad
 import Data.Colour.RGBSpace     as Colour
 import Data.Colour.SRGB         as Colour
 import Data.List
-import Draw
 import Graphics.Rendering.Cairo as C hiding (x, y)
 
+import Draw
+import Draw.NormalizeSvg
 import Geometry
 
 import           Geometry.SvgParser.SimpleShapes
@@ -43,7 +44,6 @@ import           Test.Tasty
 import           Test.Tasty.HUnit                hiding (assertEqual)
 import qualified Test.Tasty.HUnit                as HUnit
 import           Test.Tasty.QuickCheck
-import           VisualOutput.NormalizeSvg
 
 
 
