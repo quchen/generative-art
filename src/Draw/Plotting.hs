@@ -323,7 +323,7 @@ boundingBoxArc clockwise start center end =
     in boundingBox (start, end, quadrantTransitionPoints clockwise center radius startQuadrant endQuadrant)
 
 quadrantTransitionPoints :: Bool -> Vec2 -> Double -> Quadrant -> Quadrant -> [Vec2]
-quadrantTransitionPoints clockwise center radius = if clockwise then go else flip go
+quadrantTransitionPoints clockwise center radius = if clockwise then flip go else go
   where
     rightP = center +. Vec2 radius 0
     leftP = center -. Vec2 radius 0
