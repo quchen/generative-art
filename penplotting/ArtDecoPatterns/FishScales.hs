@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import qualified Graphics.Rendering.Cairo as C
+import qualified Graphics.Rendering.Cairo.Matrix as C
 
 import Geometry
 import Draw
@@ -18,8 +19,12 @@ main :: IO ()
 main = do
     let settings = def
     let RunPlotResult{..} = runPlot settings gcodeDrawing
-    _writeGCodeFile "fish-scales-pattern.g"
-    _writePreviewFile "out/fish-scales-pattern.png"
+    writeGCodeFile "fish-scales-pattern.g" _plotGCode
+    render "out/fish-scales-pattern.png" picWidth picHeight $ do
+        cairoScope (setColor white >> C.paint)
+        C.transform (C.Matrix 1 0 0 (-1) 0 picHeight)
+        _plotPreview
+        pure ()
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = do
