@@ -40,7 +40,6 @@ module Geometry.Core (
     , PolygonError(..)
     , validatePolygon
     , pointInPolygon
-    , countEdgeTraversals
     , polygonAverage
     , polygonCentroid
     , polygonCircumference
