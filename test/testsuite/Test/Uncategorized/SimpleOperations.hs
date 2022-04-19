@@ -18,7 +18,6 @@ tests = testGroup "Simple operations"
         [ rotateLineTest
         , perpendicularBisectorTest
         , perpendicularLineThroughTest
-        , pointInPolygonTest
         ]
     , pointInPolygonRegression
     ]
@@ -78,30 +77,6 @@ perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250
     setFontSize 12
     moveTo 40 40
     showText "Perpendicular line through point"
-
-pointInPolygonTest :: TestTree
-pointInPolygonTest = testVisual "Point in polygon" 200 70 "docs/geometry/point_in_polygon" $ \_ -> do
-    C.translate 30 10
-    let square = Polygon [Vec2 0 0, Vec2 50 0, Vec2 50 50, Vec2 0 50]
-        points = [Vec2 x (0.25*x + 20) | x <- [-15, -5 .. 60] ]
-
-    setLineWidth 1
-    sketch square
-    setColor $ mathematica97 0
-    strokePreserve
-    setColor $ mathematica97 0 `withOpacity` 0.1
-    fill
-
-    setColor $ mathematica97 1
-    for_ points (\point -> do
-        sketch (Circle point 3)
-        if pointInPolygon point square
-            then fill
-            else stroke )
-
-    setFontSize 12
-    moveTo 60 20
-    showText "Point in polygon?"
 
 -- This nasty point was inside the polygon, because the line leading towards it
 -- crossed the polygon in three places: once as a normal intersection, and twice

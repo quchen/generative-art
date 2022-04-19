@@ -465,7 +465,7 @@ translate = Transformation mempty
 --     D.cairoScope $ do
 --         let angle = angleOfLine line
 --             angle' = angleOfLine line'
---         C.arc 0 0 (lineLength line)(getRad angle) (getRad angle')
+--         C.arc 0 0 (lineLength line) (getRad angle) (getRad angle')
 --         D.sketch (D.Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{D._arrowDrawBody=False})
 --         C.stroke
 -- :}
@@ -1231,9 +1231,22 @@ countEdgeTraversals subjectPoint edges'
 
 -- | Is the point inside the polygon?
 --
--- Note: this is unreliable when the point is exactly on an edge.
+-- <<docs/haddock/Core.hs/point_in_polygon.svg>>
 --
--- <<docs/geometry/point_in_polygon.svg>>
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/point_in_polygon.svg" 90 70 $ do
+--     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
+--         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     for_ points $ \point -> do
+--         D.sketch (Circle point 3)
+--         if pointInPolygon point square then C.fill else C.stroke
+-- :}
+-- docs/haddock/Core.hs/point_in_polygon.svg
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
