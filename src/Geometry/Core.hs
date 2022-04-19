@@ -1112,6 +1112,20 @@ intersectionLL lineL lineR
         (direction (Line v1 v))
 
 -- | All the polygon’s edges, in order, starting at an arbitrary corner.
+--
+-- <<docs/haddock/Core.hs/polygon_edges.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/polygon_edges.svg" 100 100 $ do
+--     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
+--     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
+--         C.setLineCap C.LineCapRound
+--         D.setColor (D.mathematica97 i)
+--         D.sketch edge
+--         C.stroke
+-- :}
+-- docs/haddock/Core.hs/polygon_edges.svg
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
