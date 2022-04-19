@@ -20,10 +20,14 @@ main = do
     render "out/fan-pattern.png" picWidth picHeight cairoDrawing
     render "out/fan-pattern.svg" picWidth picHeight cairoDrawing
     let settings = def
+            { _previewPenWidth = 0.5
+            , _previewPenTravelColor = Nothing
+            , _previewDecorate = False
+            }
     let RunPlotResult{..} = runPlot settings gcodeDrawing
     writeGCodeFile "fan-pattern.g" _plotGCode
     render "out/fan-pattern.png" picWidth picHeight $ do
-        cairoScope (setColor white >> C.paint)
+        cairoScope (setColor black >> C.paint)
         C.transform (C.Matrix 1 0 0 (-1) 0 picHeight)
         _plotPreview
         pure ()
