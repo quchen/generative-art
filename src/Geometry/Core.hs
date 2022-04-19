@@ -1108,9 +1108,11 @@ intersectionLL lineL lineR
         (direction lineL)
         (direction (Line v1 v))
 
+-- | All the polygon’s edges, in order, starting at an arbitrary corner.
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
+-- | All interior angles, in order, starting at an arbitrary corner.
 polygonAngles :: Polygon -> [Angle]
 polygonAngles polygon@(Polygon corners)
   = let orient = case polygonOrientation polygon of
@@ -1362,11 +1364,9 @@ polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *
     totalArea = signedPolygonArea poly
     weight = 1 / (6 * totalArea)
 
+-- | Sum of all edge lengths.
 polygonCircumference :: Polygon -> Double
-polygonCircumference poly = foldl'
-    (\acc edge -> acc + lineLength edge)
-    0
-    (polygonEdges poly)
+polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEdges
 
 -- | Two-dimensional cross product.
 --
