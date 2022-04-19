@@ -6,6 +6,8 @@ module Draw.Plotting (
     -- * 'Plot' type
       Plot()
     , runPlot
+    , GCode()
+    , writeGCodeFile
     , RunPlotResult(..)
     , PlottingSettings(..)
     , FinishMove(..)
@@ -547,13 +549,13 @@ decorateCairoPreview settings finalState = D.cairoScope $ do
 
 -- | Result of 'runPlot'; unifies convenience API and internals for tinkering.
 data RunPlotResult = RunPlotResult
-    { _writeGCodeFile :: FilePath -> IO ()
-        -- ^ Write the generated GCode to the provided 'FilePath'.
+    { _plotGCode :: [GCode]
+        -- ^ The generated G code. Use 'writeGCodeFile' to store it to a file.
 
-    , _writePreviewFile :: FilePath -> IO ()
-        -- ^ Write the generated GCode preview to the provided 'FilePath'.
+    , _plotPreview :: C.Render ()
+        -- ^ Preview for the generated GCode. Use 'Draw.render' to convert it to an SVG or PNG file.
 
-    , _tinkeringInternals :: TinkeringInternals
+    , _plotInternals :: TinkeringInternals
         -- ^ Internals calculated along the way. Useful for tinkering and testing.
     }
 
@@ -567,6 +569,9 @@ data TinkeringInternals = TinkeringInternals
         -- ^ Final state after running the plot. Includes data such as the
         -- total pen travel distance.
     }
+
+writeGCodeFile :: FilePath -> [GCode] -> IO ()
+writeGCodeFile file = TL.writeFile file . renderGCode
 
 -- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
 --
@@ -590,7 +595,6 @@ runPlot settings body =
             }
 
         decoratedGCode = addHeaderFooter settings writerLog finalState
-        rawGCode = renderGCode decoratedGCode
 
         decoratedCairoPreview = D.cairoScope (fitToCanvas >> decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog)
         canvasBB = _canvasBoundingBox settings
@@ -606,9 +610,9 @@ runPlot settings body =
 
         decoratedWriterLog = writerLog{_plottedGCode=decoratedGCode, _plottingCairoPreview=decoratedCairoPreview}
     in RunPlotResult
-        { _writeGCodeFile = \filePath -> TL.writeFile filePath rawGCode
-        , _writePreviewFile  = \filePath ->  D.render filePath (round width) (round height) decoratedCairoPreview
-        , _tinkeringInternals = TinkeringInternals
+        { _plotGCode = decoratedGCode
+        , _plotPreview = decoratedCairoPreview
+        , _plotInternals = TinkeringInternals
             { _tinkeringSettings = settings
             , _tinkeringWriterLog = decoratedWriterLog
             , _tinkeringState = finalState

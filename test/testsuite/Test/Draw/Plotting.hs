@@ -29,7 +29,7 @@ tests = testGroup "Penplotting GCode"
     ]
 
 drawnDistance :: RunPlotResult -> Double
-drawnDistance RunPlotResult{_tinkeringInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawingDistance = d}}} = d
+drawnDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawingDistance = d}}} = d
 
 test_plottingDistance_line :: TestTree
 test_plottingDistance_line = testProperty "Line" $ \start end ->
@@ -44,7 +44,7 @@ test_plottingDistance_circle = testProperty "Circle" $ \center (Positive radius)
     in 2*pi*radius ~=== drawnDistance plotResult
 
 drawnBB :: RunPlotResult -> BoundingBox
-drawnBB RunPlotResult{_tinkeringInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawnBoundingBox = bb}}} = bb
+drawnBB RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawnBoundingBox = bb}}} = bb
 
 test_boundingBox_circle :: TestTree
 test_boundingBox_circle = testProperty "Circle" $ \center (Positive radius) ->
