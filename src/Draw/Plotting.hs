@@ -6,11 +6,15 @@ module Draw.Plotting (
     -- * 'Plot' type
       Plot()
     , runPlot
+    , GCode()
+    , writeGCodeFile
+    , renderPreview
+    , RunPlotResult(..)
     , PlottingSettings(..)
     , FinishMove(..)
 
     -- ** Raw GCode handling
-    , runPlotRaw
+    , TinkeringInternals(..)
     , PlottingWriterLog(..)
     , PlottingState(..)
     , renderGCode
@@ -47,20 +51,25 @@ module Draw.Plotting (
 
 
 
-import           Control.Monad.RWS  hiding (modify)
+import           Control.Monad.RWS        hiding (modify)
+import           Data.DList               (DList)
+import qualified Data.DList               as DL
 import           Data.Default.Class
 import           Data.Foldable
-import qualified Data.Set           as S
-import qualified Data.Text.Lazy     as TL
-import           Data.Vector        (Vector)
-import qualified Data.Vector        as V
-import           Formatting         hiding (center)
+import           Data.Maybe               (fromJust, fromMaybe, isJust)
+import qualified Data.Set                 as S
+import qualified Data.Text.Lazy           as TL
+import qualified Data.Text.Lazy.IO        as TL
+import           Data.Vector              (Vector)
+import qualified Data.Vector              as V
+import           Formatting               hiding (center)
+import qualified Graphics.Rendering.Cairo as C hiding (x, y)
 
-import Data.Maybe          (fromMaybe)
-import Draw.Plotting.GCode
-import Geometry.Bezier
-import Geometry.Core
-import Geometry.Shapes
+import qualified Draw                as D
+import           Draw.Plotting.GCode
+import           Geometry.Bezier
+import           Geometry.Core
+import           Geometry.Shapes
 
 
 
@@ -70,15 +79,16 @@ newtype Plot a = Plot (RWS PlottingSettings PlottingWriterLog PlottingState a)
     deriving (Functor, Applicative, Monad, MonadReader PlottingSettings, MonadState PlottingState)
 
 data PlottingWriterLog = PlottingWriterLog
-    { _plottedGCode :: ![GCode]
+    { _plottedGCode :: DList GCode
     , _penTravelDistance :: !Double
-    } deriving (Eq, Ord, Show)
+    , _plottingCairoPreview :: C.Render ()
+    }
 
 instance Semigroup PlottingWriterLog where
-    PlottingWriterLog code1 travel1 <> PlottingWriterLog code2 travel2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2)
+    PlottingWriterLog code1 travel1 render1 <> PlottingWriterLog code2 travel2 render2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2) (render1 >> render2)
 
 instance Monoid PlottingWriterLog where
-    mempty = PlottingWriterLog mempty 0
+    mempty = PlottingWriterLog mempty 0 (pure ())
 
 {-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
 modify, _don'tReportModifyAsUnused :: a
@@ -122,7 +132,24 @@ data PlottingSettings = PlottingSettings
     , _canvasBoundingBox :: Maybe BoundingBox
     -- ^ The canvas we’re painting on. Useful to check whether the pen leaves
     -- the drawing area. ('def'ault: 'Nothing')
-    } deriving (Eq, Ord, Show)
+
+    , _previewPenWidth :: Double
+    -- ^ Use this line width in the preview. To get a realistic preview, match
+    -- this value with the actual stroke width of your pen. ('def'ault: 1)
+
+    , _previewPenColor :: D.Color Double
+    -- ^ Use this color for drawings in the preview. To get a realistic preview,
+    -- match this value with the actual color of your pen.
+    -- ('def'ault: @'mathematica97' 1@)
+
+    , _previewPenTravelColor :: Maybe (D.Color Double)
+    -- ^ Use this color for indicating pen travel in the preview. 'Nothing'
+    -- will disable pen travel preview. ('def'ault: @'Just' ('mathematica97' 0)@)
+
+    , _previewDecorate :: Bool
+    -- ^ Show additional decoration in the preview, like origin and bounding box.
+    -- ('def'ault: 'True')
+    } deriving (Eq, Show)
 
 -- | Command to issue in the footer
 data FinishMove = FinishWithG28 | FinishWithG30
@@ -137,13 +164,18 @@ instance Default PlottingSettings where
         , _finishMove = Nothing
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
+        , _previewPenWidth = 1
+        , _previewPenColor = D.mathematica97 1
+        , _previewPenTravelColor = Just (D.mathematica97 0)
+        , _previewDecorate = True
         }
 
 -- | Add raw GCode to the output.
 gCode :: [GCode] -> Plot ()
 gCode instructions = for_ instructions $ \instruction -> do
-    Plot (tell mempty{_plottedGCode = [instruction]})
+    Plot (tell mempty{_plottedGCode = DL.singleton instruction})
     recordDrawingDistance instruction
+    recordCairoPreview instruction
     recordBoundingBox instruction
     checkPlotDoesNotLeaveCanvas
     recordPenXY instruction -- NB: this is last because the other recorders depend on the pen position!
@@ -166,7 +198,60 @@ recordPenXY instruction = do
         G01_LinearFeedrateMove _ x y _    -> setPenXY (Vec2 (fromMaybe x0 x) (fromMaybe y0 y))
         G02_ArcClockwise _ _ _ x y        -> setPenXY (Vec2 x y)
         G03_ArcCounterClockwise _ _ _ x y -> setPenXY (Vec2 x y)
-        _otherwise                        -> pure ()
+        _otherwise -> pure ()
+
+tellCairo :: C.Render () -> Plot ()
+tellCairo c = Plot (tell mempty{_plottingCairoPreview = D.cairoScope c})
+
+recordCairoPreview :: GCode -> Plot ()
+recordCairoPreview instruction = do
+    start@(Vec2 currentX currentY) <- gets _penXY
+    penState <- gets _penState
+    settings <- ask
+    when (penState == PenDown || isJust (_previewPenTravelColor settings)) $ do
+        let paintStyle = case penState of
+                PenUp -> D.setColor (fromJust (_previewPenTravelColor settings))
+                PenDown -> D.setColor (_previewPenColor settings)
+            fastStyle = C.setDash [4,4] 0
+            feedrateStyle = C.setLineWidth (_previewPenWidth settings)
+        case instruction of
+            G00_LinearRapidMove x y _ -> tellCairo $ do
+                fastStyle
+                paintStyle
+                let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+                D.sketch (Line start end)
+                C.stroke
+            G01_LinearFeedrateMove _ x y _ -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+                D.sketch (Line start end)
+                C.stroke
+            G02_ArcClockwise _ i j x y -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let radius = norm centerOffset
+                    centerOffset = Vec2 i j
+                    center@(Vec2 centerX centerY) = start +. centerOffset
+                    end = Vec2 x y
+                    startAngle = angleOfLine (Line center start)
+                    endAngle = angleOfLine (Line center end)
+                D.moveToVec start
+                C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
+                C.stroke
+            G03_ArcCounterClockwise _ i j x y -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let radius = norm centerOffset
+                    centerOffset = Vec2 i j
+                    center@(Vec2 centerX centerY) = start +. centerOffset
+                    end = Vec2 x y
+                    startAngle = angleOfLine (Line center start)
+                    endAngle = angleOfLine (Line center end)
+                D.moveToVec start
+                C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
+                C.stroke
+            _otherwise -> pure ()
 
 recordDrawingDistance :: GCode -> Plot ()
 recordDrawingDistance instruction = do
@@ -238,7 +323,7 @@ boundingBoxArc clockwise start center end =
     in boundingBox (start, end, quadrantTransitionPoints clockwise center radius startQuadrant endQuadrant)
 
 quadrantTransitionPoints :: Bool -> Vec2 -> Double -> Quadrant -> Quadrant -> [Vec2]
-quadrantTransitionPoints clockwise center radius = if clockwise then go else flip go
+quadrantTransitionPoints clockwise center radius = if clockwise then flip go else go
   where
     rightP = center +. Vec2 radius 0
     leftP = center -. Vec2 radius 0
@@ -364,7 +449,7 @@ withDrawingHeight z = local (\settings -> settings { _zDrawingHeight = z })
 -- | Group the commands generated by the arguments in a block. This is purely
 -- cosmetical for the generated GCode.
 block :: Plot a -> Plot a
-block (Plot content) = Plot (mapRWS (\(a, s, writerLog) -> (a, s, writerLog{_plottedGCode = [GBlock (_plottedGCode writerLog)]})) content)
+block (Plot content) = Plot (mapRWS (\(a, s, writerLog) -> (a, s, writerLog{_plottedGCode = DL.singleton (GBlock (DL.toList (_plottedGCode writerLog)))})) content)
 
 -- | Add a GCode comment.
 comment :: TL.Text -> Plot ()
@@ -386,8 +471,8 @@ data PauseMode
 drawingDistance :: Plot Double
 drawingDistance = gets _drawingDistance
 
-addHeaderFooter :: PlottingSettings -> PlottingWriterLog -> PlottingState -> [GCode]
-addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer]]
+addHeaderFooter :: PlottingSettings -> PlottingWriterLog -> PlottingState -> DList GCode
+addHeaderFooter settings writerLog finalState = mconcat [DL.singleton header, body, DL.singleton footer]
   where
     body = _plottedGCode writerLog
 
@@ -471,34 +556,119 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
                 ]
             ]
 
--- | Convert the 'Plot' paths to raw GCode 'TL.Text'.
---
--- For tinkering with the GCode AST, see 'runPlotRaw'.
-runPlot :: PlottingSettings -> Plot a -> TL.Text
-runPlot settings body =
-    let (PlottingWriterLog{_plottedGCode=rawGCode}, _) = runPlotRaw settings body
-    in renderGCode rawGCode
+decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
+decorateCairoPreview settings finalState = D.cairoScope $ when (_previewDecorate settings) $ do
+    let drawnBB = if _previewDrawnShapesBoundingBox settings
+            then Just (_drawnBoundingBox finalState)
+            else Nothing
+        zeroMarker = do
+            D.sketch (Line (Vec2 (-10) 0) (Vec2 10 0))
+            D.sketch (Line (Vec2 0 (-10)) (Vec2 0 10))
+            C.stroke
+    D.setColor (D.mathematica97 2)
+    zeroMarker
+    for_ [drawnBB, _canvasBoundingBox settings] $ \case
+        Nothing -> pure ()
+        Just bb -> do
+            D.sketch (boundingBoxPolygon bb)
+            C.stroke
 
--- | Like 'runPlot', but gives access to the GCode AST. Use 'renderGCode' to then
--- get 'TL.Text' out of the ['GCode'].
+-- | Result of 'runPlot'; unifies convenience API and internals for tinkering.
+data RunPlotResult = RunPlotResult
+    { _plotGCode :: [GCode]
+        -- ^ The generated G code. Use 'writeGCodeFile' to store it to a file.
+
+    , _plotPreview :: C.Render ()
+        -- ^ Preview for the generated GCode. Use 'renderPreview' to convert it
+        -- to an SVG or PNG file, or 'D.render' for more control in rendering.
+
+    , _plotBoundingBox :: BoundingBox
+        -- ^ The 'BoundingBox' of the resulting plot.
+
+    , _totalBoundingBox :: BoundingBox
+        -- ^ The total 'BoundingBox' of the preview, including origin and canvas.
+        --
+        -- Example to show the entire bounding box in the preview:
+        --
+        -- @
+        -- let bb = '_plotBoundingBox' result
+        --     (w, h) = 'boundingBoxSize' bb
+        --     trafo = 'transformBoundingBox' bb ('BoundingBox' 'zero' ('Vec2' w h)) 'def'
+        -- 'D.render' previewFileName w h $ do
+        --     'C.transform ('D.toCairoMatrix' trafo)
+        --     '_plotPreview' result
+        -- @
+
+    , _plotInternals :: TinkeringInternals
+        -- ^ Internals calculated along the way. Useful for tinkering and testing.
+    }
+
+data TinkeringInternals = TinkeringInternals
+    { _tinkeringSettings :: PlottingSettings -- ^ The settings used to run the plot.
+    , _tinkeringWriterLog :: PlottingWriterLog
+        -- ^ Writer log, decorated with information only available after the plot
+        -- finishes. The GCode has header and footer, the Cairo preview includes
+        -- bounding boxes, etc.
+    , _tinkeringState :: PlottingState
+        -- ^ Final state after running the plot. Includes data such as the
+        -- total pen travel distance.
+    }
+
+writeGCodeFile :: FilePath -> RunPlotResult -> IO ()
+writeGCodeFile file = TL.writeFile file . renderGCode . _plotGCode
+
+renderPreview :: FilePath -> RunPlotResult -> IO ()
+renderPreview file result = do
+    let bb = _plotBoundingBox result
+        (w, h) = boundingBoxSize bb
+        trafo = transformBoundingBox bb (BoundingBox zero (Vec2 w h)) def
+    D.render file (round w) (round h) $ do
+        D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
+        C.transform (D.toCairoMatrix trafo)
+        _plotPreview result
+
+-- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
 --
--- This may be useful for special tweaks and testing, but it is also very brittle
--- when the GCode generator changes. Use with caution!
-runPlotRaw
+-- @
+-- let plotResult = 'runPlot' settings body
+-- '_writeGCodeFile' plotResult "output.g"
+-- '_writePreviewFile' plotResult "output.png"
+-- @
+runPlot
     :: PlottingSettings
     -> Plot a
-    -> (PlottingWriterLog, PlottingState)
-runPlotRaw settings body =
+    -> RunPlotResult
+runPlot settings body =
     let (_, finalState, writerLog) = runRWS body' settings initialState
-        rawGCode = addHeaderFooter settings writerLog finalState
-    in (writerLog{_plottedGCode=rawGCode}, finalState)
-  where
-    Plot body' = body
-    initialState = PlottingState
-        { _penState = PenUp
-        , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
-        , _drawingDistance = 0
-        , _drawnBoundingBox = mempty
+        Plot body' = body
+        initialState = PlottingState
+            { _penState = PenUp
+            , _penXY = Vec2 (1/0) (1/0) -- Nonsense value so we’re always misaligned in the beginning, making every move command actually move
+            , _drawingDistance = 0
+            , _drawnBoundingBox = mempty
+            }
+
+        decoratedGCode = addHeaderFooter settings writerLog finalState
+
+        decoratedCairoPreview = D.cairoScope (decorateCairoPreview settings finalState >> _plottingCairoPreview writerLog)
+        canvasBB = _canvasBoundingBox settings
+        totalBB = mconcat
+            [ _drawnBoundingBox finalState
+            , boundingBox canvasBB
+            , boundingBox (zero :: Vec2)
+            ]
+
+        decoratedWriterLog = writerLog{_plottedGCode=decoratedGCode, _plottingCairoPreview=decoratedCairoPreview}
+    in RunPlotResult
+        { _plotGCode = DL.toList decoratedGCode
+        , _plotPreview = decoratedCairoPreview
+        , _plotBoundingBox = _drawnBoundingBox finalState
+        , _totalBoundingBox = totalBB
+        , _plotInternals = TinkeringInternals
+            { _tinkeringSettings = settings
+            , _tinkeringWriterLog = decoratedWriterLog
+            , _tinkeringState = finalState
+            }
         }
 
 -- | Draw a shape by lowering the pen, setting the right speed, etc. The specifics

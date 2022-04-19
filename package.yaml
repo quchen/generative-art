@@ -23,6 +23,7 @@ dependencies:
     - data-default-class
     - data-r-tree
     - deepseq
+    - dlist
     - formatting
     - heaps
     - megaparsec

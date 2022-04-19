@@ -8,7 +8,6 @@ import qualified Data.Set            as S
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import qualified Data.Text.Lazy      as TL
-import qualified Data.Text.Lazy.IO   as TL
 import           Options.Applicative
 import           System.Exit
 
@@ -54,8 +53,7 @@ main = do
                     , _zDrawingHeight = -2
                     , _finishMove = Just FinishWithG28
                     }
-                gcodeRaw = runPlot plottingSettings drawing
-            TL.writeFile (_outputFileG options) gcodeRaw
+            writeGCodeFile (_outputFileG options) (runPlot plottingSettings drawing)
 
 scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
 scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def

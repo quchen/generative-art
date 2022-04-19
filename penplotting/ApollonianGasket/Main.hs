@@ -39,6 +39,6 @@ plotterSettings :: PlottingSettings
 plotterSettings = def { _feedrate = Just 1000 }
 
 main :: IO ()
-main = T.putStrLn (runPlot plotterSettings drawing)
+main = T.putStrLn (renderGCode (_plotGCode (runPlot plotterSettings drawing)))
   where
     drawing = plot (toList gasketScaled)

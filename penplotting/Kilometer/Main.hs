@@ -42,11 +42,10 @@ main = do
     options <- commandLineOptions
     let Options {_lineLength_m = totalLength_m, _canvas = Canvas {_canvasHeight=height_mm, _canvasWidth=width_mm, _canvasMargin=margin_mm}} = options
     let geometry = lotsOfLines totalLength_m (boundingBox (Vec2 margin_mm margin_mm, Vec2 (width_mm - margin_mm) (height_mm-margin_mm)))
-    let rawGCode = runPlot def $ do
+    let plotResult = runPlot def $ do
             let flipEveryOtherLine = zipWith ($) (cycle [id, lineReverse])
             for_ (flipEveryOtherLine geometry) plot
-    TL.putStrLn rawGCode
-    pure ()
+    TL.putStrLn (renderGCode (_plotGCode plotResult))
 
 lotsOfLines :: Double -> BoundingBox -> [Line]
 lotsOfLines totalLength_m bb = do
