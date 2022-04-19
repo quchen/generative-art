@@ -53,6 +53,7 @@ module Draw.Plotting (
 import           Control.Monad.RWS        hiding (modify)
 import           Data.Default.Class
 import           Data.Foldable
+import           Data.Maybe               (fromMaybe, isJust, fromJust)
 import qualified Data.Set                 as S
 import qualified Data.Text.Lazy           as TL
 import qualified Data.Text.Lazy.IO        as TL
@@ -61,7 +62,6 @@ import qualified Data.Vector              as V
 import           Formatting               hiding (center)
 import qualified Graphics.Rendering.Cairo as C hiding (x, y)
 
-import           Data.Maybe          (fromMaybe)
 import qualified Draw                as D
 import           Draw.Plotting.GCode
 import           Geometry.Bezier
@@ -129,7 +129,24 @@ data PlottingSettings = PlottingSettings
     , _canvasBoundingBox :: Maybe BoundingBox
     -- ^ The canvas we’re painting on. Useful to check whether the pen leaves
     -- the drawing area. ('def'ault: 'Nothing')
-    } deriving (Eq, Ord, Show)
+
+    , _previewPenWidth :: Double
+    -- ^ Use this line width in the preview. To get a realistic preview, match
+    -- this value with the actual stroke width of your pen. ('def'ault: 1)
+
+    , _previewPenColor :: D.Color Double
+    -- ^ Use this color for drawings in the preview. To get a realistic preview,
+    -- match this value with the actual color of your pen.
+    -- ('def'ault: @'mathematica97' 1@)
+
+    , _previewPenTravelColor :: Maybe (D.Color Double)
+    -- ^ Use this color for indicating pen travel in the preview. 'Nothing'
+    -- will disable pen travel preview. ('def'ault: @'Just' ('mathematica97' 0)@)
+
+    , _previewDecorate :: Bool
+    -- ^ Show additional decoration in the preview, like origin and bounding box.
+    -- ('def'ault: 'True')
+    } deriving (Eq, Show)
 
 -- | Command to issue in the footer
 data FinishMove = FinishWithG28 | FinishWithG30
@@ -144,6 +161,10 @@ instance Default PlottingSettings where
         , _finishMove = Nothing
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
+        , _previewPenWidth = 1
+        , _previewPenColor = D.mathematica97 1
+        , _previewPenTravelColor = Just (D.mathematica97 0)
+        , _previewDecorate = True
         }
 
 -- | Add raw GCode to the output.
@@ -183,49 +204,51 @@ recordCairoPreview :: GCode -> Plot ()
 recordCairoPreview instruction = do
     start@(Vec2 currentX currentY) <- gets _penXY
     penState <- gets _penState
-    let paintStyle = case penState of
-            PenUp -> D.setColor (D.mathematica97 0)
-            PenDown -> D.setColor (D.mathematica97 1)
-        fastStyle = C.setDash [4,4] 0
-        feedrateStyle = pure ()
-    case instruction of
-        G00_LinearRapidMove x y _ -> tellCairo $ do
-            fastStyle
-            paintStyle
-            let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
-            D.sketch (Line start end)
-            C.stroke
-        G01_LinearFeedrateMove _ x y _ -> tellCairo $ do
-            feedrateStyle
-            paintStyle
-            let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
-            D.sketch (Line start end)
-            C.stroke
-        G02_ArcClockwise _ i j x y -> tellCairo $ do
-            feedrateStyle
-            paintStyle
-            let radius = norm centerOffset
-                centerOffset = Vec2 i j
-                center@(Vec2 centerX centerY) = start +. centerOffset
-                end = Vec2 x y
-                startAngle = angleOfLine (Line center start)
-                endAngle = angleOfLine (Line center end)
-            D.moveToVec start
-            C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
-            C.stroke
-        G03_ArcCounterClockwise _ i j x y -> tellCairo $ do
-            feedrateStyle
-            paintStyle
-            let radius = norm centerOffset
-                centerOffset = Vec2 i j
-                center@(Vec2 centerX centerY) = start +. centerOffset
-                end = Vec2 x y
-                startAngle = angleOfLine (Line center start)
-                endAngle = angleOfLine (Line center end)
-            D.moveToVec start
-            C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
-            C.stroke
-        _otherwise -> pure ()
+    settings <- ask
+    when (penState == PenDown || isJust (_previewPenTravelColor settings)) $ do
+        let paintStyle = case penState of
+                PenUp -> D.setColor (fromJust (_previewPenTravelColor settings))
+                PenDown -> D.setColor (_previewPenColor settings)
+            fastStyle = C.setDash [4,4] 0
+            feedrateStyle = C.setLineWidth (_previewPenWidth settings)
+        case instruction of
+            G00_LinearRapidMove x y _ -> tellCairo $ do
+                fastStyle
+                paintStyle
+                let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+                D.sketch (Line start end)
+                C.stroke
+            G01_LinearFeedrateMove _ x y _ -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let end = Vec2 (fromMaybe currentX x) (fromMaybe currentY y)
+                D.sketch (Line start end)
+                C.stroke
+            G02_ArcClockwise _ i j x y -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let radius = norm centerOffset
+                    centerOffset = Vec2 i j
+                    center@(Vec2 centerX centerY) = start +. centerOffset
+                    end = Vec2 x y
+                    startAngle = angleOfLine (Line center start)
+                    endAngle = angleOfLine (Line center end)
+                D.moveToVec start
+                C.arcNegative centerX centerY radius (getRad startAngle) (getRad endAngle)
+                C.stroke
+            G03_ArcCounterClockwise _ i j x y -> tellCairo $ do
+                feedrateStyle
+                paintStyle
+                let radius = norm centerOffset
+                    centerOffset = Vec2 i j
+                    center@(Vec2 centerX centerY) = start +. centerOffset
+                    end = Vec2 x y
+                    startAngle = angleOfLine (Line center start)
+                    endAngle = angleOfLine (Line center end)
+                D.moveToVec start
+                C.arc centerX centerY radius (getRad startAngle) (getRad endAngle)
+                C.stroke
+            _otherwise -> pure ()
 
 recordDrawingDistance :: GCode -> Plot ()
 recordDrawingDistance instruction = do
@@ -531,7 +554,7 @@ addHeaderFooter settings writerLog finalState = mconcat [[header], body, [footer
             ]
 
 decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
-decorateCairoPreview settings finalState = D.cairoScope $ do
+decorateCairoPreview settings finalState = D.cairoScope $ when (_previewDecorate settings) $ do
     let drawnBB = if _previewDrawnShapesBoundingBox settings
             then Just (_drawnBoundingBox finalState)
             else Nothing
