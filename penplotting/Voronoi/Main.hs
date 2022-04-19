@@ -2,20 +2,19 @@ module Main (main) where
 
 
 
-import qualified Data.Vector         as V
-import qualified Data.Text.Lazy      as TL
-import qualified Data.Text.Lazy.IO   as TL
-import           Prelude             hiding ((**))
+import qualified Data.Text.Lazy    as TL
+import qualified Data.Vector       as V
+import           Prelude           hiding ((**))
 import           System.Random.MWC
 
-import           Draw
-import           Draw.Plotting
-import           Geometry                     as G
-import           Geometry.Algorithms.Delaunay
-import           Geometry.Algorithms.Sampling
-import           Geometry.Algorithms.SimplexNoise
-import           Geometry.Algorithms.Voronoi
-import           Graphics.Rendering.Cairo     as C
+import Draw
+import Draw.Plotting
+import Geometry                         as G
+import Geometry.Algorithms.Delaunay
+import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.SimplexNoise
+import Geometry.Algorithms.Voronoi
+import Graphics.Rendering.Cairo         as C
 
 
 
@@ -65,7 +64,7 @@ mainVoronoiDithering = do
             , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)
             }
         removeMargin = G.transform (G.translate (Vec2 (-50) (-50)))
-    TL.writeFile "voronoi-dithering.g" $ runPlot settings $ do
+    writeGCodeFile "voronoi-dithering.g" $ runPlot settings $ do
         comment "To be plotted with white, silver or gold pen on 50cmx50cm black paper, with a margin of 5cm."
         comment "Place the origin on the inside of the margin, i.e. at X50 Y50 from the paper corner."
         for_ (removeMargin polygons) plot
@@ -104,7 +103,7 @@ mainVoronoiDelaunay = do
             , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)
             }
         removeMargin = G.transform (G.translate (Vec2 (-50) (-50)))
-    TL.writeFile "voronoi-delaunay.g" $ runPlot settings $ do
+    writeGCodeFile "voronoi-delaunay.g" $ runPlot settings $ do
         comment "To be plotted on 50cmx50cm grey paper, with a margin of 5cm."
         comment "Place the origin on the inside of the margin, i.e. at X50 Y50 from the paper corner."
         comment "Start with a black pen."

@@ -9,7 +9,6 @@ import           Data.Foldable
 import           Data.List
 import           Data.Set            (Set)
 import qualified Data.Set            as S
-import qualified Data.Text.Lazy.IO   as TL
 import           Data.Traversable
 import           Formatting
 import           Options.Applicative
@@ -52,8 +51,7 @@ main = do
 
     for_ (zip [1..] (partitionByIndex colorIndexedCircuits)) $ \(i, wires) -> do
         let filename = formatToString (string%"_scale-"%int%"_color-"%int%"-"%int%".g") (dropExtension (_outputFileG options)) lambdaScale (i::Int) numColors
-            gCodeText = runPlot settings (plot wires)
-        TL.writeFile filename gCodeText
+        writeGCodeFile filename (runPlot settings (plot wires))
 
 hex2wire :: Set [Hex] -> Set Wire
 hex2wire = G.transform mirrorYCoords (S.map (Wire . map (toVec2 1)))

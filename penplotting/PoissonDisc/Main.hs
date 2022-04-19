@@ -2,18 +2,17 @@ module Main (main) where
 
 
 
-import qualified Data.Set            as S
-import qualified Data.Text.Lazy.IO   as TL
-import qualified Data.Vector         as V
-import           Prelude             hiding ((**))
+import qualified Data.Set          as S
+import qualified Data.Vector       as V
+import           Prelude           hiding ((**))
 import           System.Random.MWC
 
-import           Draw
-import           Draw.Plotting
-import           Geometry                     as G
-import           Geometry.Algorithms.SimplexNoise
-import           Graphics.Rendering.Cairo     as C
-import           PoissonDisc
+import Draw
+import Draw.Plotting
+import Geometry                         as G
+import Geometry.Algorithms.SimplexNoise
+import Graphics.Rendering.Cairo         as C
+import PoissonDisc
 
 
 
@@ -85,7 +84,7 @@ renderPoissonDisc baseName samples = do
             , _canvasBoundingBox = Nothing
             }
 
-    TL.writeFile (baseName <> ".g") $ runPlot settings drawingPlot
+    writeGCodeFile (baseName <> ".g") (runPlot settings drawingPlot)
 
 drawSample :: (Vec2, Vec2, Double) -> Render ()
 drawSample (sample, parent, radius) = do

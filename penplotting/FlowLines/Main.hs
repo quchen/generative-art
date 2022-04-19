@@ -5,7 +5,6 @@ module Main (main) where
 import           Control.Monad
 import           Data.Coerce
 import           Data.List
-import qualified Data.Text.Lazy.IO        as T
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C hiding (height, width, x, y)
 import           Options.Applicative
@@ -58,8 +57,7 @@ main = do
 
         plottingSettings = def { _feedrate = Just 6000, _zTravelHeight = 5, _zDrawingHeight = -2 }
 
-    T.writeFile (_outputFileG options) $ runPlot plottingSettings drawing
-    pure ()
+    writeGCodeFile (_outputFileG options) (runPlot plottingSettings drawing)
 
 mkGeometry :: Options -> IO [Polyline Vector]
 mkGeometry options = do
