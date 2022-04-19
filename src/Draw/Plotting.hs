@@ -623,6 +623,7 @@ renderPreview file result = do
         (w, h) = boundingBoxSize bb
         trafo = transformBoundingBox bb (BoundingBox zero (Vec2 w h)) def
     D.render file (round w) (round h) $ do
+        D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
         C.transform (D.toCairoMatrix trafo)
         _plotPreview result
 
