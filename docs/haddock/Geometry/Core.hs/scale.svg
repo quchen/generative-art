@@ -18,7 +18,7 @@
 </defs>
 <g id="id4">
 <use xlink:href="#id3" mask="url(#id1)"/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 90 10 L 90 90 L 10 90 Z M 10 10 " transform="matrix(1,0,0,-1,0,100)"/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 70 10 L 90 21.546875 M 50 10 L 90 33.09375 M 30 10 L 90 44.640625 M 10 10 L 90 56.1875 M 10 21.546875 L 90 67.734375 M 10 33.09375 L 90 79.28125 M 10 44.640625 L 88.5625 90 M 10 56.1875 L 68.5625 90 M 10 67.734375 L 48.5625 90 M 10 79.28125 L 28.5625 90 " transform="matrix(1,0,0,-1,0,100)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(36.8417%,50.6779%,70.9798%);stroke-opacity:1;stroke-miterlimit:10;" d="M 10 10 L 10 45 L 45 45 L 45 10 Z M 10 10 " transform="matrix(1,0,0,-1,0,100)"/>
+<path style="fill:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(88.0722%,61.1041%,14.2051%);stroke-opacity:1;stroke-miterlimit:10;" d="M 20 20 L 20 90 L 90 90 L 90 20 Z M 20 20 " transform="matrix(1,0,0,-1,0,100)"/>
 </g>
 </svg>
