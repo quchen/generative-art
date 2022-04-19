@@ -417,11 +417,11 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
 --
--- <<docs/haddock/Core.hs/translate.svg>>
+-- <<docs/haddock/Geometry/Core.hs/translate.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/translate.svg" 100 30 $ do
+-- D.haddockRender "Geometry/Core.hs/translate.svg" 100 30 $ do
 --     let point = Vec2 10 10
 --         offset = Vec2 80 10
 --         point' = transform (translate offset) point
@@ -432,7 +432,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     D.setColor (D.mathematica97 1)
 --     D.sketch (D.Arrow (Line point point') def) >> C.stroke
 -- :}
--- docs/haddock/Core.hs/translate.svg
+-- docs/haddock/Geometry/Core.hs/translate.svg
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
@@ -444,11 +444,11 @@ translate = Transformation mempty
 --
 -- To rotate around a different point, use 'rotateAround'.
 --
--- <<docs/haddock/Core.hs/rotate.svg>>
+-- <<docs/haddock/Geometry/Core.hs/rotate.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/rotate.svg" 100 70 $ do
+-- D.haddockRender "Geometry/Core.hs/rotate.svg" 100 70 $ do
 --     let point = Vec2 90 10
 --         angle = deg 30
 --         point' = transform (rotate angle) point
@@ -470,7 +470,7 @@ translate = Transformation mempty
 --         D.sketch (D.Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{D._arrowDrawBody=False})
 --         C.stroke
 -- :}
--- docs/haddock/Core.hs/rotate.svg
+-- docs/haddock/Geometry/Core.hs/rotate.svg
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
   where
@@ -483,11 +483,11 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 
 -- | Scale the geometry relative to zero, maintaining aspect ratio.
 --
--- <<docs/haddock/Core.hs/scale.svg>>
+-- <<docs/haddock/Geometry/Core.hs/scale.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/scale.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
 --         square' = transform (scale 2) square
 --     C.setLineWidth 1
@@ -497,7 +497,7 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --     D.sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Core.hs/scale.svg
+-- docs/haddock/Geometry/Core.hs/scale.svg
 scale :: Double -> Transformation
 scale x = scale' x x
 
@@ -554,11 +554,11 @@ mirrorYCoords = scale' 1 (-1)
 --     = \left(\begin{array}{cc|c} 1 & -p & 0 \\ -q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- <<docs/haddock/Core.hs/shear.svg>>
+-- <<docs/haddock/Geometry/Core.hs/shear.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/shear.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
 --         square' = transform (shear 0.5 0.1) square
 --     C.setLineWidth 1
@@ -568,7 +568,7 @@ mirrorYCoords = scale' 1 (-1)
 --     D.sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Core.hs/shear.svg
+-- docs/haddock/Geometry/Core.hs/shear.svg
 shear
     :: Double
     -> Double
@@ -1113,11 +1113,11 @@ intersectionLL lineL lineR
 
 -- | All the polygon’s edges, in order, starting at an arbitrary corner.
 --
--- <<docs/haddock/Core.hs/polygon_edges.svg>>
+-- <<docs/haddock/Geometry/Core.hs/polygon_edges.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/polygon_edges.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/polygon_edges.svg" 100 100 $ do
 --     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
 --     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
 --         C.setLineCap C.LineCapRound
@@ -1125,7 +1125,7 @@ intersectionLL lineL lineR
 --         D.sketch edge
 --         C.stroke
 -- :}
--- docs/haddock/Core.hs/polygon_edges.svg
+-- docs/haddock/Geometry/Core.hs/polygon_edges.svg
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
@@ -1141,11 +1141,11 @@ polygonAngles polygon@(Polygon corners)
 
 -- | The smallest convex polygon that contains all points.
 --
--- <<docs/haddock/Core.hs/convex_hull.svg>>
+-- <<docs/haddock/Geometry/Core.hs/convex_hull.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/convex_hull.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/convex_hull.svg" 100 100 $ do
 --     points <- C.liftIO $ do
 --         gen <- MWC.create
 --         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
@@ -1158,7 +1158,7 @@ polygonAngles polygon@(Polygon corners)
 --         D.sketch (D.Arrow edge def{D._arrowheadRelPos=0.5, D._arrowheadSize=5})
 --     C.stroke
 -- :}
--- docs/haddock/Core.hs/convex_hull.svg
+-- docs/haddock/Geometry/Core.hs/convex_hull.svg
 convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
@@ -1304,11 +1304,11 @@ countEdgeTraversals subjectPoint edges'
 
 -- | Is the point inside the polygon?
 --
--- <<docs/haddock/Core.hs/point_in_polygon.svg>>
+-- <<docs/haddock/Geometry/Core.hs/point_in_polygon.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/point_in_polygon.svg" 90 70 $ do
+-- D.haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
 --     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
 --         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
 --     C.setLineWidth 1
@@ -1319,7 +1319,7 @@ countEdgeTraversals subjectPoint edges'
 --         D.sketch (Circle point 3)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
--- docs/haddock/Core.hs/point_in_polygon.svg
+-- docs/haddock/Geometry/Core.hs/point_in_polygon.svg
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
@@ -1371,11 +1371,11 @@ validatePolygon = \polygon -> do
 -- | Average of polygon vertices. Note that this is not the same as
 -- 'polygonAverage', which is much less influenced by clustered corners.
 --
--- <<docs/haddock/Core.hs/polygon_average.svg>>
+-- <<docs/haddock/Geometry/Core.hs/polygon_average.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/polygon_average.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/polygon_average.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         averate = polygonAverage polygon
 --     D.sketch polygon
@@ -1385,7 +1385,7 @@ validatePolygon = \polygon -> do
 --     D.sketch (D.Cross averate 5)
 --     C.stroke
 -- :}
--- docs/haddock/Core.hs/polygon_average.svg
+-- docs/haddock/Geometry/Core.hs/polygon_average.svg
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
@@ -1393,11 +1393,11 @@ polygonAverage (Polygon corners)
 
 -- | The centroid or center of mass of a polygon. Note that this is not the same as 'polygonAverage'!
 --
--- <<docs/haddock/Core.hs/polygon_centroid.svg>>
+-- <<docs/haddock/Geometry/Core.hs/polygon_centroid.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/polygon_centroid.svg" 100 100 $ do
+-- D.haddockRender "Geometry/Core.hs/polygon_centroid.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         centroid = polygonCentroid polygon
 --     D.sketch polygon
@@ -1407,7 +1407,7 @@ polygonAverage (Polygon corners)
 --     D.sketch (D.Cross centroid 5)
 --     C.stroke
 -- :}
--- docs/haddock/Core.hs/polygon_centroid.svg
+-- docs/haddock/Geometry/Core.hs/polygon_centroid.svg
 polygonCentroid :: Polygon -> Vec2
 polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
@@ -1457,11 +1457,11 @@ signedPolygonArea (Polygon ps)
 
 -- | Check whether the polygon is convex.
 --
--- <<docs/haddock/Core.hs/is_convex.svg>>
+-- <<docs/haddock/Geometry/Core.hs/is_convex.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Core.hs/is_convex.svg" 200 100 $ do
+-- D.haddockRender "Geometry/Core.hs/is_convex.svg" 200 100 $ do
 --     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
@@ -1471,7 +1471,7 @@ signedPolygonArea (Polygon ps)
 --         D.sketch polygon
 --         C.stroke
 -- :}
--- docs/haddock/Core.hs/is_convex.svg
+-- docs/haddock/Geometry/Core.hs/is_convex.svg
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
