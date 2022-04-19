@@ -219,6 +219,9 @@ data CoordinateSystem
 
     deriving (Eq, Ord, Show)
 
+instance Default CoordinateSystem where
+    def = CairoStandard_ZeroTopLeft_XRight_YDown
+
 -- | Choose a coordinate system.
 coordinateSystem :: CoordinateSystem -> Render ()
 coordinateSystem cosy = do
