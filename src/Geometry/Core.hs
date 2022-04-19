@@ -143,6 +143,8 @@ import Data.Sequential
 -- $setup
 -- >>> import qualified Draw as D
 -- >>> import qualified Graphics.Rendering.Cairo as C
+-- >>> import qualified System.Random.MWC as MWC
+-- >>> import Control.Monad
 
 
 
@@ -1090,11 +1092,24 @@ polygonAngles polygon@(Polygon corners)
 
 -- | The smallest convex polygon that contains all points.
 --
--- The result is oriented in mathematically positive direction. (Note that Cairo
--- uses a left-handed coordinate system, so mathematically positive is drawn as
--- clockwise.)
+-- <<docs/haddock/Core.hs/convex_hull.svg>>
 --
--- <<docs/geometry/convex_hull.svg>>
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Core.hs/convex_hull.svg" 100 100 $ do
+--     points <- C.liftIO $ do
+--         gen <- MWC.create
+--         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
+--     C.setLineWidth 1
+--     for_ points $ \point -> do
+--         D.sketch (Circle point 2)
+--         C.fill
+--     D.setColor (D.mathematica97 1)
+--     for_ (polygonEdges (convexHull points)) $ \edge ->
+--         D.sketch (D.Arrow edge def{D._arrowheadRelPos=0.5, D._arrowheadSize=5})
+--     C.stroke
+-- :}
+-- docs/haddock/Core.hs/convex_hull.svg
 convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
