@@ -472,7 +472,7 @@ drawingDistance :: Plot Double
 drawingDistance = gets _drawingDistance
 
 addHeaderFooter :: PlottingSettings -> PlottingWriterLog -> PlottingState -> DList GCode
-addHeaderFooter settings writerLog finalState = mconcat [DL.singleton header, body, DL.singleton footer]
+addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
   where
     body = _plottedGCode writerLog
 
@@ -522,33 +522,35 @@ addHeaderFooter settings writerLog finalState = mconcat [DL.singleton header, bo
     reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (_drawingDistance finalState /1000))]
     reportTravelDistance = GBlock [GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (_penTravelDistance writerLog/1000))]
 
-    header = GBlock
+    header = DL.fromList
         [ GComment "Header"
-        , setDefaultModes
-        , feedrateCheck
-        , boundingBoxCheck
-        , reportDrawingDistance
-        , reportTravelDistance
+        , GBlock
+            [ setDefaultModes
+            , feedrateCheck
+            , boundingBoxCheck
+            , reportDrawingDistance
+            , reportTravelDistance
+            ]
         ]
 
-    footer = GBlock
+    footer = DL.fromList
         [ GComment "Footer"
         , finishMoveCheck
         ]
 
-    finishMoveCheck = case _finishMove settings of
-        Nothing -> GBlock
+    finishMoveCheck = GBlock $ case _finishMove settings of
+        Nothing ->
             [ GComment "Lift pen"
             , GBlock [G00_LinearRapidMove Nothing Nothing (Just 10)]
             ]
-        Just FinishWithG28 -> GBlock
+        Just FinishWithG28 ->
             [ GComment "Move to predefined position"
             , GBlock
                 [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G28_GotoPredefinedPosition Nothing Nothing Nothing
                 ]
             ]
-        Just FinishWithG30 -> GBlock
+        Just FinishWithG30 ->
             [ GComment "Move to predefined position"
             , GBlock
                 [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
