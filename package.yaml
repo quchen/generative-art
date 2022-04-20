@@ -24,6 +24,7 @@ dependencies:
     - data-r-tree
     - deepseq
     - dlist
+    - filepath
     - formatting
     - heaps
     - megaparsec
@@ -34,6 +35,7 @@ dependencies:
     - parallel
     - primitive
     - random
+    - regex-tdfa
     - text
     - tf-random
     - transformers
@@ -60,7 +62,6 @@ extra-doc-files:
     - docs/geometry/convex_hull.svg
     - docs/geometry/clipping/3_complicated.svg
     - docs/geometry/ellipses.svg
-    - docs/geometry/point_in_polygon.svg
     - docs/hexagonal/gaussian_hexagons.svg
     - docs/interpolation/1_bezier_open.svg
     - docs/interpolation/3_simplify_path_radial.svg
@@ -109,8 +110,6 @@ tests:
             - transformers
             - directory
             - text
-            - filepath
-            - regex-tdfa
             - Glob
 
     doctest:

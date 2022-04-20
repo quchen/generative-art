@@ -245,8 +245,6 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/perpendicular_line_through_point.svg)
 
-![Missing image!](../../../docs/geometry/point_in_polygon.svg)
-
 ![Missing image!](../../../docs/geometry/reflection.svg)
 
 ![Missing image!](../../../docs/geometry/rotate_line.svg)
@@ -290,6 +288,32 @@ over quickly.
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Voronoi.hs/voronoi.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/convex_hull.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/is_convex.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/point_in_polygon.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/polygon_average.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/polygon_centroid.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/polygon_edges.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/rotate.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/scale.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/shear.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/translate.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Shapes.hs/haskell_logo.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Shapes.hs/regular_pentagon.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Shapes.hs/spiral_polygon.svg)
 
 ![Missing image!](../../../docs/hexagonal/1_line_and_circle.svg)
 

@@ -73,6 +73,7 @@ import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
+import Draw.NormalizeSvg
 import Geometry                      as G
 
 
@@ -241,6 +242,7 @@ haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
+        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
         cartesianCoordinateSystem def
             { _cartesianAlpha = 0.5
             , _renderAxisLabels=False
@@ -248,6 +250,7 @@ haddockRender filename w h actions = do
             }
         setColor (mathematica97 0)
         actions
+    normalizeSvgFile filepath
     putStrLn filepath
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.

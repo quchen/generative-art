@@ -40,7 +40,6 @@ module Geometry.Core (
     , PolygonError(..)
     , validatePolygon
     , pointInPolygon
-    , countEdgeTraversals
     , polygonAverage
     , polygonCentroid
     , polygonCircumference
@@ -137,6 +136,14 @@ import qualified System.Random.MWC   as MWC
 import           Text.Printf
 
 import Data.Sequential
+
+
+
+-- $setup
+-- >>> import qualified Draw as D
+-- >>> import qualified Graphics.Rendering.Cairo as C
+-- >>> import qualified System.Random.MWC as MWC
+-- >>> import Control.Monad
 
 
 
@@ -409,21 +416,61 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 -- \]
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
+--
+-- <<docs/haddock/Geometry/Core.hs/translate.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/translate.svg" 100 30 $ do
+--     let point = Vec2 10 10
+--         offset = Vec2 80 10
+--         point' = transform (translate offset) point
+--     C.setLineWidth 1
+--     D.sketch (Circle point 5)
+--     D.sketch (Circle point' 5)
+--     C.fill
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (D.Arrow (Line point point') def) >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/translate.svg
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
--- | Rotate around zero in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
+-- | Rotate around 'zero' in mathematically positive direction (counter-clockwise). @'rotate' ('rad' 0) = 'mempty'@.
 --
 -- \[
 -- \text{rotate}(\alpha) = \left(\begin{array}{cc|c} \cos(\alpha) & -\sin(\alpha) & 0 \\ \sin(\alpha) & \cos(\alpha) & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- Note that this rotation is understood in Cairo coordinates, which uses a
--- left-handed coordinate system, hence the minus sign compared to the standard
--- mathematical rotation matrix.
---
---
 -- To rotate around a different point, use 'rotateAround'.
+--
+-- <<docs/haddock/Geometry/Core.hs/rotate.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/rotate.svg" 100 70 $ do
+--     let point = Vec2 90 10
+--         angle = deg 30
+--         point' = transform (rotate angle) point
+--     C.setLineWidth 1
+--     D.cairoScope $ do
+--         D.sketch (Circle point 5, Circle point' 5)
+--         C.fill
+--     D.setColor (D.mathematica97 1)
+--     let line = Line zero point
+--         line' = Line zero point'
+--     D.cairoScope $ do
+--         C.setDash [1,1] 0
+--         D.sketch (line, line')
+--         C.stroke
+--     D.cairoScope $ do
+--         let angle = angleOfLine line
+--             angle' = angleOfLine line'
+--         C.arc 0 0 (lineLength line) (getRad angle) (getRad angle')
+--         D.sketch (D.Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{D._arrowDrawBody=False})
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/rotate.svg
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
   where
@@ -435,6 +482,22 @@ rotateAround :: Vec2 -> Angle -> Transformation
 rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate pivot)
 
 -- | Scale the geometry relative to zero, maintaining aspect ratio.
+--
+-- <<docs/haddock/Geometry/Core.hs/scale.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
+--     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
+--         square' = transform (scale 2) square
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch square'
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/scale.svg
 scale :: Double -> Transformation
 scale x = scale' x x
 
@@ -484,14 +547,28 @@ mirrorXCoords = scale' (-1) 1
 mirrorYCoords :: Transformation
 mirrorYCoords = scale' 1 (-1)
 
--- | Shear with a factor along x/y axis. @'shear' 0 0 = 'mempty'@.
+-- | Shear with a factor along x/y axis relative to zero. @'shear' 0 0 = 'mempty'@.
 --
 -- \[
 -- \text{shear}(p,q)
 --     = \left(\begin{array}{cc|c} 1 & -p & 0 \\ -q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- (The minus signs are probably because of Cairo’s left-handed coordinate system. Or because I haven’t tested this enough…)
+-- <<docs/haddock/Geometry/Core.hs/shear.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
+--     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
+--         square' = transform (shear 0.5 0.1) square
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch square'
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/shear.svg
 shear
     :: Double
     -> Double
@@ -593,8 +670,12 @@ instance Semigroup a => Semigroup (NoBoundingBox a) where NoBoundingBox x <> NoB
 instance Monoid a => Monoid (NoBoundingBox a) where mempty = NoBoundingBox mempty
 instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundingBox x) = NoBoundingBox (transform t x)
 
+-- | The rectangle representing a 'BoundingBox', with positive orientation.
+--
+-- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
+-- PolygonPositive
 boundingBoxPolygon :: HasBoundingBox object => object -> Polygon
-boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x1 y2, Vec2 x2 y2, Vec2 x2 y1]
+boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1 y2]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox object
 
 -- | Is the argument fully contained in another’s bounding box?
@@ -630,6 +711,7 @@ boundingBoxIntersection a b =
         | minY >= maxY -> Nothing
         | otherwise -> Just (BoundingBox (Vec2 minX minY) (Vec2 maxX maxY))
 
+-- | Width and height of a 'BoundingBox'.
 boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
 boundingBoxSize x = (abs deltaX, abs deltaY)
   where
@@ -815,7 +897,7 @@ polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 -- Angles are not 'Ord', since the cyclic structure is very error-prone when
 -- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Write
 -- your own comparators such as @'comparing' 'getDeg'@ paired with 'normalizeAngle'
--- if you _really_ want to compare them directly. Often times, using the
+-- if you /really/ want to compare them directly. Often times, using the
 -- 'dotProduct' (measure same-direction-ness) or cross product via 'det' (measure
 -- leftness/rightness) is a much better choice to express what you want.
 newtype Angle = Rad Double
@@ -861,9 +943,9 @@ normalizeAngle
     -> Angle -- ^ Normalized angle [start ... start + one revolution]
 normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
 
--- | Directional vector of a line, i.e. the vector pointing from start to end.
--- The norm of the vector is the length of the line. Use 'normalizeLine' to make
--- it unit length.
+-- | Directional vector of a line, i.e. the vector pointing from start to end. The
+-- norm of the vector is the length of the line. Use 'direction' if you need a
+-- result of length 1.
 vectorOf :: Line -> Vec2
 vectorOf (Line start end) = end -. start
 
@@ -1030,9 +1112,25 @@ intersectionLL lineL lineR
         (direction lineL)
         (direction (Line v1 v))
 
+-- | All the polygon’s edges, in order, starting at an arbitrary corner.
+--
+-- <<docs/haddock/Geometry/Core.hs/polygon_edges.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/polygon_edges.svg" 100 100 $ do
+--     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
+--     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
+--         C.setLineCap C.LineCapRound
+--         D.setColor (D.mathematica97 i)
+--         D.sketch edge
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/polygon_edges.svg
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
+-- | All interior angles, in order, starting at an arbitrary corner.
 polygonAngles :: Polygon -> [Angle]
 polygonAngles polygon@(Polygon corners)
   = let orient = case polygonOrientation polygon of
@@ -1044,11 +1142,24 @@ polygonAngles polygon@(Polygon corners)
 
 -- | The smallest convex polygon that contains all points.
 --
--- The result is oriented in mathematically positive direction. (Note that Cairo
--- uses a left-handed coordinate system, so mathematically positive is drawn as
--- clockwise.)
+-- <<docs/haddock/Geometry/Core.hs/convex_hull.svg>>
 --
--- <<docs/geometry/convex_hull.svg>>
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/convex_hull.svg" 100 100 $ do
+--     points <- C.liftIO $ do
+--         gen <- MWC.create
+--         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
+--     C.setLineWidth 1
+--     for_ points $ \point -> do
+--         D.sketch (Circle point 2)
+--         C.fill
+--     D.setColor (D.mathematica97 1)
+--     for_ (polygonEdges (convexHull points)) $ \edge ->
+--         D.sketch (D.Arrow edge def{D._arrowheadRelPos=0.5, D._arrowheadSize=5})
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/convex_hull.svg
 convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
@@ -1065,9 +1176,18 @@ convexHull points
     in Polygon (drop 1 (go (<=) [] pointsSorted) ++ drop 1 (reverse (go (>=) [] pointsSorted)))
 
 -- | Orientation of a polygon
-data PolygonOrientation = PolygonPositive | PolygonNegative
+data PolygonOrientation
+    = PolygonPositive -- ^ Counter-clockwise when plotted on a standard math coordinate system
+    | PolygonNegative -- ^ Clockwise
     deriving (Eq, Ord, Show)
 
+-- |
+--
+-- >>> polygonOrientation (Polygon [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100])
+-- PolygonPositive
+--
+-- >>> polygonOrientation (Polygon [Vec2 0 0, Vec2 0 100, Vec2 100 100, Vec2 100 0])
+-- PolygonNegative
 polygonOrientation :: Polygon -> PolygonOrientation
 polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
@@ -1185,9 +1305,22 @@ countEdgeTraversals subjectPoint edges'
 
 -- | Is the point inside the polygon?
 --
--- Note: this is unreliable when the point is exactly on an edge.
+-- <<docs/haddock/Geometry/Core.hs/point_in_polygon.svg>>
 --
--- <<docs/geometry/point_in_polygon.svg>>
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
+--     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
+--         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
+--     C.setLineWidth 1
+--     D.sketch square
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     for_ points $ \point -> do
+--         D.sketch (Circle point 3)
+--         if pointInPolygon point square then C.fill else C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/point_in_polygon.svg
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
@@ -1236,24 +1369,55 @@ validatePolygon = \polygon -> do
                          , IntersectionReal _ <- [intersectionLL edge1 edge2]
                          ]
 
--- | Average of polygon vertices
+-- | Average of polygon vertices. Note that this is not the same as
+-- 'polygonAverage', which is much less influenced by clustered corners.
+--
+-- <<docs/haddock/Geometry/Core.hs/polygon_average.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/polygon_average.svg" 100 100 $ do
+--     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
+--         averate = polygonAverage polygon
+--     D.sketch polygon
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (Circle averate 5)
+--     D.sketch (D.Cross averate 5)
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/polygon_average.svg
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
     in (1/num) *. total
 
--- | The centroid or center of mass of a polygon
+-- | The centroid or center of mass of a polygon. Note that this is not the same as 'polygonAverage'!
+--
+-- <<docs/haddock/Geometry/Core.hs/polygon_centroid.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/polygon_centroid.svg" 100 100 $ do
+--     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
+--         centroid = polygonCentroid polygon
+--     D.sketch polygon
+--     C.stroke
+--     D.setColor (D.mathematica97 1)
+--     D.sketch (Circle centroid 5)
+--     D.sketch (D.Cross centroid 5)
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/polygon_centroid.svg
 polygonCentroid :: Polygon -> Vec2
 polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
     totalArea = signedPolygonArea poly
     weight = 1 / (6 * totalArea)
 
+-- | Sum of all edge lengths.
 polygonCircumference :: Polygon -> Double
-polygonCircumference poly = foldl'
-    (\acc edge -> acc + lineLength edge)
-    0
-    (polygonEdges poly)
+polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEdges
 
 -- | Two-dimensional cross product.
 --
@@ -1276,16 +1440,39 @@ cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
 det :: Mat2 -> Double
 det (Mat2 a11 a12 a21 a22) = a11*a22 - a12*a21
 
--- http://mathworld.wolfram.com/PolygonArea.html
+-- | Area of a polygon.
 polygonArea :: Polygon -> Double
 polygonArea = abs . signedPolygonArea
 
--- | Sign depends on orientation.
+-- | Area of a polygon. The result’s sign depends on orientation: 'PolygonPositive' 'Polygon's have positive area.
+--
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 10 0, Vec2 10 10, Vec2 0 10])
+-- 100.0
+--
+-- >>> signedPolygonArea (Polygon [Vec2 0 0, Vec2 0 10, Vec2 10 10, Vec2 10 0])
+-- -100.0
 signedPolygonArea :: Polygon -> Double
 signedPolygonArea (Polygon ps)
   = let determinants = zipWith cross ps (tail (cycle ps))
     in sum determinants / 2
 
+-- | Check whether the polygon is convex.
+--
+-- <<docs/haddock/Geometry/Core.hs/is_convex.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/is_convex.svg" 200 100 $ do
+--     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
+--         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
+--     for_ [convex, concave] $ \polygon -> do
+--         if isConvex polygon
+--             then D.setColor (D.mathematica97 0)
+--             else D.setColor (D.mathematica97 1)
+--         D.sketch polygon
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/is_convex.svg
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
