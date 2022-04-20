@@ -39,6 +39,9 @@ import Geometry.Core
 --         C.stroke
 -- :}
 -- docs/haddock/Geometry/Shapes.hs/haskell_logo.svg
+--
+-- >>> all (\polygon -> polygonOrientation polygon == PolygonPositive) haskellLogo
+-- True
 haskellLogo :: [Polygon]
 haskellLogo = rescaleNormalizePolygons haskellLogoRaw
 
