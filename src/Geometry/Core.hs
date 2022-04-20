@@ -551,7 +551,7 @@ mirrorYCoords = scale' 1 (-1)
 --
 -- \[
 -- \text{shear}(p,q)
---     = \left(\begin{array}{cc|c} 1 & -p & 0 \\ -q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
+--     = \left(\begin{array}{cc|c} 1 & p & 0 \\ q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
 -- <<docs/haddock/Geometry/Core.hs/shear.svg>>
