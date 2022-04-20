@@ -32,7 +32,7 @@ main = do
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
-    let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY
+    let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridY
         p2 = p1 +. gridX +. gridY
         p3 = p1 +. 2 *. gridY
         p4 = p1 -. gridX +. gridY
@@ -43,11 +43,16 @@ gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y
             p4'' = (1 - l - 0.1) *. p4 +. (l + 0.1) *. p3
             poly1 = Polygon [p1, p2', p2'']
             poly2 = Polygon [p1, p4', p4'']
-        plot (hatch poly1 (angleOfLine (Line p1 p2')) 0.5)
+        plot (zigzag (hatch poly1 (angleOfLine (Line p1 p2')) 0.5))
         plot [Line p1 p2'', Line p2'' p2']
-        plot (hatch poly2 (angleOfLine (Line p1 p4')) 0.5)
+        plot (zigzag (hatch poly2 (angleOfLine (Line p1 p4')) 0.5))
         plot [Line p1 p4'', Line p4'' p4']
   where
     radius = 50
     gridX = Vec2 radius 0
     gridY = Vec2 0 radius
+    zigzag = Polyline . go
+      where
+        go [] = []
+        go [Line a b] = [a, b]
+        go (Line a b : Line c d : ls) = a : b : d : c : go ls
