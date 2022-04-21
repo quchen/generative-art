@@ -31,7 +31,7 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
+gcodeDrawing = for_ [ (x, y) | y <- [0..9], x <- [y `mod` 2, y `mod` 2 + 2 .. 12]] $ \(x, y) -> do
     let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridY
         p2 = p1 +. gridX +. gridY
         p3 = p1 +. 2 *. gridY
