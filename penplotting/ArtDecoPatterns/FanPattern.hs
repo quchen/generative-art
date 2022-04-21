@@ -32,10 +32,10 @@ main = do
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = do
-    let radius = 50
+    let radius = 25
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
-    for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [0..9], x <- [y `mod` 2, y `mod` 2 + 2 .. 12]] $ \center -> do
+    for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [0..18], x <- [y `mod` 2, y `mod` 2 + 2 .. 24]] $ \center -> do
         repositionTo (center -. gridX)
         clockwiseArcAroundTo center (center +. gridX)
         repositionTo (center +. (gridX -. Vec2 2 0))

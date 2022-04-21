@@ -31,8 +31,8 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [0..8], i <- [j `mod` 2, j `mod` 2 + 2 .. 12]] $ \center ->
-    for_ [0, 1, 6, 7, 8, 9, 10, 15, 20, 21, 22, 23, 24, 28] $ \i -> do
+gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [0..18], i <- [j `mod` 2, j `mod` 2 + 2 .. 24]] $ \center ->
+    for_ [0, 1, 5, 9, 10, 14] $ \i -> do
         let (start1, end1) = arcStartEnd center i
             (end2, start2) = arcStartEnd center (i+0.5)
         repositionTo start1
@@ -40,7 +40,7 @@ gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [
         lineTo start2
         counterclockwiseArcAroundTo center end2
   where
-    radius = 50
+    radius = 25
     gridX = Vec2 radius 0
     gridY = Vec2 0 radius
     arcStartEnd center i =

@@ -31,7 +31,7 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [ (x, y) | y <- [0..9], x <- [y `mod` 2, y `mod` 2 + 2 .. 12]] $ \(x, y) -> do
+gcodeDrawing = for_ [ (x, y) | y <- [0..18], x <- [y `mod` 2, y `mod` 2 + 2 .. 24]] $ \(x, y) -> do
     let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridY
         p2 = p1 +. gridX +. gridY
         p3 = p1 +. 2 *. gridY
@@ -47,7 +47,7 @@ gcodeDrawing = for_ [ (x, y) | y <- [0..9], x <- [y `mod` 2, y `mod` 2 + 2 .. 12
         plot (zigzag (hatch poly2 (angleOfLine (Line p1 p4')) 0.5))
         plot (Polygon (vertices poly1 ++ vertices poly2))
   where
-    radius = 50
+    radius = 25
     gridX = Vec2 radius 0
     gridY = Vec2 0 radius
     zigzag = Polyline . go
