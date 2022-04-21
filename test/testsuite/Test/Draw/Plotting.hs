@@ -23,10 +23,18 @@ tests = testGroup "Penplotting GCode"
     , testGroup "Drawn bounding box"
         [ test_boundingBox_circle
         , testGroup "Arc"
-            [ test_boundingBox_arcCw90
-            , test_boundingBox_arcCw270
-            , test_boundingBox_arcCcw90
-            , test_boundingBox_arcCcw270
+            [ testGroup "Clockwise"
+                [ test_boundingBox_arcCw90
+                , test_boundingBox_arcCw270
+                , test_boundingBox_arcCwInterQuadrantSmall
+                , test_boundingBox_arcCwInterQuadrantWrapping
+                ]
+            , testGroup "Counter-clockwise"
+                [ test_boundingBox_arcCcw90
+                , test_boundingBox_arcCcw270
+                , test_boundingBox_arcCcwInterQuadrantSmall
+                , test_boundingBox_arcCcwInterQuadrantWrapping
+                ]
             ]
         ]
     ]
@@ -65,7 +73,7 @@ test_boundingBox_circle = testProperty "Circle" $ \center (Positive radius) ->
     in drawnBB plotResult ~=== expected
 
 test_boundingBox_arcCw90 :: TestTree
-test_boundingBox_arcCw90 = testCase "90° (clockwise)" $ do
+test_boundingBox_arcCw90 = testCase "90°" $ do
     let start = Vec2 100 0
         center = zero
         end = Vec2 0 (-100)
@@ -75,10 +83,30 @@ test_boundingBox_arcCw90 = testCase "90° (clockwise)" $ do
     assertApproxEqual "" expected actual
 
 test_boundingBox_arcCw270 :: TestTree
-test_boundingBox_arcCw270 = testCase "270° (clockwise)" $ do
+test_boundingBox_arcCw270 = testCase "270°" $ do
     let start = Vec2 100 0
         center = zero
         end = Vec2 0 100
+        expected = ExpectedWithin 1e-10 (boundingBox [Vec2 (-100) (-100), Vec2 100 100])
+        plotResult = runPlot def (repositionTo start >> clockwiseArcAroundTo center end)
+        actual = Actual (drawnBB plotResult)
+    assertApproxEqual "" expected actual
+
+test_boundingBox_arcCwInterQuadrantSmall :: TestTree
+test_boundingBox_arcCwInterQuadrantSmall = testCase "inter-quadrant, small angle" $ do
+    let start = polar (deg 60) 100
+        center = zero
+        end = polar (deg 30) 100
+        expected = ExpectedWithin 1e-10 (boundingBox [start, end])
+        plotResult = runPlot def (repositionTo start >> clockwiseArcAroundTo center end)
+        actual = Actual (drawnBB plotResult)
+    assertApproxEqual "" expected actual
+
+test_boundingBox_arcCwInterQuadrantWrapping :: TestTree
+test_boundingBox_arcCwInterQuadrantWrapping = testCase "inter-quadrant, wrapping angle" $ do
+    let start = polar (deg 30) 100
+        center = zero
+        end = polar (deg 60) 100
         expected = ExpectedWithin 1e-10 (boundingBox [Vec2 (-100) (-100), Vec2 100 100])
         plotResult = runPlot def (repositionTo start >> clockwiseArcAroundTo center end)
         actual = Actual (drawnBB plotResult)
@@ -99,6 +127,26 @@ test_boundingBox_arcCcw270 = testCase "270° (counter-clockwise)" $ do
     let start = Vec2 100 0
         center = zero
         end = Vec2 0 (-100)
+        expected = ExpectedWithin 1e-10 (boundingBox [Vec2 (-100) (-100), Vec2 100 100])
+        plotResult = runPlot def (repositionTo start >> counterclockwiseArcAroundTo center end)
+        actual = Actual (drawnBB plotResult)
+    assertApproxEqual "" expected actual
+
+test_boundingBox_arcCcwInterQuadrantSmall :: TestTree
+test_boundingBox_arcCcwInterQuadrantSmall = testCase "inter-quadrant, small angle" $ do
+    let start = polar (deg 30) 100
+        center = zero
+        end = polar (deg 60) 100
+        expected = ExpectedWithin 1e-10 (boundingBox [start, end])
+        plotResult = runPlot def (repositionTo start >> counterclockwiseArcAroundTo center end)
+        actual = Actual (drawnBB plotResult)
+    assertApproxEqual "" expected actual
+
+test_boundingBox_arcCcwInterQuadrantWrapping :: TestTree
+test_boundingBox_arcCcwInterQuadrantWrapping = testCase "inter-quadrant, wrapping angle" $ do
+    let start = polar (deg 60) 100
+        center = zero
+        end = polar (deg 30) 100
         expected = ExpectedWithin 1e-10 (boundingBox [Vec2 (-100) (-100), Vec2 100 100])
         plotResult = runPlot def (repositionTo start >> counterclockwiseArcAroundTo center end)
         actual = Actual (drawnBB plotResult)
