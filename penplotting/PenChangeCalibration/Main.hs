@@ -13,7 +13,7 @@ import Geometry           as G
 main :: IO ()
 main = do
     let settings = def {
-            _feedrate = Just 500
+            _feedrate = 500
         }
         plotResult = runPlot settings $ do
             for_ (_nonius calibrationDrawing) plot

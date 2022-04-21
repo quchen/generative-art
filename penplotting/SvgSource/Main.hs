@@ -47,7 +47,7 @@ main = do
                     comment ("Number of elements to draw: " <> TL.pack (show numElements))
                     plot (Polyline <$> paths)
                 plottingSettings = def
-                    { _feedrate = Just 1000
+                    { _feedrate = 1000
                     , _zLoweringFeedrate = Just 1000
                     , _zTravelHeight = 2
                     , _zDrawingHeight = -2

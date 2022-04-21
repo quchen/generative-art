@@ -78,7 +78,7 @@ renderPoissonDisc baseName samples = do
                 penUp
             for_ connectingLines plot
         settings = def
-            { _feedrate = Just 3000
+            { _feedrate = 3000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _canvasBoundingBox = Nothing

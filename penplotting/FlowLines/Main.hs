@@ -55,7 +55,7 @@ main = do
             | trajectory <- geometry
             , part <- simplifyTrajectoryRadial 2 <$> splitIntoInsideParts options trajectory ]
 
-        plottingSettings = def { _feedrate = Just 6000, _zTravelHeight = 5, _zDrawingHeight = -2 }
+        plottingSettings = def { _feedrate = 6000, _zTravelHeight = 5, _zDrawingHeight = -2 }
 
     writeGCodeFile (_outputFileG options) (runPlot plottingSettings drawing)
 

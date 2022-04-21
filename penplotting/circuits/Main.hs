@@ -36,7 +36,7 @@ main = do
     let lambdaGeometry = hexLambda lambdaScale
         hexCircuits = reconstructWires (circuitProcess lambdaGeometry)
         vecCircuits = fitToPaper options (hex2wire hexCircuits)
-        settings = def { _feedrate = Just 1000 }
+        settings = def
         circuitsList = toList vecCircuits
 
     gen <- MWC.create

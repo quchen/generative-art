@@ -105,9 +105,8 @@ data PlottingState = PlottingState
 data PenState = PenDown | PenUp deriving (Eq, Ord, Show)
 
 data PlottingSettings = PlottingSettings
-    { _feedrate :: Maybe Double
-    -- ^ Either set a feedrate, or have an initial check whether one was set
-    -- previously. ('def'ault: 'Nothing')
+    { _feedrate :: Double
+    -- ^ Initial feedrate. Can be modified locally with 'withFeedrate'. ('def'ault: 1000)
 
     , _zTravelHeight :: Double
     -- ^ During travel motion, keep the pen at this height (in absolute
@@ -157,7 +156,7 @@ data FinishMove = FinishWithG28 | FinishWithG30
 
 instance Default PlottingSettings where
     def = PlottingSettings
-        { _feedrate = Nothing
+        { _feedrate = 1000
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _zLoweringFeedrate = Nothing
@@ -389,7 +388,7 @@ lineTo target@(Vec2 x y) = do
     feedrate <- asks _feedrate
     when (currentXY /= target) $ do
         penDown
-        gCode [ G01_LinearFeedrateMove feedrate (Just x) (Just y) Nothing ]
+        gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) Nothing ]
 
 -- | Arc interpolation, clockwise
 clockwiseArcAroundTo
@@ -401,7 +400,7 @@ clockwiseArcAroundTo center (Vec2 x y) = do
     let Vec2 centerXRel centerYRel = vectorOf (Line start center)
     feedrate <- asks _feedrate
     penDown
-    gCode [ G02_ArcClockwise feedrate centerXRel centerYRel x y ]
+    gCode [ G02_ArcClockwise (Just feedrate) centerXRel centerYRel x y ]
 
 -- | Arc interpolation, counterclockwise
 counterclockwiseArcAroundTo
@@ -413,7 +412,7 @@ counterclockwiseArcAroundTo center (Vec2 x y) = do
     let Vec2 centerXRel centerYRel = vectorOf (Line start center)
     feedrate <- asks _feedrate
     penDown
-    gCode [ G03_ArcCounterClockwise feedrate centerXRel centerYRel x y ]
+    gCode [ G03_ArcCounterClockwise (Just feedrate) centerXRel centerYRel x y ]
 
 -- | If the pen is up, lower it to drawing height. Do nothing if it is already
 -- lowered.
@@ -440,7 +439,7 @@ penUp = gets _penState >>= \case
 
 -- | Locally change the feedrate
 withFeedrate :: Double -> Plot a -> Plot a
-withFeedrate f = local (\settings -> settings { _feedrate = Just f })
+withFeedrate f = local (\settings -> settings { _feedrate = f })
 
 -- | Locally adapt the z drawing height (e.g. for changing pen pressure)
 withDrawingHeight :: Double -> Plot a -> Plot a
@@ -475,15 +474,6 @@ addHeaderFooter :: PlottingSettings -> PlottingWriterLog -> PlottingState -> DLi
 addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
   where
     body = _plottedGCode writerLog
-
-    feedrateCheck = case _feedrate settings of
-        Just _ -> GBlock []
-        Nothing -> GBlock
-            [ GComment "NOOP move to make sure feedrate is already set externally"
-            , G91_RelativeMovement
-            , G01_LinearFeedrateMove Nothing (Just 0) (Just 0) (Just 0)
-            , G90_AbsoluteMovement
-            ]
 
     boundingBoxCheck = case (_previewDrawnShapesBoundingBox settings, _drawnBoundingBox finalState) of
         (False, _) -> GBlock []
@@ -526,7 +516,6 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
         [ GComment "Header"
         , GBlock
             [ setDefaultModes
-            , feedrateCheck
             , boundingBoxCheck
             , reportDrawingDistance
             , reportTravelDistance

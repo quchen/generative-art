@@ -58,7 +58,7 @@ mainVoronoiDithering = do
         for_ polygons $ drawPoly white
 
     let settings = def
-            { _feedrate = Just 3000
+            { _feedrate = 3000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)
@@ -97,7 +97,7 @@ mainVoronoiDelaunay = do
         for_ (filter polygonInRange $ _voronoiRegion <$> _voronoiCells voronoi) (drawPoly white)
 
     let settings = def
-            { _feedrate = Just 6000
+            { _feedrate = 6000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _canvasBoundingBox = Just $ boundingBox (Vec2 0 0, Vec2 400 400)

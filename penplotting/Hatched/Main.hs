@@ -21,7 +21,7 @@ main = do
     let hatches = fmap (\poly -> hatch poly zero 1) haskellLogo
         hatchesWithPressure = concat $ zipWith (\p hs -> fmap (, p) hs) [2, 5, 10, 10] hatches
         sortedHatches = sortOn (\(Line (Vec2 _ y) _, _) -> y) $ sortOn (\(Line (Vec2 x _) _, _) -> x) hatchesWithPressure
-        settings = def { _feedrate = Just 30000, _zTravelHeight = 1 }
+        settings = def { _feedrate = 30000, _zTravelHeight = 1 }
         plotResult = runPlot settings $ for_ sortedHatches $ \(Line p q, pressure) -> do
             withDrawingHeight (-pressure) $ do
                 repositionTo p
