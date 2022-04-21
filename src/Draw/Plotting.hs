@@ -300,43 +300,55 @@ addTravelDistance d = Plot (tell mempty{_penTravelDistance = d})
 -- | CwArc a c b = Clockwise arc from a to b with center at c.
 data Arc = Arc ArcDirection Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
 
-instance HasBoundingBox Arc where
-    boundingBox (Arc arcDirection start center end) =
-        let radius = norm (start -. center)
-            startQuadrant = whichQuadrant center start
-            endQuadrant = whichQuadrant center end
-        in boundingBox (start, end, quadrantTransitionPoints arcDirection center radius startQuadrant endQuadrant)
-
 data ArcDirection = Clockwise | CounterClockwise deriving (Eq, Ord, Show)
 
-quadrantTransitionPoints :: ArcDirection -> Vec2 -> Double -> Quadrant -> Quadrant -> [Vec2]
-quadrantTransitionPoints arcDirection center radius = case arcDirection of
-    Clockwise -> go
-    CounterClockwise -> flip go
+instance HasBoundingBox Arc where
+    boundingBox arc@(Arc _ start _ end) =
+        boundingBox (start, end, quadrantTransitionBB arc)
+
+quadrantTransitionBB :: Arc -> BoundingBox
+quadrantTransitionBB (Arc arcDirection start center end) = case arcDirection of
+    Clockwise        -> boundingBox (     go startQuadrant endQuadrant)
+    CounterClockwise -> boundingBox (flip go startQuadrant endQuadrant)
   where
+    radius = norm (start -. center)
+    startQuadrant = whichQuadrant center start
+    endQuadrant = whichQuadrant center end
+
     rightP  = center +. Vec2 radius 0
     leftP   = center -. Vec2 radius 0
     topP    = center +. Vec2 0 radius
     bottomP = center -. Vec2 0 radius
+    allP = [bottomP, leftP, topP, rightP]
 
+    arcIsWrapping =
+        startQuadrant == endQuadrant
+        && case arcDirection of
+            Clockwise        -> cross (vectorOf (Line center start)) (vectorOf (Line center end)) > 0
+            CounterClockwise -> cross (vectorOf (Line center start)) (vectorOf (Line center end)) < 0
+
+    go QuadrantBR QuadrantBR | arcIsWrapping = allP
     go QuadrantBR QuadrantBR = []
     go QuadrantBR QuadrantBL = [bottomP]
     go QuadrantBR QuadrantTL = [bottomP, leftP]
     go QuadrantBR QuadrantTR = [bottomP, leftP, topP]
 
     go QuadrantBL QuadrantBR = [leftP, topP, rightP]
+    go QuadrantBL QuadrantBL | arcIsWrapping = allP
     go QuadrantBL QuadrantBL = []
     go QuadrantBL QuadrantTL = [leftP]
     go QuadrantBL QuadrantTR = [leftP, topP]
 
     go QuadrantTL QuadrantBR = [topP, rightP]
     go QuadrantTL QuadrantBL = [topP, rightP, bottomP]
+    go QuadrantTL QuadrantTL | arcIsWrapping = allP
     go QuadrantTL QuadrantTL = []
     go QuadrantTL QuadrantTR = [topP]
 
     go QuadrantTR QuadrantBR = [rightP]
     go QuadrantTR QuadrantBL = [rightP, bottomP]
     go QuadrantTR QuadrantTL = [rightP, bottomP, leftP]
+    go QuadrantTR QuadrantTR | arcIsWrapping = allP
     go QuadrantTR QuadrantTR = []
 
 data Quadrant = QuadrantBR | QuadrantBL | QuadrantTL | QuadrantTR deriving (Eq, Ord, Show)
