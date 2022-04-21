@@ -622,18 +622,15 @@ decomposeTransformation (Transformation m@(Mat2 a b d e) cf) =
 
 -- | The bounding box, with the minimum and maximum vectors.
 --
--- In geometrical terms, the bounding box is a rectangle spanned by the top-left
--- (minimum) and bottom-right (maximum) points, so that everything is inside the
+-- In geometrical terms, the bounding box is a rectangle spanned by the bottom-left
+-- (minimum) and top-right (maximum) points, so that everything is inside the
 -- rectangle.
 --
 -- __Invariant!__ Make sure the first argument is smaller than the second when
 -- using the constructor directly! Or better yet, don’t use the constructor and
 -- create bounding boxes via the provided instances; for a rectangle, simply use
 -- @'boundingBox' (a,b)@ instead of @'BoundingBox' a b@.
-data BoundingBox = BoundingBox
-    { _bbMin :: !Vec2 -- ^ Minimum coordinate (top left of the bounding box in Cairo coordinates).
-    , _bbMax :: !Vec2 -- ^ Maximum coordinate (bottom right of the bounding box in Cairo coordinates).
-    } deriving (Eq, Ord, Show)
+data BoundingBox = BoundingBox !Vec2 !Vec2 deriving (Eq, Ord, Show)
 
 instance NFData BoundingBox where rnf _ = ()
 
