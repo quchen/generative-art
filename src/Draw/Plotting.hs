@@ -287,8 +287,8 @@ recordBoundingBox instruction = do
     case instruction of
         G00_LinearRapidMove x y _      -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
         G01_LinearFeedrateMove _ x y _ -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
-        G02_ArcClockwise _ i j x y        -> recordBB (CwArc  current (current +. Vec2 i j) (Vec2 x y))
-        G03_ArcCounterClockwise _ i j x y -> recordBB (CcwArc current (current +. Vec2 i j) (Vec2 x y))
+        G02_ArcClockwise _ i j x y        -> recordBB (Arc        Clockwise current (current +. Vec2 i j) (Vec2 x y))
+        G03_ArcCounterClockwise _ i j x y -> recordBB (Arc CounterClockwise current (current +. Vec2 i j) (Vec2 x y))
         _otherwise -> pure ()
 
 addDrawingDistance :: Double -> Plot ()
@@ -298,71 +298,71 @@ addTravelDistance :: Double -> Plot ()
 addTravelDistance d = Plot (tell mempty{_penTravelDistance = d})
 
 -- | CwArc a c b = Clockwise arc from a to b with center at c.
-data CwArc = CwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+data Arc = Arc ArcDirection Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
 
--- | CcwArc a c b = Counterclockwise arc from a to b with center at c.
-data CcwArc = CcwArc Vec2 Vec2 Vec2 deriving (Eq, Ord, Show)
+data ArcDirection = Clockwise | CounterClockwise deriving (Eq, Ord, Show)
 
-instance HasBoundingBox CwArc where
-    boundingBox (CwArc start center end) =
-        boundingBoxArc True start center end
+instance HasBoundingBox Arc where
+    boundingBox arc@(Arc _ start _ end) =
+        boundingBox (start, end, quadrantTransitionBB arc)
 
-instance HasBoundingBox CcwArc where
-    boundingBox (CcwArc start center end) =
-        boundingBoxArc False start center end
-
-boundingBoxArc
-    :: Bool -- ^ True = clockwise
-    -> Vec2 -- ^ Arc start
-    -> Vec2 -- ^ Center
-    -> Vec2 -- ^ End
-    -> BoundingBox
-boundingBoxArc clockwise start center end =
-    let radius = norm (start -. center)
-        startQuadrant = whichQuadrant center start
-        endQuadrant = whichQuadrant center end
-    in boundingBox (start, end, quadrantTransitionPoints clockwise center radius startQuadrant endQuadrant)
-
-quadrantTransitionPoints :: Bool -> Vec2 -> Double -> Quadrant -> Quadrant -> [Vec2]
-quadrantTransitionPoints clockwise center radius = if clockwise then flip go else go
+quadrantTransitionBB :: Arc -> BoundingBox
+quadrantTransitionBB (Arc arcDirection start center end) = case arcDirection of
+    Clockwise        -> boundingBox (     go startQuadrant endQuadrant)
+    CounterClockwise -> boundingBox (flip go startQuadrant endQuadrant)
   where
-    rightP = center +. Vec2 radius 0
-    leftP = center -. Vec2 radius 0
-    bottomP = center +. Vec2 0 radius
-    topP = center -. Vec2 0 radius
+    radius = norm (start -. center)
+    startQuadrant = whichQuadrant center start
+    endQuadrant = whichQuadrant center end
 
+    rightP  = center +. Vec2 radius 0
+    leftP   = center -. Vec2 radius 0
+    topP    = center +. Vec2 0 radius
+    bottomP = center -. Vec2 0 radius
+    allP = [bottomP, leftP, topP, rightP]
+
+    arcIsWrapping =
+        startQuadrant == endQuadrant
+        && case arcDirection of
+            Clockwise        -> cross (vectorOf (Line center start)) (vectorOf (Line center end)) > 0
+            CounterClockwise -> cross (vectorOf (Line center start)) (vectorOf (Line center end)) < 0
+
+    go QuadrantBR QuadrantBR | arcIsWrapping = allP
     go QuadrantBR QuadrantBR = []
     go QuadrantBR QuadrantBL = [bottomP]
     go QuadrantBR QuadrantTL = [bottomP, leftP]
     go QuadrantBR QuadrantTR = [bottomP, leftP, topP]
 
     go QuadrantBL QuadrantBR = [leftP, topP, rightP]
+    go QuadrantBL QuadrantBL | arcIsWrapping = allP
     go QuadrantBL QuadrantBL = []
     go QuadrantBL QuadrantTL = [leftP]
     go QuadrantBL QuadrantTR = [leftP, topP]
 
     go QuadrantTL QuadrantBR = [topP, rightP]
     go QuadrantTL QuadrantBL = [topP, rightP, bottomP]
+    go QuadrantTL QuadrantTL | arcIsWrapping = allP
     go QuadrantTL QuadrantTL = []
     go QuadrantTL QuadrantTR = [topP]
 
     go QuadrantTR QuadrantBR = [rightP]
     go QuadrantTR QuadrantBL = [rightP, bottomP]
     go QuadrantTR QuadrantTL = [rightP, bottomP, leftP]
+    go QuadrantTR QuadrantTR | arcIsWrapping = allP
     go QuadrantTR QuadrantTR = []
 
 data Quadrant = QuadrantBR | QuadrantBL | QuadrantTL | QuadrantTR deriving (Eq, Ord, Show)
 
--- | Quadrants are in Cairo coordinates (y pointing downwards!)
+-- | Quadrants are in math coordinates (y pointing upwards!)
 whichQuadrant
     :: Vec2 -- ^ Center
     -> Vec2 -- ^ Which quadrant is this point in?
     -> Quadrant
 whichQuadrant center point
-    | dx >= 0 && dy >= 0 = QuadrantBR
-    | dx <  0 && dy >= 0 = QuadrantBL
-    | dx <  0 && dy <  0 = QuadrantTL
-    | otherwise          = QuadrantTR
+    | dx >= 0 && dy >= 0 = QuadrantTR
+    | dx <  0 && dy >= 0 = QuadrantTL
+    | dx <  0 && dy <  0 = QuadrantBL
+    | otherwise          = QuadrantBR
   where
     Vec2 dx dy = point -. center
 
