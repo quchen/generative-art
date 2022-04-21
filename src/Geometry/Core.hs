@@ -173,6 +173,12 @@ instance Show (Polyline Vector) where show (Polyline xs) = "Polyline (" ++ show 
 instance NFData (Polyline []) where rnf (Polyline xs) = rnf xs
 instance NFData (Polyline Vector) where rnf (Polyline xs) = rnf xs
 
+instance Semigroup (Polyline []) where Polyline a <> Polyline b = Polyline (a <> b)
+instance Semigroup (Polyline Vector) where Polyline a <> Polyline b = Polyline (a <> b)
+
+instance Monoid (Polyline []) where mempty = Polyline mempty
+instance Monoid (Polyline Vector) where mempty = Polyline mempty
+
 -- | Polygon, defined by its corners.
 --
 -- Many algorithms assume certain invariants about polygons, see
