@@ -35,8 +35,7 @@ gcodeDrawing = do
     let radius = 50
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
-    for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
-        let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
+    for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [0..9], x <- [y `mod` 2, y `mod` 2 + 2 .. 12]] $ \center -> do
         repositionTo (center -. gridX)
         clockwiseArcAroundTo center (center +. gridX)
         repositionTo (center +. (gridX -. Vec2 2 0))

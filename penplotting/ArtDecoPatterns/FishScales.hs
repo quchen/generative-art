@@ -31,8 +31,7 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y) -> do
-    let center = fromIntegral x *. gridX +. fromIntegral y *. gridY
+gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [0..8], i <- [j `mod` 2, j `mod` 2 + 2 .. 12]] $ \center ->
     for_ [0, 1, 6, 7, 8, 9, 10, 15, 20, 21, 22, 23, 24, 28] $ \i -> do
         let (start1, end1) = arcStartEnd center i
             (end2, start2) = arcStartEnd center (i+0.5)
