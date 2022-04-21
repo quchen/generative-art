@@ -31,11 +31,11 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [ (x, y) | y <- [0..18], x <- [y `mod` 2, y `mod` 2 + 2 .. 24]] $ \(x, y) -> do
-    let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridY
-        p2 = p1 +. gridX +. gridY
-        p3 = p1 +. 2 *. gridY
-        p4 = p1 -. gridX +. gridY
+gcodeDrawing = for_ [ (x, y) | x <- [0..24], y <- [x `mod` 2, x `mod` 2 + 2 .. 18]] $ \(x, y) -> do
+    let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridX
+        p2 = p1 +. gridX -. gridY
+        p3 = p1 +. 2 *. gridX
+        p4 = p1 +. gridX +. gridY
     for_ [1/9, 3/9 .. 0.8] $ \l -> do
         let p2' = (1 - l) *. p2 +. l *. p3
             p4' = (1 - l) *. p4 +. l *. p3
