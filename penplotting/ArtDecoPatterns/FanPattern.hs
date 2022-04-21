@@ -36,20 +36,20 @@ gcodeDrawing = do
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
     for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [0..18], x <- [y `mod` 2, y `mod` 2 + 2 .. 24]] $ \center -> do
-        repositionTo (center -. gridX)
-        clockwiseArcAroundTo center (center +. gridX)
-        repositionTo (center +. (gridX -. Vec2 2 0))
-        counterclockwiseArcAroundTo center (center -. (gridX -. Vec2 2 0))
+        repositionTo (center +. gridY)
+        clockwiseArcAroundTo center (center -. gridY)
+        repositionTo (center -. (gridY -. Vec2 0 2))
+        counterclockwiseArcAroundTo center (center +. (gridY -. Vec2 0 2))
         for_ (zip (deg <$> [12, 24 .. 84]) (cycle [True, False])) $ \(alpha, clockwise) -> do
-            let startPoint = center -. gridY
-                pointOnArc = center +. (radius - 2) *. Vec2 (-cos (getRad alpha)) (sin (getRad alpha))
-                center' = case intersectionLL (angledLine startPoint (deg 0) 1) (perpendicularBisector (Line startPoint pointOnArc)) of
+            let startPoint = center -. gridX
+                pointOnArc = center +. (radius - 2) *. Vec2 (sin (getRad alpha)) (cos (getRad alpha))
+                center' = case intersectionLL (angledLine startPoint (deg 90) 1) (perpendicularBisector (Line startPoint pointOnArc)) of
                     IntersectionReal p -> p
                     IntersectionVirtual p -> p
                     IntersectionVirtualInsideL p -> p
                     IntersectionVirtualInsideR p -> p
                     _otherwise -> error "Lines must intersect"
-                (mirrorCenter, mirrorPointOnArc) = transform (mirrorAlong (angledLine startPoint (deg 90) 1)) (center', pointOnArc)
+                (mirrorCenter, mirrorPointOnArc) = transform (mirrorAlong (angledLine startPoint (deg 0) 1)) (center', pointOnArc)
             if clockwise
                 then do
                     repositionTo pointOnArc
