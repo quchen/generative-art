@@ -207,7 +207,7 @@ recordCairoPreview instruction = do
     start@(Vec2 currentX currentY) <- gets _penXY
     penState <- gets _penState
     settings <- ask
-    when (penState == PenDown || isJust (_previewPenTravelColor settings)) $ do
+    when (not (isInfinite currentX) && not (isInfinite currentY) && (penState == PenDown || isJust (_previewPenTravelColor settings))) $ do
         let paintStyle = case penState of
                 PenUp -> D.setColor (fromJust (_previewPenTravelColor settings))
                 PenDown -> D.setColor (_previewPenColor settings)
