@@ -45,7 +45,7 @@ gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y
             poly2 = Polygon [p1, p4', p4'']
         plot (zigzag (hatch poly1 (angleOfLine (Line p1 p2')) 0.5))
         plot (zigzag (hatch poly2 (angleOfLine (Line p1 p4')) 0.5))
-        plot (Polygon [p1, p2'', p2', p1, p4'', p4', p1])
+        plot (Polygon (vertices poly1 ++ vertices poly2))
   where
     radius = 50
     gridX = Vec2 radius 0
@@ -55,3 +55,4 @@ gcodeDrawing = for_ [(2 * x + y `mod` 2, y) | x <- [0..6], y <- [0..9]] $ \(x, y
         go [] = []
         go [Line a b] = [a, b]
         go (Line a b : Line c d : ls) = a : b : d : c : go ls
+    vertices (Polygon ps) = ps
