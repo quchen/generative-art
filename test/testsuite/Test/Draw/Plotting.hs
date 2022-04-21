@@ -17,6 +17,9 @@ tests = testGroup "Penplotting GCode"
         [ test_plottingDistance_line
         , test_plottingDistance_circle
         ]
+    , testGroup "Travelled distance"
+        [ test_travelledDistance_line
+        ]
     , testGroup "Drawn bounding box"
         [ test_boundingBox_circle
         , testGroup "Arc"
@@ -29,7 +32,7 @@ tests = testGroup "Penplotting GCode"
     ]
 
 drawnDistance :: RunPlotResult -> Double
-drawnDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawingDistance = d}}} = d
+drawnDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringState=PlottingState{_drawingDistance = d}}} = d
 
 test_plottingDistance_line :: TestTree
 test_plottingDistance_line = testProperty "Line" $ \start end ->
@@ -42,6 +45,14 @@ test_plottingDistance_circle = testProperty "Circle" $ \center (Positive radius)
     let circle = Circle center radius
         plotResult = runPlot def (plot circle)
     in 2*pi*radius ~=== drawnDistance plotResult
+
+travelledDistance :: RunPlotResult -> Double
+travelledDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringWriterLog=PlottingWriterLog{_penTravelDistance = d}}} = d
+
+test_travelledDistance_line :: TestTree
+test_travelledDistance_line = testProperty "Line" $ \start end ->
+    let plotResult = runPlot def (repositionTo start >> repositionTo end)
+    in norm (start -. end) ~=== travelledDistance plotResult
 
 drawnBB :: RunPlotResult -> BoundingBox
 drawnBB RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringState=PlottingState {_drawnBoundingBox = bb}}} = bb

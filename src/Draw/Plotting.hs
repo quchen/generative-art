@@ -271,10 +271,12 @@ recordDrawingDistance instruction = do
                 Just (r * getRad (normalizeAngle (deg 0) angle))
             _otherwise -> Nothing
 
-    case (penState, distanceTravelled) of
-        (PenUp, Just d) -> addTravelDistance d
-        (PenDown, Just d) -> addDrawingDistance d
-        (_, Nothing) -> pure ()
+    case distanceTravelled of
+        Nothing -> pure ()
+        Just d -> case penState of
+            PenDown -> addDrawingDistance d
+            PenUp | isInfinite d -> pure () -- Pen starts at (∞,∞) so we hack around recording it here
+            PenUp -> addTravelDistance d
 
 recordBB :: HasBoundingBox object => object -> Plot ()
 recordBB object = modify' (\s -> s { _drawnBoundingBox = _drawnBoundingBox s <> boundingBox object })
