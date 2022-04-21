@@ -48,6 +48,6 @@ gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [
             b = radius * sqrt 2
             c = radius - i
             gamma = acos ((a^2 + b^2 - c^2) / (2*a*b))
-        in ( center -. gridX -. gridY +. polar (deg 45 +. rad gamma) radius
-            , center +. gridX -. gridY +. polar (deg 135 -. rad gamma) radius
+        in  ( center +. gridY -. gridX +. polar (deg (-45) +. rad gamma) radius
+            , center -. gridY -. gridX +. polar (deg 45 -. rad gamma) radius
             )
