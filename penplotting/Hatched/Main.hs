@@ -40,13 +40,18 @@ penPressure = do
             lineTo q
 
 hatchingDensity :: Plot ()
-hatchingDensity = for_ (zip [ (x, y) | y <- [3,2..0], x <- [0..4]] [0.1, 0.2 :: Double ..]) $ \((x, y), density) -> do
-    let strokes = Polyline . fmap (uncurry Vec2) <$> PF.render' PF.canvastextFont (printf "%.1f" density)
-        origin = Vec2 (x * 30) (y * 40)
-    for_ strokes $ plot . transform (translate origin <> translate (Vec2 0 21) <> scale 0.2)
-    let box = transform (translate origin) (boundingBoxPolygon (boundingBox [zero, Vec2 20 20]))
-        hatches = zigzag (hatch box (deg 0) density)
-    plot hatches
+hatchingDensity = do
+    let penName = "Pen hatching test" -- enter pen name here
+        heading = Polyline . fmap (uncurry Vec2) <$> PF.render' PF.canvastextFont penName
+        headingOrigin = Vec2 0 160
+    for_ heading $ plot . transform (translate headingOrigin <> scale 0.3)
+    for_ (zip [ (x, y) | y <- [3,2..0], x <- [0..4]] [0.1, 0.2 :: Double ..]) $ \((x, y), density) -> do
+        let strokes = Polyline . fmap (uncurry Vec2) <$> PF.render' PF.canvastextFont (printf "%.1f" density)
+            origin = Vec2 (x * 30) (y * 40)
+        for_ strokes $ plot . transform (translate origin <> translate (Vec2 0 21) <> scale 0.2)
+        let box = transform (translate origin) (boundingBoxPolygon (boundingBox [zero, Vec2 20 20]))
+            hatches = zigzag (hatch box (deg 0) density)
+        plot hatches
   where
     zigzag = Polyline . go
       where
