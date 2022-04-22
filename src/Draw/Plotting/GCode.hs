@@ -24,7 +24,7 @@ data GCode
     | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G1 F X Y Z@
     | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ @G2 F I J X Y@
     | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ @G3 F I J X Y@
-    | G04_Dwell Double -- ^ @G4 P@
+    | G04_Dwell_ms Double -- ^ @G4 P@
     | G17_Plane_XY
     | G18_Plane_ZX
     | G19_Plane_YZ
@@ -58,7 +58,7 @@ renderGcodeIndented !level = \case
     G02_ArcClockwise        f i j x y -> indent (bformat ("G2" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
     G03_ArcCounterClockwise f i j x y -> indent (bformat ("G3" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
 
-    G04_Dwell s -> indent (bformat ("G4" % required "P") s)
+    G04_Dwell_ms s -> indent (bformat ("G4" % required "P") s)
 
     G17_Plane_XY -> indent "G17 (Use XY plane)"
     G18_Plane_ZX -> indent "G18 (Use ZX plane)"
