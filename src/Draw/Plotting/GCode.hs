@@ -8,9 +8,10 @@ module Draw.Plotting.GCode (
 
 
 import           Data.List
-import qualified Data.Text.Lazy as TL
+import           Data.Maybe
+import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TL
-import           Formatting     hiding (center)
+import           Formatting             hiding (center)
 
 
 
@@ -49,11 +50,13 @@ renderGcodeIndented !level = \case
     F_Feedrate f     -> indent (bformat ("F " % double) f)
     M0_Pause         -> indent "M0 (Pause/wait for user input)"
 
-    G00_LinearRapidMove Nothing Nothing Nothing -> errorComment "G00 requires at least one coordinate argument; omitting empty G00"
-    G00_LinearRapidMove x y z -> indent (bformat ("G0" % optional "X" % optional "Y" % optional "Z") x y z)
+    G00_LinearRapidMove x y z
+        | all isNothing [x,y,z] -> errorComment "G0 requires at least one coordinate argument; omitting empty G0"
+        | otherwise -> indent (bformat ("G0" % optional "X" % optional "Y" % optional "Z") x y z)
 
-    G01_LinearFeedrateMove _ Nothing Nothing Nothing -> errorComment "G01 requires at least one coordinate argument; omitting empty G01"
-    G01_LinearFeedrateMove f x y z -> indent (bformat ("G1" % optional "F" % optional "X" % optional "Y" % optional "Z") f x y z)
+    G01_LinearFeedrateMove f x y z
+        | all isNothing [x,y,z] -> errorComment "G1 requires at least one coordinate argument; omitting empty G1"
+        | otherwise -> indent (bformat ("G1" % optional "F" % optional "X" % optional "Y" % optional "Z") f x y z)
 
     G02_ArcClockwise        f i j x y -> indent (bformat ("G2" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
     G03_ArcCounterClockwise f i j x y -> indent (bformat ("G3" % optional "F" % required "X" % required "Y" % required "I" % required "J") f x y i j)
