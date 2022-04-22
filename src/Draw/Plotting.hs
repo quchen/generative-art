@@ -58,7 +58,7 @@ import           Data.Default.Class
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S
-import qualified Data.Text.Lazy           as TL
+import           Data.Text.Lazy           (Text)
 import qualified Data.Text.Lazy.IO        as TL
 import           Data.Vector              (Vector)
 import qualified Data.Vector              as V
@@ -369,8 +369,7 @@ whichQuadrant center point
 -- | Trace the plotting area to preview the extents of the plot, and wait for
 -- confirmation. Useful at the start of a plot.
 previewCanvas :: Plot ()
-previewCanvas = do
-    comment "Preview bounding box"
+previewCanvas = commented "Preview bounding box" $ do
     asks _canvasBoundingBox >>= \case
         Just bb -> plot bb >> pause PauseUserConfirm
         Nothing -> pure ()
@@ -453,8 +452,14 @@ block :: Plot a -> Plot a
 block (Plot content) = Plot (mapRWS (\(a, s, writerLog) -> (a, s, writerLog{_plottedGCode = DL.singleton (GBlock (DL.toList (_plottedGCode writerLog)))})) content)
 
 -- | Add a GCode comment.
-comment :: TL.Text -> Plot ()
+comment :: Text -> Plot ()
 comment txt = gCode [ GComment txt ]
+
+-- | Having a block with a comment ontop of it is a common pattern, so here’s a helper for that.
+commented :: Text -> Plot a -> Plot a
+commented caption content = do
+    comment caption
+    block content
 
 -- | Pause the plot for later resumption at the current state.
 pause :: PauseMode -> Plot ()
@@ -672,8 +677,7 @@ class Plotting a where
 
 -- | Trace the bounding box without actually drawing anything to estimate result size
 instance Plotting BoundingBox where
-    plot (BoundingBox start@(Vec2 xMin yMin) (Vec2 xMax yMax)) = do
-        comment "Hover over bounding box"
+    plot (BoundingBox start@(Vec2 xMin yMin) (Vec2 xMax yMax)) = commented "Hover over bounding box" $ do
         repositionTo start
         gCode
             [ G93_Feedrate_TravelInFractionOfMinute
@@ -690,93 +694,81 @@ instance Plotting BoundingBox where
             ]
 
 instance Plotting Line where
-    plot (Line start end) = do
-        comment "Line"
-        block $ do
-            repositionTo start
-            lineTo end
+    plot (Line start end) = commented "Line" $ do
+        repositionTo start
+        lineTo end
 
 instance Plotting Circle where
-    plot (Circle center radius) = do
-        comment "Circle"
-        block $ do
-            -- The naive way of painting a circle is by always starting them e.g.
-            -- on the very left. This requires some unnecessary pen hovering, and
-            -- for some pens creates a visible »pen down« dot. We therefore go the
-            -- more complicated route here: start the circle at the point closest
-            -- to the pen position. We only fall back to the naive way if the
-            -- circles are very small.
-            current <- gets _penXY
-            let distanceCenterCurrent = norm (center -. current) -- Might be infinite if the current point isn’t defined yet!
-                radial = if 0.1 <= distanceCenterCurrent && not (isInfinite distanceCenterCurrent)
-                    then radius *. direction (Line center current)
-                    else Vec2 radius 0
-                start = center +. radial
-                opposite = center -. radial
+    plot (Circle center radius) = commented "Circle" $ do
+        -- The naive way of painting a circle is by always starting them e.g.
+        -- on the very left. This requires some unnecessary pen hovering, and
+        -- for some pens creates a visible »pen down« dot. We therefore go the
+        -- more complicated route here: start the circle at the point closest
+        -- to the pen position. We only fall back to the naive way if the
+        -- circles are very small.
+        current <- gets _penXY
+        let distanceCenterCurrent = norm (center -. current) -- Might be infinite if the current point isn’t defined yet!
+            radial = if 0.1 <= distanceCenterCurrent && not (isInfinite distanceCenterCurrent)
+                then radius *. direction (Line center current)
+                else Vec2 radius 0
+            start = center +. radial
+            opposite = center -. radial
 
-            -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
-            -- do anything when we plot it with a single arc »from start to itself«. We
-            -- work around this by explicitly chaining two half circles.
-            repositionTo start
-            clockwiseArcAroundTo center opposite
-            clockwiseArcAroundTo center start
+        -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
+        -- do anything when we plot it with a single arc »from start to itself«. We
+        -- work around this by explicitly chaining two half circles.
+        repositionTo start
+        clockwiseArcAroundTo center opposite
+        clockwiseArcAroundTo center start
 
 -- | Approximation by a number of points
 instance Plotting Ellipse where
-    plot (Ellipse trafo) = do
-        comment "Ellipse"
-        block (plot (transform trafo (regularPolygon 64)))
+    plot (Ellipse trafo) = commented "Ellipse" $ do
+        plot (transform trafo (regularPolygon 64))
 
 instance Foldable f => Plotting (Polyline f) where
     plot (Polyline xs) = go (toList xs)
       where
         go [] = pure ()
-        go (p:ps) = do
-            comment "Polyline"
-            block $ do
-                repositionTo p
-                traverse_ lineTo ps
+        go (p:ps) = commented "Polyline" $ do
+            repositionTo p
+            traverse_ lineTo ps
 
 -- | Draw each element (in order)
 instance (Functor f, Sequential f, Plotting a) => Plotting (f a) where
-    plot x = do
-        comment "Sequential"
-        block (traverse_ plot x)
+    plot x = commented "Sequential" (traverse_ plot x)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b) => Plotting (a,b) where
-    plot (a,b) = comment "2-tuple" >> block (plot a >> plot b)
+    plot (a,b) = commented "2-tuple" (plot a >> plot b)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b, Plotting c) => Plotting (a,b,c) where
-    plot (a,b,c) = comment "3-tuple" >> block (plot a >> plot b >> plot c)
+    plot (a,b,c) = commented "3-tuple" (plot a >> plot b >> plot c)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b, Plotting c, Plotting d) => Plotting (a,b,c,d) where
-    plot (a,b,c,d) = comment "4-tuple" >> block (plot a >> plot b >> plot c >> plot d)
+    plot (a,b,c,d) = commented "4-tuple" (plot a >> plot b >> plot c >> plot d)
 
 -- | Draw each element (in order)
 instance (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plotting (a,b,c,d,e) where
-    plot (a,b,c,d,e) = comment "5-tuple" >> block (plot a >> plot b >> plot c >> plot d >> plot e)
+    plot (a,b,c,d,e) = commented "5-tuple" (plot a >> plot b >> plot c >> plot d >> plot e)
 
 instance Plotting Polygon where
+    -- Like polyline, but closes up the shape
     plot (Polygon []) = pure ()
-    plot (Polygon (p:ps)) = do -- Like polyline, but closes up the shape
-        comment "Polygon"
-        block $ do
-            repositionTo p
-            traverse_ lineTo ps
-            lineTo p
+    plot (Polygon (p:ps)) = commented "Polygon" $ do
+        repositionTo p
+        traverse_ lineTo ps
+        lineTo p
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
 -- happens to put more points in places with more curvature.
 instance Plotting Bezier where
-    plot bezier@(Bezier a _ _ _) = do
-        comment "Bezier (cubic)"
-        block $ do
-            repositionTo a
-            traverse_ lineTo (bezierSubdivideT 32 bezier)
+    plot bezier@(Bezier a _ _ _) = commented "Bezier (cubic)" $ do
+        repositionTo a
+        traverse_ lineTo (bezierSubdivideT 32 bezier)
 
 minimumOn :: (Foldable f, Ord ord) => (a -> ord) -> f a -> Maybe a
 minimumOn f xs
