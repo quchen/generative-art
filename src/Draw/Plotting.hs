@@ -56,7 +56,7 @@ import           Data.DList               (DList)
 import qualified Data.DList               as DL
 import           Data.Default.Class
 import           Data.Foldable
-import           Data.Maybe               (fromJust, fromMaybe, isJust)
+import           Data.Maybe
 import qualified Data.Set                 as S
 import qualified Data.Text.Lazy           as TL
 import qualified Data.Text.Lazy.IO        as TL
@@ -71,8 +71,6 @@ import           Geometry.Bezier
 import           Geometry.Core
 import           Geometry.Shapes
 
-
-import Debug.Trace
 
 
 -- | 'Plot' represents penplotting directives, and is manipulated using functions

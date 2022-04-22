@@ -20,18 +20,18 @@ data GCode
     | F_Feedrate Double
     | M0_Pause
 
-    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G0 X Y Z
-    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G1 F X Y Z
-    | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ G02 F I J X Y
-    | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ G03 F I J X Y
-    | G04_Dwell Double
+    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G0 X Y Z@
+    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G1 F X Y Z@
+    | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ @G2 F I J X Y@
+    | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ @G3 F I J X Y@
+    | G04_Dwell Double -- ^ @G4 P@
     | G17_Plane_XY
     | G18_Plane_ZX
     | G19_Plane_YZ
     | G20_UseInches
     | G21_UseMm
-    | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G28 X Y Z
-    | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ G30 X Y Z
+    | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G28 X Y Z@
+    | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G30 X Y Z@
     | G90_AbsoluteMovement
     | G91_RelativeMovement
     | G93_Feedrate_TravelInFractionOfMinute

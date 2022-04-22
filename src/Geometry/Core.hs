@@ -140,7 +140,7 @@ import Data.Sequential
 
 
 -- $setup
--- >>> import qualified Draw as D
+-- >>> import Draw
 -- >>> import qualified Graphics.Rendering.Cairo as C
 -- >>> import qualified System.Random.MWC as MWC
 -- >>> import Control.Monad
@@ -421,16 +421,16 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/translate.svg" 100 30 $ do
+-- haddockRender "Geometry/Core.hs/translate.svg" 100 30 $ do
 --     let point = Vec2 10 10
 --         offset = Vec2 80 10
 --         point' = transform (translate offset) point
 --     C.setLineWidth 1
---     D.sketch (Circle point 5)
---     D.sketch (Circle point' 5)
+--     sketch (Circle point 5)
+--     sketch (Circle point' 5)
 --     C.fill
---     D.setColor (D.mathematica97 1)
---     D.sketch (D.Arrow (Line point point') def) >> C.stroke
+--     setColor (mathematica97 1)
+--     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/translate.svg
 translate :: Vec2 -> Transformation
@@ -448,26 +448,26 @@ translate = Transformation mempty
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/rotate.svg" 100 70 $ do
+-- haddockRender "Geometry/Core.hs/rotate.svg" 100 70 $ do
 --     let point = Vec2 90 10
 --         angle = deg 30
 --         point' = transform (rotate angle) point
 --     C.setLineWidth 1
---     D.cairoScope $ do
---         D.sketch (Circle point 5, Circle point' 5)
+--     cairoScope $ do
+--         sketch (Circle point 5, Circle point' 5)
 --         C.fill
---     D.setColor (D.mathematica97 1)
+--     setColor (mathematica97 1)
 --     let line = Line zero point
 --         line' = Line zero point'
---     D.cairoScope $ do
+--     cairoScope $ do
 --         C.setDash [1,1] 0
---         D.sketch (line, line')
+--         sketch (line, line')
 --         C.stroke
---     D.cairoScope $ do
+--     cairoScope $ do
 --         let angle = angleOfLine line
 --             angle' = angleOfLine line'
 --         C.arc 0 0 (lineLength line) (getRad angle) (getRad angle')
---         D.sketch (D.Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{D._arrowDrawBody=False})
+--         sketch (Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{_arrowDrawBody=False})
 --         C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/rotate.svg
@@ -487,14 +487,14 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
 --         square' = transform (scale 2) square
 --     C.setLineWidth 1
---     D.sketch square
+--     sketch square
 --     C.stroke
---     D.setColor (D.mathematica97 1)
---     D.sketch square'
+--     setColor (mathematica97 1)
+--     sketch square'
 --     C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/scale.svg
@@ -558,14 +558,14 @@ mirrorYCoords = scale' 1 (-1)
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
 --         square' = transform (shear 0.5 0.1) square
 --     C.setLineWidth 1
---     D.sketch square
+--     sketch square
 --     C.stroke
---     D.setColor (D.mathematica97 1)
---     D.sketch square'
+--     setColor (mathematica97 1)
+--     sketch square'
 --     C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/shear.svg
@@ -891,18 +891,18 @@ normSquare v = dotProduct v v
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/polar.svg" 100 60 $ do
+-- haddockRender "Geometry/Core.hs/polar.svg" 100 60 $ do
 --     let angle = deg 30
 --         p = polar angle 100
---     D.cairoScope $ do
---         D.setColor (D.mathematica97 1)
+--     cairoScope $ do
+--         setColor (mathematica97 1)
 --         C.setLineWidth 1
 --         C.arc 0 0 40 0 (getRad angle)
---         D.sketch (Line zero p)
+--         sketch (Line zero p)
 --         C.stroke
---     D.cairoScope $ do
---         D.setColor (D.mathematica97 0)
---         D.sketch (Circle p 3)
+--     cairoScope $ do
+--         setColor (mathematica97 0)
+--         sketch (Circle p 3)
 --         C.fill
 -- :}
 -- docs/haddock/Geometry/Core.hs/polar.svg
@@ -1157,12 +1157,12 @@ intersectionLL lineL lineR
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/polygon_edges.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/polygon_edges.svg" 100 100 $ do
 --     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
 --     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
 --         C.setLineCap C.LineCapRound
---         D.setColor (D.mathematica97 i)
---         D.sketch edge
+--         setColor (mathematica97 i)
+--         sketch edge
 --         C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/polygon_edges.svg
@@ -1185,17 +1185,17 @@ polygonAngles polygon@(Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/convex_hull.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/convex_hull.svg" 100 100 $ do
 --     points <- C.liftIO $ do
 --         gen <- MWC.create
 --         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
 --     C.setLineWidth 1
 --     for_ points $ \point -> do
---         D.sketch (Circle point 2)
+--         sketch (Circle point 2)
 --         C.fill
---     D.setColor (D.mathematica97 1)
+--     setColor (mathematica97 1)
 --     for_ (polygonEdges (convexHull points)) $ \edge ->
---         D.sketch (D.Arrow edge def{D._arrowheadRelPos=0.5, D._arrowheadSize=5})
+--         sketch (Arrow edge def{_arrowheadRelPos=0.5, _arrowheadSize=5})
 --     C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/convex_hull.svg
@@ -1348,15 +1348,15 @@ countEdgeTraversals subjectPoint edges'
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
+-- haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
 --     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
 --         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
 --     C.setLineWidth 1
---     D.sketch square
+--     sketch square
 --     C.stroke
---     D.setColor (D.mathematica97 1)
+--     setColor (mathematica97 1)
 --     for_ points $ \point -> do
---         D.sketch (Circle point 3)
+--         sketch (Circle point 3)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/point_in_polygon.svg
@@ -1415,14 +1415,14 @@ validatePolygon = \polygon -> do
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/polygon_average.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/polygon_average.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         averate = polygonAverage polygon
---     D.sketch polygon
+--     sketch polygon
 --     C.stroke
---     D.setColor (D.mathematica97 1)
---     D.sketch (Circle averate 5)
---     D.sketch (D.Cross averate 5)
+--     setColor (mathematica97 1)
+--     sketch (Circle averate 5)
+--     sketch (Cross averate 5)
 --     C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/polygon_average.svg
@@ -1437,14 +1437,14 @@ polygonAverage (Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/polygon_centroid.svg" 100 100 $ do
+-- haddockRender "Geometry/Core.hs/polygon_centroid.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         centroid = polygonCentroid polygon
---     D.sketch polygon
+--     sketch polygon
 --     C.stroke
---     D.setColor (D.mathematica97 1)
---     D.sketch (Circle centroid 5)
---     D.sketch (D.Cross centroid 5)
+--     setColor (mathematica97 1)
+--     sketch (Circle centroid 5)
+--     sketch (Cross centroid 5)
 --     C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/polygon_centroid.svg
@@ -1467,10 +1467,10 @@ polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEd
 -- >>> cross (Vec2 1 0) (Vec2 1 0) -- Colinear
 -- 0.0
 --
--- >>> cross (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec to the right of 1st (in Cairo coordinates)
+-- >>> cross (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec is in positive (counter-clockwise) direction
 -- 0.1
 --
--- >>> cross (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec to the left of 1st (in Cairo coordinates)
+-- >>> cross (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec is in negative (clockwise) direction
 -- -0.1
 cross :: Vec2 -> Vec2 -> Double
 cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
@@ -1501,14 +1501,14 @@ signedPolygonArea (Polygon ps)
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Geometry/Core.hs/is_convex.svg" 200 100 $ do
+-- haddockRender "Geometry/Core.hs/is_convex.svg" 200 100 $ do
 --     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
 --         if isConvex polygon
---             then D.setColor (D.mathematica97 0)
---             else D.setColor (D.mathematica97 1)
---         D.sketch polygon
+--             then setColor (mathematica97 0)
+--             else setColor (mathematica97 1)
+--         sketch polygon
 --         C.stroke
 -- :}
 -- docs/haddock/Geometry/Core.hs/is_convex.svg
