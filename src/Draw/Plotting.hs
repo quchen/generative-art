@@ -56,7 +56,7 @@ import           Data.DList               (DList)
 import qualified Data.DList               as DL
 import           Data.Default.Class
 import           Data.Foldable
-import           Data.Maybe               (fromJust, fromMaybe, isJust)
+import           Data.Maybe
 import qualified Data.Set                 as S
 import qualified Data.Text.Lazy           as TL
 import qualified Data.Text.Lazy.IO        as TL
@@ -71,8 +71,6 @@ import           Geometry.Bezier
 import           Geometry.Core
 import           Geometry.Shapes
 
-
-import Debug.Trace
 
 
 -- | 'Plot' represents penplotting directives, and is manipulated using functions
@@ -461,7 +459,7 @@ comment txt = gCode [ GComment txt ]
 -- | Pause the plot for later resumption at the current state.
 pause :: PauseMode -> Plot ()
 pause PauseUserConfirm = gCode [ M0_Pause ]
-pause (PauseSeconds seconds) = gCode [ G04_Dwell seconds ]
+pause (PauseSeconds seconds) = gCode [ G04_Dwell_ms seconds ]
 
 data PauseMode
     = PauseUserConfirm -- ^ Wait until user confirmation, e.g. in a web UI or with a button. (M0/Pause)
@@ -489,14 +487,14 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
                 [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
                 , G93_Feedrate_TravelInFractionOfMinute
-                , G04_Dwell 0.5
+                , G04_Dwell_ms 0.5
                 -- 60/n ==> n seconds to move
                 , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
-                , G04_Dwell 0.5
+                , G04_Dwell_ms 0.5
                 , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
-                , G04_Dwell 0.5
+                , G04_Dwell_ms 0.5
                 , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
-                , G04_Dwell 0.5
+                , G04_Dwell_ms 0.5
                 , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
                 , G94_Feedrate_UnitsPerMinute
                 , M0_Pause
@@ -679,14 +677,14 @@ instance Plotting BoundingBox where
         repositionTo start
         gCode
             [ G93_Feedrate_TravelInFractionOfMinute
-            , G04_Dwell 0.5
+            , G04_Dwell_ms 500
             -- 60/n ==> n seconds to move
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMin) Nothing
-            , G04_Dwell 0.5
+            , G04_Dwell_ms 500
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMax) (Just yMax) Nothing
-            , G04_Dwell 0.5
+            , G04_Dwell_ms 500
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMax) Nothing
-            , G04_Dwell 0.5
+            , G04_Dwell_ms 500
             , G01_LinearFeedrateMove (Just (60/3)) (Just xMin) (Just yMin) Nothing
             , G94_Feedrate_UnitsPerMinute
             ]

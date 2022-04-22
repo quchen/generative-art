@@ -21,21 +21,43 @@ module Draw.Color (
 
 
 
-import qualified Data.Colour as ReExport hiding (black)
-import Data.Colour
-import Data.Colour.Names hiding (grey)
-import Data.Colour.RGBSpace as Colour
-import qualified Data.Colour.RGBSpace.HSV as Colour
+import           Data.Colour
+import qualified Data.Colour              as ReExport hiding (black)
+import           Data.Colour.Names        hiding (grey)
+import           Data.Colour.RGBSpace     as Colour
 import qualified Data.Colour.RGBSpace.HSL as Colour
-import Data.Colour.SRGB as Colour
+import qualified Data.Colour.RGBSpace.HSV as Colour
+import           Data.Colour.SRGB         as Colour
 import qualified Graphics.Rendering.Cairo as C
-import Text.Read
+import           Text.Read
+
+
+
+-- $setup
+-- >>> import Draw
+-- >>> import Geometry.Core
+-- >>> import qualified Graphics.Rendering.Cairo as C
 
 
 
 -- | Anything we can instruct Cairo to set its color to.
 class CairoColor color where
+    -- |
+    -- >>> :{
+    -- haddockRender "Draw/Color.hs/set_color.svg" 100 20 $ do
+    --     for_ (zip [0..] [10, 20 .. 90]) $ \(i, x) -> do
+    --         setColor (mathematica97 i)
+    --         sketch (Circle (Vec2 x 10) 7)
+    --         C.fill
+    -- :}
+    -- docs/haddock/Draw/Color.hs/set_color.svg
+    --
+    -- <<docs/haddock/Draw/Color.hs/set_color.svg>>
     setColor :: color -> C.Render ()
+    setColor = setColour
+
+    setColour :: color -> C.Render ()
+    setColour = setColor
 
 instance Real a => CairoColor (Colour a) where
     setColor = uncurryRGB C.setSourceRGB . toSRGB . colourConvert
