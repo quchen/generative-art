@@ -249,6 +249,8 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/rotate_line.svg)
 
+![Missing image!](../../../docs/haddock/Draw/Color.hs/set_color.svg)
+
 ![Missing image!](../../../docs/haddock/Draw.hs/cartesianCoordinateSystem.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg)
@@ -293,7 +295,11 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/is_convex.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/line_reverse.svg)
+
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/point_in_polygon.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/polar.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/polygon_average.svg)
 
