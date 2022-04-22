@@ -72,6 +72,8 @@ import           Geometry.Core
 import           Geometry.Shapes
 
 
+import Debug.Trace
+
 
 -- | 'Plot' represents penplotting directives, and is manipulated using functions
 -- such as 'plot' and 'gCode'.
@@ -700,21 +702,25 @@ instance Plotting Circle where
     plot (Circle center radius) = do
         comment "Circle"
         block $ do
-
-            -- TODO: implement the following again
-            -- -- The naive way of painting a circle is by always starting them e.g. on
-            -- -- the very left. This requires some unnecessary pen hovering, and for some
-            -- -- pens creates a visible »pen down« dot. We therefore go the more
-            -- -- complicated route here: start the circle at the point closest to the pen
-            -- -- position.
+            -- The naive way of painting a circle is by always starting them e.g.
+            -- on the very left. This requires some unnecessary pen hovering, and
+            -- for some pens creates a visible »pen down« dot. We therefore go the
+            -- more complicated route here: start the circle at the point closest
+            -- to the pen position. We only fall back to the naive way if the
+            -- circles are very small.
+            current <- gets _penXY
+            let distanceCenterCurrent = norm (center -. current) -- Might be infinite if the current point isn’t defined yet!
+                radial = if 0.1 <= distanceCenterCurrent && not (isInfinite distanceCenterCurrent)
+                    then radius *. direction (Line center current)
+                    else Vec2 radius 0
+                start = center +. radial
+                opposite = center -. radial
 
             -- FluidNC 3.4.2 has a bug where small circles (2mm radius) sometimes don’t
             -- do anything when we plot it with a single arc »from start to itself«. We
             -- work around this by explicitly chaining two half circles.
-
-            let start = center -. Vec2 radius 0
             repositionTo start
-            clockwiseArcAroundTo center (center +. Vec2 radius 0)
+            clockwiseArcAroundTo center opposite
             clockwiseArcAroundTo center start
 
 -- | Approximation by a number of points

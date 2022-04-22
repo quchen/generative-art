@@ -945,6 +945,7 @@ normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
 -- result of length 1.
 vectorOf :: Line -> Vec2
 vectorOf (Line start end) = end -. start
+{-# INLINE vectorOf #-}
 
 -- | Where do you end up when walking 'Distance' on a 'Line'?
 --
