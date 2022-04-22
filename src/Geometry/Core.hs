@@ -985,12 +985,15 @@ moveAlongLine line@(Line start _end) d
 angleOfLine :: Line -> Angle
 angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 
+-- | Angle between two lines.
+--
+-- The result depends on the direction of the lines; use 'lineReverse' if
+-- necessary.
 angleBetween :: Line -> Line -> Angle
 angleBetween line1 line2
   = let Rad a1 = angleOfLine line1
         Rad a2 = angleOfLine line2
     in rad (a2 - a1)
-
 
 angledLine
     :: Vec2   -- ^ Start
@@ -1043,6 +1046,24 @@ direction :: Line -> Vec2
 direction = vectorOf . normalizeLine
 
 -- | Switch defining points of a line.
+--
+-- <<docs/haddock/Geometry/Core.hs/line_reverse.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core.hs/line_reverse.svg" 100 60 $ do
+--     let line = Line (Vec2 10 10) (Vec2 70 50)
+--         line' = lineReverse line
+--     cairoScope $ do
+--         sketch (Arrow line def)
+--         C.stroke
+--     cairoScope $ do
+--         setColor (mathematica97 1)
+--         C.translate 20 0
+--         sketch (Arrow line' def)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/line_reverse.svg
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
