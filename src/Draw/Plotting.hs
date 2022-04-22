@@ -464,7 +464,7 @@ commented caption content = do
 -- | Pause the plot for later resumption at the current state.
 pause :: PauseMode -> Plot ()
 pause PauseUserConfirm = gCode [ M0_Pause ]
-pause (PauseSeconds seconds) = gCode [ G04_Dwell_ms seconds ]
+pause (PauseSeconds seconds) = gCode [ G04_Dwell_ms (seconds*1000) ]
 
 data PauseMode
     = PauseUserConfirm -- ^ Wait until user confirmation, e.g. in a web UI or with a button. (M0/Pause)
