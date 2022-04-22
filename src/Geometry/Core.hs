@@ -886,6 +886,26 @@ normSquare :: Vec2 -> Double
 normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates.
+--
+-- <<docs/haddock/Geometry/Core.hs/polar.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Geometry/Core.hs/polar.svg" 100 60 $ do
+--     let angle = deg 30
+--         p = polar angle 100
+--     D.cairoScope $ do
+--         D.setColor (D.mathematica97 1)
+--         C.setLineWidth 1
+--         C.arc 0 0 40 0 (getRad angle)
+--         D.sketch (Line zero p)
+--         C.stroke
+--     D.cairoScope $ do
+--         D.setColor (D.mathematica97 0)
+--         D.sketch (Circle p 3)
+--         C.fill
+-- :}
+-- docs/haddock/Geometry/Core.hs/polar.svg
 polar :: Angle -> Double -> Vec2
 polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
