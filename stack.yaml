@@ -5,13 +5,13 @@ packages:
     - app/voronoi_interactive
 
     - penplotting/ApollonianGasket
-    - penplotting/BrownianMotion
     - penplotting/circuits
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/Kilometer
     - penplotting/PenChangeCalibration
     - penplotting/PoissonDisc
+    - penplotting/Pressure
     - penplotting/SvgSource
     - penplotting/Voronoi
 
