@@ -18,7 +18,10 @@ picHeight = 450
 main :: IO ()
 main = do
     let settings = def
-            { _previewPenWidth = 0.5
+            { _zDrawingHeight = -2
+            , _zTravelHeight = 5
+            , _feedrate = 6000
+            , _previewPenWidth = 0.5
             , _previewPenTravelColor = Nothing
             , _previewDecorate = False
             }
@@ -31,10 +34,10 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [0..18], i <- [j `mod` 2, j `mod` 2 + 2 .. 24]] $ \center ->
-    for_ [0, 1, 5, 9, 10, 14] $ \i -> do
+gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [1..17], i <- [j `mod` 2 + 1, j `mod` 2 + 3 .. 23]] $ \center ->
+    for_ [0, 0.5, 3, 3.5, 4, 4.5, 5, 7.5, 10, 10.5, 11, 11.5, 12, 14] $ \i -> do
         let (start1, end1) = arcStartEnd center i
-            (end2, start2) = arcStartEnd center (i+0.5)
+            (end2, start2) = arcStartEnd center (i+0.25)
         repositionTo start1
         clockwiseArcAroundTo center end1
         lineTo start2
