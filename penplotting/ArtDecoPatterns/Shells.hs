@@ -18,7 +18,10 @@ picHeight = 450
 main :: IO ()
 main = do
     let settings = def
-            { _previewPenWidth = 0.5
+            { _zDrawingHeight = -2
+            , _zTravelHeight = 5
+            , _feedrate = 15000
+            , _previewPenWidth = 0.5
             , _previewPenTravelColor = Nothing
             , _previewDecorate = False
             }
@@ -31,7 +34,7 @@ main = do
         pure ()
 
 gcodeDrawing :: Plot ()
-gcodeDrawing = for_ [ (x, y) | x <- [0..24], y <- [x `mod` 2, x `mod` 2 + 2 .. 18]] $ \(x, y) -> do
+gcodeDrawing = for_ [ (x, y) | x <- [1..23], y <- [x `mod` 2 + 1, x `mod` 2 + 3 .. 17]] $ \(x, y) -> do
     let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridX
         p2 = p1 +. gridX -. gridY
         p3 = p1 +. 2 *. gridX
