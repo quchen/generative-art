@@ -35,7 +35,7 @@ main = do
 
 gcodeDrawing :: Plot ()
 gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [1..17], i <- [j `mod` 2 + 1, j `mod` 2 + 3 .. 23]] $ \center ->
-    for_ [0, 0.5, 3, 3.5, 4, 4.5, 5, 7.5, 10, 10.5, 11, 11.5, 12, 14] $ \i -> do
+    for_ [0, 0.4, 3, 3.4, 3.8, 4.2, 4.6, 5, 7.3, 7.7, 10, 10.4, 10.8, 11.2, 11.6, 12, 14] $ \i -> do
         let (start, end) = arcStartEnd center i
         repositionTo start
         clockwiseArcAroundTo center end
