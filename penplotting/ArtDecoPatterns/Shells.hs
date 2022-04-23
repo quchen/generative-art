@@ -45,7 +45,7 @@ gcodeDrawing = for_ [ (x, y) | x <- [1..23], y <- [x `mod` 2 + 1, x `mod` 2 + 3 
             poly = Polygon [p1, p2', p2'']
             hatching = zigzag (hatch poly (angleOfLine (Line p1 p2')) 0.5)
         plot hatching
-        plot (transform mirror hatching)
+        plot (reversePolyline $ transform mirror hatching)
         plot (Polygon (vertices poly ++ vertices (transform mirror poly)))
   where
     radius = 25
@@ -57,3 +57,4 @@ gcodeDrawing = for_ [ (x, y) | x <- [1..23], y <- [x `mod` 2 + 1, x `mod` 2 + 3 
         go [Line a b] = [a, b]
         go (Line a b : Line c d : ls) = a : b : d : c : go ls
     vertices (Polygon ps) = ps
+    reversePolyline (Polyline ps) = Polyline (reverse ps)
