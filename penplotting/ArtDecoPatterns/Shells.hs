@@ -38,17 +38,15 @@ gcodeDrawing = for_ [ (x, y) | x <- [1..23], y <- [x `mod` 2 + 1, x `mod` 2 + 3 
     let p1 = fromIntegral x *. gridX +. fromIntegral y *. gridY -. gridX
         p2 = p1 +. gridX -. gridY
         p3 = p1 +. 2 *. gridX
-        p4 = p1 +. gridX +. gridY
     for_ [1/9, 3/9 .. 0.8] $ \l -> do
         let p2' = (1 - l) *. p2 +. l *. p3
-            p4' = (1 - l) *. p4 +. l *. p3
             p2'' = (1 - l - 0.1) *. p2 +. (l + 0.1) *. p3
-            p4'' = (1 - l - 0.1) *. p4 +. (l + 0.1) *. p3
-            poly1 = Polygon [p1, p2', p2'']
-            poly2 = Polygon [p1, p4', p4'']
-        plot (zigzag (hatch poly1 (angleOfLine (Line p1 p2')) 0.5))
-        plot (zigzag (hatch poly2 (angleOfLine (Line p1 p4')) 0.5))
-        plot (Polygon (vertices poly1 ++ vertices poly2))
+            mirror = mirrorAlong (angledLine p1 (deg 0) 1)
+            poly = Polygon [p1, p2', p2'']
+            hatching = zigzag (hatch poly (angleOfLine (Line p1 p2')) 0.5)
+        plot hatching
+        plot (transform mirror hatching)
+        plot (Polygon (vertices poly ++ vertices (transform mirror poly)))
   where
     radius = 25
     gridX = Vec2 radius 0
