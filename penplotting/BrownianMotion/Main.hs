@@ -7,6 +7,7 @@ module Main (main) where
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.State.Class
+import qualified Data.Vector as V
 import Formatting (format, fixed, int, (%))
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
@@ -20,54 +21,67 @@ import Numerics.DifferentialEquation
 import Physics
 import Draw.Plotting.GCode (GCode(G01_LinearFeedrateMove))
 
+-- DIN A6 postcard format plus 5mm margin
+picWidth, picHeight :: Num a => a
+picWidth = 158
+picHeight = 115
+
+margin :: Vec2
+margin = Vec2 5 5
+
+-- DIN A6 postcard size with 5mm margin
+canvas :: BoundingBox
+canvas = boundingBox [margin, Vec2 picWidth picHeight -. margin]
+
 main :: IO ()
 main = do
     let particles = runST $ do
-            gen <- create
+            gen <- initialize (V.fromList [134])
             qs <- poissonDisc gen def
-                { _poissonShape = BoundingBox (Vec2 65 70) (Vec2 565 370)
-                , _poissonRadius = 30
+                { _poissonShape = boundingBox [4 *. margin, Vec2 picWidth picHeight -. 4 *. margin]
+                , _poissonRadius = sqrt (picWidth * picHeight) / 18
                 , _poissonK = 4
                 }
             ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
             pure (NBody $ zipWith PhaseSpace ps qs)
         masses = pure 1
-        externalPotential = harmonicPotential (34, 24) (Vec2 315 220)
-        interactionPotential = coulombPotential 100
+        externalPotential = harmonicPotential (picWidth / 20, picHeight / 20) (Vec2 (picWidth/2) (picHeight/2))
+        interactionPotential = coulombPotential (picWidth / 6)
         toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)
         tolerance = 0.005
         initialStep = 1
         t0 = 0
-        tmax = 100
-        trajectories = getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
+        tmax = picWidth / 6
+        insideCanvas PhaseSpace{..} = q `insideBoundingBox` canvas
+        trajectories = fmap (takeWhile (insideCanvas . snd)) $ getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
             rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
 
-    render "out/brownian-motion.png" 630 440 $ do
-        setColor white
-        C.paint
-        for_ trajectories $ \((_, PhaseSpace { q = q0 }) : trajectory) -> do
+    render "out/brownian-motion.svg" picWidth picHeight $ do
+        cairoScope (setColor white >> C.paint)
+        C.setLineWidth 0.2
+        for_ trajectories $ \((_, PhaseSpace { q = q0 }) : trajectory) -> cairoScope $ do
             moveToVec q0
             for_ trajectory $ \(t, PhaseSpace {..}) -> do
                 lineToVec q
                 setColor (black `withOpacity` (1 - t/tmax))
                 C.stroke
                 moveToVec q
+        sketch (boundingBoxPolygon canvas)
+        C.stroke
 
     let feedrate = 12000
         settings = def
             { _feedrate = feedrate
             , _zDrawingHeight = -10
             , _zTravelHeight = 5
-            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 157.5 110])
             }
     writeGCodeFile "brownian-motion.g" $ runPlot settings $
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
-            let downscale = transform (scale 0.25)
-                (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, downscale q)) <$> trajectory
+            let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
             repositionTo q0
             penDown
             for_ tqs $ \(t, Vec2 x y) ->
-                gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t - tmax) / 10)) ]
+                gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t/tmax - 1) * 10)) ]
             penUp
             when (i `mod` 20 == 0) $ withDrawingHeight 0 $ do
                 repositionTo zero
