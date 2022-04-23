@@ -10,6 +10,7 @@ import Control.Monad.State.Class
 import qualified Data.Vector as V
 import Formatting (format, fixed, int, (%))
 import qualified Graphics.Rendering.Cairo as C
+import qualified Graphics.PlotFont as PF
 import System.Random.MWC
 import System.Random.MWC.Distributions
 
@@ -34,29 +35,14 @@ canvas :: BoundingBox
 canvas = boundingBox [margin, Vec2 picWidth picHeight -. margin]
 
 main :: IO ()
-main = do
-    let particles = runST $ do
-            gen <- initialize (V.fromList [134])
-            qs <- poissonDisc gen def
-                { _poissonShape = boundingBox [4 *. margin, Vec2 picWidth picHeight -. 4 *. margin]
-                , _poissonRadius = sqrt (picWidth * picHeight) / 18
-                , _poissonK = 4
-                }
-            ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
-            pure (NBody $ zipWith PhaseSpace ps qs)
-        masses = pure 1
-        externalPotential = harmonicPotential (picWidth / 20, picHeight / 20) (Vec2 (picWidth/2) (picHeight/2))
-        interactionPotential = coulombPotential (picWidth / 6)
-        toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)
-        tolerance = 0.005
-        initialStep = 1
-        t0 = 0
-        tmax = picWidth / 6
-        insideCanvas PhaseSpace{..} = q `insideBoundingBox` canvas
-        trajectories = fmap (takeWhile (insideCanvas . snd)) $ getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
-            rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
-
-    render "out/brownian-motion.svg" picWidth picHeight $ do
+main = for_
+    [ (25, 1, "Compression")
+    , (14, 2, "Deflation")
+    , (20, 3, "Equilibrium")
+    ] $ \(pressure, index, caption) -> do
+    let tmax = picWidth / 6
+        trajectories = runSimulation pressure tmax
+    render ("out/pressure-" ++ show index ++ ".svg") picWidth picHeight $ do
         cairoScope (setColor white >> C.paint)
         C.setLineWidth 0.2
         for_ trajectories $ \((_, PhaseSpace { q = q0 }) : trajectory) -> cairoScope $ do
@@ -72,10 +58,16 @@ main = do
     let feedrate = 12000
         settings = def
             { _feedrate = feedrate
-            , _zDrawingHeight = -10
+            , _zDrawingHeight = -2
             , _zTravelHeight = 5
             }
-    writeGCodeFile "brownian-motion.g" $ runPlot settings $
+    writeGCodeFile ("pressure-" ++ show index ++ ".g") $ runPlot settings $ do
+        let glyphs = pfPolyline <$> PF.render' PF.canvastextFont ("Pressure " ++ show index ++ " - " ++ caption)
+            placeBottomRight = transformBoundingBox
+                (boundingBox glyphs)
+                (boundingBox [Vec2 2 2, Vec2 (picWidth - 2) 5])
+                def { _bbFitAlign = FitAlignBottomRight }
+        plot (transform placeBottomRight glyphs)
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
             let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
             repositionTo q0
@@ -97,3 +89,28 @@ gaussianVec2
     -> GenST s
     -> ST s Vec2
 gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> normal muX sigma gen <*> normal muY sigma gen
+
+runSimulation :: Double -> Double -> [[(Double, PhaseSpace)]]
+runSimulation pressure tmax =
+    let particles = runST $ do
+            gen <- initialize (V.fromList [134])
+            qs <- poissonDisc gen def
+                { _poissonShape = boundingBox [4 *. margin, Vec2 picWidth picHeight -. 4 *. margin]
+                , _poissonRadius = sqrt (picWidth * picHeight) / 18
+                , _poissonK = 4
+                }
+            ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
+            pure (NBody $ zipWith PhaseSpace ps qs)
+        masses = pure 1
+        externalPotential = harmonicPotential (picWidth / pressure, picHeight / pressure) (Vec2 (picWidth/2) (picHeight/2))
+        interactionPotential = coulombPotential (picWidth / 6)
+        toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)
+        tolerance = 0.005
+        initialStep = 1
+        t0 = 0
+        insideCanvas PhaseSpace{..} = q `insideBoundingBox` canvas
+    in  fmap (takeWhile (insideCanvas . snd)) $ getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $ --fmap (\(t, xs) -> (t - tmax, xs)) $ dropWhile ((<tmax) . fst) $
+            rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
+
+pfPolyline :: PF.PFStroke -> Polyline []
+pfPolyline = Polyline . fmap (uncurry Vec2)

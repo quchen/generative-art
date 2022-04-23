@@ -32,6 +32,13 @@ packages:
       sha256: 057a5a25c6c8fe8e60e62b9522e8f1a8be3e7470bfe44229d1e2712e6851409e
   original:
     hackage: data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
+- completed:
+    hackage: plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
+    pantry-tree:
+      size: 321
+      sha256: 887770effc1578682fe255d7f8b1a9801bc5a6e832aa46316782e43eecb65113
+  original:
+    hackage: plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
 snapshots:
 - completed:
     size: 586103
