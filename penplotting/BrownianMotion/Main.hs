@@ -25,24 +25,24 @@ main = do
     let particles = runST $ do
             gen <- create
             qs <- poissonDisc gen def
-                { _poissonShape = BoundingBox (Vec2 50 50) (Vec2 550 350)
+                { _poissonShape = BoundingBox (Vec2 65 70) (Vec2 565 370)
                 , _poissonRadius = 30
                 , _poissonK = 4
                 }
             ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
             pure (NBody $ zipWith PhaseSpace ps qs)
         masses = pure 1
-        externalPotential = harmonicPotential (34, 24) (Vec2 300 200)
+        externalPotential = harmonicPotential (34, 24) (Vec2 315 220)
         interactionPotential = coulombPotential 100
         toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)
-        tolerance = 0.1
+        tolerance = 0.005
         initialStep = 1
         t0 = 0
         tmax = 100
         trajectories = getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $
             rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
 
-    render "out/brownian-motion.png" 600 400 $ do
+    render "out/brownian-motion.png" 630 440 $ do
         setColor white
         C.paint
         for_ trajectories $ \((_, PhaseSpace { q = q0 }) : trajectory) -> do
@@ -54,7 +54,12 @@ main = do
                 moveToVec q
 
     let feedrate = 12000
-        settings = def { _feedrate = feedrate, _zDrawingHeight = -10, _zTravelHeight = 5 }
+        settings = def
+            { _feedrate = feedrate
+            , _zDrawingHeight = -10
+            , _zTravelHeight = 5
+            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 630 440])
+            }
     writeGCodeFile "brownian-motion.g" $ runPlot settings $
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
             let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
