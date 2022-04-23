@@ -15,6 +15,7 @@ dependencies:
     - generative-art
     - base
     - cairo
+    - mtl
 
 executables:
     penplotting-fan-pattern:
