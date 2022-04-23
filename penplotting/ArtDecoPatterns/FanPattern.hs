@@ -18,7 +18,10 @@ picHeight = 450
 main :: IO ()
 main = do
     let settings = def
-            { _previewPenWidth = 0.5
+            { _zDrawingHeight = -2
+            , _zTravelHeight = 5
+            , _feedrate = 10000
+            , _previewPenWidth = 0.5
             , _previewPenTravelColor = Nothing
             , _previewDecorate = False
             }
@@ -35,11 +38,11 @@ gcodeDrawing = do
     let radius = 25
         gridX = Vec2 radius 0
         gridY = Vec2 0 radius
-    for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [0..18], x <- [y `mod` 2, y `mod` 2 + 2 .. 24]] $ \center -> do
+    for_ [fromIntegral x *. gridX +. fromIntegral y *. gridY | y <- [1..17], x <- [y `mod` 2 + 1, y `mod` 2 + 3 .. 23]] $ \center -> do
         repositionTo (center +. gridY)
         clockwiseArcAroundTo center (center -. gridY)
-        repositionTo (center -. (gridY -. Vec2 0 2))
-        counterclockwiseArcAroundTo center (center +. (gridY -. Vec2 0 2))
+        lineTo (center -. (gridY -. Vec2 0 1.5))
+        counterclockwiseArcAroundTo center (center +. (gridY -. Vec2 0 1.5))
         for_ (zip (deg <$> [12, 24 .. 84]) (cycle [True, False])) $ \(alpha, clockwise) -> do
             let startPoint = center -. gridX
                 pointOnArc = center +. (radius - 2) *. Vec2 (sin (getRad alpha)) (cos (getRad alpha))
