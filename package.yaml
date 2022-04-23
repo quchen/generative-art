@@ -33,6 +33,7 @@ dependencies:
     - Noise
     - optparse-applicative
     - parallel
+    - plotfont
     - primitive
     - random
     - regex-tdfa
