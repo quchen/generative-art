@@ -43,7 +43,7 @@ gcodeDrawing = for_ [ (x, y) | x <- [1..23], y <- [x `mod` 2 + 1, x `mod` 2 + 3 
             p2'' = (1 - l - 0.1) *. p2 +. (l + 0.1) *. p3
             mirror = mirrorAlong (angledLine p1 (deg 0) 1)
             poly = Polygon [p1, p2', p2'']
-            hatching = zigzag (hatch poly (angleOfLine (Line p1 p2')) 0.5)
+            hatching = zigzag (hatch poly (angleOfLine (Line p1 p2')) 0.3)
         plot hatching
         plot (reversePolyline $ transform mirror hatching)
         plot (Polygon (vertices poly ++ vertices (transform mirror poly)))
