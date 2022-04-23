@@ -58,11 +58,12 @@ main = do
             { _feedrate = feedrate
             , _zDrawingHeight = -10
             , _zTravelHeight = 5
-            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 630 440])
+            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 157.5 110])
             }
     writeGCodeFile "brownian-motion.g" $ runPlot settings $
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
-            let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
+            let downscale = transform (scale 0.25)
+                (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, downscale q)) <$> trajectory
             repositionTo q0
             penDown
             for_ tqs $ \(t, Vec2 x y) ->
