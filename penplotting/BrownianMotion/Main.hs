@@ -37,7 +37,7 @@ canvas = boundingBox [margin, Vec2 picWidth picHeight -. margin]
 main :: IO ()
 main = for_
     [ (25, 1, "Compression")
-    , (14, 2, "Deflation")
+    , (14.5, 2, "Deflation")
     , (20, 3, "Equilibrium")
     ] $ \(pressure, index, caption) -> do
     let tmax = picWidth / 6
@@ -58,16 +58,18 @@ main = for_
     let feedrate = 12000
         settings = def
             { _feedrate = feedrate
-            , _zDrawingHeight = -2
+            , _zDrawingHeight = -5
             , _zTravelHeight = 5
             }
     writeGCodeFile ("pressure-" ++ show index ++ ".g") $ runPlot settings $ do
-        let glyphs = pfPolyline <$> PF.render' PF.canvastextFont ("Pressure " ++ show index ++ " - " ++ caption)
+        let glyphs = transform (scale 0.1) $ pfPolyline <$> PF.render' PF.canvastextFont ("Pressure " ++ show index ++ " - " ++ caption)
             placeBottomRight = transformBoundingBox
                 (boundingBox glyphs)
-                (boundingBox [Vec2 2 2, Vec2 (picWidth - 2) 5])
-                def { _bbFitAlign = FitAlignBottomRight }
+                (boundingBox [margin, Vec2 picWidth 3 +. transform mirrorXCoords margin])
+                def { _bbFitAlign = FitAlignBottomRight, _bbFitDimension = FitNone }
+            cutMark = Polyline [ Vec2 (picWidth - 5) picHeight, Vec2 picWidth picHeight, Vec2 picWidth (picHeight - 5) ]
         plot (transform placeBottomRight glyphs)
+        plot cutMark
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
             let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
             repositionTo q0
