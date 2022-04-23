@@ -63,7 +63,7 @@ main = do
             for_ tqs $ \(t, Vec2 x y) ->
                 gCode [ G01_LinearFeedrateMove (Just feedrate) (Just x) (Just y) (Just ((t - tmax) / 10)) ]
             penUp
-            when (i `mod` 10 == 0) $ withDrawingHeight 0 $ do
+            when (i `mod` 20 == 0) $ withDrawingHeight 0 $ do
                 repositionTo zero
                 penDown
                 dl <- gets _drawingDistance
