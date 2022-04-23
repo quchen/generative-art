@@ -149,6 +149,26 @@ over quickly.
 
 ![Missing image!](../../../docs/differential_equations/geodesic_hill_and_valley.svg)
 
+![Missing image!](../../../docs/font/alignment.svg)
+
+![Missing image!](../../../docs/font/alignment_HCenter_VBottom.svg)
+
+![Missing image!](../../../docs/font/alignment_HCenter_VCenter.svg)
+
+![Missing image!](../../../docs/font/alignment_HCenter_VTop.svg)
+
+![Missing image!](../../../docs/font/alignment_HLeft_VBottom.svg)
+
+![Missing image!](../../../docs/font/alignment_HLeft_VCenter.svg)
+
+![Missing image!](../../../docs/font/alignment_HLeft_VTop.svg)
+
+![Missing image!](../../../docs/font/alignment_HRight_VBottom.svg)
+
+![Missing image!](../../../docs/font/alignment_HRight_VCenter.svg)
+
+![Missing image!](../../../docs/font/alignment_HRight_VTop.svg)
+
 ![Missing image!](../../../docs/geometry/clipping/1_line.svg)
 
 ![Missing image!](../../../docs/geometry/clipping/2_square.svg)

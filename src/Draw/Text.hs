@@ -1,4 +1,12 @@
-module Draw.Text where
+module Draw.Text (
+      showTextAligned
+    , plotText
+    , PlotTextOptions (..)
+    , HAlign (..)
+    , VAlign (..)
+
+    , module Data.Default.Class
+) where
 
 
 
