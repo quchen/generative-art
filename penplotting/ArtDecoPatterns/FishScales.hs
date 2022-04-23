@@ -2,7 +2,6 @@ module Main (main) where
 
 
 
-import Control.Monad.State.Class
 import qualified Graphics.Rendering.Cairo as C
 import qualified Graphics.Rendering.Cairo.Matrix as C
 
@@ -37,15 +36,9 @@ main = do
 gcodeDrawing :: Plot ()
 gcodeDrawing = for_ [fromIntegral i *. gridX +. fromIntegral j *. gridY | j <- [1..17], i <- [j `mod` 2 + 1, j `mod` 2 + 3 .. 23]] $ \center ->
     for_ [0, 0.5, 3, 3.5, 4, 4.5, 5, 7.5, 10, 10.5, 11, 11.5, 12, 14] $ \i -> do
-        penPos <- gets _penXY
-        let (a, b) = arcStartEnd center i
-            (start, drawArc) = if norm (penPos -. a) < norm (penPos -. b)
-                then (a, clockwiseArcAroundTo center b)
-                else (b, counterclockwiseArcAroundTo center a)
-        if norm (penPos -. start) < 1
-            then lineTo start
-            else repositionTo start
-        drawArc
+        let (start, end) = arcStartEnd center i
+        repositionTo start
+        clockwiseArcAroundTo center end
   where
     radius = 25
     gridX = Vec2 radius 0
