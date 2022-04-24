@@ -87,7 +87,11 @@ main = do
     render "out/penplotting-truchet.png" scaledWidth scaledHeight drawing
     render "out/penplotting-truchet.svg" scaledWidth scaledHeight drawing
 
-    let settings = def { _previewPenTravelColor = Nothing }
+    let settings = def
+            { _zTravelHeight = 5
+            , _zDrawingHeight = -2
+            , _feedrate = 3000
+            }
         plotCellSize = 4
         plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
             let tiling = runST $ do
@@ -97,13 +101,20 @@ main = do
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
                 canvasCenter = toVec2 (8 * plotCellSize) hex
+                penChange = withDrawingHeight 0 $ do
+                    repositionTo (Vec2 (-140) (-80))
+                    penDown
+                    pause PauseUserConfirm
+                    penUp
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
                 for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor1)) plot
+            penChange
             local (\s -> s { _previewPenColor = mathematica97 3 }) $
                 for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
     print (_totalBoundingBox plotResult)
 
     renderPreview "out/penplotting-truchet.svg" plotResult
+    writeGCodeFile "truchet-testplot.g" plotResult
     pure ()
 
 hexagon :: Vec2 -> Double -> Polygon
