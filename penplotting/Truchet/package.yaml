@@ -8,6 +8,7 @@ copyright:
     - 2022 Franz Thoma
 
 default-extensions:
+    - LambdaCase
     - MultiWayIf
 
 dependencies:
@@ -15,6 +16,7 @@ dependencies:
     - base
     - cairo
     - containers
+    - mtl
     - mwc-random
     - primitive
     - vector

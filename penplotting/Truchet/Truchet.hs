@@ -3,7 +3,9 @@ module Main (main) where
 
 
 import Control.Monad.Primitive
+import Control.Monad.Reader.Class
 import Control.Monad.ST
+import Data.List (partition)
 import qualified Data.Map.Strict          as M
 import           Data.Traversable
 import qualified Data.Vector              as V
@@ -89,8 +91,13 @@ main = do
             let tiling = runST $ do
                     gen <- initialize (V.fromList [123, 987])
                     randomTiling tiles gen (hexagonsInRange 5 (8 `hexTimes` hex))
-            for_ (concat (strands tiling)) $ plot . uncurry toArc
-    renderPreview "out/penplotting-truchet.png" plotResult
+                allStrands = concat (strands tiling)
+                (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
+            for_ strandsColor1 $ plot . uncurry toArc
+            local (\s -> s { _previewPenColor = mathematica97 2 }) $
+                for_ strandsColor2 $ plot . uncurry toArc
+
+    renderPreview "out/penplotting-truchet.svg" plotResult
     pure ()
 
 hexagon :: Vec2 -> Double -> Polygon
