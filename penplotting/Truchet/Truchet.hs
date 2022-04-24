@@ -9,6 +9,7 @@ import qualified Graphics.Rendering.Cairo as C
 import           System.Random.MWC
 
 import Draw
+import Draw.Plotting
 import Geometry
 import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
@@ -204,11 +205,26 @@ instance Sketch Arc where
     sketch (CcwArc center radius startAngle endAngle) = arcSketchNegative center radius startAngle endAngle
     sketch (Straight l) = sketch l
 
+instance Plotting Arc where
+    plot (CwArc center radius startAngle endAngle) = do
+        let start = center +. polar startAngle radius
+            end = center +. polar endAngle radius
+        repositionTo start
+        clockwiseArcAroundTo center end
+    plot (CcwArc center radius startAngle endAngle) = do
+        let start = center +. polar startAngle radius
+            end = center +. polar endAngle radius
+        repositionTo start
+        counterclockwiseArcAroundTo center end
+    plot (Straight l) = plot l
+
 drawArc :: Hex -> (Direction, Int, Direction) -> C.Render ()
-drawArc hex (d1, n, d2) = cairoScope $ do
-    let i = if cyclic d1 d2 then n else 4-n
-    sketch (sketchArc (fromIntegral i) d1 d2)
+drawArc hex (d1, n, d2) = cairoScope (sketch (toArc hex (d1, n, d2)))
+
+toArc :: Hex -> (Direction, Int, Direction) -> Arc
+toArc hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
   where
+    n' = if cyclic d1 d2 then n else 4-n
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
     nextCenter d = toVec2 cellSize (move d 1 hex)
