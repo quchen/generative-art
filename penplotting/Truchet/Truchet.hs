@@ -16,16 +16,17 @@ import           System.Random.MWC
 import Draw
 import Draw.Plotting
 import Geometry
+import Geometry.Algorithms.SimplexNoise
 import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 600
+picWidth = 400
 picHeight = 400
 
 cellSize :: Num a => a
-cellSize = 4
+cellSize = 5
 
 main :: IO ()
 main = do
@@ -36,7 +37,7 @@ main = do
             ]
         configurations = zip canvases
             [ V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
-            , V.fromList $ allRotations $ mkTile [(UL, UR, [1..3]), (R, DR, [1..3]), (DL, L, [1..3])]
+            , tiles2
             , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
             , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [1..3], l <- [1..3], m <- [1..3], n <- [1..3], o <- [1..3], p <- [1..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
 
@@ -51,30 +52,31 @@ main = do
             , tiles2 <> tiles4
             , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
             ]
+        tiles = \_ _ -> tiles2
 
     let settings = def
             { _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _feedrate = 1000
             }
-        plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
+        plotResult = runPlot settings $ do
             let tiling = runST $ do
                     gen <- initialize (V.fromList [123, 987])
-                    randomTiling tiles gen (hexagonsInRange 4 (8 `hexTimes` hex))
+                    noise <- simplex2 def gen
+                    randomTiling (tiles noise) gen (hexagonsInRange 22 hexZero)
                 allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
-                canvasCenter = toVec2 (8 * cellSize) hex
                 penChange = withDrawingHeight 0 $ do
-                    repositionTo (Vec2 (-140) (-80))
+                    repositionTo zero
                     penDown
                     pause PauseUserConfirm
                     penUp
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry toArc <$> strandsColor1)) plot
+                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor1)) plot
             penChange
             local (\s -> s { _previewPenColor = mathematica97 3 }) $
-                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry toArc <$> strandsColor2)) plot
+                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor2)) plot
             penChange
     print (_totalBoundingBox plotResult)
 
@@ -138,9 +140,10 @@ rotateTile n (Tile xs) = Tile $ M.fromList $ (\((d1, i), d2) -> ((rotateDirectio
 
 type Tiling = M.Map Hex Tile
 
-randomTiling :: PrimMonad m => V.Vector Tile -> Gen (PrimState m) -> [Hex] -> m Tiling
+randomTiling :: PrimMonad m => (Vec2 -> V.Vector Tile) -> Gen (PrimState m) -> [Hex] -> m Tiling
 randomTiling baseTiles gen coords = fmap M.fromList $ for coords $ \hex -> do
-    tile <- randomTile baseTiles gen
+    let p = toVec2 cellSize hex
+    tile <- randomTile (baseTiles p) gen
     pure (hex, tile)
 
 randomTile :: PrimMonad m => V.Vector Tile -> Gen (PrimState m) -> m Tile
