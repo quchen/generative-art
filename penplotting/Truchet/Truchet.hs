@@ -27,11 +27,11 @@ picHeight = 1440
 scaleFactor :: Double
 scaleFactor = 0.5
 
-cellSize :: Num a => a
-cellSize = 32
+drawCellSize :: Num a => a
+drawCellSize = 32
 
 canvasSize :: Num a => a
-canvasSize = 8*cellSize
+canvasSize = 8 * drawCellSize
 
 main :: IO ()
 main = do
@@ -88,6 +88,7 @@ main = do
     render "out/penplotting-truchet.svg" scaledWidth scaledHeight drawing
 
     let settings = def
+        plotCellSize = 5
         plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
             let tiling = runST $ do
                     gen <- initialize (V.fromList [123, 987])
@@ -95,9 +96,9 @@ main = do
                 allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
-            for_ (optimize (uncurry toArc <$> strandsColor1)) plot
+            for_ (optimize (uncurry (toArc plotCellSize) <$> strandsColor1)) plot
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (optimize (uncurry toArc <$> strandsColor2)) plot
+                for_ (optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
 
     renderPreview "out/penplotting-truchet.svg" plotResult
     pure ()
@@ -210,7 +211,7 @@ drawStrand [] = pure ()
 drawStrand xs@((_, (_, n, _)):_) = do
     let c = n `mod` 2
     for_ xs $ uncurry drawArc
-    C.setLineWidth (3/16 * cellSize)
+    C.setLineWidth (3/16 * drawCellSize)
     C.setLineCap C.LineCapRound
     setColor (colorScheme c)
     C.stroke
@@ -271,10 +272,10 @@ instance Plotting Arc where
     plot (Straight l) = plot l
 
 drawArc :: Hex -> (Direction, Int, Direction) -> C.Render ()
-drawArc hex (d1, n, d2) = cairoScope (sketch (toArc hex (d1, n, d2)))
+drawArc hex (d1, n, d2) = cairoScope (sketch (toArc drawCellSize hex (d1, n, d2)))
 
-toArc :: Hex -> (Direction, Int, Direction) -> Arc
-toArc hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
+toArc :: Double -> Hex -> (Direction, Int, Direction) -> Arc
+toArc cellSize hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
   where
     n' = if cyclic d1 d2 then n else 4-n
     center = toVec2 cellSize hex
