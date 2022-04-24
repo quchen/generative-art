@@ -194,10 +194,20 @@ drawStrand xs@((_, (_, n, _)):_) = do
     setColor (colorScheme c)
     C.stroke
 
+data Arc
+    = CwArc Vec2 Double Angle Angle
+    | CcwArc Vec2 Double Angle Angle
+    | Straight Line
+
+instance Sketch Arc where
+    sketch (CwArc center radius startAngle endAngle) = arcSketch center radius startAngle endAngle
+    sketch (CcwArc center radius startAngle endAngle) = arcSketchNegative center radius startAngle endAngle
+    sketch (Straight l) = sketch l
+
 drawArc :: Hex -> (Direction, Int, Direction) -> C.Render ()
 drawArc hex (d1, n, d2) = cairoScope $ do
     let i = if cyclic d1 d2 then n else 4-n
-    sketchArc (fromIntegral i) d1 d2
+    sketch (sketchArc (fromIntegral i) d1 d2)
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
@@ -205,37 +215,37 @@ drawArc hex (d1, n, d2) = cairoScope $ do
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
     [down, _lowerLeft, _upperLeft, _up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
 
-    sketchArc i DR UL = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side UL) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side DR)
-    sketchArc i UR DL = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR)
-    sketchArc i R  L  = moveToVec ((0.5 - 0.25 * i) *. down       +. side L)  >> lineToVec ((0.5 - 0.25 * i) *. down       +. side R)
-    sketchArc i UL DR = moveToVec ((0.5 - 0.25 * i) *. upperRight +. side DR) >> lineToVec ((0.5 - 0.25 * i) *. upperRight +. side UL)
-    sketchArc i DL UR = moveToVec ((0.5 - 0.25 * i) *. lowerRight +. side UR) >> lineToVec ((0.5 - 0.25 * i) *. lowerRight +. side DL)
-    sketchArc i L  R  = moveToVec ((0.5 - 0.25 * i) *. down       +. side R)  >> lineToVec ((0.5 - 0.25 * i) *. down       +. side L)
+    sketchArc i DR UL = Straight $ Line ((0.5 - 0.25 * i) *. upperRight +. side UL) ((0.5 - 0.25 * i) *. upperRight +. side DR)
+    sketchArc i UR DL = Straight $ Line ((0.5 - 0.25 * i) *. lowerRight +. side DL) ((0.5 - 0.25 * i) *. lowerRight +. side UR)
+    sketchArc i R  L  = Straight $ Line ((0.5 - 0.25 * i) *. down       +. side L)  ((0.5 - 0.25 * i) *. down       +. side R)
+    sketchArc i UL DR = Straight $ Line ((0.5 - 0.25 * i) *. upperRight +. side DR) ((0.5 - 0.25 * i) *. upperRight +. side UL)
+    sketchArc i DL UR = Straight $ Line ((0.5 - 0.25 * i) *. lowerRight +. side UR) ((0.5 - 0.25 * i) *. lowerRight +. side DL)
+    sketchArc i L  R  = Straight $ Line ((0.5 - 0.25 * i) *. down       +. side R)  ((0.5 - 0.25 * i) *. down       +. side L)
 
-    sketchArc i UR L  = arcSketch (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
-    sketchArc i R  UL = arcSketch (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
-    sketchArc i DR UR = arcSketch (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 150) (deg 210)
-    sketchArc i DL R  = arcSketch (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 210) (deg 270)
-    sketchArc i L  DR = arcSketch (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 330)
-    sketchArc i UL DL = arcSketch (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 330) (deg 30)
-    sketchArc i L  UR = arcSketchNegative (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 30)
-    sketchArc i UL R  = arcSketchNegative (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 150) (deg 90)
-    sketchArc i UR DR = arcSketchNegative (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 210) (deg 150)
-    sketchArc i R  DL = arcSketchNegative (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 210)
-    sketchArc i DR L  = arcSketchNegative (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 330) (deg 270)
-    sketchArc i DL UL = arcSketchNegative (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 330)
+    sketchArc i UR L  = CwArc (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
+    sketchArc i R  UL = CwArc (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
+    sketchArc i DR UR = CwArc (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 150) (deg 210)
+    sketchArc i DL R  = CwArc (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 210) (deg 270)
+    sketchArc i L  DR = CwArc (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 330)
+    sketchArc i UL DL = CwArc (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 330) (deg 30)
+    sketchArc i L  UR = CcwArc (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 30)
+    sketchArc i UL R  = CcwArc (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 150) (deg 90)
+    sketchArc i UR DR = CcwArc (nextCenter R)  ((1 + 0.25 * i) * cellSize) (deg 210) (deg 150)
+    sketchArc i R  DL = CcwArc (nextCenter DR) ((1 + 0.25 * i) * cellSize) (deg 270) (deg 210)
+    sketchArc i DR L  = CcwArc (nextCenter DL) ((1 + 0.25 * i) * cellSize) (deg 330) (deg 270)
+    sketchArc i DL UL = CcwArc (nextCenter L)  ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 330)
 
-    sketchArc i UL L  = arcSketch (corner L  UL) (0.25 * i * cellSize) (deg 330) (deg 90)
-    sketchArc i UR UL = arcSketch (corner UL UR) (0.25 * i * cellSize) (deg 30)  (deg 150)
-    sketchArc i R  UR = arcSketch (corner UR R)  (0.25 * i * cellSize) (deg 90)  (deg 210)
-    sketchArc i DR R  = arcSketch (corner R  DR) (0.25 * i * cellSize) (deg 150) (deg 270)
-    sketchArc i DL DR = arcSketch (corner DR DL) (0.25 * i * cellSize) (deg 210) (deg 330)
-    sketchArc i L  DL = arcSketch (corner DL L)  (0.25 * i * cellSize) (deg 270) (deg 30)
-    sketchArc i L  UL = arcSketchNegative (corner L  UL) (0.25 * i * cellSize) (deg 90)  (deg 330)
-    sketchArc i UL UR = arcSketchNegative (corner UL UR) (0.25 * i * cellSize) (deg 150) (deg 30)
-    sketchArc i UR R  = arcSketchNegative (corner UR R)  (0.25 * i * cellSize) (deg 210) (deg 90)
-    sketchArc i R  DR = arcSketchNegative (corner R  DR) (0.25 * i * cellSize) (deg 270) (deg 150)
-    sketchArc i DR DL = arcSketchNegative (corner DR DL) (0.25 * i * cellSize) (deg 330) (deg 210)
-    sketchArc i DL L  = arcSketchNegative (corner DL L)  (0.25 * i * cellSize) (deg 30)  (deg 270)
+    sketchArc i UL L  = CwArc (corner L  UL) (0.25 * i * cellSize) (deg 330) (deg 90)
+    sketchArc i UR UL = CwArc (corner UL UR) (0.25 * i * cellSize) (deg 30)  (deg 150)
+    sketchArc i R  UR = CwArc (corner UR R)  (0.25 * i * cellSize) (deg 90)  (deg 210)
+    sketchArc i DR R  = CwArc (corner R  DR) (0.25 * i * cellSize) (deg 150) (deg 270)
+    sketchArc i DL DR = CwArc (corner DR DL) (0.25 * i * cellSize) (deg 210) (deg 330)
+    sketchArc i L  DL = CwArc (corner DL L)  (0.25 * i * cellSize) (deg 270) (deg 30)
+    sketchArc i L  UL = CcwArc (corner L  UL) (0.25 * i * cellSize) (deg 90)  (deg 330)
+    sketchArc i UL UR = CcwArc (corner UL UR) (0.25 * i * cellSize) (deg 150) (deg 30)
+    sketchArc i UR R  = CcwArc (corner UR R)  (0.25 * i * cellSize) (deg 210) (deg 90)
+    sketchArc i R  DR = CcwArc (corner R  DR) (0.25 * i * cellSize) (deg 270) (deg 150)
+    sketchArc i DR DL = CcwArc (corner DR DL) (0.25 * i * cellSize) (deg 330) (deg 210)
+    sketchArc i DL L  = CcwArc (corner DL L)  (0.25 * i * cellSize) (deg 30)  (deg 270)
 
     sketchArc _ d  d' = error ("Illegal tile " ++ show (d, d'))
