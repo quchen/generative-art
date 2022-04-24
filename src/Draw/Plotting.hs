@@ -46,6 +46,7 @@ module Draw.Plotting (
     -- * Utilities
     , minimizePenHovering
     , minimizePenHoveringBy
+    , minimizePenHoveringBy'
     , module Data.Default.Class
 ) where
 
@@ -788,6 +789,24 @@ minimizePenHoveringBy getStartEndPoint = sortStep (Vec2 0 0)
                 let remainingPool = S.delete object pool
                     newPenPos = snd (getStartEndPoint object)
                 in object : sortStep newPenPos remainingPool
+
+-- | Similar to 'minimizePenHoveringBy', with an additional option to flip objects
+minimizePenHoveringBy' :: Ord a => (a -> (Vec2, Vec2)) -> (a -> a) -> S.Set a -> [a]
+minimizePenHoveringBy' getStartEndPoint flipObject = sortStep (Vec2 0 0)
+  where
+    -- Sort by minimal travel between adjacent lines
+    sortStep penPos pool =
+        let closestNextObject = minimumOn (\candidate -> let (a, b) = getStartEndPoint candidate in min (norm (a -. penPos)) (norm (b -. penPos))) pool
+        in case closestNextObject of
+            Nothing -> []
+            Just object ->
+                let (a, b) = getStartEndPoint object
+                    (rightWayRound, end) = if norm (a -. penPos) > norm (b -. penPos)
+                        then (flipObject object, a)
+                        else (object, b)
+                    remainingPool = S.delete object pool
+                    newPenPos = end
+                in rightWayRound : sortStep newPenPos remainingPool
 
 -- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
 -- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,

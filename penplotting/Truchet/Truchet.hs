@@ -94,13 +94,10 @@ main = do
                     randomTiling tiles gen (hexagonsInRange 5 (8 `hexTimes` hex))
                 allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
-                optimize = minimizePenHoveringBy $ \case
-                    CwArc _ start end -> (start, end)
-                    CcwArc _ start end -> (start, end)
-                    Straight (Line a b) -> (a, b)
-            for_ (optimize (S.fromList (uncurry toArc <$> strandsColor1))) plot
+                optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
+            for_ (optimize (uncurry toArc <$> strandsColor1)) plot
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (optimize (S.fromList (uncurry toArc <$> strandsColor2))) plot
+                for_ (optimize (uncurry toArc <$> strandsColor2)) plot
 
     renderPreview "out/penplotting-truchet.svg" plotResult
     pure ()
@@ -223,6 +220,18 @@ data Arc
     | CcwArc Vec2 Vec2 Vec2
     | Straight Line
     deriving (Eq, Ord, Show)
+
+arcStartEnd :: Arc -> (Vec2, Vec2)
+arcStartEnd = \case
+    CwArc _ start end -> (start, end)
+    CcwArc _ start end -> (start, end)
+    Straight (Line a b) -> (a, b)
+
+reverseArc :: Arc -> Arc
+reverseArc = \case
+    CwArc center start end -> CcwArc center end start
+    CcwArc center start end -> CwArc center end start
+    Straight (Line a b) -> Straight (Line b a)
 
 cwArc :: Vec2 -> Double -> Angle -> Angle -> Arc
 cwArc center radius startAngle endAngle = CwArc center start end
