@@ -91,7 +91,7 @@ main = do
     let settings = def
             { _zTravelHeight = 5
             , _zDrawingHeight = -2
-            , _feedrate = 3000
+            , _feedrate = 1000
             }
         plotCellSize = 4
         plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
@@ -112,6 +112,7 @@ main = do
             penChange
             local (\s -> s { _previewPenColor = mathematica97 3 }) $
                 for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
+            penChange
     print (_totalBoundingBox plotResult)
 
     renderPreview "out/penplotting-truchet.svg" plotResult
