@@ -19,6 +19,7 @@ import Geometry
 import Geometry.Algorithms.SimplexNoise
 import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
+import Debug.Trace
 
 
 picWidth, picHeight :: Num a => a
@@ -30,41 +31,24 @@ cellSize = 5
 
 main :: IO ()
 main = do
-    let canvases = concat
-            [ [ move UR 1 $ move R n hexZero | n <- [-2..1]]
-            , [ move R n hexZero | n <- [-2..2]]
-            , [ move DR 1 $ move R n hexZero | n <- [-2..1]]
-            ]
-        configurations = zip canvases
-            [ V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
-            , tiles2
-            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
-            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [1..3], l <- [1..3], m <- [1..3], n <- [1..3], o <- [1..3], p <- [1..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+    let tiles a =
+            V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round $ traceShowId (9 * a)))]
+        tiling = runST $ do
+            gen <- initialize (V.fromList [125])
+            noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
+            let bump d p = case norm p of
+                    r | r < d -> exp (1 - 1 / (1 - (r/d)^2))
+                        | otherwise -> 0
+                variation p = bump (min picHeight picWidth / 2) p ** 0.4 * (1 + 0.1 * (noise p + 1) * 0.5)
+            randomTiling (tiles . variation) gen (hexagonsInRange 25 hexZero)
 
-            , V.singleton $ mkTile [(L, UR, [1..3]), (R, DL, [1..2])]
-            , tiles1
-            , tiles1 <> tiles4
-            , V.fromList $ allRotations $ mkTile [(L, UR, [1, 2]), (R, DL, [1, 2])]
-            , V.singleton $ mkTile [(R, UL, [1,2]), (R, DL, [1])]
-
-            , tiles4
-            , tiles5
-            , tiles2 <> tiles4
-            , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
-            ]
-        tiles = \_ _ -> tiles2
-
-    let settings = def
+        settings = def
             { _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _feedrate = 1000
             }
         plotResult = runPlot settings $ do
-            let tiling = runST $ do
-                    gen <- initialize (V.fromList [123, 987])
-                    noise <- simplex2 def gen
-                    randomTiling (tiles noise) gen (hexagonsInRange 22 hexZero)
-                allStrands = concat (strands tiling)
+            let allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
                 penChange = withDrawingHeight 0 $ do
@@ -113,22 +97,6 @@ findArc (Tile xs) (d1, i) = fmap (\d2 -> ((d1, i, d2), deleteArc (Tile xs) (d1, 
 
 deleteArc :: Tile -> (Direction, Int, Direction) -> Tile
 deleteArc (Tile xs) (d1, i, d2) = Tile $ M.delete (d1, i) $ M.delete (d2, 4-i) xs
-
-tiles1 :: V.Vector Tile
-tiles1 = V.fromList $ allRotations =<<
-    [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == 5 ]
-
-tiles2 :: V.Vector Tile
-tiles2 = V.fromList $ allRotations =<<
-    [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
-
-tiles4 :: V.Vector Tile
-tiles4 = V.fromList $ allRotations =<<
-    [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
-
-tiles5 :: V.Vector Tile
-tiles5 = V.fromList $ allRotations =<<
-    [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
 
 allRotations :: Tile -> [Tile]
 allRotations tile = [ rotateTile i tile | i <- [0..6] ]
