@@ -87,18 +87,21 @@ main = do
     render "out/penplotting-truchet.png" scaledWidth scaledHeight drawing
     render "out/penplotting-truchet.svg" scaledWidth scaledHeight drawing
 
-    let settings = def
-        plotCellSize = 5
+    let settings = def { _previewPenTravelColor = Nothing }
+        plotCellSize = 4
         plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
             let tiling = runST $ do
                     gen <- initialize (V.fromList [123, 987])
-                    randomTiling tiles gen (hexagonsInRange 5 (8 `hexTimes` hex))
+                    randomTiling tiles gen (hexagonsInRange 4 (8 `hexTimes` hex))
                 allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
-            for_ (optimize (uncurry (toArc plotCellSize) <$> strandsColor1)) plot
+                canvasCenter = toVec2 (8 * plotCellSize) hex
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
+                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor1)) plot
+            local (\s -> s { _previewPenColor = mathematica97 3 }) $
+                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
+    print (_totalBoundingBox plotResult)
 
     renderPreview "out/penplotting-truchet.svg" plotResult
     pure ()
@@ -248,6 +251,13 @@ ccwArc center radius startAngle endAngle = CcwArc center start end
 
 straight :: Vec2 -> Vec2 -> Arc
 straight a b = Straight (Line a b)
+
+-- Valid for translation, rotation and aspect-preserving scaling,
+-- but breaks down for mirroring and not-aspect-preserving scaling.
+instance Transform Arc where
+    transform t (CwArc center start end) = CwArc (transform t center) (transform t start) (transform t end)
+    transform t (CcwArc center start end) = CcwArc (transform t center) (transform t start) (transform t end)
+    transform t (Straight (Line a b)) = Straight (Line (transform t a) (transform t b))
 
 instance Sketch Arc where
     sketch (CwArc center start end) = do
