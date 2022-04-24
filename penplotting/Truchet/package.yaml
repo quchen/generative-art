@@ -16,6 +16,7 @@ dependencies:
     - cairo
     - containers
     - mwc-random
+    - primitive
     - vector
 
 executables:
