@@ -11,7 +11,6 @@ import qualified Data.Map.Strict          as M
 import qualified Data.Set                 as S
 import           Data.Traversable
 import qualified Data.Vector              as V
-import qualified Graphics.Rendering.Cairo as C
 import           System.Random.MWC
 
 import Draw
@@ -22,23 +21,15 @@ import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 2560
-picHeight = 1440
+picWidth = 600
+picHeight = 400
 
-scaleFactor :: Double
-scaleFactor = 0.5
-
-drawCellSize :: Num a => a
-drawCellSize = 32
-
-canvasSize :: Num a => a
-canvasSize = 8 * drawCellSize
+cellSize :: Num a => a
+cellSize = 4
 
 main :: IO ()
 main = do
-    let scaledWidth = round (scaleFactor * picWidth)
-        scaledHeight = round (scaleFactor * picHeight)
-        canvases = concat
+    let canvases = concat
             [ [ move UR 1 $ move R n hexZero | n <- [-2..1]]
             , [ move R n hexZero | n <- [-2..2]]
             , [ move DR 1 $ move R n hexZero | n <- [-2..1]]
@@ -61,39 +52,11 @@ main = do
             , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
             ]
 
-    let drawing = do
-            C.scale scaleFactor scaleFactor
-            C.translate (picWidth / 2) (picHeight / 2)
-            cairoScope (setColor backgroundColor >> C.paint)
-
-            for_ configurations $ \(hex, tiles) -> cairoScope $ do
-                let Vec2 x y = toVec2 canvasSize hex in C.translate x y
-
-                gen <- C.liftIO $ initialize (V.fromList [123, 987])
-                tiling <- C.liftIO $ randomTiling tiles gen (hexagonsInRange 5 hexZero)
-
-                let paintOnHexagonalCanvas = do
-                        sketch (hexagon zero (canvasSize - 16))
-                        C.fillPreserve -- expects the content to be set as source
-                        setColor (colorScheme 9)
-                        C.setLineWidth 8
-                        C.stroke
-                    drawTiling = do
-                        setColor (blend 0.5 backgroundColor white)
-                        C.paint
-                        for_ (strands tiling) drawStrand
-
-                grouped paintOnHexagonalCanvas drawTiling
-
-    render "out/penplotting-truchet.png" scaledWidth scaledHeight drawing
-    render "out/penplotting-truchet.svg" scaledWidth scaledHeight drawing
-
     let settings = def
             { _zTravelHeight = 5
             , _zDrawingHeight = -2
             , _feedrate = 1000
             }
-        plotCellSize = 4
         plotResult = runPlot settings $ for_ configurations $ \(hex, tiles) -> do
             let tiling = runST $ do
                     gen <- initialize (V.fromList [123, 987])
@@ -101,34 +64,23 @@ main = do
                 allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
                 optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
-                canvasCenter = toVec2 (8 * plotCellSize) hex
+                canvasCenter = toVec2 (8 * cellSize) hex
                 penChange = withDrawingHeight 0 $ do
                     repositionTo (Vec2 (-140) (-80))
                     penDown
                     pause PauseUserConfirm
                     penUp
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor1)) plot
+                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry toArc <$> strandsColor1)) plot
             penChange
             local (\s -> s { _previewPenColor = mathematica97 3 }) $
-                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry (toArc plotCellSize) <$> strandsColor2)) plot
+                for_ (transform (rotateAround canvasCenter (deg 30)) $ optimize (uncurry toArc <$> strandsColor2)) plot
             penChange
     print (_totalBoundingBox plotResult)
 
-    renderPreview "out/penplotting-truchet.svg" plotResult
+    renderPreview "out/penplotting-truchet-preview.svg" plotResult
     writeGCodeFile "truchet-testplot.g" plotResult
     pure ()
-
-hexagon :: Vec2 -> Double -> Polygon
-hexagon origin sideLength = Polygon [ transform (rotateAround origin angle) bottomCorner | angle <- deg <$> [0, 60 .. 360]]
-  where
-    bottomCorner = origin +. Vec2 0 sideLength
-
-colorScheme :: Int -> Color Double
-colorScheme = paired
-
-backgroundColor :: Color Double
-backgroundColor = blend 0.5 (colorScheme 8) white
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
@@ -222,16 +174,6 @@ reverseStrand = fmap (\(h, (d1, i, d2)) -> (h, (d2, 4-i, d1))) . reverse
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
 
-drawStrand :: [(Hex, (Direction, Int, Direction))] -> C.Render ()
-drawStrand [] = pure ()
-drawStrand xs@((_, (_, n, _)):_) = do
-    let c = n `mod` 2
-    for_ xs $ uncurry drawArc
-    C.setLineWidth (3/16 * drawCellSize)
-    C.setLineCap C.LineCapRound
-    setColor (colorScheme c)
-    C.stroke
-
 data Arc
     = CwArc Vec2 Vec2 Vec2
     | CcwArc Vec2 Vec2 Vec2
@@ -302,11 +244,8 @@ instance Plotting Arc where
         counterclockwiseArcAroundTo center end
     plot (Straight l) = plot l
 
-drawArc :: Hex -> (Direction, Int, Direction) -> C.Render ()
-drawArc hex (d1, n, d2) = cairoScope (sketch (toArc drawCellSize hex (d1, n, d2)))
-
-toArc :: Double -> Hex -> (Direction, Int, Direction) -> Arc
-toArc cellSize hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
+toArc :: Hex -> (Direction, Int, Direction) -> Arc
+toArc hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
   where
     n' = if cyclic d1 d2 then n else 4-n
     center = toVec2 cellSize hex
