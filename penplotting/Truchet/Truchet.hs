@@ -5,6 +5,7 @@ module Main (main) where
 import Control.Monad.Primitive
 import Control.Monad.Reader.Class
 import Control.Monad.ST
+import Control.Monad.State.Class
 import Data.List (partition)
 import qualified Data.Map.Strict          as M
 import qualified Data.Set                 as S
@@ -285,10 +286,18 @@ instance Sketch Arc where
 
 instance Plotting Arc where
     plot (CwArc center start end) = do
-        repositionTo start
+        pos <- gets _penXY
+        case norm (pos -. start) of
+            0 -> pure ()
+            d | d < 0.1 -> lineTo start
+            _otherwise -> repositionTo start
         clockwiseArcAroundTo center end
     plot (CcwArc center start end) = do
-        repositionTo start
+        pos <- gets _penXY
+        case norm (pos -. start) of
+            0 -> pure ()
+            d | d < 0.1 -> lineTo start
+            _otherwise -> repositionTo start
         counterclockwiseArcAroundTo center end
     plot (Straight l) = plot l
 
