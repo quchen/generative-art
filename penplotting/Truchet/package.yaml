@@ -10,6 +10,7 @@ copyright:
 default-extensions:
     - LambdaCase
     - MultiWayIf
+    - OverloadedStrings
 
 dependencies:
     - generative-art

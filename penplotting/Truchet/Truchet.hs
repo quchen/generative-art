@@ -19,7 +19,6 @@ import Geometry
 import Geometry.Algorithms.SimplexNoise
 import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
 
-import Debug.Trace
 
 
 picWidth, picHeight :: Num a => a
@@ -32,7 +31,7 @@ cellSize = 5
 main :: IO ()
 main = do
     let tiles a =
-            V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round $ traceShowId (9 * a)))]
+            V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
         tiling = runST $ do
             gen <- initialize (V.fromList [125])
             noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
@@ -56,9 +55,11 @@ main = do
                     penDown
                     pause PauseUserConfirm
                     penUp
+            comment "Silver pen"
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
                 for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor1)) plot
             penChange
+            comment "Gold pen"
             local (\s -> s { _previewPenColor = mathematica97 3 }) $
                 for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor2)) plot
             penChange
