@@ -47,9 +47,14 @@ main = do
             , _feedrate = 1000
             }
         plotResult = runPlot settings $ do
-            let allStrands = concat (strands tiling)
-                (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
-                optimize = minimizePenHoveringBy MinimizePenHoveringSettings { _getStartEndPoint = arcStartEnd, _flipObject = Just reverseArc } . S.fromList
+            let allStrands = strands tiling
+                (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
+                optimizationSettings = MinimizePenHoveringSettings
+                    { _getStartEndPoint = \arcs -> (fst (arcStartEnd (V.head arcs)), snd (arcStartEnd (V.last arcs)))
+                    , _flipObject = Just (fmap reverseArc . V.reverse)
+                    , _mergeObjects = Nothing -- Already taken care of in 'strands'
+                    }
+                optimize = concatMap V.toList . minimizePenHoveringBy optimizationSettings . S.fromList
                 penChange = withDrawingHeight 0 $ do
                     repositionTo zero
                     penDown
@@ -57,11 +62,11 @@ main = do
                     penUp
             comment "Silver pen"
             local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor1)) plot
+                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor1)) plot
             penChange
             comment "Gold pen"
             local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
-                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor2)) plot
+                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor2)) plot
             penChange
     print (_totalBoundingBox plotResult)
 
@@ -121,7 +126,7 @@ randomTile baseTiles = \gen -> do
     pure (baseTiles V.! rnd)
   where countTiles = V.length baseTiles
 
-strands :: Tiling -> [[(Hex, (Direction, Int, Direction))]]
+strands :: Tiling -> [V.Vector (Hex, (Direction, Int, Direction))]
 strands tiling = case M.lookupMin tiling of
     Nothing -> []
     Just (startHex, t) -> case extractArc t of
@@ -129,7 +134,7 @@ strands tiling = case M.lookupMin tiling of
         Just ((d, i, d'), t') ->
             let (s, tiling') = strand tiling startHex (d, i)
                 (s', tiling'') = strand tiling' startHex (d', 4-i)
-            in (reverseStrand s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
+            in V.fromList (reverseStrand s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
 
 strand :: Tiling -> Hex -> (Direction, Int) -> ([(Hex, (Direction, Int, Direction))], Tiling)
 strand tiling hex (d, i) = let hex' = move d 1 hex in case M.lookup hex' tiling of
