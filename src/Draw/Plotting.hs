@@ -263,7 +263,7 @@ recordDrawingDistance instruction = do
             G02_ArcClockwise _ i j x y -> do
                 let r = norm (Vec2 i j)
                     center = penXY +. Vec2 i j
-                    angle = angleBetween (Line center penXY) (Line center (Vec2 x y))
+                    angle = angleBetween (Line center (Vec2 x y)) (Line center penXY)
                 Just (r * getRad (normalizeAngle (deg 0) angle))
             G03_ArcCounterClockwise _ i j x y -> do
                 let r = norm (Vec2 i j)

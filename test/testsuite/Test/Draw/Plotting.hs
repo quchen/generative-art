@@ -20,6 +20,7 @@ tests = testGroup "Penplotting GCode"
     [ testGroup "Drawn distance"
         [ test_plottingDistance_line
         , test_plottingDistance_circle
+        , test_plottingDistance_arc
         ]
     , testGroup "Travelled distance"
         [ test_travelledDistance_line
@@ -63,6 +64,14 @@ test_plottingDistance_circle = testProperty "Circle" $ \center (Positive radius)
     let circle = Circle center radius
         plotResult = runPlot def (plot circle)
     in 2*pi*radius ~=== drawnDistance plotResult
+
+test_plottingDistance_arc :: TestTree
+test_plottingDistance_arc = testProperty "Arc" $ \a b d ->
+    let Line p q = perpendicularBisector (Line a b)
+        center = p +. d *. (q -. p)
+        plotResult1 = runPlot def (repositionTo a >> clockwiseArcAroundTo center b)
+        plotResult2 = runPlot def (repositionTo b >> counterclockwiseArcAroundTo center a)
+    in  drawnDistance plotResult1 ~=== drawnDistance plotResult2
 
 travelledDistance :: RunPlotResult -> Double
 travelledDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringWriterLog=PlottingWriterLog{_penTravelDistance = d}}} = d
