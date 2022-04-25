@@ -70,9 +70,8 @@ main = do
             penChange
     print (_totalBoundingBox plotResult)
 
-    renderPreview "out/penplotting-truchet-preview.svg" plotResult
-    writeGCodeFile "truchet-testplot.g" plotResult
-    pure ()
+    renderPreview "out/penplotting-truchet1-preview.svg" plotResult
+    writeGCodeFile "truchet1.g" plotResult
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
