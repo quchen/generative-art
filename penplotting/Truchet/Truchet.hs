@@ -49,7 +49,7 @@ main = do
         plotResult = runPlot settings $ do
             let allStrands = concat (strands tiling)
                 (strandsColor1, strandsColor2) = partition (\(_, (_, i, _)) -> i == 2) allStrands
-                optimize = minimizePenHoveringBy' arcStartEnd reverseArc . S.fromList
+                optimize = minimizePenHoveringBy MinimizePenHoveringSettings { _getStartEndPoint = arcStartEnd, _flipObject = Just reverseArc } . S.fromList
                 penChange = withDrawingHeight 0 $ do
                     repositionTo zero
                     penDown

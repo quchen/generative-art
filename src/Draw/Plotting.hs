@@ -46,7 +46,7 @@ module Draw.Plotting (
     -- * Utilities
     , minimizePenHovering
     , minimizePenHoveringBy
-    , minimizePenHoveringBy'
+    , MinimizePenHoveringSettings(..)
     , module Data.Default.Class
 ) where
 
@@ -776,37 +776,37 @@ minimumOn f xs
     | null xs = Nothing
     | otherwise = Just (minimumBy (\x y -> compare (f x) (f y)) xs)
 
--- | Similar to 'minimizePenHovering', but for arbitrary objects with a given start and end point.
-minimizePenHoveringBy :: Ord a => (a -> (Vec2, Vec2)) -> S.Set a -> [a]
-minimizePenHoveringBy getStartEndPoint = sortStep (Vec2 0 0)
-  where
-    -- Sort by minimal travel between adjacent lines
-    sortStep penPos pool =
-        let closestNextObject = minimumOn (\candidate -> norm (fst (getStartEndPoint candidate) -. penPos)) pool
-        in case closestNextObject of
-            Nothing -> []
-            Just object ->
-                let remainingPool = S.delete object pool
-                    newPenPos = snd (getStartEndPoint object)
-                in object : sortStep newPenPos remainingPool
+data MinimizePenHoveringSettings a = MinimizePenHoveringSettings
+    { _getStartEndPoint :: a -> (Vec2, Vec2)
+    , _flipObject :: Maybe (a -> a)
+    }
 
--- | Similar to 'minimizePenHoveringBy', with an additional option to flip objects
-minimizePenHoveringBy' :: Ord a => (a -> (Vec2, Vec2)) -> (a -> a) -> S.Set a -> [a]
-minimizePenHoveringBy' getStartEndPoint flipObject = sortStep (Vec2 0 0)
+-- | Similar to 'minimizePenHovering', but for arbitrary objects with a given start and end point.
+minimizePenHoveringBy :: Ord a => MinimizePenHoveringSettings a -> S.Set a -> [a]
+minimizePenHoveringBy settings = sortStep (Vec2 0 0)
   where
     -- Sort by minimal travel between adjacent lines
     sortStep penPos pool =
-        let closestNextObject = minimumOn (\candidate -> let (a, b) = getStartEndPoint candidate in min (norm (a -. penPos)) (norm (b -. penPos))) pool
-        in case closestNextObject of
-            Nothing -> []
-            Just object ->
-                let (a, b) = getStartEndPoint object
-                    (rightWayRound, end) = if norm (a -. penPos) > norm (b -. penPos)
+        let distanceNorm = case _flipObject settings of
+                Nothing -> \(a, _) -> norm (a -. penPos)
+                Just _  -> \(a, b) -> min (norm (a -. penPos)) (norm (b -. penPos))
+            rightWayRound = case _flipObject settings of
+                Nothing -> \object ->
+                    let (_, b) = _getStartEndPoint settings object
+                    in  (object, b)
+                Just flipObject -> \object ->
+                    let (a, b) = _getStartEndPoint settings object
+                    in  if norm (a -. penPos) > norm (b -. penPos)
                         then (flipObject object, a)
                         else (object, b)
+            closestNextObject = minimumOn (distanceNorm . _getStartEndPoint settings) pool
+        in case closestNextObject of
+            Nothing -> []
+            Just object ->
+                let (object', end) = rightWayRound object
                     remainingPool = S.delete object pool
                     newPenPos = end
-                in rightWayRound : sortStep newPenPos remainingPool
+                in object' : sortStep newPenPos remainingPool
 
 -- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
 -- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,

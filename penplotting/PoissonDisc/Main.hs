@@ -62,7 +62,7 @@ renderPoissonDisc baseName samples = do
     render ("out/" <> baseName <> ".svg") picWidth picHeight drawingCairo
     render ("out/" <> baseName <> ".png") picWidth picHeight drawingCairo
 
-    let circles = minimizePenHoveringBy (\(Circle c _) -> (c, c)) $ S.fromList $ fmap (\(c, _, r) -> Circle c (r/2)) samples
+    let circles = minimizePenHoveringBy MinimizePenHoveringSettings { _getStartEndPoint = \(Circle c _) -> (c, c), _flipObject = Nothing } $ S.fromList $ fmap (\(c, _, r) -> Circle c (r/2)) samples
         connectingLines = fmap Polyline $ minimizePenHovering $ S.fromList $ (\(to, from, _) -> [from, to]) <$> samples
         drawingPlot = do
             comment "Place pen on bottom left corner of the paper"
