@@ -149,26 +149,6 @@ over quickly.
 
 ![Missing image!](../../../docs/differential_equations/geodesic_hill_and_valley.svg)
 
-![Missing image!](../../../docs/font/alignment_HCenter_VBottom.svg)
-
-![Missing image!](../../../docs/font/alignment_HCenter_VCenter.svg)
-
-![Missing image!](../../../docs/font/alignment_HCenter_VTop.svg)
-
-![Missing image!](../../../docs/font/alignment_HLeft_VBottom.svg)
-
-![Missing image!](../../../docs/font/alignment_HLeft_VCenter.svg)
-
-![Missing image!](../../../docs/font/alignment_HLeft_VTop.svg)
-
-![Missing image!](../../../docs/font/alignment_HRight_VBottom.svg)
-
-![Missing image!](../../../docs/font/alignment_HRight_VCenter.svg)
-
-![Missing image!](../../../docs/font/alignment_HRight_VTop.svg)
-
-![Missing image!](../../../docs/font/size.svg)
-
 ![Missing image!](../../../docs/geometry/clipping/1_line.svg)
 
 ![Missing image!](../../../docs/geometry/clipping/2_square.svg)
@@ -373,6 +353,8 @@ over quickly.
 
 ![Missing image!](../../../docs/penrose/4_subdivision_with_pentagons.svg)
 
+<<<<<<< HEAD
+=======
 ![Missing image!](../../../docs/physics/brownian.svg)
 
 ![Missing image!](../../../docs/physics/collision.svg)
@@ -383,14 +365,7 @@ over quickly.
 
 ![Missing image!](../../../docs/physics/twoBody.svg)
 
-![Missing image!](../../../docs/plotting/penTravel_flip_merge.svg)
-
-![Missing image!](../../../docs/plotting/penTravel_flip_noMerge.svg)
-
-![Missing image!](../../../docs/plotting/penTravel_noFlip_merge.svg)
-
-![Missing image!](../../../docs/plotting/penTravel_noFlip_noMerge.svg)
-
+>>>>>>> d98e1eb... Brownian motion
 ![Missing image!](../../../docs/sampling/poisson-disc.svg)
 
 ![Missing image!](../../../docs/triangulation/1_square.svg)

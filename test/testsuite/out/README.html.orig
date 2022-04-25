@@ -80,16 +80,6 @@
         <div><img src="../../../docs/differential_equations/2_double_pendulum.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/differential_equations/3_noise_pendulum.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/differential_equations/geodesic_hill_and_valley.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HCenter_VBottom.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HCenter_VCenter.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HCenter_VTop.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HLeft_VBottom.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HLeft_VCenter.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HLeft_VTop.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HRight_VBottom.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HRight_VCenter.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/alignment_HRight_VTop.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/font/size.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/geometry/clipping/1_line.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/geometry/clipping/2_square.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/geometry/clipping/3_complicated.svg" alt="Missing image!"/></div>
@@ -192,15 +182,14 @@
         <div><img src="../../../docs/penrose/2_subdivision.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/penrose/3_inscribed_pentagons.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/penrose/4_subdivision_with_pentagons.svg" alt="Missing image!"/></div>
+<<<<<<< HEAD
+=======
         <div><img src="../../../docs/physics/brownian.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/physics/collision.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/physics/particleInPotential.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/physics/threeBody.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/physics/twoBody.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/plotting/penTravel_flip_merge.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/plotting/penTravel_flip_noMerge.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/plotting/penTravel_noFlip_merge.svg" alt="Missing image!"/></div>
-        <div><img src="../../../docs/plotting/penTravel_noFlip_noMerge.svg" alt="Missing image!"/></div>
+>>>>>>> d98e1eb... Brownian motion
         <div><img src="../../../docs/sampling/poisson-disc.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/triangulation/1_square.svg" alt="Missing image!"/></div>
         <div><img src="../../../docs/triangulation/2_regular_polygon.svg" alt="Missing image!"/></div>
