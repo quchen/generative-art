@@ -42,7 +42,7 @@ main = do
             randomTiling (tiles . variation) gen (hexagonsInRange 25 hexZero)
 
         settings = def
-            { _zTravelHeight = 5
+            { _zTravelHeight = 2
             , _zDrawingHeight = -0.5
             , _feedrate = 1000
             }
