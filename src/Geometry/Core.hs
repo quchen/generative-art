@@ -781,6 +781,7 @@ data FitDimension
     = FitWidthHeight -- ^ Fit both width and height
     | FitWidth       -- ^ Fit width, ignoring what happens to the height (allow y stretching/compression)
     | FitHeight      -- ^ Fit height, ignoring what happens to the width  (allow x stretching/compression)
+    | FitNone        -- ^ Don't fit dimensions, only align
     deriving (Eq, Ord, Show)
 
 data FitAspect
@@ -859,6 +860,7 @@ transformBoundingBox source target (TransformBBSettings fitDimension fitAspect f
             (FitWidthHeight, IgnoreAspect) -> scaleAround' scalePivot xScaleFactor yScaleFactor
             (FitWidth,       IgnoreAspect) -> scaleAround' scalePivot xScaleFactor 1
             (FitHeight,      IgnoreAspect) -> scaleAround' scalePivot 1 yScaleFactor
+            (FitNone,        _)            -> mempty
 
     in scaleToMatchSize <> translate translationOffset
 
