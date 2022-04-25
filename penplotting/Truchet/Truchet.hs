@@ -131,9 +131,10 @@ strands tiling = case M.lookupMin tiling of
     Just (startHex, t) -> case extractArc t of
         Nothing ->  strands (M.delete startHex tiling)
         Just ((d, i, d'), t') ->
-            let (s, tiling') = strand tiling startHex (d, i)
-                (s', tiling'') = strand tiling' startHex (d', 4-i)
-            in V.fromList (reverseStrand s ++ [(startHex, (d, i, d'))] ++ s') : strands (M.insert startHex t' tiling'')
+            let tiling' = M.insert startHex t' tiling
+                (s, tiling'') = strand tiling' startHex (d, i)
+                (s', tiling''') = strand tiling'' startHex (d', 4-i)
+            in V.fromList (reverseStrand s ++ [(startHex, (d, i, d'))] ++ s') : strands tiling'''
 
 strand :: Tiling -> Hex -> (Direction, Int) -> ([(Hex, (Direction, Int, Direction))], Tiling)
 strand tiling hex (d, i) = let hex' = move d 1 hex in case M.lookup hex' tiling of
