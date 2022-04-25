@@ -10,7 +10,6 @@ import Control.Monad.State.Class
 import qualified Data.Vector as V
 import Formatting (format, fixed, int, (%))
 import qualified Graphics.Rendering.Cairo as C
-import qualified Graphics.PlotFont as PF
 import System.Random.MWC
 import System.Random.MWC.Distributions
 
@@ -39,7 +38,7 @@ main = for_
     [ (25, 1, "Compression")
     , (14.5, 2, "Deflation")
     , (20, 3, "Equilibrium")
-    ] $ \(pressure, index, caption) -> do
+    ] $ \(pressure, index, title) -> do
     let tmax = picWidth / 6
         trajectories = runSimulation pressure tmax
     render ("out/pressure-" ++ show index ++ ".svg") picWidth picHeight $ do
@@ -62,13 +61,14 @@ main = for_
             , _zTravelHeight = 5
             }
     writeGCodeFile ("pressure-" ++ show index ++ ".g") $ runPlot settings $ do
-        let glyphs = transform (scale 0.1) $ pfPolyline <$> PF.render' PF.canvastextFont ("Pressure " ++ show index ++ " - " ++ caption)
-            placeBottomRight = transformBoundingBox
-                (boundingBox glyphs)
-                (boundingBox [margin, Vec2 picWidth 3 +. transform mirrorXCoords margin])
-                def { _bbFitAlign = FitAlignBottomRight, _bbFitDimension = FitNone }
+        let caption = "Pressure " ++ show index ++ " - " ++ title
+            textSettings = def
+                { _textStartingPoint = Vec2 picWidth 0 +. transform (mirrorXCoords <> scale' 1 1.2) margin
+                , _textHAlign = HRight
+                , _textHeight = picHeight / 55
+                }
             cutMark = Polyline [ Vec2 (picWidth - 5) picHeight, Vec2 picWidth picHeight, Vec2 picWidth (picHeight - 5) ]
-        plot (transform placeBottomRight glyphs)
+        plot (plotText textSettings caption)
         plot cutMark
         for_ (zip [1..] trajectories) $ \(i, trajectory) -> do
             let (_, q0) : tqs = (\(t, PhaseSpace {..}) -> (t, q)) <$> trajectory
@@ -113,6 +113,3 @@ runSimulation pressure tmax =
         insideCanvas PhaseSpace{..} = q `insideBoundingBox` canvas
     in  fmap (takeWhile (insideCanvas . snd)) $ getNBody $ traverse (\(t, pq) -> (t,) <$> pq) $ takeWhile ((<tmax) . fst) $ --fmap (\(t, xs) -> (t - tmax, xs)) $ dropWhile ((<tmax) . fst) $
             rungeKuttaAdaptiveStep (const (nBody externalPotential interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
-
-pfPolyline :: PF.PFStroke -> Polyline []
-pfPolyline = Polyline . fmap (uncurry Vec2)

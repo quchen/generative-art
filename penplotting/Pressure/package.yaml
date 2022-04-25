@@ -19,7 +19,6 @@ dependencies:
     - formatting
     - mtl
     - mwc-random
-    - plotfont
     - vector
 
 executables:

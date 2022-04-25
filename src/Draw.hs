@@ -50,9 +50,7 @@ module Draw (
     , toCairoMatrix
 
     -- * Text
-    , showTextAligned
-    , HAlign(..)
-    , VAlign(..)
+    , module Draw.Text
 
     -- * Convenience
     , for_
@@ -74,6 +72,7 @@ import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
 import Draw.NormalizeSvg
+import Draw.Text
 import Geometry                      as G
 
 
@@ -691,37 +690,6 @@ cairoScope actions = save *> actions <* restore
 -- @
 grouped :: Render after -> Render a -> Render a
 grouped afterwards actions = cairoScope $ pushGroup *> actions <* popGroupToSource <* afterwards
-
--- | Vertical alignment
-data VAlign = VTop | VCenter | VBottom deriving (Eq, Ord, Show)
-
--- | Horizontal alignment
-data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
-
--- | Like Cairo’s 'showText', but with alignment parameters. Since Cairo’s text API
--- is pretty wonky, you may have to sprinkle this with 'moveTo'/'moveToVec' or
--- 'newPath'.
-showTextAligned
-    :: CairoString string
-    => HAlign -- ^ Horizontal alignment
-    -> VAlign -- ^ Vertical alignment
-    -> string -- ^ Text
-    -> Render ()
-showTextAligned hAlign vAlign str = do
-    (w,h) <- do ex <- textExtents str
-                pure (textExtentsWidth ex, textExtentsHeight ex)
-    let dx = case hAlign of
-            HLeft   -> 0
-            HCenter -> -w/2
-            HRight  -> -w
-        dy = case vAlign of
-            VTop    -> h
-            VCenter -> h/2
-            VBottom -> 0
-    relMoveTo dx dy
-    showText str
-    newPath -- The text API is wonky, it kinda-sorta moves the pointer but not really.
-            -- newPath clears the path, so we get no leaks from the text.
 
 -- | Translate between Cairo and our matrix representation for transformations.
 --
