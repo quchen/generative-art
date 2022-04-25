@@ -43,7 +43,7 @@ main = do
 
         settings = def
             { _zTravelHeight = 5
-            , _zDrawingHeight = -2
+            , _zDrawingHeight = -0.5
             , _feedrate = 1000
             }
         plotResult = runPlot settings $ do
@@ -60,7 +60,7 @@ main = do
                 for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor1)) plot
             penChange
             comment "Gold pen"
-            local (\s -> s { _previewPenColor = mathematica97 3 }) $
+            local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
                 for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (uncurry toArc <$> strandsColor2)) plot
             penChange
     print (_totalBoundingBox plotResult)
