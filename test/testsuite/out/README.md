@@ -353,6 +353,16 @@ over quickly.
 
 ![Missing image!](../../../docs/penrose/4_subdivision_with_pentagons.svg)
 
+![Missing image!](../../../docs/physics/brownian.svg)
+
+![Missing image!](../../../docs/physics/collision.svg)
+
+![Missing image!](../../../docs/physics/particleInPotential.svg)
+
+![Missing image!](../../../docs/physics/threeBody.svg)
+
+![Missing image!](../../../docs/physics/twoBody.svg)
+
 ![Missing image!](../../../docs/sampling/poisson-disc.svg)
 
 ![Missing image!](../../../docs/triangulation/1_square.svg)
