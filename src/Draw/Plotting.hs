@@ -779,34 +779,72 @@ minimumOn f xs
 data MinimizePenHoveringSettings a = MinimizePenHoveringSettings
     { _getStartEndPoint :: a -> (Vec2, Vec2)
     , _flipObject :: Maybe (a -> a)
+    , _mergeObjects :: Maybe (a -> a -> Maybe a)
     }
 
 -- | Similar to 'minimizePenHovering', but for arbitrary objects with a given start and end point.
 minimizePenHoveringBy :: Ord a => MinimizePenHoveringSettings a -> S.Set a -> [a]
-minimizePenHoveringBy settings = sortStep (Vec2 0 0)
+minimizePenHoveringBy settings = sortStep zero . mergeStep
   where
+    distanceNorm = case _flipObject settings of
+        Nothing -> \penPos object -> let (a, _) = _getStartEndPoint settings object in norm (a -. penPos)
+        Just _  -> \penPos object -> let (a, b) = _getStartEndPoint settings object in min (norm (a -. penPos)) (norm (b -. penPos))
+    reverseDistanceNorm = case _flipObject settings of
+        Nothing -> \penPos object -> let (_, b) = _getStartEndPoint settings object in norm (b -. penPos)
+        Just _  -> \penPos object -> let (a, b) = _getStartEndPoint settings object in min (norm (a -. penPos)) (norm (b -. penPos))
+    rightWayRound = case _flipObject settings of
+        Nothing -> \_ object ->
+            let (_, b) = _getStartEndPoint settings object
+            in  (object, b)
+        Just flipObject -> \penPos object ->
+            let (a, b) = _getStartEndPoint settings object
+            in  if norm (a -. penPos) > norm (b -. penPos)
+                then (flipObject object, a)
+                else (object, b)
+    reverseRightWayRound = case _flipObject settings of
+        Nothing -> \_ object -> object
+        Just flipObject -> \penPos object ->
+            let (a, b) = _getStartEndPoint settings object
+            in  if norm (a -. penPos) < norm (b -. penPos)
+                then flipObject object
+                else object
     -- Sort by minimal travel between adjacent lines
     sortStep penPos pool =
-        let distanceNorm = case _flipObject settings of
-                Nothing -> \(a, _) -> norm (a -. penPos)
-                Just _  -> \(a, b) -> min (norm (a -. penPos)) (norm (b -. penPos))
-            rightWayRound = case _flipObject settings of
-                Nothing -> \object ->
-                    let (_, b) = _getStartEndPoint settings object
-                    in  (object, b)
-                Just flipObject -> \object ->
-                    let (a, b) = _getStartEndPoint settings object
-                    in  if norm (a -. penPos) > norm (b -. penPos)
-                        then (flipObject object, a)
-                        else (object, b)
-            closestNextObject = minimumOn (distanceNorm . _getStartEndPoint settings) pool
+        let closestNextObject = minimumOn (distanceNorm penPos) pool
         in case closestNextObject of
             Nothing -> []
             Just object ->
-                let (object', end) = rightWayRound object
+                let (object', end) = rightWayRound penPos object
                     remainingPool = S.delete object pool
                     newPenPos = end
                 in object' : sortStep newPenPos remainingPool
+    mergeStep = case _mergeObjects settings of
+        Nothing -> id
+        Just merge -> \pool -> go pool S.empty
+          where
+            go pool result =
+                let closestNextObject = minimumOn (distanceNorm zero) pool
+                in case closestNextObject of
+                    Nothing -> result
+                    Just object ->
+                        let result' = tryMerge object result
+                        in  go (S.delete object pool) result'
+            tryMerge object pool =
+                let (a, b) = _getStartEndPoint settings object
+                    closestNextObject = minimumOn (distanceNorm b) pool
+                    closestPreviousObject = minimumOn (reverseDistanceNorm a) pool
+                in case (closestPreviousObject, closestNextObject) of
+                    (Just prevObject, Just nextObject) -- missing link between two objects
+                        | Just object' <- merge (reverseRightWayRound a prevObject) object, Just object'' <- merge object' (fst $ rightWayRound b nextObject)
+                        -> S.insert object'' . S.delete prevObject . S.delete nextObject $ pool
+                    (Just prevObject, _) -- object can be appended
+                        | Just object' <- merge (reverseRightWayRound a prevObject) object
+                        -> S.insert object' . S.delete prevObject $ pool
+                    (_, Just nextObject) -- object can be prepended
+                        | Just object' <- merge object (fst $ rightWayRound b nextObject)
+                        -> S.insert object' . S.delete nextObject $ pool
+                    _otherwise
+                        -> S.insert object pool
 
 -- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
 -- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,
