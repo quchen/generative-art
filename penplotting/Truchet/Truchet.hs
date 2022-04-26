@@ -32,12 +32,17 @@ main :: IO ()
 main = do
     let prototiles1 a =
             V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
+        prototiles2 a
+            = V.fromList $ allRotations =<< concat
+                [ [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == max 0 (min 5 (round (5 * a))) ]
+                , [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == max 0 (min 7 (round (7 * a))) ]
+                ]
         generateTiling prototiles = runST $ do
             gen <- initialize (V.fromList [125])
             noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
             let bump d p = case norm p of
                     r | r < d -> exp (1 - 1 / (1 - (r/d)^2))
-                        | otherwise -> 0
+                      | otherwise -> 0
                 variation p = bump (min picHeight picWidth / 2) p ** 0.4 * (1 + 0.1 * (noise p + 1) * 0.5)
             randomTiling (prototiles . variation) gen (hexagonsInRange 25 hexZero)
 
@@ -45,8 +50,9 @@ main = do
             { _zTravelHeight = 3
             , _zDrawingHeight = -0.5
             , _feedrate = 1000
+            , _previewPenTravelColor = Nothing
             }
-    for_ (zip [1..] (generateTiling <$> [prototiles1])) $ \(k, tiling) -> do
+    for_ (zip [1..] (generateTiling <$> [prototiles1, prototiles2])) $ \(k, tiling) -> do
         let plotResult = runPlot settings $ do
                 let allStrands = strands tiling
                     (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
@@ -237,12 +243,12 @@ toArc hex (d1, n, d2) = sketchArc (fromIntegral n') d1 d2
     corner d d' = (center +. nextCenter d +. nextCenter d') /. 3
     [down, _lowerLeft, _upperLeft, _up, upperRight, lowerRight] = [ transform (rotate alpha) (Vec2 0 cellSize) | alpha <- deg <$> [0, 60 .. 300] ]
 
-    sketchArc i DR UL = straight ((0.5 - 0.25 * i) *. upperRight +. side UL) ((0.5 - 0.25 * i) *. upperRight +. side DR)
-    sketchArc i UR DL = straight ((0.5 - 0.25 * i) *. lowerRight +. side DL) ((0.5 - 0.25 * i) *. lowerRight +. side UR)
-    sketchArc i R  L  = straight ((0.5 - 0.25 * i) *. down       +. side L)  ((0.5 - 0.25 * i) *. down       +. side R)
-    sketchArc i UL DR = straight ((0.5 - 0.25 * i) *. upperRight +. side DR) ((0.5 - 0.25 * i) *. upperRight +. side UL)
-    sketchArc i DL UR = straight ((0.5 - 0.25 * i) *. lowerRight +. side UR) ((0.5 - 0.25 * i) *. lowerRight +. side DL)
-    sketchArc i L  R  = straight ((0.5 - 0.25 * i) *. down       +. side R)  ((0.5 - 0.25 * i) *. down       +. side L)
+    sketchArc i DR UL = straight ((0.5 - 0.25 * i) *. upperRight +. side DR) ((0.5 - 0.25 * i) *. upperRight +. side UL)
+    sketchArc i UR DL = straight ((0.5 - 0.25 * i) *. lowerRight +. side UR) ((0.5 - 0.25 * i) *. lowerRight +. side DL)
+    sketchArc i R  L  = straight ((0.5 - 0.25 * i) *. down       +. side R)  ((0.5 - 0.25 * i) *. down       +. side L)
+    sketchArc i UL DR = straight ((0.5 - 0.25 * i) *. upperRight +. side UL) ((0.5 - 0.25 * i) *. upperRight +. side DR)
+    sketchArc i DL UR = straight ((0.5 - 0.25 * i) *. lowerRight +. side DL) ((0.5 - 0.25 * i) *. lowerRight +. side UR)
+    sketchArc i L  R  = straight ((0.5 - 0.25 * i) *. down       +. side L)  ((0.5 - 0.25 * i) *. down       +. side R)
 
     sketchArc i UR L  = ccwArc (nextCenter UL) ((1 + 0.25 * i) * cellSize) (deg 30)  (deg 90)
     sketchArc i R  UL = ccwArc (nextCenter UR) ((1 + 0.25 * i) * cellSize) (deg 90)  (deg 150)
