@@ -249,7 +249,7 @@ hexagonalCoordinateSystem sideLength range = do
 
     cairoScope $ grouped (paintWithAlpha 0.5) $
         for_ hexagons $ \hexCoord@(Hex q r s) ->
-            for_ [("q", q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
+            for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
                     coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
                 moveToVec coord
