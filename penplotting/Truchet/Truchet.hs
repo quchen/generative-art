@@ -30,13 +30,15 @@ cellSize = 5
 
 main :: IO ()
 main = do
-    let prototiles1 a =
-            V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
-        prototiles2 a
-            = V.fromList $ allRotations =<< concat
-                [ [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == max 0 (min 5 (round (5 * a))) ]
-                , [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == max 0 (min 7 (round (7 * a))) ]
-                ]
+    let prototiles1 a = V.fromList $ allRotations =<<
+            [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
+        prototiles2 a = V.fromList $ allRotations =<< concat
+            [ [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == max 0 (min 5 (round (5 * a))) ]
+            , [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == max 0 (min 7 (round (7 * a))) ]
+            ]
+        prototiles3 a = V.fromList $ allRotations =<<
+            [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == max 0 (min 7 (round (7 * a))) ]
+
         generateTiling prototiles = runST $ do
             gen <- initialize (V.fromList [125])
             noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
@@ -52,7 +54,7 @@ main = do
             , _feedrate = 1000
             , _previewPenTravelColor = Nothing
             }
-    for_ (zip [1..] (generateTiling <$> [prototiles1, prototiles2])) $ \(k, tiling) -> do
+    for_ (zip [1..] (generateTiling <$> [prototiles1, prototiles2, prototiles3])) $ \(k, tiling) -> do
         let plotResult = runPlot settings $ do
                 let allStrands = strands tiling
                     (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
