@@ -30,48 +30,49 @@ cellSize = 5
 
 main :: IO ()
 main = do
-    let tiles a =
+    let prototiles1 a =
             V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
-        tiling = runST $ do
+        generateTiling prototiles = runST $ do
             gen <- initialize (V.fromList [125])
             noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
             let bump d p = case norm p of
                     r | r < d -> exp (1 - 1 / (1 - (r/d)^2))
                         | otherwise -> 0
                 variation p = bump (min picHeight picWidth / 2) p ** 0.4 * (1 + 0.1 * (noise p + 1) * 0.5)
-            randomTiling (tiles . variation) gen (hexagonsInRange 25 hexZero)
+            randomTiling (prototiles . variation) gen (hexagonsInRange 25 hexZero)
 
         settings = def
             { _zTravelHeight = 3
             , _zDrawingHeight = -0.5
             , _feedrate = 1000
             }
-        plotResult = runPlot settings $ do
-            let allStrands = strands tiling
-                (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
-                optimizationSettings = MinimizePenHoveringSettings
-                    { _getStartEndPoint = \arcs -> (fst (arcStartEnd (V.head arcs)), snd (arcStartEnd (V.last arcs)))
-                    , _flipObject = Just (fmap reverseArc . V.reverse)
-                    , _mergeObjects = Nothing -- Already taken care of in 'strands'
-                    }
-                optimize = concatMap V.toList . minimizePenHoveringBy optimizationSettings . S.fromList
-                penChange = withDrawingHeight 0 $ do
-                    repositionTo zero
-                    penDown
-                    pause PauseUserConfirm
-                    penUp
-            comment "Silver pen"
-            local (\s -> s { _previewPenColor = mathematica97 2 }) $
-                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor1)) plot
-            penChange
-            comment "Gold pen"
-            local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
-                for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor2)) plot
-            penChange
-    print (_totalBoundingBox plotResult)
+    for_ (zip [1..] (generateTiling <$> [prototiles1])) $ \(k, tiling) -> do
+        let plotResult = runPlot settings $ do
+                let allStrands = strands tiling
+                    (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
+                    optimizationSettings = MinimizePenHoveringSettings
+                        { _getStartEndPoint = \arcs -> (fst (arcStartEnd (V.head arcs)), snd (arcStartEnd (V.last arcs)))
+                        , _flipObject = Just (fmap reverseArc . V.reverse)
+                        , _mergeObjects = Nothing -- Already taken care of in 'strands'
+                        }
+                    optimize = concatMap V.toList . minimizePenHoveringBy optimizationSettings . S.fromList
+                    penChange = withDrawingHeight 0 $ do
+                        repositionTo zero
+                        penDown
+                        pause PauseUserConfirm
+                        penUp
+                comment "Silver pen"
+                local (\s -> s { _previewPenColor = mathematica97 2 }) $
+                    for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor1)) plot
+                penChange
+                comment "Gold pen"
+                local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
+                    for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor2)) plot
+                penChange
+        print (_totalBoundingBox plotResult)
 
-    renderPreview "out/penplotting-truchet1-preview.svg" plotResult
-    writeGCodeFile "truchet1.g" plotResult
+        renderPreview ("out/penplotting-truchet" ++ show k ++ "-preview.svg") plotResult
+        writeGCodeFile ("truchet" ++ show k ++ ".g") plotResult
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)
 
