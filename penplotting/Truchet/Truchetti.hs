@@ -44,31 +44,31 @@ plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-newtype Tile a = Tile [((Direction, Direction), a)] deriving (Eq, Ord, Show, Functor)
+newtype Tile = Tile [(Direction, Direction)] deriving (Eq, Ord, Show)
 
-tiles :: V.Vector (Tile ())
+tiles :: V.Vector Tile
 tiles = V.fromList $ nubOrd
     [ Tile partialTile
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
-    , let fullTile = [((d1, d2), ()), ((d3, d4), ()), ((d5, d6), ())]
+    , let fullTile = [(d1, d2), (d3, d4), (d5, d6)]
     , partialTile <- drop 2 $ inits fullTile
     ]
   where allDirections = [R, UR, UL, L, DL, DR]
 
-type Tiling a = M.Map Hex (Tile a)
+type Tiling = M.Map Hex Tile
 
-randomTiling :: GenIO -> [Hex] -> IO (Tiling ())
+randomTiling :: GenIO -> [Hex] -> IO Tiling
 randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
     tile <- randomTile gen
     pure (hex, tile)
 
-randomTile :: GenIO -> IO (Tile ())
+randomTile :: GenIO -> IO Tile
 randomTile = \gen -> do
     rnd <- uniformRM (0, countTiles - 1) gen
     pure (tiles V.! rnd)
   where countTiles = V.length tiles
 
-drawTile :: Hex -> Tile () -> C.Render ()
+drawTile :: Hex -> Tile -> C.Render ()
 drawTile hex (Tile as) = for_ as $ drawArc hex
 
 data Arc = Arc
@@ -86,8 +86,8 @@ data ArcSketch = forall a. Sketch a => ArcSketch a
 instance Sketch ArcSketch where
     sketch (ArcSketch s) = sketch s
 
-arc :: Hex -> ((Direction, Direction), ()) -> [ArcSketch]
-arc hex ((d1, d2), ()) = [sketchArc d1 d2]
+arc :: Hex -> (Direction, Direction) -> [ArcSketch]
+arc hex (d1, d2) = [sketchArc d1 d2]
   where
     center = toVec2 cellSize hex
     side d = 0.5 *. (center +. nextCenter d)
@@ -118,14 +118,14 @@ arc hex ((d1, d2), ()) = [sketchArc d1 d2]
 
     sketchArc d  d' = sketchArc d' d
 
-drawArc :: Hex -> ((Direction, Direction), ()) -> C.Render ()
-drawArc hex ((d1, d2), i) = cairoScope $ do
-    for_ (arc hex ((d1, d2), ())) sketch
+drawArc :: Hex -> (Direction, Direction) -> C.Render ()
+drawArc hex (d1, d2) = cairoScope $ do
+    for_ (arc hex (d1, d2)) sketch
     C.setLineWidth (3/8 * cellSize)
     C.setLineCap C.LineCapRound
     setColor white
     C.stroke
-    for_ (arc hex ((d1, d2), ())) sketch
+    for_ (arc hex (d1, d2)) sketch
     C.setLineWidth (1/8 * cellSize)
     C.setLineCap C.LineCapRound
     setColor black
