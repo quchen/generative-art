@@ -4,8 +4,12 @@ module Test.Draw.Plotting (tests) where
 
 
 
+import qualified Data.Set as S
+import qualified Data.Vector as V
+import qualified Graphics.Rendering.Cairo as C
 import Test.TastyAll
 
+import Draw
 import Draw.Plotting
 import Geometry      as G
 
@@ -16,6 +20,7 @@ tests = testGroup "Penplotting GCode"
     [ testGroup "Drawn distance"
         [ test_plottingDistance_line
         , test_plottingDistance_circle
+        , test_plottingDistance_arc
         ]
     , testGroup "Travelled distance"
         [ test_travelledDistance_line
@@ -37,6 +42,12 @@ tests = testGroup "Penplotting GCode"
                 ]
             ]
         ]
+    , testGroup "Pen travel optimization"
+        [ test_penTravelOptimization_noFlip_noMerge
+        , test_penTravelOptimization_flip_noMerge
+        , test_penTravelOptimization_noFlip_merge
+        , test_penTravelOptimization_flip_merge
+        ]
     ]
 
 drawnDistance :: RunPlotResult -> Double
@@ -53,6 +64,14 @@ test_plottingDistance_circle = testProperty "Circle" $ \center (Positive radius)
     let circle = Circle center radius
         plotResult = runPlot def (plot circle)
     in 2*pi*radius ~=== drawnDistance plotResult
+
+test_plottingDistance_arc :: TestTree
+test_plottingDistance_arc = testProperty "Arc" $ \a b d ->
+    let Line p q = perpendicularBisector (Line a b)
+        center = p +. d *. (q -. p)
+        plotResult1 = runPlot def (repositionTo a >> clockwiseArcAroundTo center b)
+        plotResult2 = runPlot def (repositionTo b >> counterclockwiseArcAroundTo center a)
+    in  drawnDistance plotResult1 ~=== drawnDistance plotResult2
 
 travelledDistance :: RunPlotResult -> Double
 travelledDistance RunPlotResult{_plotInternals=TinkeringInternals{_tinkeringWriterLog=PlottingWriterLog{_penTravelDistance = d}}} = d
@@ -151,3 +170,59 @@ test_boundingBox_arcCcwInterQuadrantWrapping = testCase "inter-quadrant, wrappin
         plotResult = runPlot def (repositionTo start >> counterclockwiseArcAroundTo center end)
         actual = Actual (drawnBB plotResult)
     assertApproxEqual "" expected actual
+
+test_penTravelOptimization_noFlip_noMerge :: TestTree
+test_penTravelOptimization_noFlip_noMerge = testVisual "Pen travel optimization without flipping and merging" 200 200 "docs/plotting/penTravel_noFlip_noMerge" $
+    let settings = MinimizePenHoveringSettings
+            { _getStartEndPoint = \xs -> (V.head xs, V.last xs)
+            , _flipObject = Nothing
+            , _mergeObjects = Nothing
+            }
+    in  testPenTravelOptimization settings
+
+test_penTravelOptimization_flip_noMerge :: TestTree
+test_penTravelOptimization_flip_noMerge = testVisual "Pen travel optimization with flipping, no merging" 200 200 "docs/plotting/penTravel_flip_noMerge" $
+    let settings = MinimizePenHoveringSettings
+            { _getStartEndPoint = \xs -> (V.head xs, V.last xs)
+            , _flipObject = Just V.reverse
+            , _mergeObjects = Nothing
+            }
+    in  testPenTravelOptimization settings
+
+test_penTravelOptimization_noFlip_merge :: TestTree
+test_penTravelOptimization_noFlip_merge = testVisual "Pen travel optimization with merging, no flipping" 200 200 "docs/plotting/penTravel_noFlip_merge" $
+    let settings = MinimizePenHoveringSettings
+            { _getStartEndPoint = \xs -> (V.head xs, V.last xs)
+            , _flipObject = Nothing
+            , _mergeObjects = Just $ \a b -> if V.last a == V.head b then Just (a <> b) else Nothing
+            }
+    in  testPenTravelOptimization settings
+
+test_penTravelOptimization_flip_merge :: TestTree
+test_penTravelOptimization_flip_merge = testVisual "Pen travel optimization with flipping and merging" 200 200 "docs/plotting/penTravel_flip_merge" $
+    let settings = MinimizePenHoveringSettings
+            { _getStartEndPoint = \xs -> (V.head xs, V.last xs)
+            , _flipObject = Just V.reverse
+            , _mergeObjects = Just $ \a b -> if V.last a == V.head b then Just (a <> b) else Nothing
+            }
+    in  testPenTravelOptimization settings
+
+testPenTravelOptimization :: MinimizePenHoveringSettings (V.Vector Vec2) -> (Double, Double) -> C.Render ()
+testPenTravelOptimization settings (w, h) = do
+    coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
+    let result = runPlot def { _previewDecorate = False } $ plot (Polyline <$> minimizePenHoveringBy settings penTravelOptimizationExample)
+    _plotPreview result
+
+penTravelOptimizationExample :: S.Set (V.Vector Vec2)
+penTravelOptimizationExample = S.fromList $ V.fromList <$>
+    [ [Vec2 (-80) (-80), Vec2 (-80) 0]
+    , [Vec2 (-80) 0, Vec2 80 0]
+    , [Vec2 80 80, Vec2 80 0]
+    , [Vec2 (-80) 20, Vec2 (-80) 80]
+    , [Vec2 (-60) 80, Vec2 (-60) 50]
+    , [Vec2 (-40) 50, Vec2 (-40) 80]
+    , [Vec2 (-40) 50, Vec2 (-40) 20]
+    , [Vec2 (-20) 80, Vec2 (-20) 50]
+    , [Vec2 (-20) 50, Vec2 (-20) 20]
+    , [Vec2 0 20, Vec2 0 50]
+    ]

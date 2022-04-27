@@ -1,0 +1,35 @@
+name:       penplotting-truchet
+version:    0.1.0.0
+github:     quchen/generative-art
+license:    BSD3
+author:
+    - Franz Thoma
+copyright:
+    - 2022 Franz Thoma
+
+default-extensions:
+    - LambdaCase
+    - MultiWayIf
+    - OverloadedStrings
+
+dependencies:
+    - generative-art
+    - base
+    - cairo
+    - containers
+    - mtl
+    - mwc-random
+    - primitive
+    - vector
+
+executables:
+    penplotting-truchetti:
+        main: Truchetti.hs
+        other-modules: []
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
+    penplotting-truchet:
+        main: Truchet.hs
+        other-modules: [Arc]
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]

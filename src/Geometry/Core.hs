@@ -959,8 +959,9 @@ getRad (Rad r) = r
 normalizeAngle
     :: Angle -- ^ Interval start
     -> Angle -- ^ Angle to normalize
-    -> Angle -- ^ Normalized angle [start ... start + one revolution]
-normalizeAngle start (Rad r) = Rad (r `mod'` (2*pi)) -. start
+    -> Angle -- ^ Angle normalized to the interval [start, start + deg 360)
+normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
+  where x `rem'` m = (x `mod'` m + m) `mod'` m
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end. The
 -- norm of the vector is the length of the line. Use 'direction' if you need a
