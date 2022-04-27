@@ -135,8 +135,8 @@ clipArc mask (CcwArc center start end) = reconstructArcs $ sortOn (getRad . angl
         in  if deviation < tolerance * radius
                 then p
                 else newton (p +. deviation *. direction edge /. cos (getRad angle))
-    angleOf = \p -> alpha0 +. rad (getRad (deg 360 +. angleOfLine (Line center p) -. alpha0) `mod'` (2 * pi))
-      where alpha0 = rad (getRad (deg 360 +. angleOfLine (Line center start)) `mod'` (2 * pi))
+    angleOf = \p -> normalizeAngle alpha0 (angleOfLine (Line center p))
+      where alpha0 = normalizeAngle zero (angleOfLine (Line center start))
 
 -- Positive mathematical orientation
 data IntersectionPointClass = Entering | Exiting deriving (Eq, Show)
