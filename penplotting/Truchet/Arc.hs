@@ -4,7 +4,6 @@ module Arc where
 
 import Control.Monad (guard)
 import Control.Monad.State.Class
-import Data.Fixed (mod')
 import Data.List (sortOn)
 import Data.Ord (comparing)
 import qualified Graphics.Rendering.Cairo as C
