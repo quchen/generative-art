@@ -25,7 +25,7 @@ dependencies:
 executables:
     penplotting-truchetti:
         main: Truchetti.hs
-        other-modules: []
+        other-modules: [Arc]
         source-dirs: .
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
     penplotting-truchet:
