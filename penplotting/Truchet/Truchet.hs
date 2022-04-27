@@ -5,7 +5,6 @@ module Main (main) where
 import Control.Monad.Primitive
 import Control.Monad.Reader.Class
 import Control.Monad.ST
-import Control.Monad.State.Class
 import Data.List (partition)
 import qualified Data.Map.Strict          as M
 import qualified Data.Set                 as S
@@ -19,19 +18,104 @@ import Draw.Plotting
 import Geometry
 import Geometry.Algorithms.SimplexNoise
 import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
+import Geometry.Shapes
 
 
-
-picWidth, picHeight :: Num a => a
-picWidth = 400
-picHeight = 400
 
 cellSize :: Num a => a
 cellSize = 5
 
 main :: IO ()
 main = do
-    let prototiles1 a = V.fromList $ allRotations =<<
+    testplot
+    triptych
+
+testplot :: IO ()
+testplot = do
+    let picWidth, picHeight :: Num a => a
+        picWidth = 400
+        picHeight = 250
+        canvases = concat
+            [ [ move UR 1 $ move R n hexZero | n <- [-2..1]]
+            , [ move R n hexZero | n <- [-2..2]]
+            , [ move DR 1 $ move R n hexZero | n <- [-2..1]]
+            ]
+        configurations = zip canvases
+            [ V.fromList $ allRotations =<< [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m >= 7]
+            , V.fromList $ allRotations $ mkTile [(UL, UR, [1..3]), (R, DR, [1..3]), (DL, L, [1..3])]
+            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [0..3], l <- [0..3], m <- [0..3], n <- [0..3], o <- [0..3], p <- [0..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+            , V.fromList [ mkTile [(DL, DR, [1..k]), (DR, R,  [1..l]), (R, UR, [1..m]), (UR, UL, [1..n]), (UL, L, [1..o]), (L, DL, [1..p])] | k <- [1..3], l <- [1..3], m <- [1..3], n <- [1..3], o <- [1..3], p <- [1..3], k+l == 3, l+m == 3, m+n == 3, n+o == 3, o+p == 3, p+k == 3 ]
+
+            , V.singleton $ mkTile [(L, UR, [1..3]), (R, DL, [1..2])]
+            , V.fromList $ allRotations =<< [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == 5 ]
+            , V.fromList $ allRotations =<< concat
+                [ [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == 5 ]
+                , [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+                ]
+            , V.fromList $ allRotations $ mkTile [(L, UR, [1, 2]), (R, DL, [1, 2])]
+            , V.singleton $ mkTile [(R, UL, [1,2]), (R, DL, [1])]
+
+            , V.fromList $ allRotations =<< [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+            , V.fromList $ allRotations =<< [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (L, UL, [1..m]), (UL, UR, [1..n]), (UR, R, [1..m])] | k <- [0..3], l <- [2..3], m <- [0..3], n <- [0..3], if k == 0 then l == 3 else l == 2, m+n <= 3, k+m <= 3, k+n >= 4, k+n <= 5 ]
+            , V.fromList $ allRotations =<< concat
+                [ [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == 9]
+                , [ mkTile [(L, R, [1..k]), (DL, DR, [1..l]), (UL, UR, [1..m])] | k <- [0..3], l <- [0..2], m <- [0..3], k+m <= 5, k+l+m == 7 ]
+                ]
+            , V.fromList [ mkTile [(L, R, [1,2]), (UL, UR, [1..3]), (DL, DR, [1..2])] ]
+            ]
+
+    let settings = def
+            { _zTravelHeight = 3
+            , _zDrawingHeight = -0.5
+            , _feedrate = 1000
+            , _previewPenTravelColor = Nothing
+            }
+        plotResult = runPlot settings $ do
+            let optimizationSettings = MinimizePenHoveringSettings
+                    { _getStartEndPoint = \arcs -> (fst (arcStartEnd (V.head arcs)), snd (arcStartEnd (V.last arcs)))
+                    , _flipObject = Just (fmap reverseArc . V.reverse)
+                    , _mergeObjects = Nothing -- Already taken care of in 'strands'
+                    }
+                optimize = concatMap V.toList . minimizePenHoveringBy optimizationSettings . S.fromList
+                shapes =
+                    [ transform align
+                        ( mask
+                        , clipArc mask <$> optimize (V.map (uncurry toArc) <$> strandsColor1)
+                        , clipArc mask <$> optimize (V.map (uncurry toArc) <$> strandsColor2)
+                        )
+                    | (hex, tiles) <- configurations
+                    , let align = translate (toVec2 (8 * cellSize) hex +. Vec2 (picWidth/2) (picHeight/2)) <> rotate (deg 30)
+                    , let mask = transform (scale (7.02 * cellSize)) (regularPolygon 6)
+                    , let tiling = runST $ do
+                            gen <- initialize (V.fromList [123, 987])
+                            randomTiling (const tiles) gen (hexagonsInRange 4 hexZero)
+                    , let allStrands = strands tiling
+                    , let (strandsColor1, strandsColor2) = partition (\xs -> let (_, (_, i, _)) = V.head xs in i == 2) allStrands
+                    ]
+                penChange = withDrawingHeight 0 $ do
+                    repositionTo zero
+                    penDown
+                    pause PauseUserConfirm
+                    penUp
+            comment "Silver pen"
+            local (\s -> s { _previewPenColor = mathematica97 2 }) $
+                for_ ((\(_, x, _) -> x) <$> shapes) plot
+            penChange
+            comment "Gold pen"
+            local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ do -- gold pen requires veeeery low feedrate
+                plot ((\(_, _, x) -> x) <$> shapes)
+                plot ((\(x, _, _) -> x) <$> shapes)
+
+    renderPreview "out/penplotting-truchet-testplot.svg" plotResult
+    writeGCodeFile "truchet-testplot.g" plotResult
+
+triptych :: IO ()
+triptych = do
+    let picWidth, picHeight :: Num a => a
+        picWidth = 400
+        picHeight = 400
+
+        prototiles1 a = V.fromList $ allRotations =<<
             [ mkTile [(L, UL, [1..k]), (UR, R, [1..l]), (DR, DL, [1..m])] | k <- [0..3], l <- [0..3], m <- [0..3], k+l+m == max 0 (min 9 (round (9 * a)))]
         prototiles2 a = V.fromList $ allRotations =<< concat
             [ [ mkTile [(L, UR, [1..k]), (R, DL, [1..l])] | k <- [0..3], l <- [0..2], k+l == max 0 (min 5 (round (5 * a))) ]
