@@ -269,6 +269,8 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/rotate_line.svg)
 
+![Missing image!](../../../docs/haddock/Arc.hs/clipping_example.svg)
+
 ![Missing image!](../../../docs/haddock/Draw/Color.hs/set_color.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/cartesianCoordinateSystem.svg)
