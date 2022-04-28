@@ -236,7 +236,8 @@ coordinateSystem cosy = do
             C.scale 1 (-1)
             C.translate (width/2) (height/2)
 
--- | Usable by doctests for rendering explanatory little pictures in Haddock.
+-- | Render pictures for Haddock with doctests. Nomenclature: the 'FilePath' for
+-- /Foo.Bar.Baz/ is /Foo\/Bar\/Baz.hs\/pic_name.svg/.
 haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
