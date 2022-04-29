@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE RecordWildCards #-}
-
 module Main (main) where
 
 
@@ -9,6 +5,7 @@ module Main (main) where
 import           Data.List
 import           Data.List.Extended
 import qualified Data.Map                 as M
+import qualified Data.Set                 as S
 import           Data.Traversable
 import           Data.Tuple
 import qualified Data.Vector              as V
@@ -18,6 +15,7 @@ import           System.Random.MWC
 
 import Arc
 import Draw
+import Draw.Plotting
 import Geometry
 import Geometry.Coordinates.Hexagonal hiding (Polygon)
 
@@ -42,6 +40,20 @@ main = do
 
     render "out/penplotting-truchetti.png" picWidth picHeight drawing
     render "out/penplotting-truchetti.svg" picWidth picHeight drawing
+
+    let optimize = minimizePenHoveringBy MinimizePenHoveringSettings
+            { _getStartEndPoint = \xs ->
+                let (hex, _, _) = V.head xs
+                    p = toVec2 cellSize hex
+                in  (p, p)
+            , _flipObject = Nothing
+            , _mergeObjects = Nothing
+            } . S.fromList
+        settings = def
+        plotting = for_ (optimize (strands tiling)) $ plotStrand . V.toList
+        plotResult = runPlot settings plotting
+    renderPreview "out/penplotting-truchetti-preview.png" plotResult
+    renderPreview "out/penplotting-truchetti-preview.svg" plotResult
 
 plane :: [Hex]
 plane = hexagonsInRange 15 origin
@@ -192,3 +204,27 @@ drawStrand xs = cairoScope $ do
     for_ arcsBack sketch
     unless pathClosed $ sketch (CcwArc (0.5 *. (p1 +. p2)) p2 p1)
     C.stroke
+
+plotStrand :: [(Hex, TileArc, [TileArc])] -> Plot ()
+plotStrand xs = do
+    let arcAtThreeEights hex (d1, d2) = toArc hex (d1, 3/8, d2)
+        nubArcs = nubBy (\(d1, d2) (d3, d4) -> d1 == d4 && d2 == d3)
+        clippingMask hex (d1, d2) =
+            let Polyline ps1 = approximate (arcAtThreeEights hex (d1, d2))
+                Polyline ps2 = approximate (arcAtThreeEights hex (d2, d1))
+            in  Polygon (ps1 ++ ps2)
+        clippedArc (hex, (d1, d2), ds) = foldr (\(d1', d2') arcs -> clipArcNegative (clippingMask hex (d1', d2')) =<< arcs) [arcAtThreeEights hex (d1, d2)] (nubArcs ds)
+        arcsThere = concatMap clippedArc xs
+        arcsBack  = concatMap clippedArc (reverseStrand xs)
+        (p1, _) = arcStartEnd (head arcsThere)
+        (_, p2) = arcStartEnd (last arcsBack)
+        (_, p3) = arcStartEnd (last arcsThere)
+        (p4, _) = arcStartEnd (head arcsBack)
+        pathClosed = norm (p1 -. p3) < 0.1
+    for_ (arcsThere >>= clipArc bb) plot
+    unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p3 +. p4)) p3 p4)
+    for_ (arcsBack >>= clipArc bb) plot
+    unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p1 +. p2)) p2 p1)
+  where
+    -- use odd numbers for margin b/c clipping algorithm does not cope well with cuts through vertices
+    bb = boundingBoxPolygon $ boundingBox [Vec2 50.2 50.2, Vec2 picWidth picHeight -. Vec2 50.2 50.2]
