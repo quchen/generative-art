@@ -48,11 +48,14 @@ plane = hexagonsInRange 15 origin
   where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
 
 
-newtype Tile = Tile (M.Map Direction Direction) deriving (Eq, Ord, Show)
+newtype Tile = Tile [(TileArc, [TileArc])] deriving (Eq, Ord, Show)
 
 tiles :: V.Vector Tile
 tiles = V.fromList $ nubOrd
-    [ Tile (M.fromList (partialTile ++ (swap <$> partialTile)))
+    [ Tile
+        [ (tileArc, arcsAbove)
+        | tileArc : arcsAbove <- tails partialTile
+        ]
     | [d1, d2, d3, d4, d5, d6] <- permutations allDirections
     , let fullTile = [(d1, d2), (d3, d4), (d5, d6)]
     , partialTile <- drop 2 $ inits fullTile
@@ -75,22 +78,19 @@ randomTile = \gen -> do
   where countTiles = V.length tiles
 
 extractArc :: Tile -> Maybe (TileArc, [TileArc], Tile)
-extractArc tile@(Tile xs)
-    | M.null xs = Nothing
-    | otherwise =
-        let (d1, d2) = M.findMin xs
-            tile'@(Tile xs') = deleteArc tile (d1, d2)
-        in  Just ((d1, d2), M.toList xs', tile')
+extractArc = \case
+    Tile [] -> Nothing
+    Tile (((d1, d2), ds) : xs') -> Just ((d1, d2), ds, Tile xs')
 
 findArc :: Tile -> Direction -> Maybe (TileArc, [TileArc], Tile)
-findArc tile@(Tile xs) d1 = case M.lookup d1 xs of
+findArc tile@(Tile xs) d1 = case lookup d1 (xs >>= \((a, b), c) -> [(a, (b, c)), (b, (a, c))]) of
     Nothing -> Nothing
-    Just d2 ->
-        let tile'@(Tile xs') = deleteArc tile (d1, d2)
-        in  Just ((d1, d2), M.toList xs', tile')
+    Just (d2, ds) ->
+        let tile' = deleteArc tile (d1, d2)
+        in  Just ((d1, d2), ds, tile')
 
 deleteArc :: Tile -> (Direction, Direction) -> Tile
-deleteArc (Tile xs) (d1, d2) = Tile $ M.delete d1 $ M.delete d2 xs
+deleteArc (Tile xs) ds = Tile $ filter (not . (\(ds', _) -> ds == ds' || ds == swap ds')) xs
 
 strands :: Tiling -> [V.Vector (Hex, TileArc, [TileArc])]
 strands tiling = case M.lookupMin tiling of
