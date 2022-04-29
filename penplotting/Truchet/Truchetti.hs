@@ -19,7 +19,7 @@ import           System.Random.MWC
 import Arc
 import Draw
 import Geometry
-import Geometry.Coordinates.Hexagonal
+import Geometry.Coordinates.Hexagonal hiding (Polygon)
 
 
 
@@ -36,6 +36,7 @@ main = do
     tiling <- randomTiling gen plane
 
     let drawing = do
+            coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
             cairoScope (setColor black >> C.paint)
             for_ (strands tiling) $ drawStrand . V.toList
 
@@ -169,9 +170,15 @@ cyclic d1 d2
 
 drawStrand :: [(Hex, TileArc, [TileArc])] -> C.Render ()
 drawStrand xs = cairoScope $ do
-    let arcAtThreeEights (hex, (d1, d2), _) = toArc hex (d1, 3/8, d2)
-        arcsThere = fmap arcAtThreeEights xs
-        arcsBack  = fmap arcAtThreeEights (reverseStrand xs)
+    let arcAtThreeEights hex (d1, d2) = toArc hex (d1, 3/8, d2)
+        nubArcs = nubBy (\(d1, d2) (d3, d4) -> d1 == d4 && d2 == d3)
+        clippingMask hex (d1, d2) =
+            let Polyline ps1 = approximate (arcAtThreeEights hex (d1, d2))
+                Polyline ps2 = approximate (arcAtThreeEights hex (d2, d1))
+            in  Polygon (ps1 ++ ps2)
+        clippedArc (hex, (d1, d2), ds) = foldr (\(d1', d2') arcs -> clipArcNegative (clippingMask hex (d1', d2')) =<< arcs) [arcAtThreeEights hex (d1, d2)] (nubArcs ds)
+        arcsThere = concatMap clippedArc xs
+        arcsBack  = concatMap clippedArc (reverseStrand xs)
         (p1, _) = arcStartEnd (head arcsThere)
         (_, p2) = arcStartEnd (last arcsBack)
         (_, p3) = arcStartEnd (last arcsThere)

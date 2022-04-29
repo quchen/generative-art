@@ -60,11 +60,13 @@ instance Sketch Arc where
         let radius = norm (start -. center)
             startAngle = angleOfLine (Line center start)
             endAngle = angleOfLine (Line center end)
+        moveToVec start
         arcSketchNegative center radius startAngle endAngle
     sketch (CcwArc center start end) = do
         let radius = norm (start -. center)
             startAngle = angleOfLine (Line center start)
             endAngle = angleOfLine (Line center end)
+        moveToVec start
         arcSketch center radius startAngle endAngle
     sketch (Straight start end) = sketch (Line start end)
 
@@ -89,19 +91,34 @@ instance Plotting Arc where
             d | d < 0.1 -> lineTo end
             _otherwise -> repositionTo start >> lineTo end
 
--- | Clip an arc with a polygon mask
+-- | Clip an arc with a polygon mask: The result are the parts of the arc that
+-- are inside the mask.
 --
 -- The algorithm approximates the arc with a polyline, so it's probably not
 -- suited for computations, but should be fine for drawing/plotting purposes.
 --
 -- <<docs/haddock/Arc.hs/clipping_example.svg>>
 clipArc :: Polygon -> Arc -> [Arc]
-clipArc mask (Straight start end) =
+clipArc = genericClipArc LineInsidePolygon
+
+-- | Clip an arc with a polygon mask: The result are the parts of the arc that
+-- are outside the mask.
+--
+-- The algorithm approximates the arc with a polyline, so it's probably not
+-- suited for computations, but should be fine for drawing/plotting purposes.
+--
+-- <<docs/haddock/Arc.hs/negative_clipping_example.svg>>
+clipArcNegative :: Polygon -> Arc -> [Arc]
+clipArcNegative = genericClipArc LineOutsidePolygon
+
+genericClipArc :: LineType -> Polygon -> Arc -> [Arc]
+genericClipArc lineType mask (Straight start end) =
     [ Straight a b
-    | (Line a b, LineInsidePolygon) <- clipPolygonWithLineSegment mask (Line start end)
+    | (Line a b, lt) <- clipPolygonWithLineSegment mask (Line start end)
+    , lt == lineType
     ]
-clipArc mask arc@CwArc{} = reverse (reverseArc <$> clipArc mask (reverseArc arc))
-clipArc mask (CcwArc center start end) = reconstructArcs $ sortOn (getRad . angleOf . fst) (startEndPoint ++ intersectionPoints)
+genericClipArc lineType mask arc@CwArc{} = reverse (reverseArc <$> genericClipArc lineType mask (reverseArc arc))
+genericClipArc lineType mask (CcwArc center start end) = reconstructArcs $ sortOn (getRad . angleOf . fst) (startEndPoint ++ intersectionPoints)
   where
     tolerance = 0.001
     startAngle = angleOf start
@@ -110,12 +127,13 @@ clipArc mask (CcwArc center start end) = reconstructArcs $ sortOn (getRad . angl
     radius = norm (start -. center)
     approximateCircle = transform (translate center <> scale radius) regularPolygon 32
     startEndPoint = concat
-        [ [(start, Entering) | start `pointInPolygon` mask]
-        , [(end,   Exiting)  | end   `pointInPolygon` mask]
+        [ [(start, Entering) | start `pointInPolygon` mask == (lineType == LineInsidePolygon)]
+        , [(end,   Exiting)  | end   `pointInPolygon` mask == (lineType == LineInsidePolygon)]
         ]
     intersectionPoints = do
         edge <- polygonEdges approximateCircle
-        (Line a' b', LineInsidePolygon) <- clipPolygonWithLineSegment mask edge
+        (Line a' b', lt) <- clipPolygonWithLineSegment mask edge
+        guard (lt == lineType)
         (approximateIntersectionPoint, intersectionClass) <- [(a', Entering), (b', Exiting)]
         guard (any (\maskEdge -> distanceFromLine approximateIntersectionPoint maskEdge <= tolerance) maskEdges)
         let refinedIntersectionPoint = newton approximateIntersectionPoint
@@ -124,6 +142,7 @@ clipArc mask (CcwArc center start end) = reconstructArcs $ sortOn (getRad . angl
         pure (refinedIntersectionPoint, intersectionClass)
     reconstructArcs = \case
         [] -> []
+        (p, _) : (q, _) : rest | p == q -> reconstructArcs rest
         (p, Entering) : (q, Exiting) : rest -> CcwArc center p q : reconstructArcs rest
         xs -> error ("Could not reconstruct arcs: " ++ unlines (show <$> xs))
     newton :: Vec2 -> Vec2
@@ -172,19 +191,35 @@ arcsClippingExample = do
             , arcType <- [CwArc center, CcwArc center, Straight]
             ]
         mask = transform (scale 60) $ regularPolygon 6
-    haddockRender "Arc.hs/clipping_example.svg" 200 200 $ do
-        coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 200 200)
-        sketch mask
-        setColor (mathematica97 1)
-        C.stroke
-        for_ arcs $ \arc -> do
-            let color = case arc of
-                    CcwArc{}   -> mathematica97 2
-                    CwArc{}    -> mathematica97 3
-                    Straight{} -> mathematica97 4
-            sketch arc
-            setColor (color `withOpacity` 0.2)
+        drawing clip = do
+            coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 200 200)
+            sketch mask
+            setColor (mathematica97 1)
             C.stroke
-            for_ (clipArc mask arc) sketch
-            setColor color
-            C.stroke
+            for_ arcs $ \arc -> do
+                let color = case arc of
+                        CcwArc{}   -> mathematica97 2
+                        CwArc{}    -> mathematica97 3
+                        Straight{} -> mathematica97 4
+                sketch arc
+                setColor (color `withOpacity` 0.2)
+                C.stroke
+                for_ (clip mask arc) sketch
+                setColor color
+                C.stroke
+    haddockRender "Arc.hs/clipping_example.svg" 200 200 (drawing clipArc)
+    haddockRender "Arc.hs/negative_clipping_example.svg" 200 200 (drawing clipArcNegative)
+
+approximate :: Arc -> Polyline []
+approximate (Straight start end) = Polyline [start, end]
+approximate (CwArc center start end) =
+    let Polyline ps = approximate (CcwArc center end start)
+    in  Polyline (reverse ps)
+approximate (CcwArc center start end) =
+    let radius = norm (center -. start)
+        startAngle = normalizeAngle zero (angleOfLine (Line center start))
+        angleOf p = normalizeAngle startAngle (angleOfLine (Line center p))
+        endAngle = angleOf end
+        Polygon ps = transform (translate center <> rotate startAngle <> scale radius) (regularPolygon 32)
+        supportPoints = filter (\p -> getRad (angleOf p) > getRad startAngle && getRad (angleOf p) < getRad endAngle) ps
+    in  Polyline (start : supportPoints ++ [end])
