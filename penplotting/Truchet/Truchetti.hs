@@ -60,6 +60,8 @@ tiles = V.fromList $ nubOrd
 
 type Tiling = M.Map Hex Tile
 
+type TileArc = (Direction, Direction)
+
 randomTiling :: GenIO -> [Hex] -> IO Tiling
 randomTiling gen coords = fmap M.fromList $ for coords $ \hex -> do
     tile <- randomTile gen
@@ -71,41 +73,46 @@ randomTile = \gen -> do
     pure (tiles V.! rnd)
   where countTiles = V.length tiles
 
-extractArc :: Tile -> Maybe ((Direction, Direction), Tile)
-extractArc (Tile xs)
+extractArc :: Tile -> Maybe (TileArc, [TileArc], Tile)
+extractArc tile@(Tile xs)
     | M.null xs = Nothing
     | otherwise =
         let (d1, d2) = M.findMin xs
-        in  Just ((d1, d2), deleteArc (Tile xs) (d1, d2))
+            tile'@(Tile xs') = deleteArc tile (d1, d2)
+        in  Just ((d1, d2), M.toList xs', tile')
 
-findArc :: Tile -> Direction -> Maybe ((Direction, Direction), Tile)
-findArc (Tile xs) d1 = fmap (\d2 -> ((d1, d2), deleteArc (Tile xs) (d1, d2))) (M.lookup d1 xs)
+findArc :: Tile -> Direction -> Maybe (TileArc, [TileArc], Tile)
+findArc tile@(Tile xs) d1 = case M.lookup d1 xs of
+    Nothing -> Nothing
+    Just d2 ->
+        let tile'@(Tile xs') = deleteArc tile (d1, d2)
+        in  Just ((d1, d2), M.toList xs', tile')
 
 deleteArc :: Tile -> (Direction, Direction) -> Tile
 deleteArc (Tile xs) (d1, d2) = Tile $ M.delete d1 $ M.delete d2 xs
 
-strands :: Tiling -> [V.Vector (Hex, (Direction, Direction))]
+strands :: Tiling -> [V.Vector (Hex, TileArc, [TileArc])]
 strands tiling = case M.lookupMin tiling of
     Nothing -> []
     Just (startHex, t) -> case extractArc t of
-        Nothing ->  strands (M.delete startHex tiling)
-        Just ((d, d'), t') ->
+        Nothing -> strands (M.delete startHex tiling)
+        Just ((d, d'), ds, t') ->
             let tiling' = M.insert startHex t' tiling
                 (s, tiling'') = strand tiling' startHex d
                 (s', tiling''') = strand tiling'' startHex d'
-            in V.fromList (reverseStrand s ++ [(startHex, (d, d'))] ++ s') : strands tiling'''
+            in V.fromList (reverseStrand s ++ [(startHex, (d, d'), ds)] ++ s') : strands tiling'''
 
-strand :: Tiling -> Hex -> Direction -> ([(Hex, (Direction, Direction))], Tiling)
+strand :: Tiling -> Hex -> Direction -> ([(Hex, TileArc, [TileArc])], Tiling)
 strand tiling hex d = let hex' = move d 1 hex in case M.lookup hex' tiling of
     Nothing -> ([], tiling)
     Just t -> case findArc t (reverseDirection d) of
         Nothing -> ([], tiling)
-        Just ((_, d'), t') ->
+        Just ((_, d'), ds, t') ->
             let (s', tiling') = strand (M.insert hex' t' tiling) hex' d'
-            in  ((hex', (reverseDirection d, d')) : s', tiling')
+            in  ((hex', (reverseDirection d, d'), ds) : s', tiling')
 
-reverseStrand :: [(Hex, (Direction, Direction))] -> [(Hex, (Direction, Direction))]
-reverseStrand = fmap (\(h, (d1, d2)) -> (h, (d2, d1))) . reverse
+reverseStrand :: [(Hex, TileArc, [TileArc])] -> [(Hex, TileArc, [TileArc])]
+reverseStrand = fmap (\(h, (d1, d2), ds) -> (h, (d2, d1), ds)) . reverse
 
 reverseDirection :: Direction -> Direction
 reverseDirection d = toEnum ((fromEnum d + 3) `mod` 6)
@@ -160,9 +167,9 @@ cyclic d1 d2
     | d1 == reverseDirection d2 = d1 < d2
     | otherwise = (6 + fromEnum d1 - fromEnum d2) `mod` 6 <= 3
 
-drawStrand :: [(Hex, (Direction, Direction))] -> C.Render ()
+drawStrand :: [(Hex, TileArc, [TileArc])] -> C.Render ()
 drawStrand xs = cairoScope $ do
-    let arcAtThreeEights (hex, (d1, d2)) = toArc hex (d1, 3/8, d2)
+    let arcAtThreeEights (hex, (d1, d2), _) = toArc hex (d1, 3/8, d2)
         arcsThere = fmap arcAtThreeEights xs
         arcsBack  = fmap arcAtThreeEights (reverseStrand xs)
         (p1, _) = arcStartEnd (head arcsThere)
