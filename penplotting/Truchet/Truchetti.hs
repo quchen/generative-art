@@ -22,11 +22,12 @@ import Geometry.Coordinates.Hexagonal hiding (Polygon)
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 700
-picHeight = 500
+picWidth = 600
+picHeight = 400
 
-cellSize :: Num a => a
-cellSize = 20
+cellSize :: Double
+-- use odd numbers for cell size b/c clipping algorithm does not cope well with cuts through vertices
+cellSize = 15.5
 
 main :: IO ()
 main = do
@@ -34,7 +35,7 @@ main = do
     tiling <- randomTiling gen plane
 
     let drawing = do
-            coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
+            coordinateSystem (MathStandard_ZeroCenter_XRight_YUp picWidth picHeight)
             cairoScope (setColor black >> C.paint)
             for_ (strands tiling) $ drawStrand . V.toList
 
@@ -56,9 +57,7 @@ main = do
     renderPreview "out/penplotting-truchetti-preview.svg" plotResult
 
 plane :: [Hex]
-plane = hexagonsInRange 15 origin
-  where origin = fromVec2 cellSize (Vec2 (picWidth/2) (picHeight/2))
-
+plane = hexagonsInRange 15 hexZero
 
 newtype Tile = Tile [(TileArc, [TileArc])] deriving (Eq, Ord, Show)
 
@@ -207,7 +206,8 @@ drawStrand xs = cairoScope $ do
 
 plotStrand :: [(Hex, TileArc, [TileArc])] -> Plot ()
 plotStrand xs = do
-    let arcAtThreeEights hex (d1, d2) = toArc hex (d1, 3/8, d2)
+    let align = transform (translate (Vec2 (picWidth/2) (picHeight/2)))
+        arcAtThreeEights hex (d1, d2) = align (toArc hex (d1, 3/8, d2))
         nubArcs = nubBy (\(d1, d2) (d3, d4) -> d1 == d4 && d2 == d3)
         clippingMask hex (d1, d2) =
             let Polyline ps1 = approximate (arcAtThreeEights hex (d1, d2))
@@ -226,5 +226,4 @@ plotStrand xs = do
     for_ (arcsBack >>= clipArc bb) plot
     unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p1 +. p2)) p2 p1)
   where
-    -- use odd numbers for margin b/c clipping algorithm does not cope well with cuts through vertices
-    bb = boundingBoxPolygon $ boundingBox [Vec2 50.2 50.2, Vec2 picWidth picHeight -. Vec2 50.2 50.2]
+    bb = boundingBoxPolygon $ boundingBox [zero, Vec2 picWidth picHeight]
