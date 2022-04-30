@@ -22,8 +22,8 @@ import Geometry.Coordinates.Hexagonal hiding (Polygon)
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 600
-picHeight = 400
+picWidth = 570
+picHeight = 380
 
 cellSize :: Double
 -- use odd numbers for cell size b/c clipping algorithm does not cope well with cuts through vertices
@@ -51,10 +51,17 @@ main = do
             , _mergeObjects = Nothing
             } . S.fromList
         settings = def
+            { _zTravelHeight = 2
+            , _zDrawingHeight = -1
+            , _feedrate = 9000
+            , _previewPenTravelColor = Nothing
+            , _previewPenWidth = 0.5
+            }
         plotting = for_ (optimize (strands tiling)) $ plotStrand . V.toList
         plotResult = runPlot settings plotting
     renderPreview "out/penplotting-truchetti-preview.png" plotResult
     renderPreview "out/penplotting-truchetti-preview.svg" plotResult
+    writeGCodeFile "truchetti.g" plotResult
 
 plane :: [Hex]
 plane = hexagonsInRange 15 hexZero
