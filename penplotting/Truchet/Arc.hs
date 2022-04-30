@@ -140,11 +140,17 @@ genericClipArc lineType mask (CcwArc center start end) = reconstructArcs $ sortO
             alpha = angleOf refinedIntersectionPoint
         guard (getRad alpha >= getRad startAngle - 2 * pi * tolerance && getRad alpha <= getRad endAngle + 2 * pi * tolerance)
         pure (refinedIntersectionPoint, intersectionClass)
-    reconstructArcs = \case
-        [] -> []
-        (p, _) : (q, _) : rest | p == q -> reconstructArcs rest
-        (p, Entering) : (q, Exiting) : rest -> CcwArc center p q : reconstructArcs rest
-        xs -> error ("Could not reconstruct arcs: " ++ unlines (show <$> xs))
+    reconstructArcs xs = go xs
+      where
+        go = \case
+            [] -> []
+            (p, Entering) : (q, Exiting) : rest -> CcwArc center p q : go rest
+            -- Be a bit lenient about common error cases due to numerical instabilities
+            [_] -> []
+            (p, Entering) : (_, Entering) : (_, Exiting) : rest -> go ((p, Entering) : rest)
+            (_, Exiting) : rest -> go rest
+            (p, _) : (q, _) : rest | norm (p -. q) < tolerance * radius -> go rest
+            _ -> error ("Could not reconstruct arcs: " ++ unlines (show <$> xs))
     newton :: Vec2 -> Vec2
     newton p =
         let edge = minimumBy (comparing (distanceFromLine p)) maskEdges
