@@ -97,7 +97,7 @@ instance Plotting Arc where
 -- The algorithm approximates the arc with a polyline, so it's probably not
 -- suited for computations, but should be fine for drawing/plotting purposes.
 --
--- <<docs/haddock/Arc.hs/clipping_example.svg>>
+-- <<docs/clipping_example.svg>>
 clipArc :: Polygon -> Arc -> [Arc]
 clipArc = genericClipArc LineInsidePolygon
 
@@ -107,7 +107,7 @@ clipArc = genericClipArc LineInsidePolygon
 -- The algorithm approximates the arc with a polyline, so it's probably not
 -- suited for computations, but should be fine for drawing/plotting purposes.
 --
--- <<docs/haddock/Arc.hs/negative_clipping_example.svg>>
+-- <<docs/negative_clipping_example.svg>>
 clipArcNegative :: Polygon -> Arc -> [Arc]
 clipArcNegative = genericClipArc LineOutsidePolygon
 
@@ -186,7 +186,7 @@ clipPolygonWithLineSegment polygon scissors@(Line start end) = reconstructSegmen
 
 -- Test pic for clipping
 -- Run in GHCI:
--- > stack ghci generative-art penplotting-truchet
+-- > stack ghci penplotting-truchet
 -- > arcsClippingExample
 arcsClippingExample :: IO ()
 arcsClippingExample = do
@@ -213,8 +213,8 @@ arcsClippingExample = do
                 for_ (clip mask arc) sketch
                 setColor color
                 C.stroke
-    haddockRender "Arc.hs/clipping_example.svg" 200 200 (drawing clipArc)
-    haddockRender "Arc.hs/negative_clipping_example.svg" 200 200 (drawing clipArcNegative)
+    render "docs/clipping_example.svg" 200 200 (drawing clipArc)
+    render "docs/negative_clipping_example.svg" 200 200 (drawing clipArcNegative)
 
 approximate :: Arc -> Polyline []
 approximate (Straight start end) = Polyline [start, end]
