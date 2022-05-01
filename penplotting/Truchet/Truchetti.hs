@@ -59,8 +59,8 @@ main = do
             }
         plotting = do
             let xs = V.toList <$> optimize (strands tiling)
-            for_ (take 5 xs) $ plotStrandSlightlySmaller
-            for_ xs $ plotStrand
+            for_ (take 5 xs) plotStrandSlightlySmaller
+            for_ xs plotStrand
         plotResult = runPlot settings plotting
     renderPreview "out/penplotting-truchetti-preview.png" plotResult
     renderPreview "out/penplotting-truchetti-preview.svg" plotResult
