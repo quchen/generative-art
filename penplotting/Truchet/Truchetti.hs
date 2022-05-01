@@ -22,12 +22,12 @@ import Geometry.Coordinates.Hexagonal hiding (Polygon)
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 570
-picHeight = 380
+picWidth = 380
+picHeight = 570
 
 cellSize :: Double
 -- use odd numbers for cell size b/c clipping algorithm does not cope well with cuts through vertices
-cellSize = 15.5
+cellSize = 14.78
 
 main :: IO ()
 main = do
@@ -213,7 +213,7 @@ drawStrand xs = cairoScope $ do
 
 plotStrand :: [(Hex, TileArc, [TileArc])] -> Plot ()
 plotStrand xs = do
-    let align = transform (translate (Vec2 (picWidth/2) (picHeight/2)))
+    let align = transform (translate (Vec2 (picHeight/2) (picWidth/2)) <> rotate (deg 90))
         arcAtThreeEights hex (d1, d2) = align (toArc hex (d1, 3/8, d2))
         nubArcs = nubBy (\(d1, d2) (d3, d4) -> d1 == d4 && d2 == d3)
         clippingMask hex (d1, d2) =
@@ -233,4 +233,4 @@ plotStrand xs = do
     for_ (arcsBack >>= clipArc bb) plot
     unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p1 +. p2)) p2 p1)
   where
-    bb = boundingBoxPolygon $ boundingBox [zero, Vec2 picWidth picHeight]
+    bb = boundingBoxPolygon $ boundingBox [zero, Vec2 picHeight picWidth]
