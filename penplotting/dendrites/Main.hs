@@ -26,7 +26,7 @@ canvas = boundingBox [zero, Vec2 picWidth picHeight]
 main :: IO ()
 main = do
     gen <- create
-    let seeds = [Vec2 100 100, Vec2 500 100, Vec2 900 100]
+    let seeds = [Vec2 100 100, Vec2 500 300, Vec2 900 100]
         radius = 10
     dendrites <- growDendrites gen seeds radius
 
@@ -57,12 +57,13 @@ growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (V.fro
         , _radius = radius
         }
     loop allNodes states = do
-        let (inactive, active) = V.partition (H.null . _activeBranches) states
-        uniformShuffle active gen >>= \shuffled -> case V.uncons shuffled of
-            Nothing -> pure (V.toList states)
-            Just (item, otherActive) -> do
+        index <- categorical (V.map (fromIntegral . H.size . _activeBranches) states) gen
+        let item = states V.! index
+        if H.null (_activeBranches item)
+            then pure (V.toList states)
+            else do
                 (allNodes', item') <- growCell allNodes item
-                loop allNodes' (V.concat [inactive, V.singleton item', otherActive])
+                loop allNodes' (states V.// [(index, item')])
 
     growCell allNodes state = do
         state' <- grow gen state { _allNodes = allNodes }
