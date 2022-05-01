@@ -6,6 +6,7 @@ import Control.Monad
 import qualified Data.Heap as H
 import Data.Maybe
 import qualified Data.Set as S
+import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
 
 import Draw
@@ -13,11 +14,55 @@ import Geometry
 
 
 
+picWidth, picHeight :: Num a => a
+picWidth = 1000
+picHeight = 1000
+
 canvas :: BoundingBox
-canvas = undefined
+canvas = boundingBox [zero, Vec2 picWidth picHeight]
 
 main :: IO ()
-main = pure ()
+main = do
+    gen <- create
+    let seeds = [Vec2 100 100, Vec2 500 100, Vec2 900 100]
+        radius = 10
+    dendrites <- growDendrites gen seeds radius
+
+    render "out/dendrites.png" picWidth picHeight $ do
+        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
+        cairoScope (setColor white >> C.paint)
+        for_ (zip [0..] dendrites) $ \(c, d) -> do
+            setColor (mathematica97 c)
+            drawDendrite (root d) d
+
+
+drawDendrite :: Vec2 -> Dendrite -> C.Render ()
+drawDendrite parent (Node p children) = do
+    sketch (Line parent p)
+    C.stroke
+    when (null children) $ do
+        sketch (Circle p 2)
+        C.stroke
+    for_ children $ drawDendrite p
+
+growDendrites :: GenIO -> [Vec2] -> Double -> IO [Dendrite]
+growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (initialState <$> seeds)
+  where
+    initialState p = GrowthState
+        { _result = seed p
+        , _activeBranches = H.singleton (H.Entry 0 p)
+        , _allNodes = S.singleton p
+        , _radius = radius
+        }
+    loop allNodes states = do
+        (allNodes', states') <- foldM growCell (allNodes, []) (reverse states)
+        if any (not . H.null) (_activeBranches <$> states')
+            then loop allNodes' states'
+            else pure states'
+
+    growCell (allNodes, states) state = do
+        state' <- grow gen state { _allNodes = allNodes }
+        pure (allNodes `S.union` _allNodes state', state' : states)
 
 data Dendrite = Node Vec2 [Dendrite]
 
@@ -53,7 +98,7 @@ grow gen s@GrowthState{..} = case H.uncons _activeBranches of
             }
 
 candidates :: GenIO -> GrowthState -> Vec2 -> IO [Vec2]
-candidates gen s@GrowthState{..} p = fmap catMaybes $ replicateM 10 $ do
+candidates gen GrowthState{..} p = fmap catMaybes $ replicateM 10 $ do
     phi <- rad <$> uniformRM (0, 2*pi) gen
     r' <- uniformRM (_radius, 2*_radius) gen
     let p' = p +. polar phi r'
