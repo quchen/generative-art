@@ -31,7 +31,7 @@ cellSize = 14.78
 
 main :: IO ()
 main = do
-    gen <- initialize (V.fromList [123, 988])
+    gen <- initialize (V.fromList [123, 986])
     tiling <- randomTiling gen plane
 
     let drawing = do
@@ -57,7 +57,10 @@ main = do
             , _previewPenTravelColor = Nothing
             , _previewPenWidth = 0.5
             }
-        plotting = for_ (optimize (strands tiling)) $ plotStrand . V.toList
+        plotting = do
+            let xs = V.toList <$> optimize (strands tiling)
+            for_ (take 5 xs) $ plotStrandSlightlySmaller
+            for_ xs $ plotStrand
         plotResult = runPlot settings plotting
     renderPreview "out/penplotting-truchetti-preview.png" plotResult
     renderPreview "out/penplotting-truchetti-preview.svg" plotResult
@@ -221,6 +224,31 @@ plotStrand xs = do
                 Polyline ps2 = approximate (arcAtThreeEights hex (d2, d1))
             in  Polygon (ps1 ++ ps2)
         clippedArc (hex, (d1, d2), ds) = foldr (\(d1', d2') arcs -> clipArcNegative (clippingMask hex (d1', d2')) =<< arcs) [arcAtThreeEights hex (d1, d2)] (nubArcs ds)
+        arcsThere = concatMap clippedArc xs
+        arcsBack  = concatMap clippedArc (reverseStrand xs)
+        (p1, _) = arcStartEnd (head arcsThere)
+        (_, p2) = arcStartEnd (last arcsBack)
+        (_, p3) = arcStartEnd (last arcsThere)
+        (p4, _) = arcStartEnd (head arcsBack)
+        pathClosed = norm (p1 -. p3) < 0.1
+    for_ (arcsThere >>= clipArc bb) plot
+    unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p3 +. p4)) p3 p4)
+    for_ (arcsBack >>= clipArc bb) plot
+    unless pathClosed $ plot (clipArc bb $ CcwArc (0.5 *. (p1 +. p2)) p2 p1)
+  where
+    bb = boundingBoxPolygon $ boundingBox [zero, Vec2 picHeight picWidth]
+
+plotStrandSlightlySmaller :: [(Hex, TileArc, [TileArc])] -> Plot ()
+plotStrandSlightlySmaller xs = do
+    let align = transform (translate (Vec2 (picHeight/2) (picWidth/2)) <> rotate (deg 90))
+        arcAtThreeEights hex (d1, d2) = align (toArc hex (d1, 3/8, d2))
+        slightlySmallerArc hex (d1, d2) = align (toArc hex (d1, 3/8 + 0.04, d2))
+        nubArcs = nubBy (\(d1, d2) (d3, d4) -> d1 == d4 && d2 == d3)
+        clippingMask hex (d1, d2) =
+            let Polyline ps1 = approximate (arcAtThreeEights hex (d1, d2))
+                Polyline ps2 = approximate (arcAtThreeEights hex (d2, d1))
+            in  Polygon (ps1 ++ ps2)
+        clippedArc (hex, (d1, d2), ds) = foldr (\(d1', d2') arcs -> clipArcNegative (clippingMask hex (d1', d2')) =<< arcs) [slightlySmallerArc hex (d1, d2)] (nubArcs ds)
         arcsThere = concatMap clippedArc xs
         arcsBack  = concatMap clippedArc (reverseStrand xs)
         (p1, _) = arcStartEnd (head arcsThere)
