@@ -6,8 +6,10 @@ import Control.Monad
 import qualified Data.Heap as H
 import Data.Maybe
 import qualified Data.Set as S
+import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
+import System.Random.MWC.Distributions
 
 import Draw
 import Geometry
@@ -46,7 +48,7 @@ drawDendrite parent (Node p children) = do
     for_ children $ drawDendrite p
 
 growDendrites :: GenIO -> [Vec2] -> Double -> IO [Dendrite]
-growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (initialState <$> seeds)
+growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (V.fromList (initialState <$> seeds))
   where
     initialState p = GrowthState
         { _result = seed p
@@ -55,14 +57,16 @@ growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (initi
         , _radius = radius
         }
     loop allNodes states = do
-        (allNodes', states') <- foldM growCell (allNodes, []) (reverse states)
-        if any (not . H.null) (_activeBranches <$> states')
-            then loop allNodes' states'
-            else pure states'
+        let (inactive, active) = V.partition (H.null . _activeBranches) states
+        uniformShuffle active gen >>= \shuffled -> case V.uncons shuffled of
+            Nothing -> pure (V.toList states)
+            Just (item, otherActive) -> do
+                (allNodes', item') <- growCell allNodes item
+                loop allNodes' (V.concat [inactive, V.singleton item', otherActive])
 
-    growCell (allNodes, states) state = do
+    growCell allNodes state = do
         state' <- grow gen state { _allNodes = allNodes }
-        pure (allNodes `S.union` _allNodes state', state' : states)
+        pure (allNodes `S.union` _allNodes state', state')
 
 data Dendrite = Node Vec2 [Dendrite]
 
