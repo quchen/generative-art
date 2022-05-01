@@ -53,7 +53,7 @@ main = do
         settings = def
             { _zTravelHeight = 2
             , _zDrawingHeight = -1
-            , _feedrate = 9000
+            , _feedrate = 6000
             , _previewPenTravelColor = Nothing
             , _previewPenWidth = 0.5
             }
