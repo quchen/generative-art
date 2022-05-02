@@ -29,7 +29,7 @@ main :: IO ()
 main = do
     gen <- create
     let seeds = [Vec2 (0.1 * picWidth) (0.5 * picHeight), Vec2 (0.9 * picWidth) (0.5 * picHeight)]
-        radius = 4
+        radius = 2
     dendrites <- growDendrites gen seeds radius
 
     render "out/dendrites.png" picWidth picHeight $ do
@@ -42,7 +42,7 @@ main = do
     let settings = def
             { _feedrate = 3000
             , _zTravelHeight = 3
-            , _zDrawingHeight = -1
+            , _zDrawingHeight = -2
             }
 
         penChange = withDrawingHeight 0 $ do
