@@ -13,6 +13,7 @@ import System.Random.MWC.Distributions
 
 import Draw
 import Geometry
+import Geometry.Shapes
 
 
 
@@ -20,14 +21,14 @@ picWidth, picHeight :: Num a => a
 picWidth = 1000
 picHeight = 1000
 
-canvas :: BoundingBox
-canvas = boundingBox [zero, Vec2 picWidth picHeight]
+canvas :: Polygon
+canvas = transform (translate (Vec2 (picWidth/2) (picHeight/2)) <> scale' 500 500) (regularPolygon 32)
 
 main :: IO ()
 main = do
     gen <- create
-    let seeds = [Vec2 100 100, Vec2 500 300, Vec2 900 100]
-        radius = 10
+    let seeds = [Vec2 100 500, Vec2 900 500]
+        radius = 20
     dendrites <- growDendrites gen seeds radius
 
     render "out/dendrites.png" picWidth picHeight $ do
@@ -103,12 +104,12 @@ grow gen s@GrowthState{..} = case H.uncons _activeBranches of
             }
 
 candidates :: GenIO -> GrowthState -> Vec2 -> IO [Vec2]
-candidates gen GrowthState{..} p = fmap catMaybes $ replicateM 10 $ do
+candidates gen GrowthState{..} p = fmap catMaybes $ replicateM 20 $ do
     phi <- rad <$> uniformRM (0, 2*pi) gen
     r' <- uniformRM (_radius, 2*_radius) gen
     let p' = p +. polar phi r'
     pure $ do
-        guard (p' `insideBoundingBox` canvas)
+        guard (p' `pointInPolygon` canvas)
         guard (not (any (\q -> norm (p' -. q) <= _radius) _allNodes))
         Just p'
 
