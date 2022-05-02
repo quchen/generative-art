@@ -12,23 +12,24 @@ import System.Random.MWC
 import System.Random.MWC.Distributions
 
 import Draw
+import Draw.Plotting
 import Geometry
 import Geometry.Shapes
 
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 1000
-picHeight = 1000
+picWidth = 200
+picHeight = 200
 
 canvas :: Polygon
-canvas = transform (translate (Vec2 (picWidth/2) (picHeight/2)) <> scale' 500 500) (regularPolygon 32)
+canvas = transform (translate (Vec2 (picWidth/2) (picHeight/2)) <> scale' (picWidth/2) (picHeight/2)) (regularPolygon 32)
 
 main :: IO ()
 main = do
     gen <- create
-    let seeds = [Vec2 100 500, Vec2 900 500]
-        radius = 20
+    let seeds = [Vec2 (0.1 * picWidth) (0.5 * picHeight), Vec2 (0.9 * picWidth) (0.5 * picHeight)]
+        radius = 4
     dendrites <- growDendrites gen seeds radius
 
     render "out/dendrites.png" picWidth picHeight $ do
@@ -38,6 +39,24 @@ main = do
             setColor (mathematica97 c)
             drawDendrite (root d) d
 
+    let settings = def
+            { _feedrate = 3000
+            , _zTravelHeight = 3
+            , _zDrawingHeight = -1
+            }
+
+        penChange = withDrawingHeight 0 $ do
+                repositionTo zero
+                penDown
+                pause PauseUserConfirm
+                penUp
+        plotResult = runPlot settings $
+            for_ dendrites $ \dendrite -> do
+                penChange
+                plotDendrite (root dendrite) dendrite
+
+    renderPreview "out/dendrites.png" plotResult
+    writeGCodeFile "dendrites.g" plotResult
 
 drawDendrite :: Vec2 -> Dendrite -> C.Render ()
 drawDendrite parent (Node p children) = do
@@ -47,6 +66,15 @@ drawDendrite parent (Node p children) = do
         sketch (Circle p 2)
         C.stroke
     for_ children $ drawDendrite p
+
+plotDendrite :: Vec2 -> Dendrite -> Plot ()
+plotDendrite parent (Node p children) = do
+    let branch = Line parent p
+    plot branch
+    when (null children) $ do
+        plot (Line p (p +. 0.4 *. direction branch))
+        plot (Circle p 0.4)
+    for_ children $ plotDendrite p
 
 growDendrites :: GenIO -> [Vec2] -> Double -> IO [Dendrite]
 growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (V.fromList (initialState <$> seeds))
