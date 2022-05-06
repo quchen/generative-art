@@ -17,6 +17,7 @@ description: Generative art using Haskell. See README.md.
 dependencies:
     - base >= 4.7 && < 5
 
+    - alfred-margaret
     - cairo
     - colour
     - containers

@@ -3,12 +3,13 @@ module Draw.NormalizeSvg (normalizeSvgFile) where
 
 
 import           Control.Monad
-import           Data.Foldable
 import           Data.List.Extended
 import           Data.Ord
-import           Data.Text          (Text)
-import qualified Data.Text          as T
-import qualified Data.Text.IO       as T
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+import           Data.Text.AhoCorasick.Automaton as ACA
+import qualified Data.Text.AhoCorasick.Replacer  as ACR
+import qualified Data.Text.IO                    as T
 import           System.FilePath
 import           System.IO
 import           Text.Regex.TDFA
@@ -41,5 +42,5 @@ sanitizeSvgContent input
         -- We reverse the originals so we replace foo123 before foo1, which would yield be a collision
         reverseTranslationTable = sortOn (\(unique, _) -> Down unique) translationTable
 
-        replace acc (original, replacement) = T.replace original replacement acc
-    in foldl' replace input reverseTranslationTable
+        replaceAll = ACR.run (ACR.build ACA.CaseSensitive reverseTranslationTable)
+    in replaceAll input
