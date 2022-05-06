@@ -39,6 +39,13 @@ packages:
       sha256: 887770effc1578682fe255d7f8b1a9801bc5a6e832aa46316782e43eecb65113
   original:
     hackage: plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
+- completed:
+    hackage: alfred-margaret-1.1.1.0@sha256:aeb2f14726e1ee70e542ecfb2a71eb14abda8303d17932bca149401edd76135b,3095
+    pantry-tree:
+      size: 1087
+      sha256: 44f6f77280a9984cdf7be9f2bc4804f9ba3809ab60e9a065aabb1ee3f8f92322
+  original:
+    hackage: alfred-margaret-1.1.1.0@sha256:aeb2f14726e1ee70e542ecfb2a71eb14abda8303d17932bca149401edd76135b,3095
 snapshots:
 - completed:
     size: 586103
