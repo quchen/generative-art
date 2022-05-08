@@ -72,10 +72,6 @@ transformToWorld options drawing = G.transformBoundingBox drawing world def
     margin2 = Vec2 margin margin
     world = (zero +. margin2, Vec2 width height -. margin2)
 
-polyLineLength :: Polyline [] -> Double
-polyLineLength (Polyline xs) =
-    foldl' (+) 0 (zipWith (\start end -> lineLength (Line start end)) xs (tail (cycle xs)))
-
 pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
 pathToPolyline (SvgLine (Line x y)) = [[x,y]]
