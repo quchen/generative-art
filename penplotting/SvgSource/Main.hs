@@ -4,6 +4,7 @@ module Main (main) where
 
 
 
+import           Data.Maybe
 import qualified Data.Set            as S
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
@@ -29,42 +30,51 @@ main = do
     case traverse parse inputLines of
         Left err -> T.putStrLn ("Parse error: " <> err) >> exitWith (ExitFailure 1)
         Right svgElements -> do
-            let transformAll :: (HasBoundingBox geo, Transform geo) => geo -> geo
-                transformAll = G.transform (scaleToFit options (boundingBox svgElements))
-                paths =
-                      filter (\polyline -> polyLineLength polyline >= 1)
-                    . minimizePenHovering
-                    . S.fromList
-                    . transformAll
+            let -- SVG has zero on the top left. We mirror the Y axis to align the axis before doing all the fitting transformations.
+                svgElementsYMirrored = G.transform mirrorYCoords svgElements
+                polylines =
+                      mapMaybe (lineLongEnough options)
+                    . map Polyline
+                    . optimizePaths options
+                    . G.transform (transformToWorld options svgElementsYMirrored)
                     . concatMap pathToPolyline
-                    $ svgElements
+                    $ svgElementsYMirrored
 
-                numElements = length paths
-                totalLength = sum (fmap polyLineLength paths)
-
-                drawing = block $ do
-                    comment ("Total line length: " <> TL.pack (show totalLength))
-                    comment ("Number of elements to draw: " <> TL.pack (show numElements))
-                    plot (Polyline <$> paths)
                 plottingSettings = def
                     { _feedrate = 1000
                     , _zLoweringFeedrate = Just 1000
                     , _zTravelHeight = 2
-                    , _zDrawingHeight = -2
+                    , _zDrawingHeight = -1
                     , _finishMove = Just FinishWithG28
+                    , _canvasBoundingBox = Just (boundingBox (_canvas options))
                     }
-            writeGCodeFile (_outputFileG options) (runPlot plottingSettings drawing)
+                plotResult = runPlot plottingSettings (plot polylines)
+            writeGCodeFile (_outputFileG options) plotResult
+            case _previewFile options of
+                Nothing -> pure ()
+                Just svgFilePath -> renderPreview svgFilePath plotResult
 
-scaleToFit :: HasBoundingBox world => Options -> world -> Transformation
-scaleToFit options world = G.transformBoundingBox world (zero +. margin2, Vec2 width height -. margin2) def
+lineLongEnough :: Sequential f => Options -> Polyline f -> Maybe (Polyline f)
+lineLongEnough options polyline = case _minimumLineLength options of
+    Just minLength
+        | polylineLength polyline < minLength -> Nothing
+    _otherwise -> Just polyline
+
+optimizePaths :: Options -> [[Vec2]] -> [[Vec2]]
+optimizePaths options
+    | _minimizePenTravel options = fmap toList . minimizePenHovering . S.fromList . toList
+    | otherwise = id
+
+transformToWorld :: HasBoundingBox drawing => Options -> drawing -> Transformation
+transformToWorld options drawing = G.transformBoundingBox drawing world def
   where
     Options{_canvas=Canvas{_canvasMargin=margin, _canvasHeight=height, _canvasWidth=width}} = options
     margin2 = Vec2 margin margin
+    world = (zero +. margin2, Vec2 width height -. margin2)
 
-polyLineLength :: Sequential list => list Vec2 -> Double
-polyLineLength xs =
-    let xsList = toList xs
-    in foldl' (+) 0 (zipWith (\start end -> lineLength (Line start end)) xsList (tail (cycle xsList)))
+polyLineLength :: Polyline [] -> Double
+polyLineLength (Polyline xs) =
+    foldl' (+) 0 (zipWith (\start end -> lineLength (Line start end)) xs (tail (cycle xs)))
 
 pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
@@ -81,6 +91,9 @@ pathToLineSegments (Right bezier : xs) = init (bezierSubdivideT 32 bezier) ++ pa
 data Options = Options
     { _inputFileSvg :: FilePath
     , _outputFileG :: FilePath
+    , _previewFile :: Maybe FilePath
+    , _minimizePenTravel :: Bool
+    , _minimumLineLength :: Maybe Double
 
     , _canvas :: Canvas
     } deriving (Eq, Ord, Show)
@@ -89,18 +102,32 @@ commandLineOptions :: IO Options
 commandLineOptions = execParser parserOpts
   where
     progOpts = Options
-        <$> strOption (mconcat
+        <$> (strOption . mconcat)
             [ long "input"
             , short 'f'
             , metavar "<file>"
             , help "Input SVG file"
-            ])
-        <*> strOption (mconcat
+            ]
+        <*> (strOption . mconcat)
             [ long "output"
             , short 'o'
             , metavar "<file>"
             , help "Output GCode file"
-            ])
+            ]
+        <*> (optional . strOption . mconcat)
+            [ long "preview"
+            , metavar "<file>"
+            , help "Output preview file (.svg or .png)"
+            ]
+        <*> (switch . mconcat)
+            [ long "minimize-pen-travel"
+            , help "Reorder lines so pen travelling is minimized. Scales quadratically, so does not work well for large number of lines."
+            ]
+        <*> (optional . option auto . mconcat)
+            [ long "min-line-length"
+            , metavar "<mm>"
+            , help "Minimum line length: filter out polylines shorter than this"
+            ]
         <*> canvasP
 
     parserOpts = info (progOpts <**> helper)
