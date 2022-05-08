@@ -82,14 +82,16 @@ newtype Plot a = Plot (RWS PlottingSettings PlottingWriterLog PlottingState a)
 data PlottingWriterLog = PlottingWriterLog
     { _plottedGCode :: DList GCode
     , _penTravelDistance :: !Double
+    , _elementsDrawn :: !Int
     , _plottingCairoPreview :: C.Render ()
     }
 
 instance Semigroup PlottingWriterLog where
-    PlottingWriterLog code1 travel1 render1 <> PlottingWriterLog code2 travel2 render2 = PlottingWriterLog (code1 <> code2) (travel1 + travel2) (render1 >> render2)
+    PlottingWriterLog code1 travel1 numDrawn1 render1 <> PlottingWriterLog code2 travel2 numDrawn2 render2
+      = PlottingWriterLog (code1 <> code2) (travel1 + travel2) (numDrawn1 + numDrawn2) (render1 >> render2)
 
 instance Monoid PlottingWriterLog where
-    mempty = PlottingWriterLog mempty 0 (pure ())
+    mempty = PlottingWriterLog mempty 0 0 (pure ())
 
 {-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
 modify, _don'tReportModifyAsUnused :: a
@@ -165,8 +167,8 @@ instance Default PlottingSettings where
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
         , _previewPenWidth = 1
-        , _previewPenColor = D.mathematica97 1
-        , _previewPenTravelColor = Just (D.mathematica97 0)
+        , _previewPenColor = D.mathematica97 0
+        , _previewPenTravelColor = Just (D.mathematica97 1)
         , _previewDecorate = True
         }
 
@@ -427,6 +429,7 @@ penDown = gets _penState >>= \case
         case zFeedrate of
             Nothing -> gCode [ G00_LinearRapidMove Nothing Nothing (Just zDrawing) ]
             Just fr -> gCode [ G01_LinearFeedrateMove (Just fr) Nothing Nothing (Just zDrawing) ]
+        Plot (tell mempty{_elementsDrawn = 1})
         modify' (\s -> s { _penState = PenDown })
 
 -- | If the pen is down, lift it to travel height. Do nothing if it is already
@@ -508,25 +511,22 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
             ]
 
     setDefaultModes = GBlock
-        [ GComment "Normalize modal settings"
-        , GBlock
-            [ G17_Plane_XY
-            , G21_UseMm
-            , G90_AbsoluteMovement
-            , G94_Feedrate_UnitsPerMinute
-            ]
+        [ G17_Plane_XY
+        , G21_UseMm
+        , G90_AbsoluteMovement
+        , G94_Feedrate_UnitsPerMinute
         ]
-
-    reportDrawingDistance = GBlock [GComment (format ("Total drawing distance: " % fixed 1 % "m") (_drawingDistance finalState /1000))]
-    reportTravelDistance = GBlock [GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (_penTravelDistance writerLog/1000))]
 
     header = DL.fromList
         [ GComment "Header"
         , GBlock
-            [ setDefaultModes
-            , boundingBoxCheck
-            , reportDrawingDistance
-            , reportTravelDistance
+            [ GComment "Normalize modal settings"
+            , setDefaultModes ]
+        , boundingBoxCheck
+        , GBlock
+            [ GComment (format ("Total drawing distance: " % fixed 1 % "m") (_drawingDistance finalState /1000))
+            , GComment (format ("Total travel (non-drawing) distance: " % fixed 1 % "m") (_penTravelDistance writerLog/1000))
+            , GComment (format ("Total number of elements (pen down events): " % int) (_elementsDrawn writerLog))
             ]
         ]
 
@@ -618,9 +618,9 @@ writeGCodeFile file = TL.writeFile file . renderGCode . _plotGCode
 
 renderPreview :: FilePath -> RunPlotResult -> IO ()
 renderPreview file result = do
-    let bb = _plotBoundingBox result
+    let bb = _totalBoundingBox result
         (w, h) = boundingBoxSize bb
-        trafo = transformBoundingBox bb (BoundingBox zero (Vec2 w h)) def
+        trafo = transformBoundingBox bb (boundingBox [zero, Vec2 w h]) def
     D.render file (round w) (round h) $ do
         D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
         C.transform (D.toCairoMatrix trafo)

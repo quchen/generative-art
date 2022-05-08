@@ -10,6 +10,7 @@ module Draw.Plotting.CmdArgs (
 
 import Control.Monad
 import Data.Foldable
+import Geometry.Core
 import Options.Applicative
 import Options.Applicative.Types
 
@@ -20,6 +21,9 @@ data Canvas = Canvas
     , _canvasHeight :: Double
     , _canvasMargin :: Double
     } deriving (Eq, Ord, Show)
+
+instance HasBoundingBox Canvas where
+    boundingBox Canvas{_canvasWidth=w, _canvasHeight=h} = boundingBox [zero, Vec2 w h]
 
 -- | Command line parser for common paper formats and orientations.
 canvasP :: Parser Canvas

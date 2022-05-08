@@ -33,6 +33,7 @@
 - ignore: {name: "Use lambda-case"}
 - ignore: {name: "Use ++"}
 - ignore: {name: "Use &&"}
+- ignore: {name: "Fuse mapMaybe/map"}
 
 # AMP fallout
 - error:
