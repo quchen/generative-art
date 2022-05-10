@@ -8,7 +8,6 @@ import           Data.Maybe
 import qualified Data.Set            as S
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
-import qualified Data.Text.Lazy      as TL
 import           Options.Applicative
 import           System.Exit
 
