@@ -12,6 +12,7 @@ packages:
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/Kilometer
+    - penplotting/metaballs
     - penplotting/PenChangeCalibration
     - penplotting/PoissonDisc
     - penplotting/Pressure
