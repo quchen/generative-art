@@ -17,18 +17,19 @@ import Geometry.Algorithms.Voronoi
 
 main :: IO ()
 main = do
-    let w = 594
-        h = 420
-        margin = 30
-        canvasBB = boundingBox [zero +. Vec2 margin margin, Vec2 w h -. Vec2 margin margin]
+    let w = 297
+        h = 210
+        margin = 10
+        paperBB = boundingBox [zero, Vec2 w h]
+        drawInsideBB = boundingBox [zero +. Vec2 margin margin, Vec2 w h -. Vec2 margin margin]
 
     let (delaunayPolygons, voronoiPolygons) = G.transform
-            (transformBoundingBox (boundingBox geometry) canvasBB def)
+            (transformBoundingBox (boundingBox geometry) drawInsideBB def)
             geometry
 
     let plotSettings = def
-            { _canvasBoundingBox = Just (boundingBox [zero, Vec2 w h])
-            , _previewDrawnShapesBoundingBox = False
+            { _canvasBoundingBox = Just paperBB
+            , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
             }
         plotDelaunay = runPlot plotSettings { _previewPenColor = mathematica97 1 } $ do
