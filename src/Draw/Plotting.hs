@@ -493,8 +493,8 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
             , GComment (format ("x = [" % fixed 3 % ".." % fixed 3 % "]") xMin xMax)
             , GComment (format ("y = [" % fixed 3 % ".." % fixed 3 % "]") yMin yMax)
             , GBlock
-                [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
-                , G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+                [ G00_LinearRapidMove (Just xMin) (Just yMin) Nothing
+                , G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
                 , G93_Feedrate_TravelInFractionOfMinute
                 , G04_Dwell_ms 0.5
                 -- 60/n ==> n seconds to move
