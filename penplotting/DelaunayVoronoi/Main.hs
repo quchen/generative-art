@@ -4,44 +4,32 @@ module Main (main) where
 
 import           Control.Monad
 import           Control.Monad.ST
-import           Options.Applicative
-import qualified System.Random.MWC   as MWC
+import qualified System.Random.MWC as MWC
 
 import Draw                         as D
 import Draw.Plotting
-import Draw.Plotting.CmdArgs
 import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
-import Graphics.Rendering.Cairo     as C hiding (x,y)
 
 
 
 main :: IO ()
 main = do
-    -- options <- commandLineOptions
-    let options = CmdOptions
-            { _canvas = Canvas
-                {_canvasWidth = 594
-                , _canvasHeight = 420
-                , _canvasMargin = 0
-                }
-            }
-
-    let Canvas { _canvasMargin = margin, _canvasWidth = w, _canvasHeight = h } = _canvas options
+    let w = 594
+        h = 420
+        margin = 30
         canvasBB = boundingBox [zero +. Vec2 margin margin, Vec2 w h -. Vec2 margin margin]
 
-    let (delaunayPolygons, voronoiPolygons) = geometry
-
-    let whenInCircle corners radius =
-            let center = boundingBoxCenter canvasBB
-            in when (all (\corner -> norm (corner -. center) <= radius) corners)
+    let (delaunayPolygons, voronoiPolygons) = G.transform
+            (transformBoundingBox (boundingBox geometry) canvasBB def)
+            geometry
 
     let plotSettings = def
-            { _canvasBoundingBox = Nothing
-            , _previewPenTravelColor = Nothing
+            { _canvasBoundingBox = Just (boundingBox [zero, Vec2 w h])
             , _previewDrawnShapesBoundingBox = False
+            , _previewPenTravelColor = Nothing
             }
         plotDelaunay = runPlot plotSettings { _previewPenColor = mathematica97 1 } $ do
             for_ delaunayPolygons plot
@@ -51,51 +39,34 @@ main = do
     writeGCodeFile "out/delaunay-voronoi-delaunay.g" plotDelaunay
     writeGCodeFile "out/delaunay-voronoi-voronoi.g" plotVoronoi
 
-    do
-        let trafo = transformBoundingBox geometryBigBB canvasBB def
-        D.render "out/delaunay-voronoi.svg" (round w) (round h) $ do
-            D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
-            C.transform (D.toCairoMatrix trafo)
-            -- cartesianCoordinateSystem def
-            _plotPreview plotDelaunay
-            _plotPreview plotVoronoi
-
-newtype CmdOptions = CmdOptions
-    { _canvas :: Canvas
-    } deriving (Eq, Ord, Show)
-
-commandLineOptions :: IO CmdOptions
-commandLineOptions = execParser parserOpts
-  where
-    progOpts = CmdOptions
-        <$> canvasP
-
-    parserOpts = info (progOpts <**> helper)
-      ( fullDesc
-     <> progDesc "Dual pen Delaunay-Voronoi circle." )
-
-geometryBigBB :: BoundingBox
-geometryBigBB = boundingBox [zero, Vec2 1000 1000]
+    D.render "out/delaunay-voronoi.svg" (round w) (round h) $ do
+        D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
+        _plotPreview plotDelaunay
+        _plotPreview plotVoronoi
 
 geometry :: ([Polygon], [Polygon])
 geometry =
-    let points = runST $ do
+    let calcBB = boundingBox [zero, Vec2 1000 1000]
+
+        points = runST $ do
             gen <- MWC.create
-            gaussianDistributedPoints gen geometryBigBB (128 *. mempty) 256
+            gaussianDistributedPoints gen calcBB (192 *. mempty) 192
         delaunay =
-              lloydRelaxation 5
-            . bowyerWatson geometryBigBB
+              lloydRelaxation 3
+            . bowyerWatson calcBB
             . toList
             $ points
         voronoi = toVoronoi delaunay
 
-        cutoffRadius = let (w,h) = boundingBoxSize geometryBigBB
-                       in min w h / 2
-        isInside (Polygon corners) = all
-            (\x -> norm (x -. boundingBoxCenter geometryBigBB) <= cutoffRadius)
-            corners
+        cutoffRadius = let (w,h) = boundingBoxSize calcBB
+                       in min w h / 3
 
-        delaunayPolygons = filter isInside $ getPolygons delaunay
-        voronoiPolygons = filter isInside $ map  _voronoiRegion (_voronoiCells voronoi)
+        delaunayPolygons = flip filter (getPolygons delaunay) $ \(Polygon corners) ->
+            all (\corner -> any (\voronoiPolygon -> pointInPolygon corner voronoiPolygon) voronoiPolygons) corners
+
+        voronoiPolygons = do
+            cell <- _voronoiCells voronoi
+            guard (norm (_voronoiSeed cell -. boundingBoxCenter calcBB) <= cutoffRadius)
+            pure (_voronoiRegion cell)
 
     in (delaunayPolygons, voronoiPolygons)
