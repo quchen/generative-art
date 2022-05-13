@@ -14,7 +14,7 @@ import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
-import Graphics.Rendering.Cairo     as C
+import Graphics.Rendering.Cairo     as C hiding (x,y)
 
 
 
@@ -32,7 +32,7 @@ main = do
     let Canvas { _canvasMargin = margin, _canvasWidth = w, _canvasHeight = h } = _canvas options
         canvasBB = boundingBox [zero +. Vec2 margin margin, Vec2 w h -. Vec2 margin margin]
 
-    let (delaunay, voronoi) = geometry
+    let (delaunayPolygons, voronoiPolygons) = geometry
 
     let whenInCircle corners radius =
             let center = boundingBoxCenter canvasBB
@@ -44,13 +44,9 @@ main = do
             , _previewDrawnShapesBoundingBox = False
             }
         plotDelaunay = runPlot plotSettings { _previewPenColor = mathematica97 1 } $ do
-            for_ (getPolygons delaunay) $ \polygon -> do
-                let Polygon corners = polygon
-                plot polygon
+            for_ delaunayPolygons plot
         plotVoronoi = runPlot plotSettings { _previewPenColor = mathematica97 0 } $ do
-            for_ (_voronoiCells voronoi) $ \cell -> do
-                let polygon@(Polygon corners) = _voronoiRegion cell
-                plot polygon
+            for_ voronoiPolygons plot
 
     writeGCodeFile "out/delaunay-voronoi-delaunay.g" plotDelaunay
     writeGCodeFile "out/delaunay-voronoi-voronoi.g" plotVoronoi
@@ -60,7 +56,7 @@ main = do
         D.render "out/delaunay-voronoi.svg" (round w) (round h) $ do
             D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
             C.transform (D.toCairoMatrix trafo)
-            cartesianCoordinateSystem def
+            -- cartesianCoordinateSystem def
             _plotPreview plotDelaunay
             _plotPreview plotVoronoi
 
@@ -81,19 +77,25 @@ commandLineOptions = execParser parserOpts
 geometryBigBB :: BoundingBox
 geometryBigBB = boundingBox [zero, Vec2 1000 1000]
 
-geometry :: (DelaunayTriangulation, Voronoi ())
+geometry :: ([Polygon], [Polygon])
 geometry =
     let points = runST $ do
             gen <- MWC.create
-            poissonDisc gen PoissonDiscParams
-                { _poissonShape = geometryBigBB
-                , _poissonRadius = 50
-                , _poissonK      = 5
-                }
+            gaussianDistributedPoints gen geometryBigBB (128 *. mempty) 256
         delaunay =
-            lloydRelaxation 5
+              lloydRelaxation 5
             . bowyerWatson geometryBigBB
-            . filter (\p -> norm (p -. boundingBoxCenter geometryBigBB) <= 450)
+            . toList
             $ points
         voronoi = toVoronoi delaunay
-    in (delaunay, voronoi)
+
+        cutoffRadius = let (w,h) = boundingBoxSize geometryBigBB
+                       in min w h / 2
+        isInside (Polygon corners) = all
+            (\x -> norm (x -. boundingBoxCenter geometryBigBB) <= cutoffRadius)
+            corners
+
+        delaunayPolygons = filter isInside $ getPolygons delaunay
+        voronoiPolygons = filter isInside $ map  _voronoiRegion (_voronoiCells voronoi)
+
+    in (delaunayPolygons, voronoiPolygons)
