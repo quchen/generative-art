@@ -92,7 +92,7 @@ gaussianVec2
     -> ST s Vec2
 gaussianVec2 (Vec2 muX muY) sigma gen = Vec2 <$> normal muX sigma gen <*> normal muY sigma gen
 
-runSimulation :: Double -> Double -> [[(Double, PhaseSpace)]]
+runSimulation :: Double -> Double -> [[(Double, PhaseSpace Vec2)]]
 runSimulation pressure tmax =
     let particles = runST $ do
             gen <- initialize (V.fromList [134])

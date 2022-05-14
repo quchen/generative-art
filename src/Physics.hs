@@ -6,18 +6,18 @@ import Control.Applicative (liftA2)
 import Geometry
 import Numerics.VectorAnalysis
 
-data PhaseSpace = PhaseSpace
-    { p :: Vec2
-    , q :: Vec2
+data PhaseSpace coord = PhaseSpace
+    { p :: coord
+    , q :: coord
     } deriving (Eq, Show)
 
-instance VectorSpace PhaseSpace where
+instance VectorSpace coord => VectorSpace (PhaseSpace coord) where
     zero = PhaseSpace zero zero
     PhaseSpace p1 q1 +. PhaseSpace p2 q2 = PhaseSpace (p1 +. p2) (q1 +. q2)
     c *. PhaseSpace p q = PhaseSpace (c *. p) (c *. q)
     negateV (PhaseSpace p q) = PhaseSpace (negateV p) (negateV q)
 
-particleInPotential :: Double -> (Vec2 -> Double) -> PhaseSpace -> PhaseSpace
+particleInPotential :: (VectorSpace coord, VectorAnalysis coord) => Double -> (coord -> Double) -> PhaseSpace coord -> PhaseSpace coord
 particleInPotential mass potential PhaseSpace{..} = PhaseSpace deltaP deltaQ
   where
     deltaP = negateV (grad potential q)
@@ -36,7 +36,7 @@ harmonicPotential (w, h) (Vec2 x0 y0) (Vec2 x y) = ((x-x0)/w)^2 + ((y-y0)/h)^2
 coulombPotential :: Double -> Vec2 -> Vec2 -> Double
 coulombPotential charge center particle = charge / norm (particle -. center)
 
-twoBody :: (Vec2 -> Double) -> (Vec2 -> Vec2 -> Double) -> (Double, Double) -> (PhaseSpace, PhaseSpace) -> (PhaseSpace, PhaseSpace)
+twoBody :: (VectorSpace coord, VectorAnalysis coord) => (coord -> Double) -> (coord -> coord -> Double) -> (Double, Double) -> (PhaseSpace coord, PhaseSpace coord) -> (PhaseSpace coord, PhaseSpace coord)
 twoBody potential interaction (m1, m2) (PhaseSpace p1 q1, PhaseSpace p2 q2) = (PhaseSpace deltaP1 deltaQ1, PhaseSpace deltaP2 deltaQ2)
   where
     deltaP1 = negateV (grad (potential +. interaction q2) q1)
@@ -60,13 +60,14 @@ instance VectorSpace a => VectorSpace (NBody a) where
     zero = NBody (repeat zero)
 
 nBody
-    :: (Vec2 -> Double)
+    :: (VectorSpace coord, VectorAnalysis coord)
+    => (coord -> Double)
     -- ^ External potential, affecting all particles. If you don't require an external potential, use 'zero'.
-    -> (Vec2 -> Vec2 -> Double)
+    -> (coord -> coord -> Double)
     -- ^ Interaction term between two particles. Should be symmetric.
     -> NBody Double
     -- ^ Particle masses
-    -> NBody PhaseSpace -> NBody PhaseSpace
+    -> NBody (PhaseSpace coord) -> NBody (PhaseSpace coord)
 nBody potential interaction masses particles = NBody
     [ PhaseSpace deltaP deltaQ
     | (i, m1, PhaseSpace p1 q1) <- zip3 [0..] (getNBody masses) (getNBody particles)
