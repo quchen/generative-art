@@ -8,7 +8,6 @@ import Text.Printf
 
 import Draw
 import Geometry
-import Geometry.Core.ThreeD (Vec3(..))
 import Numerics.DifferentialEquation
 import Physics
 

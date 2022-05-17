@@ -4,7 +4,6 @@ module Geometry.Core (
     -- * Primitives
     -- ** 2D Vectors
       Vec2(..)
-    , EuclideanSpace(..)
     , polar
 
     -- ** Lines
@@ -65,9 +64,13 @@ module Geometry.Core (
     , getRad
     , normalizeAngle
 
+    -- ** 3D Vectors
+    , Vec3(..)
+
     -- ** Vector arithmetic
     , VectorSpace(..)
     , vsum
+    , EuclideanSpace(..)
 
     -- * Transformations
     , Transform(..)
@@ -153,6 +156,16 @@ instance NFData Vec2 where rnf _ = ()
 instance MWC.UniformRange Vec2 where
     uniformRM (Vec2 xMin yMin, Vec2 xMax yMax) gen =
         Vec2 <$> MWC.uniformRM (xMin, xMax) gen <*> MWC.uniformRM (yMin, yMax) gen
+
+data Vec3 = Vec3 !Double !Double !Double deriving (Eq, Ord, Show)
+
+instance NFData Vec3 where rnf _ = ()
+
+instance MWC.UniformRange Vec3 where
+    uniformRM (Vec3 xMin yMin zMin, Vec3 xMax yMax zMax) gen = Vec3
+        <$> MWC.uniformRM (xMin, xMax) gen
+        <*> MWC.uniformRM (yMin, yMax) gen
+        <*> MWC.uniformRM (zMin, zMax) gen
 
 -- | Explicit type for polylines. Useful in type signatures, beacuse [[[Vec2]]] is
 -- really hard to read. Also makes some typeclass instances clearer, such as
@@ -869,6 +882,12 @@ instance VectorSpace Vec2 where
     negateV (Vec2 x y) = Vec2 (-x) (-y)
     zero = Vec2 0 0
 
+instance VectorSpace Vec3 where
+    Vec3 x1 y1 z1 +. Vec3 x2 y2 z2 = Vec3 (x1+x2) (y1+y2) (z1+z2)
+    a *. Vec3 x y z = Vec3 (a*x) (a*y) (a*z)
+    negateV (Vec3 x y z) = Vec3 (-x) (-y) (-z)
+    zero = Vec3 0 0 0
+
 class VectorSpace vec => EuclideanSpace vec where
     dotProduct :: vec -> vec -> Double
 
@@ -890,6 +909,9 @@ class VectorSpace vec => EuclideanSpace vec where
 
 instance EuclideanSpace Vec2 where
     dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
+
+instance EuclideanSpace Vec3 where
+    dotProduct (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
 
 -- | Construct a 'Vec2' from polar coordinates.
 --
