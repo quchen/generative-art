@@ -4,12 +4,10 @@ module Main (main) where
 import Control.Monad
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
-import Text.Printf
 
 import Draw
 import Geometry
-import Numerics.DifferentialEquation
-import Physics
+import Geometry.Algorithms.Clipping
 
 
 
@@ -19,24 +17,34 @@ picHeight = 400
 
 main :: IO ()
 main = do
-    let count = 20
+    let count = 100
     gen <- create
     initialCenters <- replicateM count (uniformRM (Vec3 0 0 (-picHeight/2), Vec3 picWidth picHeight (picHeight/2)) gen)
     radii <- replicateM count (uniformRM (20, 60) gen)
 
-    let particles = NBody (PhaseSpace zero <$> initialCenters)
-        pressure = 5
-        externalPotential = harmonicPotential3D (picWidth / pressure, picHeight / pressure, picHeight / pressure) (Vec3 (picWidth/2) (picHeight/2) 0)
-        interactionPotential = coulombPotential (picWidth / 6)
-        frames = fmap (fmap q . getNBody . snd) $ take 1200 $ rungeKuttaConstantStep (const (nBody externalPotential interactionPotential (pure 1))) particles 0 3
+    let metaballs = vsum $ zipWith ball radii initialCenters
+        slice z (Vec2 x y) = metaballs (Vec3 x y z)
+        layers =
+            [ transform (isometricPerspective z) outlines
+            | z <- [-picHeight/2-60, -picHeight/2-55 .. picHeight/2+60]
+            , let outlines = isoLines Grid { _range = (Vec2 (-60) (-60), Vec2 (picWidth+60) (picHeight+60)), _maxIndex = (picWidth `div` 5, picHeight `div` 5) } (slice z) 1
+            ]
 
-    for_ (zip [0 :: Int ..] frames) $ \(i, centers) -> do
-        let metaballs (Vec2 x y) = vsum (zipWith ball radii centers) (Vec3 x y 0)
-            outlines = isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (picWidth `div` 5, picHeight `div` 5) } metaballs 1
-        render (printf "out/metaballs_%03d.png" i) picWidth picHeight $ do
-            cairoScope (setColor white >> C.paint)
-            for_ outlines $ sketch . Polyline
-            C.stroke
+    render "out/metaballs.png" picWidth picHeight $ do
+        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
+        cairoScope (setColor white >> C.paint)
+        for_ layers $ \outlines -> for_ outlines $ \outline -> do
+            sketch (Polyline outline)
+            setColor white >> C.fillPreserve
+            setColor black >> C.stroke
 
 ball :: Double -> Vec3 -> Vec3 -> Double
-ball radius center q = (radius^2 / normSquare (center -. q))^2
+ball radius center q = (radius^2 / normSquare (center -. q))**1.7
+
+isometricPerspective :: Double -> Transformation
+isometricPerspective z
+    =  translate (Vec2 0 (z / 1.4))
+    <> scaleAround' origin 1 0.35
+    <> rotateAround origin (deg 45)
+  where origin = Vec2 (picWidth/2) (picHeight/2)
+
