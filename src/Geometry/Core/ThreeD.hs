@@ -6,7 +6,8 @@ import Control.DeepSeq
 import qualified System.Random.MWC as MWC
 
 import Algebra.VectorSpace
-import Geometry.Core (Vec2(..))
+import Geometry.Core (Vec2(..), EuclideanSpace(..))
+
 
 
 data Vec3 = Vec3 !Double !Double !Double deriving (Eq, Ord, Show)
@@ -29,19 +30,5 @@ instance VectorSpace Vec3 where
     negateV (Vec3 x y z) = Vec3 (-x) (-y) (-z)
     zero = Vec3 0 0 0
 
-dotProduct :: Vec3 -> Vec3 -> Double
-dotProduct (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
-
--- | Euclidean norm.
---
--- \[ \|\mathbf v\| = \sqrt{v_x^2 + v_y^2 + v_z^2} \]
-norm :: Vec3 -> Double
-norm = sqrt . normSquare
-
--- | Squared Euclidean norm. Does not require a square root, and is thus
--- suitable for sorting points by distance without excluding certain kinds of
--- numbers such as rationals.
---
--- \[ \|\mathbf v\|^2 = v_x^2 + v_y^2 + v_z^2 \]
-normSquare :: Vec3 -> Double
-normSquare v = dotProduct v v
+instance EuclideanSpace Vec3 where
+    dotProduct (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2

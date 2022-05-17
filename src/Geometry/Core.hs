@@ -4,9 +4,7 @@ module Geometry.Core (
     -- * Primitives
     -- ** 2D Vectors
       Vec2(..)
-    , dotProduct
-    , norm
-    , normSquare
+    , EuclideanSpace(..)
     , polar
 
     -- ** Lines
@@ -871,22 +869,27 @@ instance VectorSpace Vec2 where
     negateV (Vec2 x y) = Vec2 (-x) (-y)
     zero = Vec2 0 0
 
-dotProduct :: Vec2 -> Vec2 -> Double
-dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
+class VectorSpace vec => EuclideanSpace vec where
+    dotProduct :: vec -> vec -> Double
 
--- | Euclidean norm.
---
--- \[ \|\mathbf v\| = \sqrt{v_x^2 + v_y^2} \]
-norm :: Vec2 -> Double
-norm = sqrt . normSquare
+    -- | Euclidean norm. In 2D:
+    --
+    -- \[ \|\mathbf v\| = \sqrt{v_x^2 + v_y^2} \]
+    norm :: vec -> Double
+    norm = sqrt . normSquare
 
--- | Squared Euclidean norm. Does not require a square root, and is thus
--- suitable for sorting points by distance without excluding certain kinds of
--- numbers such as rationals.
---
--- \[ \|\mathbf v\|^2 = v_x^2 + v_y^2 \]
-normSquare :: Vec2 -> Double
-normSquare v = dotProduct v v
+    -- | Squared Euclidean norm. Does not require a square root, and is thus
+    -- suitable for sorting points by distance without excluding certain kinds of
+    -- numbers such as rationals.
+    --
+    -- In 2D:
+    --
+    -- \[ \|\mathbf v\|^2 = v_x^2 + v_y^2 \]
+    normSquare :: vec -> Double
+    normSquare v = dotProduct v v
+
+instance EuclideanSpace Vec2 where
+    dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 -- | Construct a 'Vec2' from polar coordinates.
 --

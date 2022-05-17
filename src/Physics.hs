@@ -4,6 +4,7 @@ module Physics where
 import Control.Applicative (liftA2)
 
 import Geometry
+import Geometry.Core.ThreeD
 import Numerics.VectorAnalysis
 
 data PhaseSpace coord = PhaseSpace
@@ -33,7 +34,10 @@ particleInPotential mass potential PhaseSpace{..} = PhaseSpace deltaP deltaQ
 harmonicPotential :: (Double, Double) -> Vec2 -> Vec2 -> Double
 harmonicPotential (w, h) (Vec2 x0 y0) (Vec2 x y) = ((x-x0)/w)^2 + ((y-y0)/h)^2
 
-coulombPotential :: Double -> Vec2 -> Vec2 -> Double
+harmonicPotential3D :: (Double, Double, Double) -> Vec3 -> Vec3 -> Double
+harmonicPotential3D (w, d, h) (Vec3 x0 y0 z0) (Vec3 x y z) = ((x-x0)/w)^2 + ((y-y0)/d)^2 + ((z-z0)/h)^2
+
+coulombPotential :: EuclideanSpace vec => Double -> vec -> vec -> Double
 coulombPotential charge center particle = charge / norm (particle -. center)
 
 twoBody :: (VectorSpace coord, VectorAnalysis coord) => (coord -> Double) -> (coord -> coord -> Double) -> (Double, Double) -> (PhaseSpace coord, PhaseSpace coord) -> (PhaseSpace coord, PhaseSpace coord)
