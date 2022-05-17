@@ -6,7 +6,7 @@ import Control.DeepSeq
 import qualified System.Random.MWC as MWC
 
 import Algebra.VectorSpace
-import Geometry.Core (Vec2)
+import Geometry.Core (Vec2(..))
 
 
 data Vec3 = Vec3 !Double !Double !Double deriving (Eq, Ord, Show)
@@ -19,13 +19,9 @@ instance MWC.UniformRange Vec3 where
         <*> MWC.uniformRM (yMin, yMax) gen
         <*> MWC.uniformRM (zMin, zMax) gen
 
--- | Plane, defined by a point and a normal vector
-data Plane = Plane !Vec3 !Vec3
-
--- | Projection of a 3D vector into a 2D plane
-projection :: Plane -> Vec3 -> Vec2
-projection (Plane _ n) p@(Vec3 x y z)
-    = undefined
+-- | Projection of a 3D vector into the 2D x-y plane
+zProjection :: Vec3 -> Vec2
+zProjection (Vec3 x y _) = Vec2 x y
 
 instance VectorSpace Vec3 where
     Vec3 x1 y1 z1 +. Vec3 x2 y2 z2 = Vec3 (x1+x2) (y1+y2) (z1+z2)
