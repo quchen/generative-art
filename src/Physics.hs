@@ -3,7 +3,6 @@ module Physics where
 
 import Control.Applicative     (liftA2)
 import Geometry
-import Geometry.Core.ThreeD
 import Numerics.VectorAnalysis
 
 data PhaseSpace coord = PhaseSpace

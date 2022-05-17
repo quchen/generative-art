@@ -18,7 +18,6 @@ module Numerics.VectorAnalysis (
 ) where
 
 import Geometry.Core
-import Geometry.Core.ThreeD (Vec3(..))
 
 -- | A good standard value to use as a step size for taking derivatives.
 standardH :: Double
