@@ -51,6 +51,7 @@ module Geometry.Core (
     , convexHull
     , PolygonOrientation(..)
     , polygonOrientation
+    , growPolygon
 
     -- ** Circles and ellipses
     , Circle(..)
@@ -1460,6 +1461,52 @@ polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *
 -- | Sum of all edge lengths.
 polygonCircumference :: Polygon -> Double
 polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEdges
+
+-- | Move all edges of a polygon outwards by the specified amount. Negative values shrink instead.
+--
+-- <<docs/haddock/Geometry/Core.hs/grow_polygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core.hs/grow_polygon.svg" 80 110 $ do
+--     let polygon = Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
+--     for_ [-9, -6 .. 9] $ \offset -> do
+--         setColor (icefire (Numerics.Interpolation.lerp (-9,9) (0, 1) (fromIntegral offset)))
+--         sketch (growPolygon (fromIntegral offset) polygon)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/grow_polygon.svg
+growPolygon :: Double -> Polygon -> Polygon
+growPolygon offset polygon =
+    let edges = polygonEdges polygon
+        movedEdges = map (moveLinePerpendicular offsetOriented) edges
+        offsetOriented = case polygonOrientation polygon of
+            PolygonNegative -> offset
+            PolygonPositive -> -offset
+
+        newCorners = zipWith
+            (\edge1@(Line _ fallback1) edge2@(Line fallback2 _) -> case intersectionLL edge1 edge2 of
+                IntersectionVirtual p        -> p -- Most common case on growing
+                IntersectionReal p           -> p -- Most common case on shrinking
+                IntersectionVirtualInsideL p -> p -- Not sure when this might happen, but if it does that’s what it should do :-)
+                IntersectionVirtualInsideR p -> p -- Dito
+                Parallel                     -> (fallback1 +. fallback2) /. 2 -- Pathological polygon: edge goes back onto itself
+                Collinear{}                  -> (fallback1 +. fallback2) /. 2 -- Collinear edges, drop the middle point
+            )
+            movedEdges
+            (tail (cycle movedEdges))
+
+    in Polygon newCorners
+
+-- | Rotate 90 degrees. Fast special case of 'transform (rotate ('deg' 90))'.
+rot90 :: Vec2 -> Vec2
+rot90 (Vec2 x y) = Vec2 (-y) x
+
+-- | Move a line in perpendicular direction
+moveLinePerpendicular :: Double -> Line -> Line
+moveLinePerpendicular offset line =
+    let dir = rot90 (vectorOf (normalizeLine line))
+    in transform (translate (offset *. dir)) line
 
 -- | Two-dimensional cross product.
 --

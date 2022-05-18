@@ -315,6 +315,8 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/convex_hull.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/grow_polygon.svg)
+
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/is_convex.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/line_reverse.svg)
