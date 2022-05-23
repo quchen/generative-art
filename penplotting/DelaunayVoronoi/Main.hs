@@ -51,7 +51,13 @@ geometry =
 
         points = runST $ do
             gen <- MWC.create
-            gaussianDistributedPoints gen calcBB (192 *. mempty) 192
+            -- gaussianDistributedPoints gen calcBB (192 *. mempty) 192
+            poissonDisc gen PoissonDiscParams
+                { _poissonShape  = calcBB
+                , _poissonRadius = 25
+                , _poissonK      = 3
+            }
+
         delaunay =
               lloydRelaxation 3
             . bowyerWatson calcBB
