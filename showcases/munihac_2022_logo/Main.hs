@@ -16,8 +16,7 @@ import Circuits.Render
 
 
 
--- ghcid --command='stack ghci generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
--- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
+-- ghcid --command='stack ghci generative-art:lib munihac2022logo --main-is munihac2022logo:exe:munihac2022logo' --test=main --warnings --no-title
 main :: IO ()
 main = do
     let lambdaScale = 3
@@ -28,12 +27,11 @@ main = do
             let cellSize = 8
             C.translate 160 (fromIntegral picHeight/2)
             cairoScope $ do
-                setLineWidth 2
+                setLineWidth 3
                 setLineJoin LineJoinBevel
-                cartesianCoordinateSystem def
-                renderWires purple cellSize lambdaCircuits
+                -- cartesianCoordinateSystem def
+                renderWires purple cellSize (cellSize/2) lambdaCircuits
                 renderMunihacWriting purple (cellSize/2)
-                -- renderWires purple (cellSize/2) munihacWriting
     render "out/munihac-2022-logo.svg" picWidth picHeight mainRender
     render "out/munihac-2022-logo.png" picWidth picHeight $ do
         cairoScope $ do
@@ -42,76 +40,111 @@ main = do
         mainRender
   where
     picWidth = 650
-    picHeight = 400
+    picHeight = 380
 
 newtype Glyph = Glyph [[Hex]]
 
 mapGlyph :: (Hex -> Hex) -> Glyph -> Glyph
 mapGlyph f (Glyph wires) = Glyph ((map.map) f wires)
 
+letterM :: Glyph
+letterM = Glyph
+    [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
+    , walkInSteps [move UL 10 . move R 4, move DR 6] hexZero
+    ]
+
+letterU :: Glyph
+letterU = Glyph
+    [ walkInSteps [move UL 10, move DR 10, move R 6, move UR 2, move UL 8] hexZero
+    ]
+
+letterN :: Glyph
+letterN = Glyph
+    [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
+    ]
+
+letterI :: Glyph
+letterI = Glyph
+    [ walkInSteps [id, move UL 10] hexZero
+    ]
+
+letterH :: Glyph
+letterH = Glyph
+    [ walkInSteps [id, move UL 10] hexZero
+    , walkInSteps [move UL 5, move R 7] hexZero
+    , walkInSteps [move R 8, move UL 10] hexZero
+    ]
+
+letterA :: Glyph
+letterA = Glyph
+    [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
+    , walkInSteps [move UL 5, move R 7] hexZero
+    ]
+
+letterC :: Glyph
+letterC = Glyph
+    [ walkInSteps [move R 8, move L 8, move UL 8, move UR 2, move R 6] hexZero
+    ]
+
+digit2 :: Glyph
+digit2 = Glyph
+    [ walkInSteps [move R 8, move L 8, move UL 3, move UR 2, move R 4, move UR 2, move UL 3, move L 8] hexZero
+    ]
+
+digit0 :: Glyph
+digit0 = Glyph
+    [ walkInSteps [id, move R 6, move UR 2, move UL 8, move L 6, move DL 2, move DR 7] hexZero
+    ]
+
+muni :: [Glyph]
+muni =
+    [ letterM
+    , mapGlyph (move R 12) letterU
+    , mapGlyph (move R 24) letterN
+    , mapGlyph (move R 36) letterI
+    ]
+
+hac :: [Glyph]
+hac =
+    [ letterH
+    , mapGlyph (move R 12) letterA
+    , mapGlyph (move R 24) letterC ]
+
+x2022 :: [Glyph]
+x2022 =
+    [ digit2
+    , mapGlyph (move R 12) digit0
+    , mapGlyph (move R 24) digit2
+    , mapGlyph (move R 36) digit2
+    ]
+
 renderMunihacWriting :: ColorScheme -> Double -> Render ()
 renderMunihacWriting colorScheme cellSize = do
-    let letterM = Glyph
-            [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
-            , walkInSteps [move UL 10 . move R 4, move DR 6] hexZero
-            ]
-        letterU = Glyph
-            [ walkInSteps [move UL 10, move DR 10, move R 6, move UR 2, move UL 8] hexZero
-            ]
-        letterN = Glyph
-            [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
-            ]
-        letterI = Glyph
-            [ walkInSteps [id, move UL 10] hexZero
-            ]
-        letterH = Glyph
-            [ walkInSteps [id, move UL 10] hexZero
-            , walkInSteps [move UL 5, move R 7] hexZero
-            , walkInSteps [move R 8, move UL 10] hexZero
-            ]
-        letterA = Glyph
-            [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
-            , walkInSteps [move UL 5, move R 7] hexZero
-            ]
-        letterC = Glyph
-            [ walkInSteps [move R 8, move L 8, move UL 8, move UR 2, move R 6] hexZero
-            ]
-        digit2 = Glyph
-            [ walkInSteps [move R 8, move L 8, move UL 4, move UR 1, move R 6, move UR 1, move UL 4, move L 8] hexZero
-            ]
-        digit0 = Glyph
-            [ walkInSteps [id, move R 7, move UR 1, move UL 9, move L 7, move DL 1, move DR 8] hexZero
-            ]
-
-        -- all: (move DR 2 . move R 1)
-        muni = map (mapGlyph (move DR 2 . move R 1))
-            [ mapGlyph (move R 10) letterM
-            , mapGlyph (move R 22) letterU
-            , mapGlyph (move R 34) letterN
-            , mapGlyph (move R 46) letterI
-            ]
-        hac = map (mapGlyph (move DR 2 . move R 1))
-            [ mapGlyph (move R 10 . move DR 14) letterH
-            , mapGlyph (move R 22 . move DR 14) letterA
-            , mapGlyph (move R 34 . move DR 14) letterC ]
-
-        x2022 = map (mapGlyph (move DR 2 . move R 1))
-            [ mapGlyph (move R 10 . move DR 28) digit2
-            , mapGlyph (move R 22 . move DR 28) digit0
-            , mapGlyph (move R 34 . move DR 28) digit2
-            , mapGlyph (move R 46 . move DR 28) digit2
-            ]
-
     let ColorScheme colors = colorScheme
     cairoScope $ do
         colors V.! 2
-        for_ muni $ \(Glyph wires) -> for_ wires $ \wire -> renderWire cellSize wire
+        for_ muni $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move DR (0+2) . move R 12) wire)
     cairoScope $ do
         colors V.! 1
-        for_ hac $ \(Glyph wires) -> for_ wires $ \wire -> renderWire cellSize wire
+        for_ hac $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move DR (14+2) . move R 12) wire)
     cairoScope $ do
         colors V.! 0
-        for_ x2022 $ \(Glyph wires) -> for_ wires $ \wire -> renderWire cellSize wire
+        for_ x2022 $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move DR (28+2) . move R 12) wire)
 
 
 -- | A lambda in hexagonal coordinates.

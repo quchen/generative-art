@@ -23,15 +23,17 @@ import Geometry.Coordinates.Hexagonal as Hex
 
 
 
-renderWire :: Double -> [Hex] -> Render ()
-renderWire cellSize hexes = moveToVec (toVec2 cellSize (head hexes)) >> go (map (toVec2 cellSize) hexes)
+renderWire :: Double -> Double -> [Hex] -> Render ()
+renderWire _ _ [] = pure ()
+renderWire cellSize circleRadius hexes@(first:_) = do
+    moveToVec (toVec2 cellSize first)
+    go (map (toVec2 cellSize) hexes)
   where
-    circleRadius = cellSize/2
     go [] = pure ()
     go [x] = sketch (Circle x circleRadius) >> stroke
     go [x,y] = do
-        let shortLine = resizeLine (\d -> d - circleRadius) (Line x y)
-        sketch shortLine
+        let Line _ end = resizeLine (\d -> d - circleRadius) (Line x y)
+        lineToVec end
         stroke
         sketch (Circle y circleRadius)
         stroke
@@ -42,13 +44,14 @@ renderWire cellSize hexes = moveToVec (toVec2 cellSize (head hexes)) >> go (map 
 renderWires
     :: ColorScheme
     -> Double
+    -> Double
     -> Set [Hex]
     -> Render ()
-renderWires scheme cellSize wires = do
+renderWires scheme cellSize circleRadius wires = do
     gen <- liftIO MWC.create
     for_ wires $ \wire -> do
         randomColor gen scheme
-        renderWire cellSize wire
+        renderWire cellSize circleRadius wire
 
 newtype ColorScheme = ColorScheme (V.Vector (Render ()))
 
