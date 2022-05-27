@@ -2,7 +2,6 @@ module Main (main) where
 
 
 
-import           Data.Set                 (Set)
 import qualified Data.Set                 as S
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C hiding (x, y, Glyph)
