@@ -24,7 +24,7 @@ import Geometry.Coordinates.Hexagonal as Hex
 
 
 renderWire :: Double -> [Hex] -> Render ()
-renderWire cellSize = go . map (toVec2 cellSize)
+renderWire cellSize hexes = moveToVec (toVec2 cellSize (head hexes)) >> go (map (toVec2 cellSize) hexes)
   where
     circleRadius = cellSize/2
     go [] = pure ()
@@ -35,8 +35,8 @@ renderWire cellSize = go . map (toVec2 cellSize)
         stroke
         sketch (Circle y circleRadius)
         stroke
-    go (x:rest@(y:_)) = do
-        sketch (Line x y)
+    go (_:rest@(y:_)) = do
+        lineToVec y
         go rest
 
 renderWires
@@ -56,8 +56,8 @@ purple :: ColorScheme
 purple = ColorScheme (V.fromList [darker, dark, brighter])
   where
     darker   = setColor (haskell 0)
-    dark     = setColor (haskell 1)
-    brighter = setColor (haskell 2)
+    dark     = setColor (haskell 0.5)
+    brighter = setColor (haskell 1)
 
 grey :: ColorScheme
 grey = ColorScheme (V.fromList [setGrey x | x <- [850, 875, 900]])
