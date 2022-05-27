@@ -34,6 +34,7 @@
 - ignore: {name: "Use ++"}
 - ignore: {name: "Use &&"}
 - ignore: {name: "Fuse mapMaybe/map"}
+- ignore: {name: "Use concatMap"}
 
 # AMP fallout
 - error:

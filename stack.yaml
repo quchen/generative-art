@@ -21,6 +21,7 @@ packages:
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
     - showcases/haskell_logo_voronoi
+    - showcases/munihac_2022_logo
     - showcases/particle_shooter
     - showcases/pulsar
     - showcases/truchet
