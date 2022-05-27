@@ -28,18 +28,33 @@ main = do
             cairoScope $ do
                 setLineWidth 3
                 setLineJoin LineJoinBevel
+                setLineCap LineCapRound
                 -- cartesianCoordinateSystem def
                 renderWires purple cellSize (cellSize/2) lambdaCircuits
                 renderMunihacWriting purple (cellSize/2)
+        picWidth = 650
+        picHeight = 380
     render "out/munihac-2022-logo.svg" picWidth picHeight mainRender
     render "out/munihac-2022-logo.png" picWidth picHeight $ do
         cairoScope $ do
             setSourceRGB 1 1 1
             paint
         mainRender
-  where
-    picWidth = 650
-    picHeight = 380
+
+    let oneLineRender = do
+            let cellSize = 6
+            -- cartesianCoordinateSystem def
+            C.translate 30 50
+            renderMunihacWritingOneLine purple (cellSize/2)
+        oneLinePicWidth = 670
+        oneLinePicHeight = 60
+
+    render "out/munihac-2022-logo-oneline.svg" oneLinePicWidth oneLinePicHeight oneLineRender
+    render "out/munihac-2022-logo-oneline.png" oneLinePicWidth oneLinePicHeight $ do
+        cairoScope $ do
+            setSourceRGB 1 1 1
+            paint
+        oneLineRender
 
 newtype Glyph = Glyph [[Hex]]
 
@@ -145,6 +160,33 @@ renderMunihacWriting colorScheme cellSize = do
                     (cellSize/1.5)
                     (map (move DR (28+2) . move R 12) wire)
 
+renderMunihacWritingOneLine :: ColorScheme -> Double -> Render ()
+renderMunihacWritingOneLine colorScheme cellSize = do
+    let ColorScheme colors = colorScheme
+    cairoScope $ do
+        colors V.! 2
+        for_ muni $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move R 0) wire)
+    cairoScope $ do
+        colors V.! 1
+        for_ hac $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move R 40) wire)
+    cairoScope $ do
+        colors V.! 0
+        for_ x2022 $ \(Glyph wires) ->
+            for_ wires $ \wire ->
+                renderWire
+                    cellSize
+                    (cellSize/1.5)
+                    (map (move R 78) wire)
 
 -- | A lambda in hexagonal coordinates.
 hexLambda
