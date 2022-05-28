@@ -24,15 +24,19 @@ main = do
         lambdaCircuits = reconstructWires (circuitProcess lambdaGeometry)
     let mainRender = do
             let cellSize = 8
-            C.translate 160 (fromIntegral picHeight/2)
             cairoScope $ do
-                setLineWidth 3
                 setLineJoin LineJoinBevel
                 setLineCap LineCapRound
                 -- cartesianCoordinateSystem def
-                renderWires purple cellSize (cellSize/2) lambdaCircuits
-                renderMunihacWriting purple (cellSize/2)
-        picWidth = 650
+                cairoScope $ do
+                    C.translate (20*cellSize) (fromIntegral picHeight/2)
+                    setLineWidth 3
+                    renderWires purple cellSize (cellSize/2) lambdaCircuits
+                cairoScope $ do
+                    C.translate (6*cellSize) (fromIntegral picHeight/2 - 13.5 * cellSize)
+                    setLineWidth 6
+                    renderMunihacWriting purple (cellSize/1.25)
+        picWidth = 840
         picHeight = 380
     render "out/munihac-2022-logo.svg" picWidth picHeight mainRender
     render "out/munihac-2022-logo.png" picWidth picHeight $ do
@@ -49,8 +53,18 @@ main = do
         oneLinePicWidth = 670
         oneLinePicHeight = 60
 
-    render "out/munihac-2022-logo-oneline.svg" oneLinePicWidth oneLinePicHeight oneLineRender
-    render "out/munihac-2022-logo-oneline.png" oneLinePicWidth oneLinePicHeight $ do
+    render "out/munihac-2022-logo-oneline-thin.svg" oneLinePicWidth oneLinePicHeight $ do
+        oneLineRender
+    render "out/munihac-2022-logo-oneline-thin.png" oneLinePicWidth oneLinePicHeight $ do
+        cairoScope $ do
+            setSourceRGB 1 1 1
+            paint
+        oneLineRender
+    render "out/munihac-2022-logo-oneline-thick.svg" oneLinePicWidth oneLinePicHeight $ do
+        setLineWidth 4
+        oneLineRender
+    render "out/munihac-2022-logo-oneline-thick.png" oneLinePicWidth oneLinePicHeight $ do
+        setLineWidth 4
         cairoScope $ do
             setSourceRGB 1 1 1
             paint
