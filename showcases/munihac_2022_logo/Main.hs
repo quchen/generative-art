@@ -48,6 +48,8 @@ main = do
     let oneLineRender = do
             let cellSize = 6
             -- cartesianCoordinateSystem def
+            setLineJoin LineJoinBevel
+            setLineCap LineCapRound
             C.translate 30 50
             renderMunihacWritingOneLine purple (cellSize/2)
         oneLinePicWidth = 670
@@ -99,14 +101,14 @@ letterI = Glyph
 letterH :: Glyph
 letterH = Glyph
     [ walkInSteps [id, move UL 10] hexZero
-    , walkInSteps [move UL 5, move R 7] hexZero
+    , walkInSteps [move UL 5, move R 6] hexZero
     , walkInSteps [move R 8, move UL 10] hexZero
     ]
 
 letterA :: Glyph
 letterA = Glyph
     [ walkInSteps [id, move UL 8, move UR 2, move R 6, move DR 10] hexZero
-    , walkInSteps [move UL 5, move R 7] hexZero
+    , walkInSteps [move UL 5, move R 6] hexZero
     ]
 
 letterC :: Glyph
@@ -116,12 +118,12 @@ letterC = Glyph
 
 digit2 :: Glyph
 digit2 = Glyph
-    [ walkInSteps [move R 8, move L 8, move UL 3, move UR 2, move R 4, move UR 2, move UL 3, move L 8] hexZero
+    [ walkInSteps [move R 8, move L 8, move UL 3, move UR 2, move R 4, move UR 2, move UL 3, move L 7] hexZero
     ]
 
 digit0 :: Glyph
 digit0 = Glyph
-    [ walkInSteps [id, move R 6, move UR 2, move UL 8, move L 6, move DL 2, move DR 7] hexZero
+    [ walkInSteps [id, move R 6, move UR 2, move UL 8, move L 6, move DL 2, move DR 6] hexZero
     ]
 
 muni :: [Glyph]
@@ -155,7 +157,7 @@ renderMunihacWriting colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move DR (0+2) . move R 12) wire)
     cairoScope $ do
         colors V.! 1
@@ -163,7 +165,7 @@ renderMunihacWriting colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move DR (14+2) . move R 12) wire)
     cairoScope $ do
         colors V.! 0
@@ -171,7 +173,7 @@ renderMunihacWriting colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move DR (28+2) . move R 12) wire)
 
 renderMunihacWritingOneLine :: ColorScheme -> Double -> Render ()
@@ -183,7 +185,7 @@ renderMunihacWritingOneLine colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move R 0) wire)
     cairoScope $ do
         colors V.! 1
@@ -191,7 +193,7 @@ renderMunihacWritingOneLine colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move R 40) wire)
     cairoScope $ do
         colors V.! 0
@@ -199,7 +201,7 @@ renderMunihacWritingOneLine colorScheme cellSize = do
             for_ wires $ \wire ->
                 renderWire
                     cellSize
-                    (cellSize/1.5)
+                    cellSize
                     (map (move R 78) wire)
 
 -- | A lambda in hexagonal coordinates.
