@@ -33,10 +33,10 @@ main = do
                     setLineWidth 3
                     renderWires purple cellSize (cellSize/2) lambdaCircuits
                 cairoScope $ do
-                    C.translate (6*cellSize) (fromIntegral picHeight/2 - 13.5 * cellSize)
+                    C.translate (6*cellSize) (fromIntegral picHeight/2 - 13 * cellSize)
                     setLineWidth 6
-                    renderMunihacWriting purple (cellSize/1.25)
-        picWidth = 840
+                    renderMunihacWriting purple (cellSize/1.26)
+        picWidth = 780
         picHeight = 380
     render "out/munihac-2022-logo.svg" picWidth picHeight mainRender
     render "out/munihac-2022-logo.png" picWidth picHeight $ do
@@ -50,9 +50,9 @@ main = do
             -- cartesianCoordinateSystem def
             setLineJoin LineJoinBevel
             setLineCap LineCapRound
-            C.translate 30 50
+            C.translate 30 54
             renderMunihacWritingOneLine purple (cellSize/2)
-        oneLinePicWidth = 670
+        oneLinePicWidth = 640
         oneLinePicHeight = 60
 
     render "out/munihac-2022-logo-oneline-thin.svg" oneLinePicWidth oneLinePicHeight $ do
@@ -118,12 +118,12 @@ letterC = Glyph
 
 digit2 :: Glyph
 digit2 = Glyph
-    [ walkInSteps [move R 8, move L 8, move UL 3, move UR 2, move R 4, move UR 2, move UL 3, move L 7] hexZero
+    [ walkInSteps [move R 7, move L 7, move UL 3, move UR 2, move R 3, move UR 2, move UL 3, move L 5, move DL 1] hexZero
     ]
 
 digit0 :: Glyph
 digit0 = Glyph
-    [ walkInSteps [id, move R 6, move UR 2, move UL 8, move L 6, move DL 2, move DR 6] hexZero
+    [ walkInSteps [id, move R 5, move UR 2, move UL 8, move L 5, move DL 2, move DR 6] hexZero
     ]
 
 muni :: [Glyph]
@@ -143,9 +143,9 @@ hac =
 x2022 :: [Glyph]
 x2022 =
     [ digit2
-    , mapGlyph (move R 12) digit0
-    , mapGlyph (move R 24) digit2
-    , mapGlyph (move R 36) digit2
+    , mapGlyph (move R 10) digit0
+    , mapGlyph (move R 20) digit2
+    , mapGlyph (move R 30) digit2
     ]
 
 renderMunihacWriting :: ColorScheme -> Double -> Render ()
