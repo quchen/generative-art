@@ -15,6 +15,7 @@ packages:
     - penplotting/SvgSource
     - penplotting/Truchet
     - penplotting/Voronoi
+    - penplotting/VoronoiLaserPanel
 
     - showcases/circuits
     - showcases/haskell_logo_billard
