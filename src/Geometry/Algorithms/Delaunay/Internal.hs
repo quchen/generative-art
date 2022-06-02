@@ -60,8 +60,8 @@ getPolygons delaunay = deleteInitialPolygon $ toPolygon . _dtTriangle <$> toList
     hasCommonCorner (Polygon ps) (Polygon qs) = not . null $ ps `intersect` qs
 
 -- | Calculate the Delaunay triangulation of a set of vertices using the Bowyer-Watson algorithm.
-bowyerWatson :: HasBoundingBox bounds => bounds -> [Vec2] -> DelaunayTriangulation
-bowyerWatson bounds ps = foldl' bowyerWatsonStep initialDelaunay (filter (`insideBoundingBox` boundingBox bounds) ps)
+bowyerWatson :: (HasBoundingBox bounds, Sequential list) => bounds -> list Vec2 -> DelaunayTriangulation
+bowyerWatson bounds ps = foldl' bowyerWatsonStep initialDelaunay (filter (`insideBoundingBox` boundingBox bounds) (toList ps))
   where
     initialTriangles = [triangle v1 v2 v4, triangle v2 v3 v4]
     initialPolygon@(Polygon [v1, v2, v3, v4]) = transform (scaleAround (boundingBoxCenter bounds) 2) (boundingBoxPolygon bounds)
