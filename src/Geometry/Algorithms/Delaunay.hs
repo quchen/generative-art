@@ -28,6 +28,7 @@
 module Geometry.Algorithms.Delaunay (
       DelaunayTriangulation()
     , getPolygons
+    , delaunayTriangulation
     , bowyerWatson
     , bowyerWatsonStep
 
