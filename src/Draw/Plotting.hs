@@ -758,10 +758,15 @@ instance (Plotting a, Plotting b, Plotting c, Plotting d, Plotting e) => Plottin
 instance Plotting Polygon where
     -- Like polyline, but closes up the shape
     plot (Polygon []) = pure ()
-    plot (Polygon (p:ps)) = commented "Polygon" $ do
-        repositionTo p
-        traverse_ lineTo ps
-        lineTo p
+    plot (Polygon corners) = do
+        current <- gets _penXY
+        let Just closestCorner = minimumOn (\corner -> norm (current -. corner)) corners
+            (before, after) = break (== closestCorner) corners
+            r:eorderedCorners = after ++ before
+        commented "Polygon" $ do
+            repositionTo r
+            traverse_ lineTo eorderedCorners
+            lineTo r
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
 -- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
