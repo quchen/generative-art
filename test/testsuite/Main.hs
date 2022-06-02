@@ -14,8 +14,8 @@ import qualified Test.Draw
 import qualified Test.Draw.Color
 import qualified Test.Draw.Plotting
 import qualified Test.Draw.Text
-import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Clipping
+import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Delaunay
 import qualified Test.Geometry.Algorithms.Sampling
 import qualified Test.Geometry.Algorithms.Triangulate
@@ -31,6 +31,7 @@ import qualified Test.Physics
 import qualified Test.Uncategorized.Bezier
 import qualified Test.Uncategorized.ConvexHull
 import qualified Test.Uncategorized.DifferentialEquation
+import qualified Test.Uncategorized.GrowPolygon
 import qualified Test.Uncategorized.IntersectionLL
 import qualified Test.Uncategorized.Mirror
 import qualified Test.Uncategorized.Properties
@@ -58,12 +59,12 @@ test pattern = case parseTestPattern pattern of
 tests :: TestTree
 tests = testGroup "Test suite"
     [ Test.Data.Tree.Extended.tests
-    , Test.Draw.tests
     , Test.Draw.Color.tests
     , Test.Draw.Plotting.tests
+    , Test.Draw.tests
     , Test.Draw.Text.tests
-    , Test.Geometry.Algorithms.Contour.tests
     , Test.Geometry.Algorithms.Clipping.tests
+    , Test.Geometry.Algorithms.Contour.tests
     , Test.Geometry.Algorithms.Delaunay.tests
     , Test.Geometry.Algorithms.Sampling.tests
     , Test.Geometry.Algorithms.Triangulate.tests
@@ -79,6 +80,7 @@ tests = testGroup "Test suite"
     , Test.Uncategorized.Bezier.tests
     , Test.Uncategorized.ConvexHull.tests
     , Test.Uncategorized.DifferentialEquation.tests
+    , Test.Uncategorized.GrowPolygon.tests
     , Test.Uncategorized.IntersectionLL.tests
     , Test.Uncategorized.Mirror.tests
     , Test.Uncategorized.Properties.tests

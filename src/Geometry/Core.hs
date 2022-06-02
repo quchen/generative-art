@@ -1478,35 +1478,68 @@ polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEd
 -- docs/haddock/Geometry/Core.hs/grow_polygon.svg
 growPolygon :: Double -> Polygon -> Polygon
 growPolygon offset polygon =
-    let edges = polygonEdges polygon
-        movedEdges = map (moveLinePerpendicular offsetOriented) edges
-        offsetOriented = case polygonOrientation polygon of
-            PolygonNegative -> offset
-            PolygonPositive -> -offset
+    let oldEdges = polygonEdges polygon
 
-        newCorners = zipWith
-            (\edge1@(Line _ fallback1) edge2@(Line fallback2 _) -> case intersectionLL edge1 edge2 of
-                IntersectionVirtual p        -> p -- Most common case on growing
-                IntersectionReal p           -> p -- Most common case on shrinking
-                IntersectionVirtualInsideL p -> p -- Not sure when this might happen, but if it does that’s what it should do :-)
-                IntersectionVirtualInsideR p -> p -- Dito
-                Parallel                     -> (fallback1 +. fallback2) /. 2 -- Pathological polygon: edge goes back onto itself
-                Collinear{}                  -> (fallback1 +. fallback2) /. 2 -- Collinear edges, drop the middle point
-            )
-            movedEdges
-            (tail (cycle movedEdges))
+        -- Alg idea:
+        -- Compare edge with expanded/shrunken edge. Ears have reversed direction to before,
+        -- so we drop all the ear edges, and recompute the intersections of the remaining edges.
 
-    in Polygon newCorners
+        grownEdges =
+            let offsetOriented = case polygonOrientation polygon of
+                    PolygonNegative -> offset
+                    PolygonPositive -> -offset
+            in map (moveLinePerpendicular offsetOriented) oldEdges
 
--- | Rotate 90 degrees. Fast special case of 'transform (rotate ('deg' 90))'.
-rot90 :: Vec2 -> Vec2
-rot90 (Vec2 x y) = Vec2 (-y) x
+        newCorners = rotateListRight1 (adjacentIntersections grownEdges)
+                     -- We need to rotate the list by one, otherwise the edges
+                     -- will be misaligned by one, and we’ll be comparing an
+                     -- edge to a resized _other_ edge in the next step. Bit hacky,
+                     -- refactorings welcome :-)
 
--- | Move a line in perpendicular direction
+        oldAndNewEdges = zipWith3
+            (\oldEdge newCorner1 newCorner2 -> (oldEdge, Line newCorner1 newCorner2))
+            oldEdges
+            newCorners
+            (tail (cycle newCorners))
+
+        guard p = if p then pure () else [] -- Local reinvention avoids an import
+        sameDirection v w = dotProduct (vectorOf v) (vectorOf w) >= 0
+
+        earsClipped = do
+            (oldEdge, newEdge) <- oldAndNewEdges
+            -- Ears have flipped directions so we can filter them out
+            guard (sameDirection oldEdge newEdge)
+            pure newEdge
+
+        earsClippedCorners = adjacentIntersections earsClipped
+
+    in Polygon earsClippedCorners
+
+rotateListRight1 :: [a] -> [a]
+rotateListRight1 [] = []
+rotateListRight1 xs = last xs : init xs
+
 moveLinePerpendicular :: Double -> Line -> Line
 moveLinePerpendicular offset line =
-    let dir = rot90 (vectorOf (normalizeLine line))
+    let -- | Rotate 90 degrees. Fast special case of 'transform (rotate ('deg' 90))'.
+        rot90 :: Vec2 -> Vec2
+        rot90 (Vec2 x y) = Vec2 (-y) x
+        dir = rot90 (direction line)
     in transform (translate (offset *. dir)) line
+
+-- | Pairwise intersections of lines. Useful to reconstruct a polygon from a list of edges.
+adjacentIntersections :: [Line] -> [Vec2]
+adjacentIntersections edges = zipWith
+    (\edge1@(Line _ fallback1) edge2@(Line fallback2 _) -> case intersectionLL edge1 edge2 of
+        IntersectionVirtual p        -> p -- Most common case on growing
+        IntersectionReal p           -> p -- Most common case on shrinking
+        IntersectionVirtualInsideL p -> p -- Not sure when this might happen, but if it does that’s what it should do :-)
+        IntersectionVirtualInsideR p -> p -- Dito
+        Parallel                     -> (fallback1 +. fallback2) /. 2 -- Pathological polygon: edge goes back onto itself
+        Collinear{}                  -> (fallback1 +. fallback2) /. 2 -- Collinear edges, drop the middle point
+    )
+    edges
+    (tail (cycle edges))
 
 -- | Two-dimensional cross product.
 --
