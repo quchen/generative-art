@@ -695,7 +695,11 @@ instance Plotting BoundingBox where
             ]
 
 instance Plotting Line where
-    plot (Line start end) = commented "Line" $ do
+    plot (Line a b) = commented "Line" $ do
+        current <- gets _penXY
+        let (start, end) = if norm (current -. a) <= norm (current -. b)
+                then (a,b)
+                else (b,a)
         repositionTo start
         lineTo end
 
