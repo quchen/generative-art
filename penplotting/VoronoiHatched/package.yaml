@@ -1,4 +1,4 @@
-name:       voronoi-laser-panel
+name:       voronoi-hatched
 version:    0.1.0.0
 github:     quchen/generative-art
 license:    BSD3
@@ -17,7 +17,7 @@ dependencies:
     - mwc-random
 
 executables:
-    voronoi-laser-panel:
+    voronoi-hatched:
         main: Main.hs
         source-dirs: .
         ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]

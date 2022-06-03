@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import           Control.Monad.ST
+import           Data.Traversable
 import qualified System.Random.MWC as MWC
 
 import Draw                         as D
@@ -11,6 +12,7 @@ import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
+import Numerics.Interpolation
 
 
 
@@ -22,42 +24,44 @@ main = do
         paperBB = boundingBox [zero, Vec2 w h]
         drawInsideBB = boundingBox [zero +. Vec2 margin margin, Vec2 w h -. Vec2 margin margin]
 
-    let (seeds, cells) = geometry drawInsideBB
+    let cells = geometry drawInsideBB
+        (outlines, hatchings) = unzip cells
     let plotSettings = def
             { _canvasBoundingBox = Just paperBB
             , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
             }
         plotCells = runPlot plotSettings { _feedrate = 1000, _previewPenColor = mathematica97 3 } $ do
-            for_ cells plot
-        plotSeeds = runPlot plotSettings { _feedrate = 250, _previewPenColor = black } $ do
-            for_ seeds $ \seed -> plot (Circle seed 0.5)
+            for_ outlines plot
+        plotHatchings = runPlot plotSettings { _feedrate = 250, _previewPenColor = black } $ do
+            for_ hatchings plot
 
-    writeGCodeFile "out/voronoi-laser-panel-cells.g" plotCells
-    writeGCodeFile "out/voronoi-laser-panel-seeds.g" plotSeeds
+    writeGCodeFile "out/voronoi-hatched-cells.g" plotCells
+    writeGCodeFile "out/voronoi-hatched-hatching.g" plotHatchings
 
-    D.render "out/voronoi-laser-panel.svg" (round w) (round h) $ do
+    D.render "out/voronoi-hatched.svg" (round w) (round h) $ do
         D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
         _plotPreview plotCells
-        _plotPreview plotSeeds
+        _plotPreview plotHatchings
 
-geometry :: BoundingBox -> ([Vec2], [Polygon])
-geometry bb =
-    let points = runST $ do
-            gen <- MWC.create
-            gaussianDistributedPoints gen bb (32 *. mempty) 256
-            -- poissonDisc gen PoissonDiscParams
-            --     { _poissonShape  = bb
-            --     , _poissonRadius = 15
-            --     , _poissonK      = 3
-            -- }
-
-        delaunay =
-              lloydRelaxation 3
+geometry :: BoundingBox -> [(Polygon, [Line])]
+geometry bb = runST $ do
+    gen <- MWC.create
+    points <- gaussianDistributedPoints gen bb (32 *. mempty) 256
+    let delaunay =
+            lloydRelaxation 3
             . bowyerWatson bb
             $ points
         voronoi = toVoronoi delaunay
 
         cells = [ growPolygon (-1) (_voronoiRegion cell) | cell <- _voronoiCells voronoi]
-        centers = map _voronoiSeed (_voronoiCells voronoi)
-    in (centers, cells)
+
+    hatched <- for cells $ \cell -> do
+        angle <- fmap deg (MWC.uniformRM (0, 180) gen)
+        spacing <- do
+            let cellArea = polygonArea cell
+                bbArea = polygonArea (boundingBoxPolygon bb)
+            pure (lerp (0, sqrt bbArea) (1,15) (sqrt cellArea))
+        pure (cell, hatch cell angle spacing)
+
+    pure hatched
