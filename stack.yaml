@@ -9,6 +9,7 @@ packages:
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/Kilometer
+    - penplotting/OscillatingCircle
     - penplotting/PenChangeCalibration
     - penplotting/PoissonDisc
     - penplotting/Pressure
