@@ -30,10 +30,11 @@ main = do
             { _canvasBoundingBox = Just paperBB
             , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
+            , _feedrate = 1000
             }
-        plotCells = runPlot plotSettings { _feedrate = 1000, _previewPenColor = mathematica97 3 } $ do
+        plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3 } $ do
             for_ outlines plot
-        plotHatchings = runPlot plotSettings { _feedrate = 250, _previewPenColor = black } $ do
+        plotHatchings = runPlot plotSettings { _previewPenColor = black } $ do
             for_ hatchings plot
 
     writeGCodeFile "out/voronoi-hatched-cells.g" plotCells
