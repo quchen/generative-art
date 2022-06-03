@@ -57,14 +57,19 @@ geometry bb = runST $ do
 
     rays <- for (takeWhile (< 360) [0, 360/100 ..]) $ \rawAngle -> do
         let angle = deg rawAngle
-        noise <- simplex2
+        noise1 <- simplex2
+            def { _simplexOctaves = 1
+                , _simplexFrequency = let (w,h) = boundingBoxSize bb in 6/min w h }
+            gen
+        noise2 <- simplex2
             def { _simplexOctaves = 1
                 , _simplexFrequency = let (w,h) = boundingBoxSize bb in 6/min w h }
             gen
         let radius = 60
         let cleanPoint = boundingBoxCenter bb +. polar angle radius
-            noiseOffset = polar angle (3 + 20*abs (noise cleanPoint))
+            noiseMinus = polar angle (5*abs (noise2 cleanPoint))
+            noisePlus = polar angle (3 + 20*abs (noise1 cleanPoint))
 
-        pure (Line cleanPoint (cleanPoint +. noiseOffset))
+        pure (Line (cleanPoint -. noiseMinus) (cleanPoint +. noisePlus))
 
     pure (circles, rays)
