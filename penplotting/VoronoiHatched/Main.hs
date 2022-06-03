@@ -6,11 +6,12 @@ import           Control.Monad.ST
 import           Data.Traversable
 import qualified System.Random.MWC as MWC
 
-import Draw                         as D
+import Draw                             as D
 import Draw.Plotting
-import Geometry                     as G
+import Geometry                         as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.SimplexNoise
 import Geometry.Algorithms.Voronoi
 import Numerics.Interpolation
 
@@ -30,10 +31,11 @@ main = do
             { _canvasBoundingBox = Just paperBB
             , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
-            , _previewPenWidth = 0.5
+            , _previewPenWidth = 0.3
             }
         plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3, _feedrate = 1000 } $ do
-            for_ outlines plot
+            -- for_ outlines plot
+            pure ()
         plotHatchings = runPlot plotSettings { _previewPenColor = black, _feedrate = 2000 } $ do
             for_ hatchings plot
 
@@ -57,8 +59,15 @@ geometry bb = runST $ do
 
         cells = [ growPolygon (-1) (_voronoiRegion cell) | cell <- _voronoiCells voronoi]
 
+
+    noise <- simplex2
+        def
+            { _simplexFrequency = let (w,h) = boundingBoxSize bb in 0.5/min w h
+            , _simplexOctaves = 1
+            }
+        gen
     hatched <- for cells $ \cell -> do
-        angle <- fmap deg (MWC.uniformRM (0, 180) gen)
+        let angle = lerp (-1,1) (deg 0, deg 360) (noise (polygonCentroid cell))
         spacing <- do
             let cellArea = polygonArea cell
                 bbArea = polygonArea (boundingBoxPolygon bb)
