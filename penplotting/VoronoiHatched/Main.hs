@@ -30,11 +30,11 @@ main = do
             { _canvasBoundingBox = Just paperBB
             , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
-            , _feedrate = 1000
+            , _previewPenWidth = 0.5
             }
-        plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3 } $ do
+        plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3, _feedrate = 1000 } $ do
             for_ outlines plot
-        plotHatchings = runPlot plotSettings { _previewPenColor = black } $ do
+        plotHatchings = runPlot plotSettings { _previewPenColor = black, _feedrate = 2000 } $ do
             for_ hatchings plot
 
     writeGCodeFile "out/voronoi-hatched-cells.g" plotCells
@@ -62,7 +62,7 @@ geometry bb = runST $ do
         spacing <- do
             let cellArea = polygonArea cell
                 bbArea = polygonArea (boundingBoxPolygon bb)
-            pure (lerp (0, sqrt bbArea) (1,15) (sqrt cellArea))
+            pure (lerp (0, sqrt bbArea) (0.3,15) (sqrt cellArea))
         pure (cell, hatch cell angle spacing)
 
     pure hatched
