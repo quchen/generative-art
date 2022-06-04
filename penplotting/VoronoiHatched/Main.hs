@@ -3,11 +3,13 @@ module Main (main) where
 
 
 import           Control.Monad.ST
+import           Data.List
 import           Data.Traversable
 import qualified System.Random.MWC as MWC
 
 import Draw                             as D
 import Draw.Plotting
+import Draw.Plotting.GCode
 import Geometry                         as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
@@ -33,9 +35,11 @@ main = do
             , _previewPenTravelColor = Nothing
             , _previewPenWidth = 0.3
             }
-        plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3, _feedrate = 1000 } $ do
-            -- for_ outlines plot
-            pure ()
+        plotCells = runPlot plotSettings { _previewPenColor = mathematica97 3, _feedrate = 2000 } $ do
+            for_ outlines $ \polygon -> do
+                let plotEdges = map plot (polygonEdges polygon)
+                    wait = gCode [G04_Dwell_ms 100] -- Avoid oscillations on sudden change of direction
+                sequence_ (intersperse wait plotEdges)
         plotHatchings = runPlot plotSettings { _previewPenColor = black, _feedrate = 2000 } $ do
             for_ hatchings plot
 
@@ -50,15 +54,13 @@ main = do
 geometry :: BoundingBox -> [(Polygon, [Line])]
 geometry bb = runST $ do
     gen <- MWC.create
-    points <- gaussianDistributedPoints gen bb (32 *. mempty) 256
-    let delaunay =
-            lloydRelaxation 3
-            . bowyerWatson bb
-            $ points
-        voronoi = toVoronoi delaunay
+    points <- do
+        let stddev = 32
+            numPoints = 256
+        gaussianDistributedPoints gen bb (stddev *. mempty) numPoints
 
+    let voronoi = toVoronoi (lloydRelaxation 3 (delaunayTriangulation bb points))
         cells = [ growPolygon (-1) (_voronoiRegion cell) | cell <- _voronoiCells voronoi]
-
 
     noise <- simplex2
         def
@@ -71,7 +73,7 @@ geometry bb = runST $ do
         spacing <- do
             let cellArea = polygonArea cell
                 bbArea = polygonArea (boundingBoxPolygon bb)
-            pure (lerp (0, sqrt bbArea) (0.3,15) (sqrt cellArea))
+            pure (lerp (0, sqrt bbArea) (0.2,15) (sqrt cellArea))
         pure (cell, hatch cell angle spacing)
 
     pure hatched
