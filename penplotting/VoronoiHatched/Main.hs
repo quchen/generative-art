@@ -62,14 +62,8 @@ geometry bb = runST $ do
     let voronoi = toVoronoi (lloydRelaxation 3 (delaunayTriangulation bb points))
         cells = [ growPolygon (-1) (_voronoiRegion cell) | cell <- _voronoiCells voronoi]
 
-    noise <- simplex2
-        def
-            { _simplexFrequency = let (w,h) = boundingBoxSize bb in 0.5/min w h
-            , _simplexOctaves = 1
-            }
-        gen
     hatched <- for cells $ \cell -> do
-        let angle = lerp (-1,1) (deg 0, deg 360) (noise (polygonCentroid cell))
+        angle <- fmap deg (MWC.uniformRM (0, 180) gen)
         spacing <- do
             let cellArea = polygonArea cell
                 bbArea = polygonArea (boundingBoxPolygon bb)
