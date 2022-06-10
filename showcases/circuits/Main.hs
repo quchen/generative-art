@@ -20,7 +20,7 @@ import Geometry as G
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 10
+    let lambdaScale = 6
         lambdaGeometry = hexLambda lambdaScale
 
         lambdaCircuits = reconstructWires (circuitProcess lambdaGeometry)
