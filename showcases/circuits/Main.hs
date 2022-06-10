@@ -12,6 +12,7 @@ import Geometry.Coordinates.Hexagonal as Hex
 import Circuits.GrowingProcess
 import Circuits.ReconstructWires
 import Circuits.Render
+import Geometry as G
 
 
 
@@ -19,22 +20,25 @@ import Circuits.Render
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 6
+    let lambdaScale = 10
         lambdaGeometry = hexLambda lambdaScale
 
-        surroundingScale = lambdaScale*8
-        surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
-
-        (lambdaCircuits, surroundingCircuits) =
-            (reconstructWires (circuitProcess lambdaGeometry), reconstructWires (circuitProcess surroundingGeometry))
-            `using` parTuple2 rdeepseq rdeepseq
+        lambdaCircuits = reconstructWires (circuitProcess lambdaGeometry)
     let mainRender = do
             let cellSize = 3
             C.translate (fromIntegral picWidth/2) (fromIntegral picHeight/2)
             cairoScope $ do
                 setLineWidth 1
-                renderWires purple  cellSize lambdaCircuits
-                renderWires grey cellSize surroundingCircuits
+                renderWires purple cellSize lambdaCircuits
+            cairoScope $ do
+                setLineWidth 1
+                let padding = 1
+                    Hex.Polygon corners = outerPolygon lambdaScale padding
+                for_ (zip corners (tail (cycle corners))) $ \(a,b) -> do
+                    let line = Line (Hex.toVec2 cellSize a) (Hex.toVec2 cellSize b)
+                    D.sketch line
+                setColor (mathematica97 3)
+                stroke
     render "out/circuits.svg" picWidth picHeight mainRender
     render "out/circuits.png" picWidth picHeight $ do
         cairoScope $ do
@@ -42,8 +46,8 @@ main = do
             paint
         mainRender
   where
-    picWidth = 520
-    picHeight = 440
+    picWidth = 600
+    picHeight = 600
 
 -- | A lambda in hexagonal coordinates.
 hexLambda
@@ -67,30 +71,30 @@ hexLambda c = ProcessGeometry
         , move UR (c*5)
         ]
         (move UL (c*5) (move L c hexZero))
-    walkInSteps [] _pos = []
-    walkInSteps (f:fs) pos =
-        let newPoint = f pos
-        in newPoint : walkInSteps fs newPoint
 
     floodFillStart = hexZero
     floodFilled = floodFill floodFillStart (edgePoints polygon)
     pointsOnInside = floodFilled `S.difference` pointsOnEdge
     pointsOnEdge = edgePoints polygon
 
--- | A large hexagon with some geometry cut out.
-largeSurroundingCircle
-    :: Int             -- ^ Radius of the hexagon
-    -> ProcessGeometry -- ^ Geometry to be cut out
-    -> ProcessGeometry
-largeSurroundingCircle c excludes =
-    let allExcluded = _inside excludes <> _edge excludes
-        largeCircle = S.fromList (hexagonsInRange c hexZero)
-        excludesExtended = S.unions (S.map (\hex -> S.fromList (ring 1 hex)) (_edge excludes))
-        edge = let outer = S.fromList (ring c hexZero)
-                   inner = excludesExtended `S.difference` allExcluded
-               in outer <> inner
-        inside = largeCircle `S.difference` edge `S.difference` allExcluded
-    in ProcessGeometry
-        { _inside = inside
-        , _edge = edge
-        }
+walkInSteps :: [a -> a] -> a -> [a]
+walkInSteps [] _pos = []
+walkInSteps (f:fs) pos =
+    let newPoint = f pos
+    in newPoint : walkInSteps fs newPoint
+
+outerPolygon :: Int -> Int -> Hex.Polygon
+outerPolygon c padding = polygon
+  where
+    polygon = Hex.Polygon corners
+    corners = walkInSteps
+        [ move L   padding . move UL padding
+        , move R  (c*2+2*padding)
+        , move DR (c*10+2*padding)
+        , move L  (c*2+2*padding)
+        , move UL (c*3-1*padding)
+        , move DL (c*3-1*padding)
+        , move L  (c*2+2*padding)
+        , move UR (c*5+1*padding)
+        ]
+        (move UL (c*5) (move L c hexZero))

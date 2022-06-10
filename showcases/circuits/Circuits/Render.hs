@@ -46,7 +46,8 @@ renderWires
 renderWires scheme cellSize wires = do
     gen <- liftIO MWC.create
     for_ wires $ \wire -> do
-        randomColor gen scheme
+        -- randomColor gen scheme
+        setColor (mathematica97 0)
         renderWire cellSize wire
 
 newtype ColorScheme = ColorScheme (V.Vector (Render ()))

@@ -69,7 +69,7 @@ circuitProcess
     :: ProcessGeometry
     -> Circuits
 circuitProcess processGeometry = runST $ do
-    gen <- MWC.initialize (V.fromList [252,231233,2333,233,1])
+    gen <- MWC.initialize (V.fromList [12])
     k <- replicateM 1000 (MWC.uniformM gen) -- Warm up MWC gen
     let _ = k :: [Int]
 
