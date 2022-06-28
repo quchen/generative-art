@@ -4,9 +4,10 @@ module Main where
 
 
 import Control.Monad.ST
-import Control.Applicative
+import Data.Maybe
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
+import qualified Util.RTree as RT
 
 import Draw
 import Geometry
@@ -24,8 +25,8 @@ data Config = Config
 mainBranchConfig, sideBranchConfig :: Config
 mainBranchConfig = Config
     { branchAngle = deg 2
-    , branchProbability = 0.97
-    , branchGrowth = 0.98
+    , branchProbability = 1
+    , branchGrowth = 0.96
     , minLength = 0.1
     }
 sideBranchConfig = Config
@@ -42,9 +43,9 @@ picHeight = 100
 main :: IO ()
 main = do
     let initialBranch = Branch (Vec2 0 (picHeight/2)) 5 (deg 0)
-        tree = runST $ do
+        (tree, _) = runST $ do
             gen <- initializeMwc (2 :: Double)
-            grow gen CW initialBranch
+            grow gen CW (initialBranch, RT.empty)
     render "out/tendrils.png" picWidth picHeight $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
         cairoScope (setColor white >> C.paint)
@@ -79,30 +80,37 @@ curvSign CW = -1
 
 data Branch = Branch Vec2 Double Angle
 
-grow :: GenST s -> Curvature -> Branch -> ST s (Tree Branch)
-grow gen curv branch = do
-    mainBranch <- step gen mainBranchConfig curv branch
-    sideBranch <- step gen sideBranchConfig curv branch
-    liftA2 (Node branch)
-        (traverse (grow gen curv) mainBranch)
-        (traverse (grow gen (other curv)) sideBranch)
+grow :: GenST s -> Curvature -> (Branch, RT.RTree Line) -> ST s (Tree Branch, RT.RTree Line)
+grow gen curv (branch, lines) = do
+    (mainBranch, lines') <- fmap unzipMaybe $ step gen mainBranchConfig curv lines branch >>= traverse (grow gen curv)
+    let lines'' = fromMaybe lines lines'
+    (sideBranch, lines''') <- fmap unzipMaybe $ step gen sideBranchConfig curv lines'' branch >>= traverse (grow gen (other curv))
+    pure (Node branch mainBranch sideBranch, fromMaybe lines'' lines''')
 
 dice :: GenST s -> Double -> ST s Bool
 dice gen threshold = do
     throw <- uniformRM (0, 1) gen
     pure (throw <= threshold)
 
-step :: GenST s -> Config -> Curvature -> Branch -> ST s (Maybe Branch)
-step gen config curv (Branch p l a) = dice gen (branchProbability config) >>= \case
+step :: GenST s -> Config -> Curvature -> RT.RTree Line -> Branch -> ST s (Maybe (Branch, RT.RTree Line))
+step gen config curv lines (Branch p l a) = dice gen (branchProbability config) >>= \case
     False -> pure Nothing
-    True  -> pure $ if l >= minLength config
-        then Just (Branch p' l' a')
+    True  -> pure $ if l >= minLength config && not collides
+        then Just (Branch p' l' a', RT.insert line lines)
         else Nothing
   where
     l' = l * branchGrowth config
     a' = a +. (curvSign curv *. branchAngle config)
-    Line _ p' = angledLine p a' l'
+    line@(Line _ p') = angledLine p a' l'
+    collides = any (realIntersection line) (RT.intersect (boundingBox line) lines)
+    realIntersection l1@(Line p1 q1) l2@(Line p2 q2) = case intersectionLL l1 l2 of
+        IntersectionReal _ -> p1 /= p2 && p1 /= q2 && q1 /= p2 && q1 /= q2
+        _                  -> False
 
 filterMaybe :: Bool -> Maybe a -> Maybe a
 filterMaybe True = id
 filterMaybe False = const Nothing
+
+unzipMaybe :: Maybe (a, b) -> (Maybe a, Maybe b)
+unzipMaybe (Just (a, b)) = (Just a, Just b)
+unzipMaybe Nothing = (Nothing, Nothing)
