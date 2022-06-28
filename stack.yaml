@@ -16,6 +16,7 @@ packages:
     - penplotting/PoissonDisc
     - penplotting/Pressure
     - penplotting/SvgSource
+    - penplotting/Tendrils
     - penplotting/Truchet
     - penplotting/Typography
     - penplotting/Voronoi
