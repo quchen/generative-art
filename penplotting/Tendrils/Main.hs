@@ -24,25 +24,25 @@ data Config = Config
 
 mainBranchConfig, sideBranchConfig :: Config
 mainBranchConfig = Config
-    { branchAngle = deg 2
+    { branchAngle = deg 2.5
     , branchProbability = 1
-    , branchGrowth = 0.96
+    , branchGrowth = 0.99
     , minLength = 0.1
     }
 sideBranchConfig = Config
-    { branchAngle = deg (-10)
-    , branchProbability = 0.2
-    , branchGrowth = 0.5
-    , minLength = 0.1
+    { branchAngle = deg (-2.5)
+    , branchProbability = 0.05
+    , branchGrowth = 0.9
+    , minLength = 0.5
     }
 
 picWidth, picHeight :: Num a => a
-picWidth = 100
-picHeight = 100
+picWidth = 500
+picHeight = 500
 
 main :: IO ()
 main = do
-    let initialBranch = Branch (Vec2 0 (picHeight/2)) 5 (deg 0)
+    let initialBranch = Branch (Vec2 (picWidth/2) picHeight) 10 (deg 0)
         (tree, _) = runST $ do
             gen <- initializeMwc (2 :: Double)
             grow gen CW (initialBranch, RT.empty)
