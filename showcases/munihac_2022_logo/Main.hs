@@ -72,6 +72,18 @@ main = do
             paint
         oneLineRender
 
+    let faviconRender = do
+            let cellSize = 10
+                smallerLambdaCircuits = reconstructWires (circuitProcess (hexLambda 2))
+            cairoScope $ do
+                setLineJoin LineJoinBevel
+                setLineCap LineCapRound
+                cairoScope $ do
+                    C.translate (17*cellSize) 160
+                    setLineWidth 5
+                    renderWires purple cellSize (cellSize/2) smallerLambdaCircuits
+    render "out/munihac-2022-favicon.png" 320 320 faviconRender
+
 newtype Glyph = Glyph [[Hex]]
 
 mapGlyph :: (Hex -> Hex) -> Glyph -> Glyph
