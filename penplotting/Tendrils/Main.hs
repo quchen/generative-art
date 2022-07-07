@@ -4,7 +4,6 @@ module Main where
 
 
 import Control.Monad.ST
-import Data.Maybe
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
 import qualified Util.RTree as RT
@@ -30,7 +29,7 @@ mainBranchConfig = Config
     , minLength = 0.1
     }
 sideBranchConfig = Config
-    { branchAngle = deg (-2.5)
+    { branchAngle = deg 2.5
     , branchProbability = 0.05
     , branchGrowth = 0.9
     , minLength = 0.5
@@ -43,9 +42,9 @@ picHeight = 500
 main :: IO ()
 main = do
     let initialBranch = Branch (Vec2 (picWidth/2) picHeight) 10 (deg 0)
-        (tree, _) = runST $ do
+        tree = fmap fst $ runST $ do
             gen <- initializeMwc (2 :: Double)
-            grow gen CW (initialBranch, RT.empty)
+            grow gen CW RT.empty initialBranch
     render "out/tendrils.png" picWidth picHeight $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
         cairoScope (setColor white >> C.paint)
@@ -53,20 +52,32 @@ main = do
 
 drawTree :: Tree Branch -> C.Render ()
 drawTree (Node (Branch p _ _) a b) = do
-    drawBranchMaybe a
+    drawBranchMaybe (Just a)
     drawBranchMaybe b
   where
     drawBranchMaybe = \case
-        Nothing -> pure ()
         Just tree@(Node branch _ _) -> drawBranch p branch >> drawTree tree
+        _otherwise -> pure ()
+drawTree _ = pure ()
 
 drawBranch :: Vec2 -> Branch -> C.Render ()
 drawBranch p (Branch q _ _) = do
     sketch (Line p q)
     C.stroke
 
-data Tree a = Node a (Maybe (Tree a)) (Maybe (Tree a))
+data Tree a
+    = Node a (Tree a) (Maybe (Tree a))
+    | Tip
+    | Collision
     deriving (Functor)
+
+grow :: GenST s -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
+grow gen curv lines branch = step gen mainBranchConfig curv lines branch >>= \case
+    Collision -> pure Collision
+    Tip -> pure (Node (branch, lines) Tip Nothing)
+    mb@(Node (_, ls) _ _) -> step gen sideBranchConfig (other curv) ls branch >>= \case
+        sb@(Node (_, ls') _ _) -> pure (Node (branch, ls') mb (Just sb))
+        _otherwise       -> pure (Node (branch, ls) mb Nothing)
 
 data Curvature = CW | CCW
 
@@ -80,24 +91,15 @@ curvSign CW = -1
 
 data Branch = Branch Vec2 Double Angle
 
-grow :: GenST s -> Curvature -> (Branch, RT.RTree Line) -> ST s (Tree Branch, RT.RTree Line)
-grow gen curv (branch, lines) = do
-    (mainBranch, lines') <- fmap unzipMaybe $ step gen mainBranchConfig curv lines branch >>= traverse (grow gen curv)
-    let lines'' = fromMaybe lines lines'
-    (sideBranch, lines''') <- fmap unzipMaybe $ step gen sideBranchConfig curv lines'' branch >>= traverse (grow gen (other curv))
-    pure (Node branch mainBranch sideBranch, fromMaybe lines'' lines''')
-
-dice :: GenST s -> Double -> ST s Bool
-dice gen threshold = do
-    throw <- uniformRM (0, 1) gen
-    pure (throw <= threshold)
-
-step :: GenST s -> Config -> Curvature -> RT.RTree Line -> Branch -> ST s (Maybe (Branch, RT.RTree Line))
+step :: GenST s -> Config -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
 step gen config curv lines (Branch p l a) = dice gen (branchProbability config) >>= \case
-    False -> pure Nothing
-    True  -> pure $ if l >= minLength config && not collides
-        then Just (Branch p' l' a', RT.insert line lines)
-        else Nothing
+    False -> pure Tip
+    True | collides -> pure Collision
+         | l <= minLength config -> pure Tip
+         | otherwise -> do
+            let lines' = RT.insert line lines
+                branch' = Branch p' l' a'
+            grow gen curv lines' branch'
   where
     l' = l * branchGrowth config
     a' = a +. (curvSign curv *. branchAngle config)
@@ -106,6 +108,11 @@ step gen config curv lines (Branch p l a) = dice gen (branchProbability config) 
     realIntersection l1@(Line p1 q1) l2@(Line p2 q2) = case intersectionLL l1 l2 of
         IntersectionReal _ -> p1 /= p2 && p1 /= q2 && q1 /= p2 && q1 /= q2
         _                  -> False
+
+dice :: GenST s -> Double -> ST s Bool
+dice gen threshold = do
+    throw <- uniformRM (0, 1) gen
+    pure (throw <= threshold)
 
 filterMaybe :: Bool -> Maybe a -> Maybe a
 filterMaybe True = id
