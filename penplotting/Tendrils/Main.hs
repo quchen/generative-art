@@ -41,10 +41,16 @@ picHeight = 500
 
 main :: IO ()
 main = do
-    let initialBranch = Branch (Vec2 (picWidth/2) picHeight) 10 (deg 0)
+    let initialBranch = Branch (Vec2 (picWidth/2) (picHeight-1)) 10 (deg 0)
+        picEdges =
+            [ Line (Vec2 0 0) (Vec2 0 picHeight)
+            , Line (Vec2 0 picHeight) (Vec2 picWidth picHeight)
+            , Line (Vec2 picWidth picHeight) (Vec2 picWidth 0)
+            , Line (Vec2 picWidth 0) (Vec2 0 0)
+            ]
         tree = fmap fst $ runST $ do
             gen <- initializeMwc (2 :: Double)
-            grow gen CW RT.empty initialBranch
+            grow gen CW (RT.fromList picEdges) initialBranch
     render "out/tendrils.png" picWidth picHeight $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
         cairoScope (setColor white >> C.paint)
