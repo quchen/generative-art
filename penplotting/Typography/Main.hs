@@ -2,10 +2,12 @@ module Main where
 
 
 
+import Control.Monad
 import Data.List.Extended (nubOrd)
 import qualified Data.Vector.Unboxed as V
 import qualified Graphics.Rendering.Cairo as C
 import qualified Graphics.Text.TrueType as TT
+import System.Random.MWC
 
 import Draw
 import Geometry
@@ -15,16 +17,19 @@ import Geometry
 main :: IO ()
 main = do
     Right iosevka <- TT.loadFontFile "/home/fthoma/.nix-profile/share/fonts/truetype/iosevka-custom-regular.ttf"
-    render "out/typography.png" 200 200 $ do
-        C.translate (-10) 158
+    gen <- create
+    glyphs <- replicateM 300 $ do
+        pt <- uniformRM (Vec2 0 0, Vec2 1000 1000) gen
+        char <- uniformRM ('a', 'z') gen
+        angle <- deg <$> uniformRM (0, 360) gen
+        pure $ transform (translate pt) $ hatchedGlyph iosevka 200 char angle 5
+    render "out/typography.png" 1000 1000 $ do
         cairoScope (setColor white >> C.paint)
-        let [f] = glyph iosevka 200 'f'
-        sketch f
-        C.stroke
-
-        C.translate 100 0
-        for_ (hatchedGlyph iosevka 200 'g' (deg 45) 5) sketch
-        C.stroke
+        C.setLineWidth 1
+        C.translate (-50) 100
+        for_ glyphs $ \g -> do
+            for_ g sketch
+            C.stroke
 
 glyph :: TT.Font -> Double -> Char -> [Polygon]
 glyph font size c = fmap (Polygon . fmap toVec2 . nubOrd . V.toList) polys
