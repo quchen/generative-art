@@ -21,12 +21,9 @@ main = do
         let [f] = glyph iosevka 200 'f'
         sketch f
         C.stroke
-        C.translate 100 0
-        let fHatched = hatch f (deg 45) 5 ++ hatch f (deg (-45)) 5
-        --for_ fHatched sketch
-        C.stroke
 
-        for_ (glyphOutline iosevka 200 'ɇ') $ \(Polygon ps, _) -> sketch (Polygon ps)
+        C.translate 100 0
+        for_ (hatchedGlyph iosevka 200 'g' (deg 45) 5) sketch
         C.stroke
 
 glyph :: TT.Font -> Double -> Char -> [Polygon]
@@ -53,17 +50,18 @@ hatchedGlyph
     -> Double -- ^ Distance between shading lines
     -> [Line]
 hatchedGlyph font size c angle hatchInterval = do
-    let polygons = glyph font size c
-    let polygonsAligned = transform (rotate (negateV angle)) polygons
+    let polygons = glyphOutline font size c
+    let polygonsAligned = fmap (\(p, ioh) -> (transform (rotate (negateV angle)) p, ioh)) polygons
     horizontalScissors <- do
-        let BoundingBox (Vec2 xLo yLo) (Vec2 xHi yHi) = boundingBox polygonsAligned
+        let BoundingBox (Vec2 xLo yLo) (Vec2 xHi yHi) = boundingBox (fst <$> polygonsAligned)
         y <- takeWhile (< yHi) (tail (iterate (+ hatchInterval) yLo))
         pure (Line (Vec2 xLo y) (Vec2 xHi y))
-    horizontalHatches <-
+    positiveHatches <-
         [ line
-        | polygonAligned <- polygonsAligned
+        | (polygonAligned, Island) <- polygonsAligned
         , (line, LineInsidePolygon) <- clipPolygonWithLine polygonAligned horizontalScissors
         ]
+    horizontalHatches <- foldl' (\ls (poly, _) -> [line | (line, LineOutsidePolygon) <- ls >>= clipPolygonWithLineSegment poly]) [positiveHatches] (filter ((== Hole) . snd) polygonsAligned)
     pure (transform (rotate angle) horizontalHatches)
 
 glyphOutline :: TT.Font -> Double -> Char -> [(Polygon, IslandOrHole)]

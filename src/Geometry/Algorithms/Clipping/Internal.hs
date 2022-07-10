@@ -6,6 +6,7 @@ module Geometry.Algorithms.Clipping.Internal (
 
     , LineType(..)
     , clipPolygonWithLine
+    , clipPolygonWithLineSegment
 ) where
 
 
@@ -382,3 +383,22 @@ clipPolygonWithLine polygon scissors = reconstruct normalizedCuts
     reconstruct (Exiting{} : Exiting {} : _) = bugError "Cut.Internal.clipPolygonWithLine" "Double exit"
     reconstruct [Entering{}] = bugError "Cut.Internal.clipPolygonWithLine" "Standalone enter"
     reconstruct [] = [] -- Input was empty to begin with, otherwise one of the other cases happens
+
+clipPolygonWithLineSegment :: Polygon -> Line -> [(Line, LineType)]
+clipPolygonWithLineSegment polygon scissors@(Line start end) = reconstructSegments sortedPoints
+  where
+    allIntersectionPoints =
+        [ p
+        | edge <- polygonEdges polygon
+        , IntersectionReal p <- pure (intersectionLL edge scissors)
+        ]
+    sortedPoints = sortOn (\p -> direction scissors `dotProduct` (p -. start)) ([start, end] ++ allIntersectionPoints)
+    reconstructSegments = \case
+        [] -> []
+        [_] -> []
+        a : b : xs ->
+            let segment = Line a b
+                lineType = if ((a +. b) /. 2) `pointInPolygon` polygon
+                    then LineInsidePolygon
+                    else LineOutsidePolygon
+            in  (segment, lineType) : reconstructSegments (b : xs)

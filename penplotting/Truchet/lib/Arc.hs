@@ -165,25 +165,6 @@ genericClipArc lineType mask (CcwArc center start end) = reconstructArcs $ sortO
 -- Positive mathematical orientation
 data IntersectionPointClass = Entering | Exiting deriving (Eq, Show)
 
-clipPolygonWithLineSegment :: Polygon -> Line -> [(Line, LineType)]
-clipPolygonWithLineSegment polygon scissors@(Line start end) = reconstructSegments sortedPoints
-  where
-    allIntersectionPoints =
-        [ p
-        | edge <- polygonEdges polygon
-        , IntersectionReal p <- pure (intersectionLL edge scissors)
-        ]
-    sortedPoints = sortOn (\p -> direction scissors `dotProduct` (p -. start)) ([start, end] ++ allIntersectionPoints)
-    reconstructSegments = \case
-        [] -> []
-        [_] -> []
-        a : b : xs ->
-            let segment = Line a b
-                lineType = if ((a +. b) /. 2) `pointInPolygon` polygon
-                    then LineInsidePolygon
-                    else LineOutsidePolygon
-            in  (segment, lineType) : reconstructSegments (b : xs)
-
 -- Test pic for clipping
 -- Run in GHCI:
 -- > stack ghci penplotting-truchet
