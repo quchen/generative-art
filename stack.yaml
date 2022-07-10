@@ -17,6 +17,7 @@ packages:
     - penplotting/Pressure
     - penplotting/SvgSource
     - penplotting/Truchet
+    - penplotting/Typography
     - penplotting/Voronoi
 
     - showcases/circuits
