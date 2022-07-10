@@ -30,18 +30,21 @@ mainBranchConfig = Config
     }
 sideBranchConfig = Config
     { branchAngle = deg 2.5
-    , branchProbability = 0.05
-    , branchGrowth = 0.9
-    , minLength = 0.5
+    , branchProbability = 0.2
+    , branchGrowth = 0.25
+    , minLength = 1
     }
 
+initialSize :: Double
+initialSize = 5
+
 picWidth, picHeight :: Num a => a
-picWidth = 500
-picHeight = 500
+picWidth = 1000
+picHeight = 1000
 
 main :: IO ()
 main = do
-    let initialBranch = Branch (Vec2 (picWidth/2) (picHeight-1)) 10 (deg 0)
+    let initialBranch = Branch (Vec2 (picWidth/2) (picHeight-1)) initialSize (deg 0)
         picEdges =
             [ Line (Vec2 0 0) (Vec2 0 picHeight)
             , Line (Vec2 0 picHeight) (Vec2 picWidth picHeight)
@@ -78,10 +81,10 @@ data Tree a
     deriving (Functor)
 
 grow :: GenST s -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
-grow gen curv lines branch = step gen mainBranchConfig curv lines branch >>= \case
+grow gen curv lines branch = mainBranch gen curv lines branch >>= \case
     Collision -> pure Collision
     Tip -> pure (Node (branch, lines) Tip Nothing)
-    mb@(Node (_, ls) _ _) -> step gen sideBranchConfig (other curv) ls branch >>= \case
+    mb@(Node (_, ls) _ _) -> sideBranch gen (other curv) ls branch >>= \case
         sb@(Node (_, ls') _ _) -> pure (Node (branch, ls') mb (Just sb))
         _otherwise       -> pure (Node (branch, ls) mb Nothing)
 
@@ -96,6 +99,16 @@ curvSign CCW = 1
 curvSign CW = -1
 
 data Branch = Branch Vec2 Double Angle
+
+mainBranch :: GenST s -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
+mainBranch gen = step gen mainBranchConfig
+
+sideBranch :: GenST s -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
+sideBranch gen curv lines branch@(Branch _ l _) = do
+    config <- dice gen 0.5 >>= \case
+        False -> pure sideBranchConfig
+        True -> pure sideBranchConfig { branchGrowth = initialSize / l }
+    step gen config curv lines branch
 
 step :: GenST s -> Config -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
 step gen config curv lines (Branch p l a) = dice gen (branchProbability config) >>= \case
