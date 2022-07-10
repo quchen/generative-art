@@ -30,7 +30,7 @@ mainBranchConfig = Config
     }
 sideBranchConfig = Config
     { branchAngle = deg 2.5
-    , branchProbability = 0.2
+    , branchProbability = 0.5
     , branchGrowth = 0.25
     , minLength = 1
     }
@@ -39,7 +39,7 @@ initialSize :: Double
 initialSize = 5
 
 picWidth, picHeight :: Num a => a
-picWidth = 1000
+picWidth = 200
 picHeight = 1000
 
 main :: IO ()
@@ -105,7 +105,7 @@ mainBranch gen = step gen mainBranchConfig
 
 sideBranch :: GenST s -> Curvature -> RT.RTree Line -> Branch -> ST s (Tree (Branch, RT.RTree Line))
 sideBranch gen curv lines branch@(Branch _ l _) = do
-    config <- dice gen 0.5 >>= \case
+    config <- dice gen 0.9 >>= \case
         False -> pure sideBranchConfig
         True -> pure sideBranchConfig { branchGrowth = initialSize / l }
     step gen config curv lines branch
