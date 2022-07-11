@@ -27,15 +27,28 @@ main = do
     pts <- poissonDisc gen params
     glyphs <- for pts $ \pt -> do
         char <- uniformRM ('a', 'z') gen
-        angle <- deg <$> uniformRM (0, 180) gen
-        pure $ transform (translate pt) $ hatchedGlyph iosevka 200 char angle 5
+        style <- uniformM gen
+        pure (char, pt, style)
     render "out/typography.png" 1000 1000 $ do
         cairoScope (setColor white >> C.paint)
         C.setLineWidth 1
         C.translate (-50) 100
-        for_ glyphs $ \g -> do
-            for_ g sketch
+        for_ glyphs $ \(char, Vec2 x y, style) -> cairoScope $ do
+            C.translate x y
+            case style of
+                Outline -> sketch (fst <$> glyphOutline iosevka 200 char)
+                Hatched angle -> sketch (hatchedGlyph iosevka 200 char angle 5)
             C.stroke
+
+data GlyphStyle
+    = Outline
+    | Hatched Angle
+    deriving (Eq, Show)
+
+instance Uniform GlyphStyle where
+    uniformM gen = uniformRM (0, 1 :: Int) gen >>= \case
+        0 -> pure Outline
+        1 -> Hatched . deg <$> uniformRM (0, 180) gen
 
 glyph :: TT.Font -> Double -> Char -> [Polygon]
 glyph font size c = fmap (Polygon . fmap toVec2 . nubOrd . V.toList) polys
