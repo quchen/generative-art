@@ -22,7 +22,7 @@ main = do
     let params = PoissonDiscParams
             { _poissonShape = boundingBox [Vec2 100 50, Vec2 900 850]
             , _poissonRadius = 80
-            , _poissonK = 3
+            , _poissonK = 4
             }
     pts <- poissonDisc gen params
     glyphs <- for pts $ \pt -> do
@@ -37,18 +37,21 @@ main = do
             C.translate x y
             case style of
                 Outline -> sketch (fst <$> glyphOutline iosevka 200 char)
+                Shadow -> sketch (glyphShadow iosevka 200 char)
                 Hatched angle -> sketch (hatchedGlyph iosevka 200 char angle 5)
             C.stroke
 
 data GlyphStyle
     = Outline
+    | Shadow
     | Hatched Angle
     deriving (Eq, Show)
 
 instance Uniform GlyphStyle where
-    uniformM gen = uniformRM (0, 1 :: Int) gen >>= \case
+    uniformM gen = uniformRM (0, 2 :: Int) gen >>= \case
         0 -> pure Outline
-        1 -> Hatched . deg <$> uniformRM (0, 180) gen
+        1 -> pure Shadow
+        2 -> Hatched . deg <$> uniformRM (0, 180) gen
 
 glyph :: TT.Font -> Double -> Char -> [Polygon]
 glyph font size c = fmap (Polygon . fmap toVec2 . nubOrd . V.toList) polys
@@ -83,7 +86,7 @@ hatchedGlyph font size c angle hatchInterval = do
     positiveHatches <-
         [ line
         | (polygonAligned, Island) <- polygonsAligned
-        , (line, LineInsidePolygon) <- clipPolygonWithLine polygonAligned horizontalScissors
+        , (line, LineInsidePolygon) <- clipPolygonWithLineSegment polygonAligned horizontalScissors
         ]
     horizontalHatches <- foldl' (\ls (poly, _) -> [line | (line, LineOutsidePolygon) <- ls >>= clipPolygonWithLineSegment poly]) [positiveHatches] (filter ((== Hole) . snd) polygonsAligned)
     pure (transform (rotate angle) horizontalHatches)
@@ -100,6 +103,14 @@ glyphOutline font size c = foldl' combinePolygons [p] ps
     combinePolygons ps (p, ioh) = case ioh of
         Island -> unionsPP ps p
         Hole   -> differencesPP ps p
+
+glyphShadow :: TT.Font -> Double -> Char -> [Line]
+glyphShadow font size c = foldl' clipHatches shadow outline
+  where
+    outline = glyphOutline font size c
+    shadow = transform (translate (Vec2 (size/30) (size/50))) (hatchedGlyph font size c (deg 90) 1)
+    clipHatches hs (p, Island) = [ h' | h <- hs, (h', LineOutsidePolygon) <- clipPolygonWithLineSegment p h ]
+    clipHatches hs (p, Hole)   = [ h' | h <- hs, (h', LineInsidePolygon) <- clipPolygonWithLineSegment p h ]
 
 unionsPP :: [(Polygon, IslandOrHole)] -> Polygon -> [(Polygon, IslandOrHole)]
 unionsPP [] p = [(p, Island)]
