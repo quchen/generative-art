@@ -55,7 +55,7 @@ drawFieldLine ps = cairoScope $ do
     let polyLine = map snd ps
         simplified = simplifyTrajectoryRadial 3 polyLine
     when (not (null (drop 2 simplified))) $ do
-        sketch (bezierSmoothen simplified)
+        sketch (PolyBezier (bezierSmoothen simplified))
         stroke
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.

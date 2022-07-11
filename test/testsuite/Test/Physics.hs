@@ -31,7 +31,7 @@ testParticle = testVisual "Particle in Gauß potential" 200 200 "docs/physics/pa
         iso = isoLines (Grid (Vec2 0 0, Vec2 200 200) (20, 20)) potential
 
     for_ [-0.5,-0.4..0] $ \h -> for_ (iso h) $ \ps -> cairoScope $ do
-        sketch ps
+        sketch (Polyline ps)
         setColor (viridis (-h/10000))
         Cairo.setLineWidth 1
         Cairo.stroke
@@ -39,7 +39,7 @@ testParticle = testVisual "Particle in Gauß potential" 200 200 "docs/physics/pa
     let particle = PhaseSpace { p = Vec2 0.1 0.1, q = Vec2 100 30 }
         trajectory = rungeKuttaConstantStep (const (particleInPotential 1 potential)) particle 0 0.5
 
-    sketch (fmap (q . snd) (take 2000 trajectory))
+    sketch (Polyline (fmap (q . snd) (take 2000 trajectory)))
     Cairo.stroke
 
 testTwoBody :: TestTree
@@ -51,10 +51,10 @@ testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ 
         trajectories = rungeKuttaConstantStep (const (twoBody externalPotential interactionPotential (2, 1))) (particle1, particle2) 0 0.1
         (trajectory1, trajectory2) = unzip (snd <$> trajectories)
 
-    sketch (fmap q (take 1000 trajectory1))
+    sketch (Polyline (fmap q (take 1000 trajectory1)))
     setColor (mathematica97 0)
     Cairo.stroke
-    sketch (fmap q (take 1000 trajectory2))
+    sketch (Polyline (fmap q (take 1000 trajectory2)))
     setColor (mathematica97 1)
     Cairo.stroke
 
@@ -68,7 +68,7 @@ testThreeBody = testVisual "Three-Body simulation" 200 200 "docs/physics/threeBo
         trajectories = traverse snd $ takeWhile ((<20) . fst) $ nBodyCoulomb masses particles
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
-        sketch (fmap q trajectory)
+        sketch (Polyline (fmap q trajectory))
         setColor (mathematica97 i)
         Cairo.stroke
 
@@ -81,7 +81,7 @@ testCollision = testVisual "Particle collision" 200 200 "docs/physics/collision"
         trajectories = traverse snd $ takeWhile ((<20) . fst) $ nBodyCoulomb masses particles
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
-        sketch (fmap q trajectory)
+        sketch (Polyline (fmap q trajectory))
         setColor (mathematica97 i)
         Cairo.stroke
 
@@ -115,7 +115,7 @@ testBrownianMotion = testVisual "Brownian motion" 200 200 "docs/physics/brownian
             rungeKuttaAdaptiveStep (const (nBody zero interactionPotential masses)) particles t0 initialStep toleranceNorm tolerance
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
-        sketch (fmap q trajectory)
+        sketch (Polyline (fmap q trajectory))
         setColor (mathematica97 i)
         Cairo.stroke
 

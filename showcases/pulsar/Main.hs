@@ -45,14 +45,14 @@ main = do
 
         drawing = V.iforM_ pulsarDataScaled $ \i signal -> do
             cairoScope $ do
-                sketch (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h))
+                sketch (Polyline (V.singleton (Vec2 0 h) <> signal <> V.singleton (Vec2 w h)))
                 closePath
                 let colorValue = lerpID (0, length pulsarData-1) (0.2,0.8) i
                 setColor (inferno colorValue)
                 fill
             cairoScope $ do
                 setLineWidth 1
-                sketch signal
+                sketch (Polyline signal)
                 setColor black
                 stroke
 

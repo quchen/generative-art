@@ -220,7 +220,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
         setColor $ mathematica97 0
-        sketch (fit beziers)
+        sketch (PolyBezier (fit beziers))
         stroke
         moveTo 200 70
         showText (show (length beziers) ++ " curves")
@@ -246,7 +246,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
         setColor $ mathematica97 3
-        sketch (fit interpolated)
+        sketch (PolyBezier (fit interpolated))
         stroke
         moveTo 200 270
         showText (show (length interpolated) ++ " curves")

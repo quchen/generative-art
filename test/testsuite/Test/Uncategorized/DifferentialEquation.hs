@@ -259,7 +259,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
     cairoScope $
         for_ isos $ \(threshold, isosAtThreshold) ->
             for_ isosAtThreshold $ \singleIso -> do
-                sketch singleIso
+                sketch (Polyline singleIso)
                 let colorValue= lerp (-30, 30) (0,1) threshold
                 setColor (icefire colorValue `withOpacity` 0.07)
                 stroke
@@ -273,7 +273,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
                 pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
-            sketch trajectory
+            sketch (Polyline trajectory)
             let colorValue = lerp angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke
