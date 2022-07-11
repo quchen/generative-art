@@ -2,15 +2,16 @@ module Main where
 
 
 
-import Control.Monad
 import Data.List.Extended (nubOrd)
 import qualified Data.Vector.Unboxed as V
+import Data.Traversable
 import qualified Graphics.Rendering.Cairo as C
 import qualified Graphics.Text.TrueType as TT
 import System.Random.MWC
 
 import Draw
 import Geometry
+import Geometry.Algorithms.Sampling
 
 
 
@@ -18,10 +19,15 @@ main :: IO ()
 main = do
     Right iosevka <- TT.loadFontFile "/home/fthoma/.nix-profile/share/fonts/truetype/iosevka-custom-regular.ttf"
     gen <- create
-    glyphs <- replicateM 300 $ do
-        pt <- uniformRM (Vec2 0 0, Vec2 1000 1000) gen
+    let params = PoissonDiscParams
+            { _poissonShape = boundingBox [Vec2 100 50, Vec2 900 850]
+            , _poissonRadius = 80
+            , _poissonK = 3
+            }
+    pts <- poissonDisc gen params
+    glyphs <- for pts $ \pt -> do
         char <- uniformRM ('a', 'z') gen
-        angle <- deg <$> uniformRM (0, 360) gen
+        angle <- deg <$> uniformRM (0, 180) gen
         pure $ transform (translate pt) $ hatchedGlyph iosevka 200 char angle 5
     render "out/typography.png" 1000 1000 $ do
         cairoScope (setColor white >> C.paint)
