@@ -1144,8 +1144,14 @@ intersectionLL lineL lineR
 
     iPoint = (cross v1 v2 *. (v3 -. v4) -. cross v3 v4 *. (v1 -. v2)) /. discriminant
 
-    intersectionInsideL = sideOfLine lineR v1 /= sideOfLine lineR v2 || sideOfLine lineR v1 == EQ || sideOfLine lineR v2 == EQ
-    intersectionInsideR = sideOfLine lineL v3 /= sideOfLine lineL v4 || sideOfLine lineL v3 == EQ || sideOfLine lineL v4 == EQ
+    intersectionInsideL =
+        let sol1 = sideOfLine lineR v1
+            sol2 = sideOfLine lineR v2
+        in sol1 /= sol2 || sol1 == EQ || sol2 == EQ
+    intersectionInsideR =
+        let sol3 = sideOfLine lineL v3
+            sol4 = sideOfLine lineL v4
+        in sol3 /= sol4 || sol3 == EQ || sol4 == EQ
 
     sideOfLine :: Line -> Vec2 -> Ordering
     sideOfLine (Line u v) p = compare (cross (v -. u) (p -. u)) 0
