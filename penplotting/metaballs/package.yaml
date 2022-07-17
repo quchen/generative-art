@@ -16,6 +16,7 @@ dependencies:
     - generative-art
     - base
     - cairo
+    - containers
     - data-default-class
     - mwc-random
 
