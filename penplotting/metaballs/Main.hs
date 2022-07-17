@@ -3,12 +3,13 @@ module Main (main) where
 
 import Control.Monad
 import Data.List
+import qualified Data.Set as S
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
 
 import Draw
+import Draw.Plotting
 import Geometry
-import Geometry.Algorithms.Clipping
 
 
 
@@ -26,18 +27,23 @@ main = do
     let metaballs = vsum $ zipWith ball radii initialCenters
         slice z (Vec2 x y) = metaballs (Vec3 x y z)
         layers =
-            [ Polygon <$> transform (isometricPerspective z) outlines
+            [ Polygon . toList . simplifyTrajectoryRdp 1 <$> transform (isometricPerspective z) outlines
             | z <- [-picHeight/2-60, -picHeight/2-55 .. picHeight/2+60]
             , let outlines = isoLines Grid { _range = (Vec2 (-60) (-60), Vec2 (picWidth+60) (picHeight+60)), _maxIndex = (picWidth `div` 5, picHeight `div` 5) } (slice z) 1
             ]
         clippedLayers = zipWith clipWithAbove layers (drop 1 (tails layers))
+        penHoveringSettings = MinimizePenHoveringSettings { _getStartEndPoint = \(Polygon (p:ps)) -> (p, p), _flipObject = Nothing, _mergeObjects = Nothing }
+        paths = minimizePenHoveringBy penHoveringSettings $ S.fromList $ concat clippedLayers
 
-    render "out/metaballs.png" picWidth picHeight $ do
-        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
-        cairoScope (setColor white >> C.paint)
-        for_ clippedLayers $ \outlines -> for_ outlines $ \outline -> do
-            sketch outline
-            setColor black >> C.stroke
+    let settings = def
+            { _feedrate = 3000
+            , _zTravelHeight = 5
+            , _zDrawingHeight = -2
+            }
+        plotResult = runPlot settings $ for_ paths plot
+
+    writeGCodeFile "out/metaballs.g" plotResult
+    renderPreview "out/metaballs.png" plotResult
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
