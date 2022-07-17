@@ -12,13 +12,14 @@ import System.Random.MWC
 import Draw
 import Geometry
 import Geometry.Algorithms.Sampling
+import Geometry.Chaotic
 
 
 
 main :: IO ()
 main = do
     Right iosevka <- TT.loadFontFile "/home/fthoma/.nix-profile/share/fonts/truetype/iosevka-custom-regular.ttf"
-    gen <- create
+    gen <- initializeMwc (23 :: Int)
     let params = PoissonDiscParams
             { _poissonShape = boundingBox [Vec2 100 50, Vec2 900 850]
             , _poissonRadius = 80
