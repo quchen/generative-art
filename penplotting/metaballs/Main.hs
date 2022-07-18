@@ -4,12 +4,12 @@ module Main (main) where
 import Control.Monad
 import Data.List
 import qualified Data.Set as S
-import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
 
 import Draw
 import Draw.Plotting
 import Geometry
+import Geometry.Chaotic
 
 
 
@@ -19,10 +19,10 @@ picHeight = 400
 
 main :: IO ()
 main = do
-    let count = 100
-    gen <- create
-    initialCenters <- replicateM count (uniformRM (Vec3 0 0 (-picHeight/2), Vec3 picWidth picHeight (picHeight/2)) gen)
-    radii <- replicateM count (uniformRM (20, 60) gen)
+    let count = 80
+    gen <- initializeMwc (42 :: Int)
+    initialCenters <- replicateM count (uniformRM (Vec3 100 50 (-picHeight/2+50), Vec3 (picWidth-100) (picHeight-50) (picHeight/2-100)) gen)
+    radii <- replicateM count (uniformRM (20, 40) gen)
 
     let metaballs = vsum $ zipWith ball radii initialCenters
         slice z (Vec2 x y) = metaballs (Vec3 x y z)
@@ -40,7 +40,9 @@ main = do
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
             }
-        plotResult = runPlot settings $ for_ paths plot
+        plotResult = runPlot settings $ do
+            plot $ Polygon [Vec2 0 0, Vec2 picWidth 0, Vec2 picWidth picHeight, Vec2 0 picHeight]
+            for_ paths plot
 
     writeGCodeFile "out/metaballs.g" plotResult
     renderPreview "out/metaballs.png" plotResult
