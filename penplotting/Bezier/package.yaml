@@ -1,0 +1,26 @@
+name:       penplotting-bezier
+version:    0.1.0.0
+github:     quchen/generative-art
+license:    BSD3
+author:
+    - Franz Thoma
+copyright:
+    - 2022 Franz Thoma
+
+default-extensions:
+    - RecordWildCards
+    - OverloadedStrings
+
+dependencies:
+    - generative-art
+    - base
+    - cairo
+    - mwc-random
+    - text
+    - vector
+
+executables:
+    penplotting-bezier:
+        main: Main.hs
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]

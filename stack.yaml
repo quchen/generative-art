@@ -5,6 +5,7 @@ packages:
     - app/voronoi_interactive
 
     - penplotting/ApollonianGasket
+    - penplotting/Bezier
     - penplotting/circuits
     - penplotting/DelaunayVoronoi
     - penplotting/dendrites
