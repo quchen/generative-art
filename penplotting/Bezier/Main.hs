@@ -39,14 +39,13 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
         uniformRM (zero, Vec2 picWidth picHeight) gen
     let timeEvolution
             = fitToCanvas
-            $ fmap bezierSmoothenOpen
-            $ transpose
-            $ fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
+            . fmap bezierSmoothenOpen
+            . transpose
+            . fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
             $ initialPoints
     render (printf "out/bezier%i.png" i) picWidth picHeight $ do
         cairoScope (setColor white >> C.paint)
         for_ timeEvolution sketch
-        --sketch $ bezierSmoothenOpen initialPoints
         C.stroke
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
