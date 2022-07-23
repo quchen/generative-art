@@ -47,7 +47,7 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
             { _feedrate = 10000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
-            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth picHeight])
+            , _canvasBoundingBox = Just canvas
             }
         plotResult = runPlot plottingSettings $ for_ timeEvolution plot
     renderPreview (printf "out/bezier%i.png" i) plotResult
@@ -86,4 +86,4 @@ spaced dt = go 0
         | otherwise = (t, a) : go (t0 + dt) xs
 
 fitToCanvas :: (HasBoundingBox geo, Transform geo) => geo -> geo
-fitToCanvas geo = G.transform (transformBoundingBox geo canvas def) geo
+fitToCanvas geo = G.transform (scaleAround (Vec2 (picWidth/2) (picHeight/2)) 0.99 <> transformBoundingBox geo canvas def) geo
