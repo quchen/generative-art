@@ -22,8 +22,8 @@ picWidth, picHeight :: Num a => a
 picWidth = 500
 picHeight = 700
 
-canvas :: BoundingBox
-canvas = boundingBox [Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50)]
+canvas :: Polygon
+canvas = Polygon [Vec2 50 50, Vec2 50 (picHeight - 50), Vec2 (picWidth - 50) (picHeight - 50), Vec2 (picWidth - 50) 50]
 
 -- Higher values yield lower-frequency noise
 noiseScale :: Double
@@ -47,10 +47,14 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
             { _feedrate = 10000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
-            , _canvasBoundingBox = Just canvas
+            , _canvasBoundingBox = Just (boundingBox (rotateToLandscape canvas))
             }
-        plotResult = runPlot plottingSettings $ for_ timeEvolution plot
+        plotResult = runPlot plottingSettings $ do
+            comment "Plot is intended for 50x70 paper with 5cm margin"
+            comment "Plot size is 60x40, place origin at (margin, margin) relative to the paper"
+            for_ timeEvolution $ plot . rotateToLandscape
     renderPreview (printf "out/bezier%i.png" i) plotResult
+    writeGCodeFile (printf "bezier%i.g" i) plotResult
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
 vectorPotential :: Int -> Vec2 -> Double
@@ -87,3 +91,6 @@ spaced dt = go 0
 
 fitToCanvas :: (HasBoundingBox geo, Transform geo) => geo -> geo
 fitToCanvas geo = G.transform (scaleAround (Vec2 (picWidth/2) (picHeight/2)) 0.99 <> transformBoundingBox geo canvas def) geo
+
+rotateToLandscape :: Transform geo => geo -> geo
+rotateToLandscape = transform (translate (Vec2 (-50) (picWidth - 50)) <> rotate (deg (-90)))
