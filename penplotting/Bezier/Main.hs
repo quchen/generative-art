@@ -5,10 +5,10 @@ module Main (main) where
 import Control.Monad
 import Data.List
 import System.Random.MWC
-import Graphics.Rendering.Cairo         as C
 import Text.Printf
 
 import Draw
+import Draw.Plotting
 import Geometry                         as G
 import Geometry.Chaotic
 import Geometry.Algorithms.PerlinNoise
@@ -43,10 +43,14 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
             . transpose
             . fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
             $ initialPoints
-    render (printf "out/bezier%i.png" i) picWidth picHeight $ do
-        cairoScope (setColor white >> C.paint)
-        for_ timeEvolution sketch
-        C.stroke
+        plottingSettings = def
+            { _feedrate = 10000
+            , _zTravelHeight = 5
+            , _zDrawingHeight = -2
+            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth picHeight])
+            }
+        plotResult = runPlot plottingSettings $ for_ timeEvolution plot
+    renderPreview (printf "out/bezier%i.png" i) plotResult
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
 vectorPotential :: Int -> Vec2 -> Double
