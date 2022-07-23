@@ -17,10 +17,14 @@ picWidth, picHeight :: Num a => a
 picWidth = 600
 picHeight = 400
 
+canvas :: Polygon
+canvas = Polygon [Vec2 0 0, Vec2 picWidth 0, Vec2 picWidth picHeight, Vec2 0 picHeight]
+
 main :: IO ()
-main = do
+main = for_ [0..100 :: Int] $ \i -> do
+    print i
     let count = 80
-    gen <- initializeMwc (27 :: Int)
+    gen <- initializeMwc i
     initialCenters <- replicateM count (uniformRM (Vec3 100 100 (-picHeight/2+50), Vec3 (picWidth-100) (picWidth-100) (picHeight/2-50)) gen)
     radii <- replicateM count (uniformRM (20, 40) gen)
 
@@ -33,20 +37,21 @@ main = do
             ]
         clippedLayers = zipWith clipWithAbove layers (drop 1 (tails layers))
         penHoveringSettings = MinimizePenHoveringSettings { _getStartEndPoint = \(Polygon (p:_)) -> (p, p), _flipObject = Nothing, _mergeObjects = Nothing }
-        paths = minimizePenHoveringBy penHoveringSettings $ S.fromList $ concat clippedLayers
+        fitToCanvas = transformBoundingBox clippedLayers canvas def
+        paths = minimizePenHoveringBy penHoveringSettings $ S.fromList $ transform fitToCanvas $ concat clippedLayers
 
     let settings = def
             { _feedrate = 3000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
-            --, _canvasBoundingBox = Just $ boundingBox [Vec2 0 0, Vec2 picWidth picHeight]
+            --, _canvasBoundingBox = Just $ boundingBox canvas
             }
         plotResult = runPlot settings $ do
-            plot $ Polygon [Vec2 0 0, Vec2 picWidth 0, Vec2 picWidth picHeight, Vec2 0 picHeight]
+            plot canvas
             for_ paths plot
 
-    writeGCodeFile "out/metaballs.g" plotResult
-    renderPreview "out/metaballs.png" plotResult
+    --writeGCodeFile "out/metaballs.g" plotResult
+    renderPreview ("out/metaballs" ++ show i ++ ".png") plotResult
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
