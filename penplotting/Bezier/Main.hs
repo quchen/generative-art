@@ -6,6 +6,7 @@ import Control.Monad
 import Data.List
 import System.Random.MWC
 import Graphics.Rendering.Cairo         as C
+import Text.Printf
 
 import Draw
 import Geometry                         as G
@@ -28,11 +29,11 @@ canvas = boundingBox [Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50)]
 noiseScale :: Double
 noiseScale = 1
 
-seed :: Int
-seed = 7
+seeds :: [Int]
+seeds = [23, 7, 16]
 
 main :: IO ()
-main = do
+main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
     gen <- initializeMwc seed
     initialPoints <- replicateM 4 $
         uniformRM (zero, Vec2 picWidth picHeight) gen
@@ -40,17 +41,17 @@ main = do
             = fitToCanvas
             $ fmap bezierSmoothenOpen
             $ transpose
-            $ fmap (take 50 . fmap snd . spaced 2000 . fieldLine rotationField)
+            $ fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
             $ initialPoints
-    render "out/bezier.png" picWidth picHeight $ do
+    render (printf "out/bezier%i.png" i) picWidth picHeight $ do
         cairoScope (setColor white >> C.paint)
         for_ timeEvolution sketch
         --sketch $ bezierSmoothenOpen initialPoints
         C.stroke
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.
-vectorPotential :: Vec2 -> Double
-vectorPotential p = noiseScale *. perlin2 params p
+vectorPotential :: Int -> Vec2 -> Double
+vectorPotential seed p = noiseScale *. perlin2 params p
   where
     params = PerlinParameters
         { _perlinFrequency   = 3 / (noiseScale * min picWidth picHeight)
@@ -60,8 +61,8 @@ vectorPotential p = noiseScale *. perlin2 params p
         , _perlinSeed        = seed
         }
 
-rotationField :: Vec2 -> Vec2
-rotationField = curlZ vectorPotential
+rotationField :: Int -> Vec2 -> Vec2
+rotationField seed = curlZ (vectorPotential seed)
 
 fieldLine
     :: (Vec2 -> Vec2)
