@@ -4,6 +4,8 @@ module Main (main) where
 
 import Control.Monad
 import Data.List
+import qualified Data.Set as S
+import qualified Data.Vector as V
 import System.Random.MWC
 import Text.Printf
 
@@ -39,6 +41,7 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
         uniformRM (zero, Vec2 picWidth picHeight) gen
     let timeEvolution
             = fitToCanvas
+            . minimizePenHoveringBy penHoveringSettings . S.fromList
             . fmap bezierSmoothenOpen
             . transpose
             . fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
@@ -49,9 +52,15 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
             , _zDrawingHeight = -2
             , _canvasBoundingBox = Just (boundingBox (rotateToLandscape canvas))
             }
+        penHoveringSettings = MinimizePenHoveringSettings
+            { _getStartEndPoint = \bz -> (let Bezier hd _ _ _ = V.head bz in hd, let Bezier _ _ _ tl = V.last bz in tl)
+            , _flipObject = Just (fmap (\(Bezier a b c d) -> Bezier d c b a) . V.reverse)
+            , _mergeObjects = Nothing
+            }
         plotResult = runPlot plottingSettings $ do
             comment "Plot is intended for 50x70 paper with 5cm margin"
             comment "Plot size is 60x40, place origin at (margin, margin) relative to the paper"
+            comment "On 44x63 paper, margins are (15mm, 20mm)"
             for_ timeEvolution $ plot . rotateToLandscape
     renderPreview (printf "out/bezier%i.png" i) plotResult
     writeGCodeFile (printf "bezier%i.g" i) plotResult
