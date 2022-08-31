@@ -1,0 +1,31 @@
+name:       delaunay-voronoi
+version:    0.1.0.0
+github:     quchen/generative-art
+license:    BSD3
+author:
+    - David Luposchainsky
+    - Franz Thoma
+copyright:
+    - 2022 David Luposchainsky
+    - 2022 Franz Thoma
+
+default-extensions:
+    - LambdaCase
+    - OverloadedStrings
+
+dependencies:
+    - base
+    - generative-art
+    - cairo
+    - containers
+    - data-default-class
+    - mwc-random
+    - text
+    - vector
+    - optparse-applicative
+
+executables:
+    delaunay-voronoi:
+        main: Main.hs
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
