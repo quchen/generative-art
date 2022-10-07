@@ -6,6 +6,7 @@ import System.Random.MWC
 
 import Geometry
 import Draw
+import Draw.Plotting
 
 -- | Draw a 'Render' to PNG and SVG files.
 drawToFiles

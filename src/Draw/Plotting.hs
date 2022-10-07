@@ -159,9 +159,9 @@ data FinishMove = FinishWithG28 | FinishWithG30
 
 instance Default PlottingSettings where
     def = PlottingSettings
-        { _feedrate = 1000
-        , _zTravelHeight = 1
-        , _zDrawingHeight = -1
+        { _feedrate = 6000
+        , _zTravelHeight = 10
+        , _zDrawingHeight = -2
         , _zLoweringFeedrate = Nothing
         , _finishMove = Nothing
         , _previewDrawnShapesBoundingBox = True
