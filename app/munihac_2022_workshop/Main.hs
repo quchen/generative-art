@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Monad
 import qualified Data.Vector as V
 import qualified Graphics.Rendering.Cairo as Cairo
 import System.Random.MWC
@@ -17,6 +18,6 @@ import Draw.Plotting
 -- (fast compilation, slower execution time, requires `ghcid` installation)
 main :: IO ()
 main = do
-    render "munihac2022/shatter.png" 1000 1000 $ do
+    render "munihac2022/shatter.png" 150 210 $ do
         setColor white
         Cairo.paint
