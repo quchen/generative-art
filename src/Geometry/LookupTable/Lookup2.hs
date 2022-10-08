@@ -61,7 +61,7 @@ lookupNearest (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
     let CIVec2 iCont jCont = toGrid grid xy
         i = clamp 0 iMax (round iCont)
         j = clamp 0 jMax (round jCont)
-    in vec!i!j
+    in vec ! i ! j
 
 -- | Bilinear lookup in a two-dimensional lookup table. Lookup outside of the
 -- lookup table’s domain is clamped to the table’s edges, so while it will not make
@@ -80,15 +80,15 @@ lookupBilinear (LookupTable2 grid vec) xy =
         iCeil = ceiling iCont
         jCeil = ceiling jCont
 
-        lut_iFloor = vec!iFloor
-        lut_iCeil = vec!iCeil
+        lut_iFloor = vec ! iFloor
+        lut_iCeil = vec ! iCeil
 
         iFloorValue
-            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor!jFloor, lut_iFloor!jCeil) jCont
-            | otherwise = lut_iFloor!jFloor
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor ! jFloor, lut_iFloor! jCeil) jCont
+            | otherwise = lut_iFloor ! jFloor
         iCeilValue
-            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil !jFloor, lut_iCeil !jCeil) jCont
-            | otherwise = lut_iCeil!jFloor
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil  ! jFloor, lut_iCeil ! jCeil) jCont
+            | otherwise = lut_iCeil ! jFloor
 
         result
             | iFloor /= iCeil = lerp (fromIntegral iFloor, fromIntegral iCeil) (iFloorValue, iCeilValue) iCont
@@ -174,7 +174,7 @@ toGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (Vec2 x y) =
 -- | A raw value table, filled (lazily) by a function applied to the underlying
 -- 'Grid'.
 --
--- We first index by @i@ and then @j@, so that @vec!i!j@ has the intuitive meaning
+-- We first index by @i@ and then @j@, so that @vec ! i ! j@ has the intuitive meaning
 -- of »go in @i@/@x@ direction and then in @j@/@y@. The drawback is that this makes
 -- the table look like downward columns of @y@ values, indexed by @x@. The more
 -- common picture for at least me is to have line numbers and then rows in each
