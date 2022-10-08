@@ -39,3 +39,8 @@ extra-deps:
     - plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
     - alfred-margaret-1.1.1.0@sha256:aeb2f14726e1ee70e542ecfb2a71eb14abda8303d17932bca149401edd76135b,3095
 resolver: lts-18.19
+
+nix:
+    packages:
+        - pkg-config
+        - cairo
