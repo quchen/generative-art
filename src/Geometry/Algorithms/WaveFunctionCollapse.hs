@@ -1,5 +1,8 @@
 module WaveFunctionCollapse where
 
+import System.Random.MWC as MWC
+import Control.Monad.ST
+
 type Plane a = [[a]]
 
 data WfcSettings a = WfcSettings
@@ -17,19 +20,33 @@ data Adjacency a
 
 type Coordinate = (Int, Int)
 
-wfc :: Eq a => WfcSettings a -> Maybe (Plane a)
-wfc WfcSettings{..} = go initialPlane
+data WfState a = Unobserved [a] | Observed a | Contradiction
+
+wfc :: Eq a => WfcSettings a -> MWC.GenST x -> ST x (Maybe (Plane a))
+wfc WfcSettings{..} gen = go initialPlane
   where
-    initialPlane = replicate wfcHeight (replicate wfcWidth wfcTiles)
+    initialPlane = replicate wfcHeight (replicate wfcWidth (Unobserved wfcTiles))
     go plane = case findMin plane of
-        Just minimumElement -> go (propagate minimumElement (collapse minimumElement plane))
-        Nothing -> Just (fmap (fmap head) plane)
+        Just minimumElement -> collapse minimumElement plane gen >>= go . propagate minimumElement
+        Nothing -> pure (Just (fmap (fmap (\(Observed a) -> a)) plane))
 
-propagate :: Coordinate -> Plane [a] -> Plane [a]
-propagate = undefined
-
-collapse :: Coordinate -> Plane [a] -> Plane [a]
-collapse = undefined
-
-findMin :: Plane [a] -> Maybe Coordinate
+findMin :: Plane (WfState a) -> Maybe Coordinate
 findMin = undefined
+
+collapse :: Coordinate -> Plane (WfState a) -> MWC.GenST x -> ST x (Plane (WfState a))
+collapse (x, y) plane gen = do
+    let Unobserved possibilities = plane !! y !! x
+    observed <- pick possibilities gen
+    pure (change (x, y) (const (Observed observed)) plane)
+
+pick :: [a] -> GenST x -> ST x a
+pick xs gen = do
+    let len = length xs
+    i <- uniformRM (0, len-1) gen
+    pure (xs !! i)
+
+change :: Coordinate -> (a -> a) -> Plane a -> Plane a
+change coord f = fmap (\(y, row) -> fmap (\(x, cell) -> if (x, y) == coord then f cell else cell) (zip [0..] row)) . zip [0..]
+
+propagate :: Coordinate -> Plane (WfState a) -> Plane (WfState a)
+propagate = undefined
