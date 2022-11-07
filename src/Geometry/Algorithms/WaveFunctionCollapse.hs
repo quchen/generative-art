@@ -2,6 +2,7 @@
 module WaveFunctionCollapse where
 
 import System.Random.MWC as MWC
+import Control.Monad
 import Control.Monad.ST
 import Control.Applicative
 
@@ -19,11 +20,11 @@ moveTo i zipper@(Zipper xs y _) = case length xs of
       | i < j     -> prev zipper >>= moveTo i
       | otherwise -> next zipper >>= moveTo i
 
-extract :: Zipper a -> a
-extract (Zipper _ y _) = y
+extractZ :: Zipper a -> a
+extractZ (Zipper _ y _) = y
 
 (!) :: Zipper a -> Int -> Maybe a
-(!) zipper i = extract <$> moveTo i zipper
+(!) zipper i = extractZ <$> moveTo i zipper
 
 instance Applicative Zipper where
     pure a = Zipper [] a []
@@ -51,18 +52,15 @@ right (Grid zipper) = Grid <$> traverse next zipper
 up    (Grid zipper) = Grid <$> prev zipper
 down  (Grid zipper) = Grid <$> next zipper
 
+extract :: Grid a -> a
+extract (Grid zipper) = extractZ (extractZ zipper)
+
 data WfcSettings a = WfcSettings
     { wfcWidth :: Int
     , wfcHeight :: Int
     , wfcTiles :: [a]
-    , wfcLegalAdjacency :: Adjacency a -> Bool
+    , wfcLegalAdjacency :: a -> a -> Bool
     }
-
-data Adjacency a
-    = a `Above` a
-    | a `LeftOf` a
-    | a `Below` a
-    | a `RightOf` a
 
 type Coordinate = (Int, Int)
 
@@ -94,7 +92,30 @@ pick xs gen = do
 change :: Coordinate -> (a -> a) -> Grid a -> Grid a
 change (x, y) f (Grid zipper) = case traverse (moveTo x) zipper >>= moveTo y of
     Nothing -> Grid zipper
-    Just (Zipper xs (Zipper as b cs) zs) -> Grid (Zipper xs (Zipper as (f b) cs) zs)
+    Just zipper' -> mapCurrent f (Grid zipper')
 
-propagate :: Coordinate -> Grid (WfState a) -> Grid (WfState a)
-propagate = undefined
+mapCurrent :: (a -> a) -> Grid a -> Grid a
+mapCurrent f (Grid (Zipper xs (Zipper as b cs) zs)) = Grid (Zipper xs (Zipper as (f b) cs) zs)
+
+setCurrent :: a -> Grid a -> Grid a
+setCurrent x = mapCurrent (const x)
+
+propagate :: (a -> a -> Bool) -> Grid (WfState a) -> Grid (WfState a)
+propagate isAllowedNextTo = go left right . go up down . go right left . go down up
+  where
+    go there back grid = case there grid of
+        Nothing -> grid
+        Just grid' -> case (peek (extract grid), peek (extract grid')) of
+            (xs, ys) -> if and [ y `isAllowedNextTo` x | x <- xs, y <- ys]
+                then grid
+                else
+                    let grid'' = case filter (\y -> or [ y `isAllowedNextTo` x | x <- xs ]) ys of
+                            []  -> setCurrent Contradiction    grid'
+                            [x] -> setCurrent (Observed x)     grid'
+                            xs' -> setCurrent (Unobserved xs') grid'
+                    in back (propagate isAllowedNextTo grid'')
+
+    peek :: WfState a -> [a]
+    peek (Unobserved xs) = xs
+    peek (Observed x) = [x]
+    peek Contradiction = []
