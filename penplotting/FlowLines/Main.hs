@@ -82,7 +82,7 @@ drawFieldLine :: Polyline Vector -> Render ()
 drawFieldLine (Polyline polyLine) = cairoScope $ do
     let simplified = simplifyTrajectoryRadial 2 polyLine
     unless (null (drop 2 simplified)) $ do
-        sketch (bezierSmoothen simplified)
+        sketch (PolyBezier (bezierSmoothen simplified))
         stroke
 
 groupOn :: Eq b => (a -> b) -> [a] -> [[a]]

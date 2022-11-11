@@ -231,16 +231,16 @@ hexagonalCoordinateSystem sideLength range = do
                 corner i = G.transform (rotateCW (i*60)) bottomCorner
             if
                 -- Rightmost corner: the only full hexagon, woo!
-                | q == range && s == -range -> sketch [corner i | i <- [0, 1, 2, 3, 4, 5]] >> closePath
+                | q == range && s == -range -> sketch $ G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Upper right boundary
-                | q == range                -> sketch [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                | q == range                -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Lower right boundary
-                | s == -range               -> sketch [corner i | i <- [-2, -1, 0, 1, 2, 3]]
+                | s == -range               -> sketch $ Polyline [corner i | i <- [-2, -1, 0, 1, 2, 3]]
                 -- Upper boundary
-                | r == -range               -> sketch [corner i | i <- [0, 1, 2, 3, 4]]
+                | r == -range               -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3, 4]]
                 -- Lower boundary
-                | r == range                -> sketch [corner i | i <- [-1, 0, 1, 2, 3]]
-                | otherwise                 -> sketch [corner i | i <- [0, 1, 2, 3]]
+                | r == range                -> sketch $ Polyline [corner i | i <- [-1, 0, 1, 2, 3]]
+                | otherwise                 -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3]]
             when (hexCoord == Hex 0 0 0) $ do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 sketch (G.transform (G.scaleAround zero 0.9) centerHexagon)

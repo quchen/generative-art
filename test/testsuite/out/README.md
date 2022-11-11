@@ -249,6 +249,8 @@ over quickly.
 
 ![Missing image!](../../../docs/geometry/ellipses.svg)
 
+![Missing image!](../../../docs/geometry/grow_polygon_shrink_ear.svg)
+
 ![Missing image!](../../../docs/geometry/intersection/almost_parallel.svg)
 
 ![Missing image!](../../../docs/geometry/intersection/half_virtual.svg)

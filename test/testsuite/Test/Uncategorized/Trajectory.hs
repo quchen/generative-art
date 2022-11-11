@@ -73,7 +73,7 @@ simplifyFunctionGraphTest colorScheme f parameters = \(w,h) -> do
     let plotPath points = cairoScope $ do
             setLineWidth 1
             newPath
-            sketch points
+            sketch (Polyline (toList points))
             stroke
         plotPoints points = for_ points $ \p -> cairoScope $ do
             sketch (Circle p 1.2)

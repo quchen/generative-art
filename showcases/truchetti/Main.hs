@@ -30,8 +30,7 @@ cellSize = 64
 
 main :: IO ()
 main = do
-    let file = "out/truchetti.svg"
-        scaledWidth = round (scaleFactor * picWidth)
+    let scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
 
     gen <- initialize (V.fromList [123, 988])

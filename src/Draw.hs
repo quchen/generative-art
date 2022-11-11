@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -Wno-duplicate-exports #-}
 
 -- | Cairo drawing backend.
@@ -17,6 +16,7 @@ module Draw (
     , ArrowSpec(..)
     , Circle(..)
     , Cross(..)
+    , PolyBezier(..)
     , arcSketch
     , arcSketchNegative
 
@@ -64,7 +64,6 @@ import Control.Monad
 import Data.Default.Class
 import Data.Foldable
 import Data.List
-import Data.Vector                     (Vector)
 import Graphics.Rendering.Cairo        as C hiding (x, y)
 import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 
@@ -279,10 +278,12 @@ instance Sketch Bezier where
         moveToVec start
         curveTo x1 y1 x2 y2 x3 y3
 
+newtype PolyBezier f = PolyBezier (f Bezier)
+
 -- | Sketch a continuous curve consisting of multiple Bezier segments. The end of
 -- each segment is assumed to be the start of the next one.
-instance Sequential f => Sketch (f Bezier) where
-    sketch = go . toList
+instance Sequential f => Sketch (PolyBezier f) where
+    sketch (PolyBezier xs) = go (toList xs)
       where
         go [] = pure ()
         go ps@(Bezier start _ _ _ : _) = do
@@ -365,6 +366,9 @@ instance (Sketch a, Sketch b, Sketch c, Sketch d) => Sketch (a,b,c,d) where
 instance (Sketch a, Sketch b, Sketch c, Sketch d, Sketch e) => Sketch (a,b,c,d,e) where
     sketch (a,b,c,d,e) = sketch a >> sketch b >> sketch c >> sketch d >> sketch e
 
+instance Sketch a => Sketch [a] where
+    sketch xs = for_ xs sketch
+
 -- |
 -- >>> :{
 -- haddockRender "Draw.hs/instance_Sketch_Line.svg" 150 100 $ do
@@ -383,22 +387,19 @@ instance Sketch Line where
 --
 -- >>> :{
 -- haddockRender "Draw.hs/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
---     sketch [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
+--     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
 -- :}
 -- docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg
 --
 -- <<docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg>>
-instance Sequential f => Sketch (f Vec2) where
-    sketch = go . toList
+instance Sequential f => Sketch (Polyline f) where
+    sketch (Polyline xs) = go (toList xs)
       where
         go [] = pure ()
         go (Vec2 x0 y0 : vecs) = do
             moveTo x0 y0
             for_ vecs (\(Vec2 x y) -> lineTo x y)
-
-instance Sketch (Polyline Vector) where sketch (Polyline xs) = sketch xs
-instance Sketch (Polyline []) where sketch (Polyline xs) = sketch xs
 
 -- |
 -- >>> :{
@@ -411,7 +412,7 @@ instance Sketch (Polyline []) where sketch (Polyline xs) = sketch xs
 -- <<docs/haddock/Draw.hs/instance_Sketch_Polygon.svg>>
 instance Sketch Polygon where
     sketch (Polygon []) = pure ()
-    sketch (Polygon xs) = sketch xs >> closePath
+    sketch (Polygon xs) = sketch (Polyline xs) >> closePath
 
 -- |
 -- >>> :{

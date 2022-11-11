@@ -65,7 +65,7 @@ visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testVisual "Single parabola" 100 100 "docs/iso_lines/parabola" $ \(w, h) -> do
         let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-            isos = isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
+            isos = Polyline <$> isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
             fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
             fitToBox =
                 G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) def)
@@ -80,7 +80,7 @@ visualTests = testGroup "Visual"
         for_ (zip [1..] [1,2..20]) $ \(colorIndex, r) -> do
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 gridResolution = (32, 32)
-                isos = isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                isos = Polyline <$> isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
                 fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 fitToBox =
                     G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) def)
@@ -117,6 +117,6 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 setColor (mathematica97 colorIx `withOpacity` threshold)
-                for_ isos $ \path -> sketch (simplifyTrajectoryRdp 0.4 (V.fromList path))
+                for_ isos $ \path -> sketch (Polyline (simplifyTrajectoryRdp 0.4 (V.fromList path)))
                 stroke
     ]

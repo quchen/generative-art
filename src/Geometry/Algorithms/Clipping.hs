@@ -5,6 +5,7 @@ module Geometry.Algorithms.Clipping (
 
     , LineType(..)
     , clipPolygonWithLine
+    , clipPolygonWithLineSegment
 
     , IslandOrHole(..)
     , intersectionPP
