@@ -781,11 +781,8 @@ instance Plotting Polygon where
 -- happens to put more points in places with more curvature.
 instance Plotting Bezier where
     plot bezier = commented "Bezier (cubic)" $ do
-        current <- gets _penXY
         let points = bezierSubdivideT 32 bezier
-        let p:ointsToPlot = if norm (current -. head points) < norm (current -. last points)
-                then points
-                else reverse points
+        let p:ointsToPlot = points
         repositionTo p
         traverse_ lineTo ointsToPlot
 
