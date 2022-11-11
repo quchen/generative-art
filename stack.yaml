@@ -7,6 +7,7 @@ packages:
     - penplotting/ApollonianGasket
     - penplotting/circuits
     - penplotting/DelaunayVoronoi
+    - penplotting/dendrites
     - penplotting/FlowLines
     - penplotting/Hatched
     - penplotting/Kilometer
