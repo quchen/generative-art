@@ -69,6 +69,7 @@ testplot = do
             , _zDrawingHeight = -0.5
             , _feedrate = 1000
             , _previewPenTravelColor = Nothing
+            , _previewPenWidth = 0.5
             }
         plotResult = runPlot settings $ do
             let optimizationSettings = MinimizePenHoveringSettings
@@ -79,13 +80,13 @@ testplot = do
                 optimize = concatMap V.toList . minimizePenHoveringBy optimizationSettings . S.fromList
                 shapes =
                     [ transform align
-                        ( mask
+                        ( [mask, transform (scale 1.02) mask]
                         , clipArc mask <$> optimize (V.map (uncurry toArc) <$> strandsColor1)
                         , clipArc mask <$> optimize (V.map (uncurry toArc) <$> strandsColor2)
                         )
                     | (hex, tiles) <- configurations
                     , let align = translate (toVec2 (8 * cellSize) hex +. Vec2 (picWidth/2) (picHeight/2)) <> rotate (deg 30)
-                    , let mask = transform (scale (7.02 * cellSize)) (regularPolygon 6)
+                    , let mask = transform (scale (7.1 * cellSize)) (regularPolygon 6)
                     , let tiling = runST $ do
                             gen <- initialize (V.fromList [123, 987])
                             randomTiling (const tiles) gen (hexagonsInRange 4 hexZero)
