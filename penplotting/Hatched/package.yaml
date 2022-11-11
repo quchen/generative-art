@@ -11,7 +11,7 @@ dependencies:
     - generative-art
     - base
     - cairo
-    - text
+    - plotfont
 
 executables:
     penplotting-hatched:
