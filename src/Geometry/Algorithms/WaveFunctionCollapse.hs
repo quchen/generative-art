@@ -5,7 +5,7 @@ import System.Random.MWC as MWC
 import Control.Monad.ST
 import Control.Applicative
 
-data Zipper a = Zipper [a] a [a] deriving (Functor)
+data Zipper a = Zipper [a] a [a] deriving (Eq, Ord, Functor)
 
 fromList :: [a] -> Zipper a
 fromList (x:xs) = Zipper [] x xs
@@ -53,7 +53,7 @@ instance Foldable Zipper where
 instance Traversable Zipper where
     sequenceA (Zipper xs y zs) = liftA3 Zipper (sequenceA xs) y (sequenceA zs)
 
-newtype Grid a = Grid (Zipper (Zipper a)) deriving (Functor)
+newtype Grid a = Grid (Zipper (Zipper a)) deriving (Eq, Ord, Functor)
 
 left, right, up, down :: Grid a -> Maybe (Grid a)
 left  (Grid zipper) = Grid <$> traverse prev zipper
@@ -75,33 +75,36 @@ duplicate = Grid . fmap duplicateV . duplicateH
     duplicateV :: Grid a -> Zipper (Grid a)
     duplicateV (Grid z) = Grid <$> duplicateZ z
 
+mapCurrent :: (a -> a) -> Grid a -> Grid a
+mapCurrent f (Grid (Zipper xs (Zipper as b cs) zs)) = Grid (Zipper xs (Zipper as (f b) cs) zs)
+
+setCurrent :: a -> Grid a -> Grid a
+setCurrent x = mapCurrent (const x)
+
 data WfcSettings a = WfcSettings
     { wfcWidth :: Int
     , wfcHeight :: Int
     , wfcTiles :: [a]
-    , wfcLegalAdjacency :: a -> a -> Bool
+    , wfcLocalProjection :: Grid (WfState a) -> WfState a
     }
 
 type Coordinate = (Int, Int)
 
-data WfState a = Unobserved [a] | Observed a | Contradiction
+data WfState a = Unobserved [a] | Observed a | Contradiction deriving Eq
 
 wfc :: Eq a => WfcSettings a -> MWC.GenST x -> ST x (Maybe (Grid a))
-wfc WfcSettings{..} gen = go initialGrid
+wfc settings@WfcSettings{..} gen = go initialGrid
   where
     initialGrid = Grid $ fromList $ replicate wfcHeight (fromList $ replicate wfcWidth (Unobserved wfcTiles))
     go grid = case findMin grid of
-        Just minimumElement -> collapse minimumElement grid gen >>= go . propagate minimumElement
+        Just grid' -> collapse settings grid' gen >>= go
         Nothing -> pure (Just (fmap (\(Observed a) -> a) grid))
 
-findMin :: Grid (WfState a) -> Maybe Coordinate
+findMin :: Grid (WfState a) -> Maybe (Grid (WfState a))
 findMin = undefined
 
-collapse :: Coordinate -> Grid (WfState a) -> MWC.GenST x -> ST x (Grid (WfState a))
-collapse (x, y) grid@(Grid zipper) gen = do
-    let Just (Unobserved possibilities) = zipper ! y >>= (! x)
-    observed <- pick possibilities gen
-    pure (change (x, y) (const (Observed observed)) grid)
+collapse :: Eq a => WfcSettings a -> Grid (WfState a) -> MWC.GenST x -> ST x (Grid (WfState a))
+collapse settings grid = pick (eigenstates settings grid)
 
 pick :: [a] -> GenST x -> ST x a
 pick xs gen = do
@@ -109,33 +112,15 @@ pick xs gen = do
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
 
-change :: Coordinate -> (a -> a) -> Grid a -> Grid a
-change (x, y) f (Grid zipper) = case traverse (moveTo x) zipper >>= moveTo y of
-    Nothing -> Grid zipper
-    Just zipper' -> mapCurrent f (Grid zipper')
+eigenstates :: Eq a => WfcSettings a -> Grid (WfState a) -> [Grid (WfState a)]
+eigenstates WfcSettings{..} grid = case extract grid of
+    Contradiction -> []
+    Observed _ -> [grid]
+    Unobserved xs -> fmap (\x -> propagate wfcLocalProjection (setCurrent (Observed x) grid)) xs
 
-mapCurrent :: (a -> a) -> Grid a -> Grid a
-mapCurrent f (Grid (Zipper xs (Zipper as b cs) zs)) = Grid (Zipper xs (Zipper as (f b) cs) zs)
-
-setCurrent :: a -> Grid a -> Grid a
-setCurrent x = mapCurrent (const x)
-
-propagate :: (a -> a -> Bool) -> Grid (WfState a) -> Grid (WfState a)
-propagate isAllowedNextTo = go left right . go up down . go right left . go down up
+propagate :: Eq a => (Grid (WfState a) -> WfState a) -> Grid (WfState a) -> Grid (WfState a)
+propagate projection = go
   where
-    go there back grid = case there grid of
-        Nothing -> grid
-        Just grid' -> case (peek (extract grid), peek (extract grid')) of
-            (xs, ys) -> if and [ y `isAllowedNextTo` x | x <- xs, y <- ys]
-                then grid
-                else
-                    let grid'' = case filter (\y -> or [ y `isAllowedNextTo` x | x <- xs ]) ys of
-                            []  -> setCurrent Contradiction    grid'
-                            [x] -> setCurrent (Observed x)     grid'
-                            xs' -> setCurrent (Unobserved xs') grid'
-                    in back (propagate isAllowedNextTo grid'')
-
-    peek :: WfState a -> [a]
-    peek (Unobserved xs) = xs
-    peek (Observed x) = [x]
-    peek Contradiction = []
+    go grid =
+        let grid' = extend projection grid
+        in if grid' == grid then grid else go grid'
