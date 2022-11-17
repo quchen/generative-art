@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
-module WaveFunctionCollapse where
+module Geometry.Algorithms.WaveFunctionCollapse where
 
 import System.Random.MWC as MWC
 import Control.Monad.ST
@@ -9,6 +9,7 @@ data Zipper a = Zipper [a] a [a] deriving (Eq, Ord, Functor)
 
 fromList :: [a] -> Zipper a
 fromList (x:xs) = Zipper [] x xs
+fromList [] = error "Cannot construct Zipper from empty list"
 
 toList :: Zipper a -> [a]
 toList (Zipper xs y zs) = reverse xs ++ [y] ++ zs
