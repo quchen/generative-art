@@ -4,7 +4,8 @@ module Geometry.Algorithms.WaveFunctionCollapse where
 import System.Random.MWC as MWC
 import Control.Monad.ST
 import Control.Applicative
-import Data.List (sortOn, find)
+import Data.List (sortOn, find, nub)
+import Data.Maybe (catMaybes)
 
 data Zipper a = Zipper [a] a [a] deriving (Eq, Ord, Functor)
 
@@ -78,9 +79,7 @@ setCurrent :: a -> Grid a -> Grid a
 setCurrent x = mapCurrent (const x)
 
 data WfcSettings a = WfcSettings
-    { wfcWidth :: Int
-    , wfcHeight :: Int
-    , wfcTiles :: [a]
+    { wfcTiles :: [a]
     , wfcLocalProjection :: Grid (WfState a) -> WfState a
     }
 
@@ -95,10 +94,10 @@ instance Foldable WfState where
         Unobserved xs -> foldr plus zero xs
 
 
-wfc :: Eq a => WfcSettings a -> MWC.GenST x -> ST x (Maybe (Grid a))
-wfc settings@WfcSettings{..} gen = go initialGrid
+wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Maybe (Grid a))
+wfc settings@WfcSettings{..} width height gen = go initialGrid
   where
-    initialGrid = Grid $ fromList $ replicate wfcHeight (fromList $ replicate wfcWidth (Unobserved wfcTiles))
+    initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width (Unobserved wfcTiles))
     go grid = case findMin grid of
         Just grid' -> collapse settings grid' gen >>= go
         Nothing -> pure (Just (fmap (\(Observed a) -> a) grid))
@@ -131,3 +130,26 @@ propagate projection = go
     go grid =
         let grid' = extend projection grid
         in if grid' == grid then grid else go grid'
+
+type Stencil3x3 a = (Maybe a, Maybe a, Maybe a, Maybe a, Maybe a, Maybe a, Maybe a, Maybe a, Maybe a)
+
+stencil3x3 :: Grid a -> Stencil3x3 a
+stencil3x3 grid = toTuple $ fmap (fmap extract)
+    [ left =<< upGrid, upGrid, right =<< upGrid
+    , left grid, Just grid, right grid
+    , left =<< downGrid, downGrid, right =<< downGrid
+    ]
+  where
+    upGrid = up grid
+    downGrid = down grid
+    toTuple [a, b, c, d, e, f, g, h, i] = (a, b, c, d, e, f, g, h, i)
+    toTuple _ = undefined
+
+stencils3x3 :: Grid a -> [Stencil3x3 a]
+stencils3x3 = foldr (:) [] . extend stencil3x3
+
+settingsFromGrid :: Eq a => Grid a -> WfcSettings (Stencil3x3 a)
+settingsFromGrid grid = WfcSettings{..}
+  where
+    wfcTiles = nub (stencils3x3 grid)
+    wfcLocalProjection grid' = case stencil3x3 grid' of _
