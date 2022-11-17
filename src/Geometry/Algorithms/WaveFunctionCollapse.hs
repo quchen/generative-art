@@ -14,12 +14,6 @@ fromList [] = error "Cannot construct Zipper from empty list"
 toList :: Zipper a -> [a]
 toList (Zipper xs y zs) = reverse xs ++ [y] ++ zs
 
-moveTo :: Int -> Zipper a -> Maybe (Zipper a)
-moveTo i zipper@(Zipper xs y _) = case length xs of
-    j | i == j    -> Just zipper
-      | i < j     -> prev zipper >>= moveTo i
-      | otherwise -> next zipper >>= moveTo i
-
 prev, next :: Zipper a -> Maybe (Zipper a)
 prev (Zipper xs y zs) = case xs of
     [] -> Nothing
@@ -40,9 +34,6 @@ iterate1 f = go
     go x = case f x of
         Nothing -> []
         Just fx -> fx : go fx
-
-(!) :: Zipper a -> Int -> Maybe a
-(!) zipper i = extractZ <$> moveTo i zipper
 
 instance Applicative Zipper where
     pure a = Zipper [] a []
