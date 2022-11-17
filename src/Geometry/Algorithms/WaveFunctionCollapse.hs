@@ -4,6 +4,7 @@ module Geometry.Algorithms.WaveFunctionCollapse where
 import System.Random.MWC as MWC
 import Control.Monad.ST
 import Control.Applicative
+import Data.List (sortOn, find)
 
 data Zipper a = Zipper [a] a [a] deriving (Eq, Ord, Functor)
 
@@ -53,6 +54,9 @@ right (Grid zipper) = Grid <$> traverse next zipper
 up    (Grid zipper) = Grid <$> prev zipper
 down  (Grid zipper) = Grid <$> next zipper
 
+instance Foldable Grid where
+    foldr plus zero (Grid zz) = foldr plus zero (toList zz >>= toList)
+
 extract :: Grid a -> a
 extract (Grid zipper) = extractZ (extractZ zipper)
 
@@ -84,6 +88,13 @@ type Coordinate = (Int, Int)
 
 data WfState a = Unobserved [a] | Observed a | Contradiction deriving Eq
 
+instance Foldable WfState where
+    foldr plus zero = \case
+        Contradiction -> zero
+        Observed   x  -> x `plus` zero
+        Unobserved xs -> foldr plus zero xs
+
+
 wfc :: Eq a => WfcSettings a -> MWC.GenST x -> ST x (Maybe (Grid a))
 wfc settings@WfcSettings{..} gen = go initialGrid
   where
@@ -93,7 +104,11 @@ wfc settings@WfcSettings{..} gen = go initialGrid
         Nothing -> pure (Just (fmap (\(Observed a) -> a) grid))
 
 findMin :: Grid (WfState a) -> Maybe (Grid (WfState a))
-findMin = undefined
+findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
+  where
+    isUnobserved grid = case extract grid of
+        Unobserved _ -> True
+        _ -> False
 
 collapse :: Eq a => WfcSettings a -> Grid (WfState a) -> MWC.GenST x -> ST x (Grid (WfState a))
 collapse settings grid = pick (eigenstates settings grid)
