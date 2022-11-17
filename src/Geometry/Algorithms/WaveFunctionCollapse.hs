@@ -2,7 +2,6 @@
 module WaveFunctionCollapse where
 
 import System.Random.MWC as MWC
-import Control.Monad
 import Control.Monad.ST
 import Control.Applicative
 
@@ -20,8 +19,26 @@ moveTo i zipper@(Zipper xs y _) = case length xs of
       | i < j     -> prev zipper >>= moveTo i
       | otherwise -> next zipper >>= moveTo i
 
+prev, next :: Zipper a -> Maybe (Zipper a)
+prev (Zipper xs y zs) = case xs of
+    [] -> Nothing
+    x:xs' -> Just (Zipper xs' x (y:zs))
+next (Zipper xs y zs) = case zs of
+    [] -> Nothing
+    z:zs' -> Just (Zipper (y:xs) z zs')
+
 extractZ :: Zipper a -> a
 extractZ (Zipper _ y _) = y
+
+duplicateZ :: Zipper a -> Zipper (Zipper a)
+duplicateZ z = Zipper (iterate1 prev z) z (iterate1 next z)
+
+iterate1 :: (a -> Maybe a) -> a -> [a]
+iterate1 f = go
+  where
+    go x = case f x of
+        Nothing -> []
+        Just fx -> fx : go fx
 
 (!) :: Zipper a -> Int -> Maybe a
 (!) zipper i = extractZ <$> moveTo i zipper
@@ -38,14 +55,6 @@ instance Traversable Zipper where
 
 newtype Grid a = Grid (Zipper (Zipper a)) deriving (Functor)
 
-prev, next :: Zipper a -> Maybe (Zipper a)
-prev (Zipper xs y zs) = case xs of
-    [] -> Nothing
-    x:xs' -> Just (Zipper xs' x (y:zs))
-next (Zipper xs y zs) = case zs of
-    [] -> Nothing
-    z:zs' -> Just (Zipper (y:xs) z zs')
-
 left, right, up, down :: Grid a -> Maybe (Grid a)
 left  (Grid zipper) = Grid <$> traverse prev zipper
 right (Grid zipper) = Grid <$> traverse next zipper
@@ -54,6 +63,17 @@ down  (Grid zipper) = Grid <$> next zipper
 
 extract :: Grid a -> a
 extract (Grid zipper) = extractZ (extractZ zipper)
+
+extend :: (Grid a -> b) -> Grid a -> Grid b
+extend f = fmap f . duplicate
+
+duplicate :: Grid a -> Grid (Grid a)
+duplicate = Grid . fmap duplicateV . duplicateH
+  where
+    duplicateH :: Grid a -> Zipper (Grid a)
+    duplicateH (Grid z) = Grid <$> fmap duplicateZ z
+    duplicateV :: Grid a -> Zipper (Grid a)
+    duplicateV (Grid z) = Grid <$> duplicateZ z
 
 data WfcSettings a = WfcSettings
     { wfcWidth :: Int
