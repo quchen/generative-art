@@ -19,7 +19,6 @@
           hlint
           hoogle
           haskell-language-server
-          implicit-hie
           retrie
         ];
 
