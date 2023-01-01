@@ -85,47 +85,23 @@ setCurrent x = mapCurrent (const x)
 
 data WfcSettings a = WfcSettings
     { wfcTiles :: [a]
-    , wfcLocalProjection :: Grid (WfState a) -> WfState a
+    , wfcLocalProjection :: Grid [a] -> [a]
     }
-
-type Coordinate = (Int, Int)
-
-data WfState a = Unobserved [a] | Observed a | Contradiction deriving Eq
-
-wfState :: [a] -> WfState a
-wfState [] = Contradiction
-wfState [a] = Observed a
-wfState as = Unobserved as
-
-unWfState :: WfState a -> [a]
-unWfState = \case
-    Contradiction -> []
-    Observed x -> [x]
-    Unobserved xs -> xs
-
-instance Foldable WfState where
-    foldr plus zero = \case
-        Contradiction -> zero
-        Observed   x  -> x `plus` zero
-        Unobserved xs -> foldr plus zero xs
-
 
 wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Maybe (Grid a))
 wfc settings@WfcSettings{..} width height gen = go initialGrid
   where
-    initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width (Unobserved wfcTiles))
+    initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
     go grid = case findMin grid of
         Just grid' -> collapse settings grid' gen >>= go
-        Nothing -> pure (Just (fmap (\(Observed a) -> a) grid))
+        Nothing -> pure (Just (fmap (\[a] -> a) grid))
 
-findMin :: Grid (WfState a) -> Maybe (Grid (WfState a))
+findMin :: Grid [a] -> Maybe (Grid [a])
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
   where
-    isUnobserved grid = case extract grid of
-        Unobserved _ -> True
-        _ -> False
+    isUnobserved grid = length (extract grid) > 1
 
-collapse :: Eq a => WfcSettings a -> Grid (WfState a) -> MWC.GenST x -> ST x (Grid (WfState a))
+collapse :: Eq a => WfcSettings a -> Grid [a] -> MWC.GenST x -> ST x (Grid [a])
 collapse settings grid = pick (eigenstates settings grid)
 
 pick :: [a] -> GenST x -> ST x a
@@ -134,13 +110,13 @@ pick xs gen = do
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
 
-eigenstates :: Eq a => WfcSettings a -> Grid (WfState a) -> [Grid (WfState a)]
+eigenstates :: Eq a => WfcSettings a -> Grid [a] -> [Grid [a]]
 eigenstates WfcSettings{..} grid = case extract grid of
-    Contradiction -> []
-    Observed _ -> [grid]
-    Unobserved xs -> fmap (\x -> propagate wfcLocalProjection (setCurrent (Observed x) grid)) xs
+    [] -> []
+    [_] -> [grid]
+    xs -> fmap (\x -> propagate wfcLocalProjection (setCurrent [x] grid)) xs
 
-propagate :: Eq a => (Grid (WfState a) -> WfState a) -> Grid (WfState a) -> Grid (WfState a)
+propagate :: Eq a => (Grid [a] -> [a]) -> Grid [a] -> Grid [a]
 propagate projection = go
   where
     go grid =
@@ -199,8 +175,8 @@ settingsFromGrid :: Eq a => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
   where
     wfcTiles = nub (stencils3x3 grid)
-    wfcLocalProjection :: Eq a => Grid (WfState (Stencil3x3 a)) -> WfState (Stencil3x3 a)
-    wfcLocalProjection = wfState . remainingEigenvalues . fmap unWfState
+    wfcLocalProjection :: Eq a => Grid [Stencil3x3 a] -> [Stencil3x3 a]
+    wfcLocalProjection = remainingEigenvalues
 
 {-
 Concept:
