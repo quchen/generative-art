@@ -50,6 +50,9 @@ instance Traversable Zipper where
 
 newtype Grid a = Grid (Zipper (Zipper a)) deriving (Eq, Ord, Functor)
 
+fromListG :: [[a]] -> Grid a
+fromListG xss = Grid (fromList (fmap fromList xss))
+
 left, right, up, down :: Grid a -> Maybe (Grid a)
 left  (Grid zipper) = Grid <$> traverse prev zipper
 right (Grid zipper) = Grid <$> traverse next zipper
@@ -228,3 +231,25 @@ remainingEigenvalues grid =
 -- Compares the overlapping parts of the two grids, i.e. comparing the points where both sides are defined.
 weakEq :: Eq a => Grid a -> Grid a -> Bool
 weakEq as bs = and (liftA2 (==) as bs)
+
+
+
+
+data XO = X | O deriving (Eq, Show)
+
+example :: Grid XO
+example = fromListG
+    [ [ X, X, X, X ]
+    , [ X, O, O, O ]
+    , [ X, O, X, O ]
+    , [ X, O, O, O ]
+    ]
+
+printGrid :: Show a => Grid a -> String
+printGrid (Grid xs) = unlines (toList (fmap (concatMap show . toList) xs))
+
+test :: Maybe (Grid (Stencil3x3 XO))
+test = runST (create >>= wfc (settingsFromGrid example) 10 10)
+
+extractStencil :: Stencil3x3 a -> a 
+extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e
