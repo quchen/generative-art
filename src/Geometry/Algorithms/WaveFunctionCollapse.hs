@@ -101,15 +101,15 @@ wfc settings@WfcSettings{..} width height gen = go initialGrid
         Nothing -> pure (Just (fmap (\[a] -> a) grid))
 
 wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> Maybe (ST x (Grid [a]))
-wfcStep settings gen grid = collapse settings gen <$> findMin grid
+wfcStep WfcSettings{..} gen grid = fmap (propagate wfcLocalProjection) . collapse gen <$> findMin grid
 
 findMin :: Grid [a] -> Maybe (Grid [a])
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
   where
     isUnobserved grid = length (extract grid) > 1
 
-collapse :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> ST x (Grid [a])
-collapse settings gen grid = pick (eigenstates settings grid) gen
+collapse :: Eq a => MWC.GenST x -> Grid [a] -> ST x (Grid [a])
+collapse gen grid = pick (eigenstates grid) gen
 
 pick :: [a] -> GenST x -> ST x a
 pick xs gen = do
@@ -117,11 +117,11 @@ pick xs gen = do
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
 
-eigenstates :: Eq a => WfcSettings a -> Grid [a] -> [Grid [a]]
-eigenstates WfcSettings{..} grid = case extract grid of
+eigenstates :: Eq a => Grid [a] -> [Grid [a]]
+eigenstates grid = case extract grid of
     [] -> []
     [_] -> [grid]
-    xs -> fmap (\x -> propagate wfcLocalProjection (setCurrent [x] grid)) xs
+    xs -> fmap (\x -> setCurrent [x] grid) xs
 
 propagate :: Eq a => (Grid [a] -> [a]) -> Grid [a] -> Grid [a]
 propagate projection = go
