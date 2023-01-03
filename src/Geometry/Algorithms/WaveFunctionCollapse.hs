@@ -74,12 +74,12 @@ extend :: (Grid a -> b) -> Grid a -> Grid b
 extend f = fmap f . duplicate
 
 duplicate :: Grid a -> Grid (Grid a)
-duplicate = Grid . fmap duplicateV . duplicateH
+duplicate = Grid . fmap duplicateH . duplicateV
   where
     duplicateH :: Grid a -> Zipper (Grid a)
-    duplicateH (Grid z) = Grid <$> fmap duplicateZ z
+    duplicateH g = Zipper (iterate1 left g) g (iterate1 right g)
     duplicateV :: Grid a -> Zipper (Grid a)
-    duplicateV (Grid z) = Grid <$> duplicateZ z
+    duplicateV g = Zipper (iterate1 up g) g (iterate1 down g)
 
 mapCurrent :: (a -> a) -> Grid a -> Grid a
 mapCurrent f (Grid (Zipper xs (Zipper as b cs) zs)) = Grid (Zipper xs (Zipper as (f b) cs) zs)
