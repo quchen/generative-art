@@ -7,6 +7,7 @@ import Control.Monad.ST
 import Control.Applicative
 import Data.List (sortOn, find, nub)
 import Data.Maybe (maybeToList, catMaybes)
+import Data.Foldable (traverse_)
 
 data Zipper a = Zipper ![a] !a ![a] deriving (Eq, Ord, Functor)
 
@@ -95,17 +96,20 @@ wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Maybe (Grid a
 wfc settings@WfcSettings{..} width height gen = go initialGrid
   where
     initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
-    go grid = case findMin grid of
-        Just grid' -> collapse settings grid' gen >>= go
+    go grid = case wfcStep settings gen grid of
+        Just grid' -> grid' >>= go
         Nothing -> pure (Just (fmap (\[a] -> a) grid))
+
+wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> Maybe (ST x (Grid [a]))
+wfcStep settings gen grid = collapse settings gen <$> findMin grid
 
 findMin :: Grid [a] -> Maybe (Grid [a])
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
   where
     isUnobserved grid = length (extract grid) > 1
 
-collapse :: Eq a => WfcSettings a -> Grid [a] -> MWC.GenST x -> ST x (Grid [a])
-collapse settings grid = pick (eigenstates settings grid)
+collapse :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> ST x (Grid [a])
+collapse settings gen grid = pick (eigenstates settings grid) gen
 
 pick :: [a] -> GenST x -> ST x a
 pick xs gen = do
@@ -248,8 +252,37 @@ example = fromListG
 printGrid :: Show a => Grid a -> String
 printGrid (Grid xs) = unlines (toList (fmap (concatMap show . toList) xs))
 
-test :: Maybe (Grid (Stencil3x3 XO))
-test = runST (create >>= wfc (settingsFromGrid example) 10 10)
+debugGrid :: Show a => Grid [Stencil3x3 a] -> IO ()
+debugGrid (Grid xs) = putStrLn $ unlines $ toList $ fmap (concat . toList . fmap pp) xs
+  where
+    pp [] = "0"
+    pp [a] = show (extractStencil a)
+    pp as = show (length as)
+
+debugStencil :: Show a => Stencil3x3 a -> String
+debugStencil (Stencil3x3 a b c d e f g h i) = unlines
+    [ concatMap (maybe "_" show) [a, b, c]
+    , concatMap (maybe "_" show) [d, Just e, f]
+    , concatMap (maybe "_" show) [g, h, i]
+    ]
+
+test :: IO ()
+test = do
+    let height = 10
+        width = 10
+        settings@WfcSettings{..} = settingsFromGrid example
+        initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
+    traverse_ (putStrLn . debugStencil) wfcTiles
+    traverse_ debugGrid $ runST $ do
+        gen <- create
+        go settings gen initialGrid
+  where
+    go settings gen grid = case wfcStep settings gen grid of
+        Just action -> do
+            grid' <- action
+            result' <- go settings gen grid'
+            pure (grid' : result')
+        Nothing -> pure []
 
 extractStencil :: Stencil3x3 a -> a 
 extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e
