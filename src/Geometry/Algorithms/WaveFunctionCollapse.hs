@@ -266,10 +266,12 @@ data XO = X | O deriving (Eq, Ord, Show)
 
 example :: Grid XO
 example = fromListG
-    [ [ X, X, X, X ]
-    , [ X, O, O, O ]
-    , [ X, O, X, O ]
-    , [ X, O, O, O ]
+    [ [ X, X, X, X, X, X ]
+    , [ X, O, O, O, X, O ]
+    , [ X, O, X, O, X, O ]
+    , [ X, O, O, O, X, O ]
+    , [ X, X, X, X, X, X ]
+    , [ X, O, O, O, X, O ]
     ]
 {-
 XXX    XXX
