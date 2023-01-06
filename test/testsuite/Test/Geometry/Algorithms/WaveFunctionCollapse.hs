@@ -1,6 +1,7 @@
 module Test.Geometry.Algorithms.WaveFunctionCollapse (tests) where
 
 import Data.Foldable
+import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
@@ -8,7 +9,7 @@ import Geometry hiding (Grid)
 import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 
 import Test.TastyAll
-import System.Random.MWC (create)
+import System.Random.MWC (create, initialize)
 import Control.Monad.ST (runST)
 
 tests :: TestTree
@@ -50,7 +51,7 @@ testPropagate = testGroup "Propagation" $
 testWaveFunctionCollapse :: TestTree
 testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 720 480 "docs/wave_function_collapse" $ \(w, h) ->
     drawGrid (w, h) $ runST $ do
-        gen <- create
+        gen <- initialize (V.fromList [1])
         result <- wfc (settingsFromGrid example) 15 10 gen
         pure ((\[a] -> extractStencil a) <$> result)
 

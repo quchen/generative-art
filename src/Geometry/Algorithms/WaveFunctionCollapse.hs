@@ -5,21 +5,10 @@ import System.Random.MWC as MWC
 import Control.Monad ((>=>))
 import Control.Monad.ST
 import Control.Applicative
-import Data.List (sortOn, find)
+import Data.List.Extended (sortOn, find, nubOrd)
 import Data.Maybe (maybeToList, catMaybes)
 import Data.Foldable (traverse_)
-import qualified Data.Set as S
 import qualified Data.Vector as V
-import Geometry.Chaotic (initializeMwc)
-
---import Debug.Trace
-
-traceShowId = id
-traceShow = flip const
-trace = flip const
-
-nub :: Ord a => [a] -> [a]
-nub = S.toList . S.fromList
 
 data Zipper a = Zipper ![a] !a ![a] deriving (Eq, Ord, Show, Functor)
 
@@ -138,11 +127,11 @@ eigenstates grid = case extract grid of
     xs -> fmap (\x -> setCurrent [x] grid) xs
 
 propagate :: Eq a => (Grid [a] -> [a]) -> Grid [a] -> Grid [a]
-propagate projection = go 500
+propagate projection = go
   where
-    go n grid =
-        let grid' = traceShow "foo" $ extend projection grid
-        in if traceShowId (n <= 0 || grid' == grid) then grid else go (n-1) grid'
+    go grid =
+        let grid' = extend projection grid
+        in if grid' == grid then grid else go grid'
 
 data Stencil3x3 a = Stencil3x3
     { s11 :: !(Maybe a)
@@ -195,7 +184,7 @@ stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (Zipper upper middle lower)
 settingsFromGrid :: (Eq a, Ord a, Show a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
   where
-    wfcTiles = nub (filter onlyFullStencils (stencils3x3 grid))
+    wfcTiles = nubOrd (filter onlyFullStencils (stencils3x3 grid))
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
@@ -225,26 +214,19 @@ _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
 remainingEigenvalues :: (Eq a, Ord a, Show a) => Grid [Stencil3x3 a] -> [Stencil3x3 a]
-remainingEigenvalues grid = let
-  x = nub
+remainingEigenvalues grid = nubOrd
     [ this
     | this <- extract grid
     , let isCompatible = and
-            [ traceShow this $ traceShow (stencil3x3 thisShifted) $ traceShow others $ traceShow compatibleOthers $ trace "===" $ not (null compatibleOthers)
+            [ not (null compatibleOthers)
             | (there, back) <- zip neighbouringDirections neighbouringDirections
             , let others = maybeToList (there grid) >>= extract
             , not (null others)
             , thisShifted <- maybeToList (back (stencilToGrid this))
             , let compatibleOthers = [other | other <- others, thisShifted `weakEq` stencilToGrid other]
             ]
-    , trace ("isCompatible: " ++ show isCompatible) isCompatible
-    ] in trace ("total: " ++ show (length x)) x
-    -- , (there, back) <- zip neighbouringDirections neighbouringDirections
-    -- , let others = maybeToList (there grid) >>= extract
-    -- , thisShifted <- maybeToList (back (stencilToGrid this))
-    -- , let compatibleOthers = [other | other <- others, thisShifted `weakEq` stencilToGrid other]
-    -- , traceShow this $ traceShow (stencil3x3 thisShifted) $ traceShow others $ traceShow compatibleOthers $ trace "===" $ not (null compatibleOthers)
-    -- ] in trace ("total: " ++ show (length x)) x
+    , isCompatible
+    ]
   where
     neighbouringDirections :: [Grid b -> Maybe (Grid b)]
     neighbouringDirections =
@@ -281,15 +263,6 @@ example = fromListG
     , [ X, X, X, X, X, O, O, O, O, O, X ]
     , [ X, X, X, X, X, X, X, X, X, X, X ]
     ]
-{-
-XXX    XXX
-XOO    OOO
-XOX    OXO
-
-XOO    OOO
-XOX    OXO
-XOO    OOO
--}
 
 printGrid :: Show a => Grid a -> String
 printGrid (Grid xs) = unlines (toList (fmap (concatMap show . toList) xs))
@@ -312,11 +285,9 @@ test :: IO ()
 test = do
     let height = 2
         width = 4
-        settings@WfcSettings{..} = settingsFromGrid example
+        settings = settingsFromGrid example
         initial = initialGrid settings width height
-    --traverse_ (putStrLn . debugStencil) wfcTiles
     debugGrid initial
-    --debugGrid (extend wfcLocalProjection initialGrid)
     traverse_ debugGrid $ runST $ do
         gen <- initialize (V.fromList [1])
         go' 1 settings gen initial
@@ -324,7 +295,6 @@ test = do
     go :: (Show a, Eq a) => WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
     go settings gen grid = case findMin grid of 
         Just grid' -> do
-            --wfcStep WfcSettings{..} gen grid = fmap (propagate wfcLocalProjection) . collapse gen <$> findMin grid
             grid'' <- collapse gen grid'
             result' <- go' 1 settings gen grid''
             pure (grid' : grid'' : result')
@@ -332,7 +302,7 @@ test = do
     go' :: (Show a, Eq a) => Int -> WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
     go' n settings gen grid =
         let grid' = extend (wfcLocalProjection settings) grid
-        in if n <= 0 || traceShowId grid == traceShowId grid'
+        in if grid == grid'
             then go settings gen grid
             else do
                 result <- go' (n-1) settings gen grid'
