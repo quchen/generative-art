@@ -104,15 +104,17 @@ data WfcSettings a = WfcSettings
     }
 
 wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Maybe (Grid a))
-wfc settings@WfcSettings{..} width height gen = go initialGrid
+wfc settings width height gen = go (initialGrid settings width height)
   where
-    initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
     go grid = case wfcStep settings gen grid of
         Just grid' -> grid' >>= go
         Nothing -> pure (Just (fmap (\[a] -> a) grid))
 
 wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> Maybe (ST x (Grid [a]))
 wfcStep WfcSettings{..} gen grid = fmap (propagate wfcLocalProjection) . collapse gen <$> findMin grid
+
+initialGrid :: WfcSettings a -> Int -> Int -> Grid [a]
+initialGrid WfcSettings{..} width height = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
 
 findMin :: Grid [a] -> Maybe (Grid [a])
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
@@ -305,13 +307,13 @@ test = do
     let height = 2
         width = 4
         settings@WfcSettings{..} = settingsFromGrid example
-        initialGrid = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
+        initial = initialGrid settings width height
     --traverse_ (putStrLn . debugStencil) wfcTiles
-    debugGrid initialGrid
+    debugGrid initial
     --debugGrid (extend wfcLocalProjection initialGrid)
     traverse_ debugGrid $ runST $ do
         gen <- initialize (V.fromList [1])
-        go' 1 settings gen initialGrid
+        go' 1 settings gen initial
   where
     go :: (Show a, Eq a) => WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
     go settings gen grid = case findMin grid of 
