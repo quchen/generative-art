@@ -16,6 +16,7 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     [ testDrawGrid
     , testDuplicate
     , testPropagate
+    , testWaveFunctionCollapse
     ]
 
 exampleGrid :: Grid XO
@@ -34,26 +35,24 @@ testDuplicate = testVisual "Duplicated grid" 240 240 "docs/grid_duplicate" $ \(w
     drawGrid (w, h) (duplicate exampleGrid)
 
 testPropagate :: TestTree
-testPropagate = testGroup "Propagation"
-    [ testVisual "Iniital state" 720 720 "docs/propagation_0" $ \(w, h) ->
+testPropagate = testGroup "Propagation" $
+    [ testVisual ("Generation " ++ show i) 720 720 ("docs/propagation_" ++ show i) $ \(w, h) ->
         drawGrid (w, h) grid
-    , testVisual "First iteration" 720 720 "docs/propagation_1" $ \(w, h) ->
-        drawGrid (w, h) $ extend (wfcLocalProjection settings) grid
-    , testVisual "Second iteration" 720 720 "docs/propagation_2" $ \(w, h) ->
-        drawGrid (w, h) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) grid
-    , testVisual "Third iteration" 720 720 "docs/propagation_3" $ \(w, h) ->
-        drawGrid (w, h) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) grid
-    , testVisual "Fourth iteration" 720 720 "docs/propagation_4" $ \(w, h) ->
-        drawGrid (w, h) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) grid
-    , testVisual "Fifth iteration" 720 720 "docs/propagation_5" $ \(w, h) ->
-        drawGrid (w, h) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) $ extend (wfcLocalProjection settings) grid
+    | (i, grid) <- take 7 $ zip [0..] generations
     ]
   where
     settings = settingsFromGrid example
-    grid = runST $ do
+    generations = iterate (extend (wfcLocalProjection settings)) $ runST $ do
         gen <- create
-        let initial = initialGrid settings 5 5
+        let initial = initialGrid settings 6 6
         collapse gen initial
+
+testWaveFunctionCollapse :: TestTree
+testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 720 480 "docs/wave_function_collapse" $ \(w, h) ->
+    drawGrid (w, h) $ runST $ do
+        gen <- create
+        result <- wfc (settingsFromGrid example) 15 10 gen
+        pure ((\[a] -> extractStencil a) <$> result)
 
 zipperLength :: Zipper a -> Int
 zipperLength = length . Wfc.toList
@@ -114,7 +113,7 @@ instance DrawToSize a => DrawToSize [a] where
             cellW = (w-2*margin) / fromIntegral gridSize
             cellH = (h-2*margin) / fromIntegral gridSize
         Cairo.translate margin margin
-        for_ (zip items [(x, y) | x <- [0 .. gridSize - 1], y <- [0 .. gridSize - 1]]) $ \(item, (x, y)) -> cairoScope $ do
+        for_ (zip items [(x, y) | y <- [0 .. gridSize - 1], x <- [0 .. gridSize - 1]]) $ \(item, (x, y)) -> cairoScope $ do
             Cairo.translate (fromIntegral x * cellW) (fromIntegral y * cellH)
             drawToSize (cellW, cellH) item
             pure ()

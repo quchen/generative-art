@@ -12,10 +12,11 @@ import qualified Data.Set as S
 import qualified Data.Vector as V
 import Geometry.Chaotic (initializeMwc)
 
-import Debug.Trace
+--import Debug.Trace
 
---traceShowId = id
---traceShow = flip const
+traceShowId = id
+traceShow = flip const
+trace = flip const
 
 nub :: Ord a => [a] -> [a]
 nub = S.toList . S.fromList
@@ -103,12 +104,12 @@ data WfcSettings a = WfcSettings
     , wfcLocalProjection :: Grid [a] -> [a]
     }
 
-wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Maybe (Grid a))
+wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Grid [a])
 wfc settings width height gen = go (initialGrid settings width height)
   where
     go grid = case wfcStep settings gen grid of
         Just grid' -> grid' >>= go
-        Nothing -> pure (Just (fmap (\[a] -> a) grid))
+        Nothing -> pure grid
 
 wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> Maybe (ST x (Grid [a]))
 wfcStep WfcSettings{..} gen grid = fmap (propagate wfcLocalProjection) . collapse gen <$> findMin grid
@@ -268,12 +269,17 @@ data XO = X | O deriving (Eq, Ord, Show)
 
 example :: Grid XO
 example = fromListG
-    [ [ X, X, X, X, X, X ]
-    , [ X, O, O, O, X, O ]
-    , [ X, O, X, O, X, O ]
-    , [ X, O, O, O, X, O ]
-    , [ X, X, X, X, X, X ]
-    , [ X, O, O, O, X, O ]
+    [ [ X, X, X, X, X, X, X, X, X, X, X ]
+    , [ X, O, O, O, O, O, X, X, X, X, X ]
+    , [ X, O, X, X, X, O, X, X, X, X, X ]
+    , [ X, O, X, X, X, O, X, X, X, X, X ]
+    , [ X, O, X, X, X, X, X, X, X, X, X ]
+    , [ X, O, O, O, O, O, O, O, O, O, X ]
+    , [ X, X, X, X, X, X, X, X, X, O, X ]
+    , [ X, X, X, X, X, O, X, X, X, O, X ]
+    , [ X, X, X, X, X, O, X, X, X, O, X ]
+    , [ X, X, X, X, X, O, O, O, O, O, X ]
+    , [ X, X, X, X, X, X, X, X, X, X, X ]
     ]
 {-
 XXX    XXX
