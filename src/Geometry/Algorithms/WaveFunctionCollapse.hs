@@ -5,10 +5,11 @@ import System.Random.MWC as MWC
 import Control.Monad ((>=>))
 import Control.Monad.ST
 import Control.Applicative
-import Data.List.Extended (sortOn, find, nubOrd)
+import Data.List.Extended (sortOn, find, nubOrd, groupBy)
 import Data.Maybe (maybeToList, catMaybes)
 import Data.Foldable (traverse_)
 import qualified Data.Vector as V
+import Data.Function (on)
 
 data Zipper a = Zipper ![a] !a ![a] deriving (Eq, Ord, Show, Functor)
 
@@ -96,12 +97,14 @@ data WfcSettings a = WfcSettings
 wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Grid [a])
 wfc settings width height gen = go (initialGrid settings width height)
   where
-    go grid = case wfcStep settings gen grid of
-        Just grid' -> grid' >>= go
+    go grid = wfcStep settings gen grid >>= \case
+        Just grid' -> go grid'
         Nothing -> pure grid
 
-wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> Maybe (ST x (Grid [a]))
-wfcStep WfcSettings{..} gen grid = fmap (propagate wfcLocalProjection) . collapse gen <$> findMin grid
+wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> ST x (Maybe (Grid [a]))
+wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
+    Just grid' -> Just . propagate wfcLocalProjection <$> collapse gen grid'
+    Nothing -> pure Nothing
 
 initialGrid :: WfcSettings a -> Int -> Int -> Grid [a]
 initialGrid WfcSettings{..} width height = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
@@ -111,11 +114,21 @@ findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplica
   where
     isUnobserved grid = length (extract grid) > 1
 
-collapse :: Eq a => MWC.GenST x -> Grid [a] -> ST x (Grid [a])
-collapse gen grid = pick (eigenstates grid) gen
+pickMin :: MWC.GenST x -> Grid [a] -> ST x (Maybe (Grid [a]))
+pickMin gen grid = case shortestGrids of
+    Nothing -> pure Nothing
+    Just xs -> Just <$> pick gen xs
+  where
+    lengthIndexed = fmap (\g -> (length (extract g), g)) (foldr (:) [] (duplicate grid))
+    shortestGrids = case groupBy ((==) `on` fst) $ sortOn fst $ filter ((> 1) . fst) $ lengthIndexed of
+        [] -> Nothing
+        (lengthIndexedShortestGrids : _) -> Just (snd <$> lengthIndexedShortestGrids)
 
-pick :: [a] -> GenST x -> ST x a
-pick xs gen = do
+collapse :: Eq a => MWC.GenST x -> Grid [a] -> ST x (Grid [a])
+collapse gen = pick gen . eigenstates
+
+pick :: GenST x -> [a] -> ST x a
+pick gen xs = do
     let len = length xs
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
@@ -251,17 +264,19 @@ data XO = X | O deriving (Eq, Ord, Show)
 
 example :: Grid XO
 example = fromListG
-    [ [ X, X, X, X, X, X, X, X, X, X, X ]
-    , [ X, O, O, O, O, O, X, X, X, X, X ]
-    , [ X, O, X, X, X, O, X, X, X, X, X ]
-    , [ X, O, X, X, X, O, X, X, X, X, X ]
-    , [ X, O, X, X, X, X, X, X, X, X, X ]
-    , [ X, O, O, O, O, O, O, O, O, O, X ]
-    , [ X, X, X, X, X, X, X, X, X, O, X ]
-    , [ X, X, X, X, X, O, X, X, X, O, X ]
-    , [ X, X, X, X, X, O, X, X, X, O, X ]
-    , [ X, X, X, X, X, O, O, O, O, O, X ]
-    , [ X, X, X, X, X, X, X, X, X, X, X ]
+    [ [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
+    , [ X, X, O, O, O, O, O, X, X, X, X, X, X ]
+    , [ X, X, O, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, O, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, O, X, X, X, X, X, X, X, X, X, X ]
+    , [ X, X, O, O, O, O, O, O, O, O, O, X, X ]
+    , [ X, X, X, X, X, X, X, X, X, X, O, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, O, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, O, X, X ]
+    , [ X, X, X, X, X, X, O, O, O, O, O, X, X ]
+    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
     ]
 
 printGrid :: Show a => Grid a -> String
@@ -293,7 +308,7 @@ test = do
         go' 1 settings gen initial
   where
     go :: (Show a, Eq a) => WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
-    go settings gen grid = case findMin grid of 
+    go settings gen grid = pickMin gen grid >>= \case 
         Just grid' -> do
             grid'' <- collapse gen grid'
             result' <- go' 1 settings gen grid''

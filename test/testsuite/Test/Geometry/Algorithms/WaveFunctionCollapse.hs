@@ -17,7 +17,7 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     [ testDrawGrid
     , testDuplicate
     , testPropagate
-    , testWaveFunctionCollapse
+    , localOption (Timeout (20*10^6) "20s") testWaveFunctionCollapse
     ]
 
 exampleGrid :: Grid XO
@@ -51,7 +51,7 @@ testPropagate = testGroup "Propagation" $
 testWaveFunctionCollapse :: TestTree
 testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 720 480 "docs/wave_function_collapse" $ \(w, h) ->
     drawGrid (w, h) $ runST $ do
-        gen <- initialize (V.fromList [1])
+        gen <- initialize (V.fromList [5])
         result <- wfc (settingsFromGrid example) 15 10 gen
         pure ((\[a] -> extractStencil a) <$> result)
 
