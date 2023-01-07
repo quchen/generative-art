@@ -49,10 +49,10 @@ testPropagate = testGroup "Propagation" $
         collapse gen initial
 
 testWaveFunctionCollapse :: TestTree
-testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 720 480 "docs/wave_function_collapse" $ \(w, h) ->
+testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 480 480 "docs/wave_function_collapse" $ \(w, h) ->
     drawGrid (w, h) $ runST $ do
         gen <- initialize (V.fromList [5])
-        result <- wfc (settingsFromGrid example) 15 10 gen
+        result <- wfc (settingsFromGrid example) 20 20 gen
         pure ((\[a] -> extractStencil a) <$> result)
 
 zipperLength :: Zipper a -> Int

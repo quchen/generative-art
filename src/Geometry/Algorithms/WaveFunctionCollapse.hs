@@ -264,19 +264,13 @@ data XO = X | O deriving (Eq, Ord, Show)
 
 example :: Grid XO
 example = fromListG
-    [ [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
-    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
-    , [ X, X, O, O, O, O, O, X, X, X, X, X, X ]
-    , [ X, X, O, X, X, X, O, X, X, X, X, X, X ]
-    , [ X, X, O, X, X, X, O, X, X, X, X, X, X ]
-    , [ X, X, O, X, X, X, X, X, X, X, X, X, X ]
-    , [ X, X, O, O, O, O, O, O, O, O, O, X, X ]
-    , [ X, X, X, X, X, X, X, X, X, X, O, X, X ]
-    , [ X, X, X, X, X, X, O, X, X, X, O, X, X ]
-    , [ X, X, X, X, X, X, O, X, X, X, O, X, X ]
-    , [ X, X, X, X, X, X, O, O, O, O, O, X, X ]
-    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
-    , [ X, X, X, X, X, X, X, X, X, X, X, X, X ]
+    [ [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ O, O, O, O, O, O, O, O, O, O, O, O, O ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
     ]
 
 printGrid :: Show a => Grid a -> String
