@@ -197,7 +197,7 @@ stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (Zipper upper middle lower)
 settingsFromGrid :: (Eq a, Ord a, Show a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
   where
-    wfcTiles = nubOrd (filter onlyFullStencils (stencils3x3 grid))
+    wfcTiles = filter onlyFullStencils (stencils3x3 grid)
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
