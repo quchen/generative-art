@@ -14,7 +14,7 @@ module Data.Zipper (
 import Control.Applicative
 import Control.Comonad
 
-data Zipper a = Zipper ![a] a ![a] deriving (Eq, Ord, Show, Functor)
+data Zipper a = Zipper [a] a [a] deriving (Eq, Ord, Show, Functor)
 
 fromList :: [a] -> Zipper a
 fromList (x:xs) = Zipper [] x xs
