@@ -179,7 +179,7 @@ remainingEigenvalues grid =
             , let others = maybeToList (there grid) >>= extract
             , not (null others)
             , thisShifted <- maybeToList (back (stencilToGrid this))
-            , let compatibleOthers = [other | other <- others, thisShifted `weakEq` stencilToGrid other]
+            , let compatibleOthers = [other | other <- others, stencil3x3 thisShifted `weakEq` other]
             ]
     , isCompatible
     ]
@@ -197,5 +197,17 @@ remainingEigenvalues grid =
         ]
 
 -- Compares the overlapping parts of the two grids, i.e. comparing the points where both sides are defined.
-weakEq :: Eq a => Grid a -> Grid a -> Bool
-weakEq as bs = and (liftA2 (==) as bs)
+weakEq :: Eq a => Stencil3x3 a -> Stencil3x3 a -> Bool
+weakEq (Stencil3x3 a1 b1 c1 d1 e1 f1 g1 h1 i1) (Stencil3x3 a2 b2 c2 d2 e2 f2 g2 h2 i2)
+    =  a1 =~ a2
+    && b1 =~ b2
+    && c1 =~ c2
+    && d1 =~ d2
+    && e1 == e2
+    && f1 =~ f2
+    && g1 =~ g2
+    && h1 =~ h2
+    && i1 =~ i2
+  where
+    Just x =~ Just y = x == y
+    _      =~ _      = True
