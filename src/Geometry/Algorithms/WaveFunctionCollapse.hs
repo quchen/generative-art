@@ -179,7 +179,7 @@ remainingEigenvalues grid =
             , let others = maybeToList (there grid) >>= extract
             , not (null others)
             , thisShifted <- maybeToList (back (stencilToGrid this))
-            , let compatibleOthers = [other | other <- others, stencil3x3 thisShifted `weakEq` other]
+            , let compatibleOthers = filter (weakEq (stencil3x3 thisShifted)) others
             ]
     , isCompatible
     ]
