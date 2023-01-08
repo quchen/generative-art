@@ -15,7 +15,7 @@ module Geometry.Algorithms.WaveFunctionCollapse (
     , stencil3x3
 
     , module Data.Grid
-)where
+) where
 
 
 
@@ -24,7 +24,7 @@ import Control.Monad ((>=>))
 import Control.Monad.ST
 import Data.Function (on)
 import Data.List (sortOn, find, groupBy)
-import Data.Maybe (maybeToList, catMaybes)
+import Data.Maybe (maybeToList, catMaybes, listToMaybe)
 import System.Random.MWC as MWC
 
 import Data.Grid
@@ -112,16 +112,16 @@ instance Foldable Stencil3x3 where
     foldr plus zero Stencil3x3{..} = foldr plus zero (catMaybes [s11, s12, s13, s21, Just s22, s23, s31, s32, s33])
 
 stencil3x3 :: Grid a -> Stencil3x3 a
-stencil3x3 grid = toStencil $ fmap (fmap extract)
-    [ left =<< upGrid, upGrid, right =<< upGrid
-    , left grid, Just grid, right grid
-    , left =<< downGrid, downGrid, right =<< downGrid
-    ]
+stencil3x3 (Grid (Zipper upper middle lower)) = Stencil3x3 a b c d e f g h i
   where
-    upGrid = up grid
-    downGrid = down grid
-    toStencil [a, b, c, d, Just e, f, g, h, i] = Stencil3x3 a b c d e f g h i
-    toStencil _ = undefined
+    (a, b, c) = case upper of
+        [] -> (Nothing, Nothing, Nothing)
+        (Zipper as b cs : _) -> (listToMaybe as, Just b, listToMaybe cs)
+    (d, e, f) = case middle of
+        Zipper ds e fs -> (listToMaybe ds, e, listToMaybe fs)
+    (g, h, i) = case lower of
+        [] -> (Nothing, Nothing, Nothing)
+        (Zipper gs h is : _) -> (listToMaybe gs, Just h, listToMaybe is)
 
 stencils3x3 :: Grid a -> [Stencil3x3 a]
 stencils3x3 = foldr (:) [] . extend stencil3x3
