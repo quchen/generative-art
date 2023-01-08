@@ -23,7 +23,7 @@ import Control.Applicative
 import Control.Monad ((>=>))
 import Control.Monad.ST
 import Data.Function (on)
-import Data.List.Extended (sortOn, find, nubOrd, groupBy)
+import Data.List (sortOn, find, groupBy)
 import Data.Maybe (maybeToList, catMaybes)
 import System.Random.MWC as MWC
 
@@ -170,7 +170,7 @@ _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
 remainingEigenvalues :: (Eq a, Ord a, Show a) => Grid [Stencil3x3 a] -> [Stencil3x3 a]
-remainingEigenvalues grid = nubOrd
+remainingEigenvalues grid =
     [ this
     | this <- extract grid
     , let isCompatible = and
