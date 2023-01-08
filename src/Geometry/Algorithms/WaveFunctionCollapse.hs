@@ -37,12 +37,12 @@ data WfcSettings a = WfcSettings
     , wfcLocalProjection :: Grid [a] -> [a]
     }
 
-wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x (Grid [a])
+wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x [Grid [a]]
 wfc settings width height gen = go (initialGrid settings width height)
   where
-    go grid = wfcStep settings gen grid >>= \case
+    go grid = fmap (grid :) $ wfcStep settings gen grid >>= \case
         Just grid' -> go grid'
-        Nothing -> pure grid
+        Nothing -> pure []
 
 wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> ST x (Maybe (Grid [a]))
 wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case

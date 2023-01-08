@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Test.Geometry.Algorithms.WaveFunctionCollapse (tests) where
 
 import Data.Foldable
@@ -38,7 +39,7 @@ testDuplicate = testVisual "Duplicated grid" 240 240 "docs/grid_duplicate" $ \(w
     drawGrid (w, h) (duplicate exampleGrid)
 
 testPropagate :: TestTree
-testPropagate = testGroup "Propagation" $
+testPropagate = testGroup "Propagation"
     [ testVisual ("Generation " ++ show i) 720 720 ("docs/propagation_" ++ show i) $ \(w, h) ->
         drawGrid (w, h) grid
     | (i, grid) <- take 7 $ zip [0..] generations
@@ -51,11 +52,16 @@ testPropagate = testGroup "Propagation" $
         collapse gen initial
 
 testWaveFunctionCollapse :: TestTree
-testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 480 480 "docs/wave_function_collapse" $ \(w, h) ->
-    drawGrid (w, h) $ runST $ do
+testWaveFunctionCollapse = testGroup "WaveFunctionCollapse"
+    [ testVisual ("WaveFunctionCollapse step " ++ show i) 480 480 ("docs/wave_function_collapse_" ++ show i) $ \(w, h) ->
+        drawGrid (w, h) (averageColor . fmap extractStencil <$> step)
+    | (i, step) <- zip [1..] steps
+    ]
+  where
+    steps = runST $ do
         gen <- initialize (V.fromList [5])
-        result <- wfc (settingsFromGrid example) 20 20 gen
-        pure ((\[a] -> extractStencil a) <$> result)
+        wfc (settingsFromGrid example) 20 20 gen
+    averageColor = average . fmap toColor
 
 drawGrid :: DrawToSize a => (Double, Double) -> Grid a -> Cairo.Render ()
 drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
@@ -87,15 +93,16 @@ drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
 class DrawToSize a where
     drawToSize :: (Double, Double) -> a -> Render ()
 
-instance DrawToSize XO where
-    drawToSize (w, h) xo = cairoScope $ do
+instance DrawToSize (Color Double) where
+    drawToSize (w, h) color = cairoScope $ do
         sketch (Polygon [Vec2 0 0, Vec2 w 0, Vec2 w h, Vec2 0 h])
         setColor black
         strokePreserve
-        setColor $ case xo of
-            X -> white
-            O -> rgb 1 0 0
+        setColor color
         fill
+
+instance DrawToSize XO where
+    drawToSize (w, h) = drawToSize (w, h) . toColor
 
 instance DrawToSize a => DrawToSize (Grid a) where
     drawToSize = drawGrid
@@ -116,6 +123,11 @@ instance DrawToSize a => DrawToSize [a] where
             pure ()
 
 data XO = X | O deriving (Eq, Ord, Show)
+
+toColor :: XO -> Color Double
+toColor = \case
+    X -> rgb 1 1 1
+    O -> rgb 1 0 0
 
 example :: Grid XO
 example = fromList
