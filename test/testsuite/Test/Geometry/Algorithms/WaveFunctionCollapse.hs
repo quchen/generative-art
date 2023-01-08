@@ -11,6 +11,8 @@ import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 import Test.TastyAll
 import System.Random.MWC (create, initialize)
 import Control.Monad.ST (runST)
+import Data.Zipper (Zipper(..))
+import qualified Data.Zipper as Z
 
 tests :: TestTree
 tests = testGroup "WaveFunctionCollapse algorithm"
@@ -21,7 +23,7 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     ]
 
 exampleGrid :: Grid XO
-exampleGrid = fromListG
+exampleGrid = fromList
     [ [ X, O, X ]
     , [ X, X, O ]
     , [ X, O, O ]
@@ -55,21 +57,15 @@ testWaveFunctionCollapse = testVisual "WaveFunctionCollapse" 480 480 "docs/wave_
         result <- wfc (settingsFromGrid example) 20 20 gen
         pure ((\[a] -> extractStencil a) <$> result)
 
-zipperLength :: Zipper a -> Int
-zipperLength = length . Wfc.toList
-
-extents :: Grid a -> (Int, Int)
-extents (Grid z) = (zipperLength (extractZ z), zipperLength z)
-
 drawGrid :: DrawToSize a => (Double, Double) -> Grid a -> Cairo.Render ()
 drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
     Cairo.translate margin margin
-    for_ (zip (Wfc.toList zz) [0..]) $ \(row, y) ->
-        for_ (zip (Wfc.toList row) [0..]) $ \(cell, x) -> do
+    for_ (zip (Z.toList zz) [0..]) $ \(row, y) ->
+        for_ (zip (Z.toList row) [0..]) $ \(cell, x) -> do
             drawCell x y cell
     highlightCurrent
   where
-    (gridW, gridH) = extents grid
+    (gridW, gridH) = size grid
     margin = (w + h) * 0.05
     cellW = (w-2*margin) / fromIntegral gridW
     cellH = (h-2*margin) / fromIntegral gridH
@@ -79,7 +75,7 @@ drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
     highlightCurrent = do
         let currentY = case zz of
                 Zipper as _ _ -> length as
-            currentX = case extractZ zz of
+            currentX = case extract zz of
                 Zipper as _ _ -> length as
         Cairo.translate (fromIntegral currentX * cellW) (fromIntegral currentY * cellH)
         Cairo.setLineWidth 2
@@ -118,3 +114,19 @@ instance DrawToSize a => DrawToSize [a] where
             Cairo.translate (fromIntegral x * cellW) (fromIntegral y * cellH)
             drawToSize (cellW, cellH) item
             pure ()
+
+data XO = X | O deriving (Eq, Ord, Show)
+
+example :: Grid XO
+example = fromList
+    [ [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
+    , [ O, O, O, O, O, O, O, O, O, O, O, O, O ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
+    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
+    ]
+
+extractStencil :: Stencil3x3 a -> a 
+extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e

@@ -20,6 +20,7 @@ dependencies:
     - alfred-margaret
     - cairo
     - colour
+    - comonad
     - containers
     - data-default-class
     - data-r-tree

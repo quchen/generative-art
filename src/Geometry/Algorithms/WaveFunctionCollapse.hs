@@ -1,93 +1,36 @@
 {-# LANGUAGE DeriveFunctor #-}
-module Geometry.Algorithms.WaveFunctionCollapse where
+module Geometry.Algorithms.WaveFunctionCollapse (
+      WfcSettings(..)
+    , settingsFromGrid
 
-import System.Random.MWC as MWC
+    , wfc
+    , wfcStep
+    , initialGrid
+    , collapse
+    , propagate
+    , eigenstates
+
+    , Stencil3x3(..)
+    , stencilToGrid
+    , stencil3x3
+
+    , module Data.Grid
+)where
+
+
+
+import Control.Applicative
 import Control.Monad ((>=>))
 import Control.Monad.ST
-import Control.Applicative
+import Data.Function (on)
 import Data.List.Extended (sortOn, find, nubOrd, groupBy)
 import Data.Maybe (maybeToList, catMaybes)
-import Data.Foldable (traverse_)
-import qualified Data.Vector as V
-import Data.Function (on)
+import System.Random.MWC as MWC
 
-data Zipper a = Zipper ![a] !a ![a] deriving (Eq, Ord, Show, Functor)
+import Data.Grid
+import Data.Zipper (Zipper(..))
 
-fromList :: [a] -> Zipper a
-fromList (x:xs) = Zipper [] x xs
-fromList [] = error "Cannot construct Zipper from empty list"
 
-toList :: Zipper a -> [a]
-toList (Zipper xs y zs) = reverse xs ++ [y] ++ zs
-
-prev, next :: Zipper a -> Maybe (Zipper a)
-prev (Zipper xs y zs) = case xs of
-    [] -> Nothing
-    x:xs' -> Just (Zipper xs' x (y:zs))
-next (Zipper xs y zs) = case zs of
-    [] -> Nothing
-    z:zs' -> Just (Zipper (y:xs) z zs')
-
-extractZ :: Zipper a -> a
-extractZ (Zipper _ y _) = y
-
-duplicateZ :: Zipper a -> Zipper (Zipper a)
-duplicateZ z = Zipper (iterate1 prev z) z (iterate1 next z)
-
-iterate1 :: (a -> Maybe a) -> a -> [a]
-iterate1 f = go
-  where
-    go x = case f x of
-        Nothing -> []
-        Just fx -> fx : go fx
-
-instance Applicative Zipper where
-    pure a = Zipper [] a []
-    liftA2 f (Zipper as b cs) (Zipper xs y zs) = Zipper (zipWith f as xs) (f b y) (zipWith f cs zs)
-
-instance Foldable Zipper where
-    foldr plus zero = foldr plus zero . toList
-
-instance Traversable Zipper where
-    sequenceA (Zipper xs y zs) = liftA3 Zipper (sequenceA xs) y (sequenceA zs)
-
-newtype Grid a = Grid (Zipper (Zipper a)) deriving (Eq, Ord, Show, Functor)
-
-fromListG :: [[a]] -> Grid a
-fromListG xss = Grid (fromList (fmap fromList xss))
-
-left, right, up, down :: Grid a -> Maybe (Grid a)
-left  (Grid zipper) = Grid <$> traverse prev zipper
-right (Grid zipper) = Grid <$> traverse next zipper
-up    (Grid zipper) = Grid <$> prev zipper
-down  (Grid zipper) = Grid <$> next zipper
-
-instance Foldable Grid where
-    foldr plus zero (Grid zz) = foldr plus zero (toList zz >>= toList)
-
-instance Applicative Grid where
-    pure a = Grid (pure (pure a))
-    liftA2 f (Grid xs) (Grid ys) = Grid (liftA2 (liftA2 f) xs ys)
-
-extract :: Grid a -> a
-extract (Grid zipper) = extractZ (extractZ zipper)
-
-extend :: (Grid a -> b) -> Grid a -> Grid b
-extend f = fmap f . duplicate
-
-duplicate :: Grid a -> Grid (Grid a)
-duplicate = Grid . fmap duplicateH . duplicateV
-  where
-    duplicateH :: Grid a -> Zipper (Grid a)
-    duplicateH g = Zipper (iterate1 left g) g (iterate1 right g)
-    duplicateV :: Grid a -> Zipper (Grid a)
-    duplicateV g = Zipper (iterate1 up g) g (iterate1 down g)
-
-mapCurrent :: (a -> a) -> Grid a -> Grid a
-mapCurrent f (Grid (Zipper xs (Zipper as b cs) zs)) = Grid (Zipper xs (Zipper as (f b) cs) zs)
-
-setCurrent :: a -> Grid a -> Grid a
-setCurrent x = mapCurrent (const x)
 
 data WfcSettings a = WfcSettings
     { wfcTiles :: [a]
@@ -107,7 +50,7 @@ wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
     Nothing -> pure Nothing
 
 initialGrid :: WfcSettings a -> Int -> Int -> Grid [a]
-initialGrid WfcSettings{..} width height = Grid $ fromList $ replicate height (fromList $ replicate width wfcTiles)
+initialGrid WfcSettings{..} width height = fromList $ replicate height (replicate width wfcTiles)
 
 findMin :: Grid [a] -> Maybe (Grid [a])
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
@@ -256,66 +199,3 @@ remainingEigenvalues grid = nubOrd
 -- Compares the overlapping parts of the two grids, i.e. comparing the points where both sides are defined.
 weakEq :: Eq a => Grid a -> Grid a -> Bool
 weakEq as bs = and (liftA2 (==) as bs)
-
-
-
-
-data XO = X | O deriving (Eq, Ord, Show)
-
-example :: Grid XO
-example = fromListG
-    [ [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
-    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
-    , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
-    , [ O, O, O, O, O, O, O, O, O, O, O, O, O ]
-    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
-    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
-    , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
-    ]
-
-printGrid :: Show a => Grid a -> String
-printGrid (Grid xs) = unlines (toList (fmap (concatMap show . toList) xs))
-
-debugGrid :: Show a => Grid [Stencil3x3 a] -> IO ()
-debugGrid (Grid xs) = putStrLn $ unlines $ toList $ fmap (concat . toList . fmap pp) xs
-  where
-    pp [] = "0"
-    pp [a] = show (extractStencil a)
-    pp as = show (length as)
-
-debugStencil :: Show a => Stencil3x3 a -> String
-debugStencil (Stencil3x3 a b c d e f g h i) = unlines
-    [ concatMap (maybe "_" show) [a, b, c]
-    , concatMap (maybe "_" show) [d, Just e, f]
-    , concatMap (maybe "_" show) [g, h, i]
-    ]
-
-test :: IO ()
-test = do
-    let height = 2
-        width = 4
-        settings = settingsFromGrid example
-        initial = initialGrid settings width height
-    debugGrid initial
-    traverse_ debugGrid $ runST $ do
-        gen <- initialize (V.fromList [1])
-        go' 1 settings gen initial
-  where
-    go :: (Show a, Eq a) => WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
-    go settings gen grid = pickMin gen grid >>= \case 
-        Just grid' -> do
-            grid'' <- collapse gen grid'
-            result' <- go' 1 settings gen grid''
-            pure (grid' : grid'' : result')
-        Nothing -> pure []
-    go' :: (Show a, Eq a) => Int -> WfcSettings a -> GenST x -> Grid [a] -> ST x [Grid [a]]
-    go' n settings gen grid =
-        let grid' = extend (wfcLocalProjection settings) grid
-        in if grid == grid'
-            then go settings gen grid
-            else do
-                result <- go' (n-1) settings gen grid'
-                pure (grid' : result)
-
-extractStencil :: Stencil3x3 a -> a 
-extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e
