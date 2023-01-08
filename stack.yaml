@@ -3,6 +3,7 @@ packages:
     - .
 
     - app/voronoi_interactive
+    - app/wfc_profiling
 
     - penplotting/ApollonianGasket
     - penplotting/Bezier

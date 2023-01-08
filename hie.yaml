@@ -9,6 +9,8 @@ cradle:
 
     - path: app/voronoi_interactive
       component: voronoi-interactive
+    - path: app/wfc_profiling
+      component: wfc-profiling
 
     - path: ./penplotting/ApollonianGasket
       component: penplotting-gasket
