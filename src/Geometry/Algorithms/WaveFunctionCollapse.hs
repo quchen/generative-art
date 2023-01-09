@@ -129,13 +129,13 @@ stencils3x3 = foldr (:) [] . extend stencil3x3
 stencilToGrid :: Stencil3x3 a -> Grid a
 stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (Zipper upper middle lower)
   where
-    upper = case liftA3 (,,) a b c of
-        Just (a', b', c') -> [Zipper [a'] b' [c']]
-        Nothing           -> []
+    upper = case b of
+        Just b' -> [Zipper (maybeToList a) b' (maybeToList c)]
+        Nothing -> []
     middle = Zipper (maybeToList d) e (maybeToList f)
-    lower = case liftA3 (,,) g h i of
-        Just (g', h', i') -> [Zipper [g'] h' [i']]
-        Nothing           -> []
+    lower = case h of
+        Just h' -> [Zipper (maybeToList g) h' (maybeToList i)]
+        Nothing -> []
 
 settingsFromGrid :: (Eq a, Ord a, Show a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
