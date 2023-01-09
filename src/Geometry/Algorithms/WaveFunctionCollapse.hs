@@ -6,9 +6,9 @@ module Geometry.Algorithms.WaveFunctionCollapse (
     , wfc
     , wfcStep
     , initialGrid
+    , pickMin
     , collapse
     , propagate
-    , eigenstates
 
     , Stencil3x3(..)
     , stencilToGrid
@@ -19,18 +19,17 @@ module Geometry.Algorithms.WaveFunctionCollapse (
 
 
 
-import Control.Applicative
 import Control.Monad ((>=>))
 import Control.Monad.ST
 import Data.Function (on)
-import Data.List (sortOn, find, groupBy)
-import Data.Maybe (maybeToList, catMaybes, listToMaybe)
+import Data.List (sortOn, groupBy)
+import Data.Maybe (maybeToList, catMaybes)
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as M
+import qualified Data.Vector as V
 import System.Random.MWC as MWC
 
 import Data.Grid
-import Data.Zipper (Zipper(..))
-import Data.MultiSet (MultiSet)
-import qualified Data.MultiSet as M
 
 
 
@@ -54,11 +53,6 @@ wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
 initialGrid :: WfcSettings a -> Int -> Int -> Grid (MultiSet a)
 initialGrid WfcSettings{..} width height = fromList $ replicate height (replicate width wfcTiles)
 
-findMin :: Grid (MultiSet a) -> Maybe (Grid (MultiSet a))
-findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
-  where
-    isUnobserved grid = M.distinctSize (extract grid) > 1
-
 pickMin :: MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
 pickMin gen grid = case shortestGrids of
     Nothing -> pure Nothing
@@ -79,10 +73,10 @@ pick gen xs = do
     pure (xs !! i)
 
 eigenstates :: (Eq a, Ord a) => Grid (MultiSet a) -> [Grid (MultiSet a)]
-eigenstates grid = case M.toList (extract grid) of
+eigenstates grid@(Grid l _ _ u _) = case M.toList (extract grid) of
     [] -> []
     [_] -> [grid]
-    xs -> fmap (\x -> setCurrent (M.singleton x) grid) xs
+    xs -> fmap (\x -> setAt (l, u) (M.singleton x) grid) xs
 
 propagate :: Eq a => (Grid (MultiSet a) -> MultiSet a) -> Grid (MultiSet a) -> Grid (MultiSet a)
 propagate projection = go
@@ -103,50 +97,64 @@ data Stencil3x3 a = Stencil3x3
     , s33 :: !(Maybe a)
     } deriving (Eq, Ord, Show, Functor)
 
-instance Applicative Stencil3x3 where
-    pure a = Stencil3x3 (Just a) (Just a) (Just a) (Just a) a (Just a) (Just a) (Just a) (Just a)
-    liftA2 f (Stencil3x3 a1 b1 c1 d1 e1 f1 g1 h1 i1) (Stencil3x3 a2 b2 c2 d2 e2 f2 g2 h2 i2) =
-        Stencil3x3 (liftA2 f a1 a2) (liftA2 f b1 b2) (liftA2 f c1 c2)
-                   (liftA2 f d1 d2) (       f e1 e2) (liftA2 f f1 f2)
-                   (liftA2 f g1 g2) (liftA2 f h1 h2) (liftA2 f i1 i2)
-
 instance Foldable Stencil3x3 where
     foldr plus zero Stencil3x3{..} = foldr plus zero (catMaybes [s11, s12, s13, s21, Just s22, s23, s31, s32, s33])
 
 stencil3x3 :: Grid a -> Stencil3x3 a
-stencil3x3 (Grid (Zipper upper middle lower)) = Stencil3x3 a b c d e f g h i
+stencil3x3 (Grid l' d' r' u' xs) = Stencil3x3 a b c d e f g h i
   where
-    (a, b, c) = case upper of
-        [] -> (Nothing, Nothing, Nothing)
-        (Zipper as b cs : _) -> (listToMaybe as, Just b, listToMaybe cs)
-    (d, e, f) = case middle of
-        Zipper ds e fs -> (listToMaybe ds, e, listToMaybe fs)
-    (g, h, i) = case lower of
-        [] -> (Nothing, Nothing, Nothing)
-        (Zipper gs h is : _) -> (listToMaybe gs, Just h, listToMaybe is)
+    a | l' > 0 && u' > 0 = el (l'-1) (u'-1)
+      | otherwise = Nothing
+    b | u' > 0 = el l' (u'-1)
+      | otherwise = Nothing
+    c | r' > 0 && u' > 0 = el (l'+1) (u'-1)
+      | otherwise = Nothing
+    d | l' > 0 = el (l'-1) u'
+      | otherwise = Nothing
+    Just e = el l' u'
+    f | r' > 0 = el (l'+1) u'
+      | otherwise = Nothing
+    g | l' > 0 && d' > 0 = el (l'-1) (u'+1)
+      | otherwise = Nothing
+    h | d' > 0 = el l' (u'+1)
+      | otherwise = Nothing
+    i | r' > 0 && d' > 0 = el (l'+1) (u'+1)
+      | otherwise = Nothing
+    el x y = Just (xs V.! y V.! x)
+    
 
 stencils3x3 :: Grid a -> [Stencil3x3 a]
 stencils3x3 = foldr (:) [] . extend stencil3x3
 
 stencilToGrid :: Stencil3x3 a -> Grid a
-stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (Zipper upper middle lower)
+stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid l' d' r' u' xs
   where
-    upper = case b of
-        Just b' -> [Zipper (maybeToList a) b' (maybeToList c)]
-        Nothing -> []
-    middle = Zipper (maybeToList d) e (maybeToList f)
-    lower = case h of
-        Just h' -> [Zipper (maybeToList g) h' (maybeToList i)]
-        Nothing -> []
+    l'  | Just _ <- d = 1
+        | otherwise = 0
+    d'  | Just _ <- h = 1
+        | otherwise = 0
+    r'  | Just _ <- f = 1
+        | otherwise = 0
+    u'  | Just _ <- b = 1
+        | otherwise = 0
+    xs = V.catMaybes $ V.fromList
+        [ case b of
+              Just _ -> Just $ V.catMaybes $ V.fromList [a, b, c]
+              Nothing -> Nothing,
+          Just $ V.catMaybes $ V.fromList [d, Just e, f],
+          case h of
+              Just _ -> Just $ V.catMaybes $ V.fromList [g, h, i]
+              Nothing -> Nothing
+        ]
 
-settingsFromGrid :: (Eq a, Ord a, Show a) => Grid a -> WfcSettings (Stencil3x3 a)
+settingsFromGrid :: (Eq a, Ord a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
   where
     wfcTiles = M.fromList (filter onlyFullStencils (stencils3x3 grid))
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
-    wfcLocalProjection :: (Eq a, Ord a, Show a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
+    wfcLocalProjection :: (Eq a, Ord a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
     wfcLocalProjection = remainingEigenvalues
 
 {-
@@ -171,7 +179,7 @@ _ d e   d e f   e f _
 _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
-remainingEigenvalues :: (Eq a, Ord a, Show a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
+remainingEigenvalues :: (Eq a, Ord a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
 remainingEigenvalues grid = M.fromAscOccurList
     [ (this, n)
     | (this, n) <- M.toAscOccurList (extract grid)

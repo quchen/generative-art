@@ -9,11 +9,12 @@ import Draw
 import Geometry hiding (Grid)
 import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 
-import System.Random.MWC (create, initialize)
+import System.Random.MWC (initialize)
 import Control.Monad.ST (runST)
-import Data.Zipper (Zipper(..))
-import qualified Data.Zipper as Z
 import qualified Data.MultiSet as M
+
+gridSize :: Num a => a
+gridSize = 20
 
 main :: IO ()
 main = render "out/wfc.png" 480 480 $
@@ -22,14 +23,14 @@ main = render "out/wfc.png" 480 480 $
   where
     steps = runST $ do
         gen <- initialize (V.fromList [5])
-        wfc (settingsFromGrid example) 20 20 gen
+        wfc (settingsFromGrid example) gridSize gridSize gen
     averageColor = average . fmap toColor
 
 drawGrid :: DrawToSize a => (Double, Double) -> Grid a -> Cairo.Render ()
-drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
+drawGrid (w, h) grid@(Grid l d _ _ zz) = cairoScope $ do
     Cairo.translate margin margin
-    for_ (zip (Z.toList zz) [0..]) $ \(row, y) ->
-        for_ (zip (Z.toList row) [0..]) $ \(cell, x) -> do
+    for_ (zip (V.toList zz) [0..]) $ \(row, y) ->
+        for_ (zip (V.toList row) [0..]) $ \(cell, x) -> do
             drawCell x y cell
     highlightCurrent
   where
@@ -41,10 +42,8 @@ drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
         Cairo.translate (x*cellW) (y*cellH)
         drawToSize (cellW, cellH) content
     highlightCurrent = do
-        let currentY = case zz of
-                Zipper as _ _ -> length as
-            currentX = case extract zz of
-                Zipper as _ _ -> length as
+        let currentY = d
+            currentX = l
         Cairo.translate (fromIntegral currentX * cellW) (fromIntegral currentY * cellH)
         Cairo.setLineWidth 2
         setColor $ rgb 0 0 1

@@ -1,20 +1,22 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Test.Geometry.Algorithms.WaveFunctionCollapse (tests) where
 
+
+
+import Control.Monad.ST (runST)
 import Data.Foldable
+import qualified Data.MultiSet as M
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
+import System.Random.MWC (create, initialize)
 
 import Draw
 import Geometry hiding (Grid)
 import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 
 import Test.TastyAll
-import System.Random.MWC (create, initialize)
-import Control.Monad.ST (runST)
-import Data.Zipper (Zipper(..))
-import qualified Data.Zipper as Z
-import qualified Data.MultiSet as M
+
+
 
 tests :: TestTree
 tests = testGroup "WaveFunctionCollapse algorithm"
@@ -23,6 +25,7 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     , testStencil
     , testStencilToGrid
     , testPropagate
+    , testCollapse
     , localOption (Timeout (20*10^6) "20s") testWaveFunctionCollapse
     ]
 
@@ -48,6 +51,15 @@ testStencil = testVisual "Create stencils from grid" 240 240 "docs/grid_stencil"
 testStencilToGrid :: TestTree
 testStencilToGrid = testVisual "Create stencils from grid" 240 240 "docs/grid_stencil_grid" $ \(w, h) ->
     drawGrid (w, h) (stencilToGrid <$> extend stencil3x3 exampleGrid)
+
+testCollapse :: TestTree
+testCollapse = testVisual "Collapse grid at position" 240 240 "docs/grid_collapse" $ \(w, h) ->
+    drawGrid (w, h) $ runST $ do
+        gen <- create
+        let settings = settingsFromGrid example
+            initial = initialGrid settings 6 6
+        Just grid <- pickMin gen initial
+        propagate (wfcLocalProjection settings) <$> collapse gen grid
 
 testPropagate :: TestTree
 testPropagate = testGroup "Propagation"
@@ -75,10 +87,10 @@ testWaveFunctionCollapse = testGroup "WaveFunctionCollapse"
     averageColor = average . fmap toColor
 
 drawGrid :: DrawToSize a => (Double, Double) -> Grid a -> Cairo.Render ()
-drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
+drawGrid (w, h) grid@(Grid l _ _ u zz) = cairoScope $ do
     Cairo.translate margin margin
-    for_ (zip (Z.toList zz) [0..]) $ \(row, y) ->
-        for_ (zip (Z.toList row) [0..]) $ \(cell, x) -> do
+    for_ (zip (V.toList zz) [0..]) $ \(row, y) ->
+        for_ (zip (V.toList row) [0..]) $ \(cell, x) -> do
             drawCell x y cell
     highlightCurrent
   where
@@ -90,11 +102,7 @@ drawGrid (w, h) grid@(Grid zz) = cairoScope $ do
         Cairo.translate (x*cellW) (y*cellH)
         drawToSize (cellW, cellH) content
     highlightCurrent = do
-        let currentY = case zz of
-                Zipper as _ _ -> length as
-            currentX = case extract zz of
-                Zipper as _ _ -> length as
-        Cairo.translate (fromIntegral currentX * cellW) (fromIntegral currentY * cellH)
+        Cairo.translate (fromIntegral l * cellW) (fromIntegral u * cellH)
         Cairo.setLineWidth 2
         setColor $ rgb 0 0 1
         sketch (Polygon [Vec2 0 0, Vec2 cellW 0, Vec2 cellW cellH, Vec2 0 cellH])
