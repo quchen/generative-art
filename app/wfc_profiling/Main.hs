@@ -13,11 +13,12 @@ import System.Random.MWC (create, initialize)
 import Control.Monad.ST (runST)
 import Data.Zipper (Zipper(..))
 import qualified Data.Zipper as Z
+import qualified Data.MultiSet as M
 
 main :: IO ()
 main = render "out/wfc.png" 480 480 $
         drawGrid (480, 480) $
-            fmap (\[a] -> extractStencil a) (last steps)
+            fmap ((\[a] -> extractStencil a) . M.distinctElems) (last steps)
   where
     steps = runST $ do
         gen <- initialize (V.fromList [5])

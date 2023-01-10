@@ -14,6 +14,7 @@ import System.Random.MWC (create, initialize)
 import Control.Monad.ST (runST)
 import Data.Zipper (Zipper(..))
 import qualified Data.Zipper as Z
+import qualified Data.MultiSet as M
 
 tests :: TestTree
 tests = testGroup "WaveFunctionCollapse algorithm"
@@ -64,7 +65,7 @@ testPropagate = testGroup "Propagation"
 testWaveFunctionCollapse :: TestTree
 testWaveFunctionCollapse = testGroup "WaveFunctionCollapse"
     [ testVisual ("WaveFunctionCollapse step " ++ show i) 480 480 ("docs/wave_function_collapse_" ++ show i) $ \(w, h) ->
-        drawGrid (w, h) (averageColor . fmap extractStencil <$> step)
+        drawGrid (w, h) (averageColor . fmap extractStencil . M.toList <$> step)
     | (i, step) <- zip [1..] steps
     ]
   where
@@ -131,6 +132,9 @@ instance DrawToSize a => DrawToSize [a] where
             Cairo.translate (fromIntegral x * cellW) (fromIntegral y * cellH)
             drawToSize (cellW, cellH) item
             pure ()
+
+instance DrawToSize a => DrawToSize (M.MultiSet a) where
+    drawToSize (w, h) = drawToSize (w, h) . M.distinctElems
 
 data XO = X | O deriving (Eq, Ord, Show)
 

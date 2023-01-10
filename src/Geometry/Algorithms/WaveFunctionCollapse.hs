@@ -29,45 +29,47 @@ import System.Random.MWC as MWC
 
 import Data.Grid
 import Data.Zipper (Zipper(..))
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as M
 
 
 
 data WfcSettings a = WfcSettings
-    { wfcTiles :: [a]
-    , wfcLocalProjection :: Grid [a] -> [a]
+    { wfcTiles :: MultiSet a
+    , wfcLocalProjection :: Grid (MultiSet a) -> MultiSet a
     }
 
-wfc :: Eq a => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x [Grid [a]]
+wfc :: (Eq a, Ord a) => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x [Grid (MultiSet a)]
 wfc settings width height gen = go (initialGrid settings width height)
   where
     go grid = fmap (grid :) $ wfcStep settings gen grid >>= \case
         Just grid' -> go grid'
         Nothing -> pure []
 
-wfcStep :: Eq a => WfcSettings a -> MWC.GenST x -> Grid [a] -> ST x (Maybe (Grid [a]))
+wfcStep :: (Eq a, Ord a) => WfcSettings a -> MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
 wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
     Just grid' -> Just . propagate wfcLocalProjection <$> collapse gen grid'
     Nothing -> pure Nothing
 
-initialGrid :: WfcSettings a -> Int -> Int -> Grid [a]
+initialGrid :: WfcSettings a -> Int -> Int -> Grid (MultiSet a)
 initialGrid WfcSettings{..} width height = fromList $ replicate height (replicate width wfcTiles)
 
-findMin :: Grid [a] -> Maybe (Grid [a])
+findMin :: Grid (MultiSet a) -> Maybe (Grid (MultiSet a))
 findMin = find isUnobserved . sortOn (length . extract) . foldr (:) [] . duplicate
   where
-    isUnobserved grid = length (extract grid) > 1
+    isUnobserved grid = M.distinctSize (extract grid) > 1
 
-pickMin :: MWC.GenST x -> Grid [a] -> ST x (Maybe (Grid [a]))
+pickMin :: MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
 pickMin gen grid = case shortestGrids of
     Nothing -> pure Nothing
     Just xs -> Just <$> pick gen xs
   where
-    lengthIndexed = fmap (\g -> (length (extract g), g)) (foldr (:) [] (duplicate grid))
+    lengthIndexed = fmap (\g -> (M.distinctSize (extract g), g)) (foldr (:) [] (duplicate grid))
     shortestGrids = case groupBy ((==) `on` fst) $ sortOn fst $ filter ((> 1) . fst) $ lengthIndexed of
         [] -> Nothing
         (lengthIndexedShortestGrids : _) -> Just (snd <$> lengthIndexedShortestGrids)
 
-collapse :: Eq a => MWC.GenST x -> Grid [a] -> ST x (Grid [a])
+collapse :: (Eq a, Ord a) => MWC.GenST x -> Grid (MultiSet a) -> ST x (Grid (MultiSet a))
 collapse gen = pick gen . eigenstates
 
 pick :: GenST x -> [a] -> ST x a
@@ -76,13 +78,13 @@ pick gen xs = do
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
 
-eigenstates :: Eq a => Grid [a] -> [Grid [a]]
-eigenstates grid = case extract grid of
+eigenstates :: (Eq a, Ord a) => Grid (MultiSet a) -> [Grid (MultiSet a)]
+eigenstates grid = case M.toList (extract grid) of
     [] -> []
     [_] -> [grid]
-    xs -> fmap (\x -> setCurrent [x] grid) xs
+    xs -> fmap (\x -> setCurrent (M.singleton x) grid) xs
 
-propagate :: Eq a => (Grid [a] -> [a]) -> Grid [a] -> Grid [a]
+propagate :: Eq a => (Grid (MultiSet a) -> MultiSet a) -> Grid (MultiSet a) -> Grid (MultiSet a)
 propagate projection = go
   where
     go grid =
@@ -140,11 +142,11 @@ stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (Zipper upper middle lower)
 settingsFromGrid :: (Eq a, Ord a, Show a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
   where
-    wfcTiles = filter onlyFullStencils (stencils3x3 grid)
+    wfcTiles = M.fromList (filter onlyFullStencils (stencils3x3 grid))
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
-    wfcLocalProjection :: (Eq a, Ord a, Show a) => Grid [Stencil3x3 a] -> [Stencil3x3 a]
+    wfcLocalProjection :: (Eq a, Ord a, Show a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
     wfcLocalProjection = remainingEigenvalues
 
 {-
@@ -169,14 +171,14 @@ _ d e   d e f   e f _
 _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
-remainingEigenvalues :: (Eq a, Ord a, Show a) => Grid [Stencil3x3 a] -> [Stencil3x3 a]
-remainingEigenvalues grid =
-    [ this
-    | this <- extract grid
+remainingEigenvalues :: (Eq a, Ord a, Show a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
+remainingEigenvalues grid = M.fromAscOccurList
+    [ (this, n)
+    | (this, n) <- M.toAscOccurList (extract grid)
     , let isCompatible = and
             [ not (null compatibleOthers)
             | (there, back) <- zip neighbouringDirections neighbouringDirections
-            , let others = maybeToList (there grid) >>= extract
+            , let others = maybeToList (there grid) >>= M.distinctElems . extract
             , not (null others)
             , thisShifted <- maybeToList (back (stencilToGrid this))
             , let compatibleOthers = filter (weakEq (stencil3x3 thisShifted)) others

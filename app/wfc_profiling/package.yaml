@@ -15,6 +15,7 @@ dependencies:
     - base
     - generative-art
     - cairo
+    - multiset
     - mwc-random
     - vector
 
