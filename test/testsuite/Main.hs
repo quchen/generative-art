@@ -9,6 +9,7 @@ import Control.Exception
 import System.FilePath
 import System.FilePath.Glob
 
+import qualified Test.Data.Grid
 import qualified Test.Data.Tree.Extended
 import qualified Test.Draw
 import qualified Test.Draw.Color
@@ -59,7 +60,8 @@ test pattern = case parseTestPattern pattern of
 
 tests :: TestTree
 tests = testGroup "Test suite"
-    [ Test.Data.Tree.Extended.tests
+    [ Test.Data.Grid.tests
+    , Test.Data.Tree.Extended.tests
     , Test.Draw.Color.tests
     , Test.Draw.Plotting.tests
     , Test.Draw.tests
