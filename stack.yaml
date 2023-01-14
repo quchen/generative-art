@@ -22,6 +22,7 @@ packages:
     - penplotting/Voronoi
 
     - showcases/circuits
+    - showcases/fabric
     - showcases/haskell_logo_billard
     - showcases/haskell_logo_shattered
     - showcases/haskell_logo_voronoi

@@ -49,6 +49,8 @@ cradle:
 
     - path: ./showcases/circuits
       component: circuits
+    - path: ./showcases/fabric
+      component: fabric
     - path: ./showcases/haskell_logo_billard
       component: haskell-logo-billard
     - path: ./showcases/haskell_logo_shattered
