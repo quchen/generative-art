@@ -28,6 +28,7 @@
           gtkd
           pkgconfig
           zlib
+          zlib.dev
         ];
 
         # Wrap Stack to work with our Nix integration. We don't want to modify
@@ -49,7 +50,8 @@
                 --extra-lib-dirs=$out/lib \
                 --extra-include-dirs=$out/include \
               " \
-              --set PKG_CONFIG_PATH $out/lib/pkgconfig
+              --set PKG_CONFIG_PATH $out/lib/pkgconfig \
+              --set LD_LIBRARY_PATH ${pkgs.lib.makeLibraryPath pkgconfigDeps}
           '';
         };
       in {
