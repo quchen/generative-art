@@ -69,3 +69,5 @@ cradle:
       component: vector-fields
     - path: ./showcases/voronoi_3d
       component: voronoi-3d
+    - path: ./showcases/warped_tiles
+      component: warped-tiles
