@@ -42,7 +42,7 @@ main = render file picWidth picHeight $ do
     C.setLineWidth 10
     let potentialLines = 
             [ Polyline isoline
-            | z <- [-1, -0.9 .. 2]
+            | z <- [-2, -1.75 .. 4]
             , isoline <- isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential z
             ]
         fieldLines =
@@ -73,7 +73,7 @@ charges :: [(Vec2, Double)]
 charges = [ (Vec2 500 300, 1000), (Vec2 2000 500, -1000), (Vec2 1500 1000, 1000) ]
 
 potential :: Vec2 -> Double
-potential p = sum [ q / (picWidth / 5 + norm (p -. p')) | (p', q) <- charges ]
+potential p = sum [ q / (picWidth / 10 + norm (p -. p')) | (p', q) <- charges ]
 
 vectorField :: Vec2 -> Vec2
 vectorField = grad potential
