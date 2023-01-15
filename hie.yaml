@@ -157,3 +157,5 @@ cradle:
 
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
+    - path: ./showcases/warped_tiles
+      component: warped-tiles
