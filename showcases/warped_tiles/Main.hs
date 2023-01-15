@@ -32,12 +32,12 @@ main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 10
-    for_ [-0.05, -0.045 .. 0.1] $ \z -> do
-        for_ (isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (64, 36)} potential z) $ \isoline -> do
+    for_ [-1, -0.9 .. 2] $ \z -> do
+        for_ (isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential z) $ \isoline -> do
             sketch (Polyline $ traceShowId isoline)
             C.stroke
 
 potential :: Vec2 -> Double
-potential p = sum [ q / sqrt (norm (p -. p')) | (p', q) <- charges ]
+potential p = sum [ q / (picWidth / 5 + norm (p -. p')) | (p', q) <- charges ]
   where
-    charges = [ (Vec2 500 300, 1), (Vec2 2000 500, -1), (Vec2 1500 1000, 1) ]
+    charges = [ (Vec2 500 300, 1000), (Vec2 2000 500, -1000), (Vec2 1500 1000, 1000) ]
