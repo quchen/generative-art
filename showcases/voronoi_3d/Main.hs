@@ -15,6 +15,7 @@ import Draw
 import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.Sampling.Vogel
 import Geometry.Algorithms.Voronoi
 import Control.Monad (replicateM)
 import Control.Applicative (Applicative(liftA2))
@@ -29,11 +30,15 @@ file :: FilePath
 file = "out/voronoi_3d.png"
 
 main :: IO ()
-main = main3
+main = main1
 
 main0 :: IO ()
 main0 = do
-    points <- uniformDistribution 500
+    let points = vogel VogelSamplingParams
+            { _vogelRadius = 720
+            , _vogelCenter = Vec2 720 720
+            , _vogelDensity = 0.001
+            }
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
         for_ points $ \point -> cairoScope $ do
@@ -52,18 +57,20 @@ uniformDistribution count = do
 
 main1 :: IO ()
 main1 = do
-    points <- uniformDistribution 500
+    let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
+            { _vogelRadius = 720 * sqrt(2)
+            , _vogelCenter = Vec2 720 720
+            , _vogelDensity = 0.000318
+            }
 
     let voronoi = toVoronoi (bowyerWatson extents points)
         voronoiCells = _voronoiCells voronoi
 
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
-        for_ voronoiCells $ \cell -> cairoScope $ do
-            sketch (Circle (_voronoiSeed cell) 5)
-            setColor black
-            fill
-        for_ voronoiCells drawCell
+        for_ voronoiCells $ \cell@VoronoiCell{..} -> do
+            let cellGutter = 3 + norm (Vec2 720 720 -. _voronoiSeed) / 144
+            drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
 
@@ -85,12 +92,21 @@ poissonDiscDistribution count = do
 drawCell :: VoronoiCell a -> Render ()
 drawCell VoronoiCell{..} = cairoScope $ do
     C.setLineJoin C.LineJoinBevel
-    sketch poly
+    sketch (Polygon ps)
     setColor black
-    setLineWidth 2
-    stroke
+    fill
   where
-    poly = _voronoiRegion
+    Polygon ps = chaikin 0.25 (chaikin 0.25 (chaikin 0.1 _voronoiRegion))
+
+chaikin :: Double -> Polygon -> Polygon
+chaikin _ (Polygon []) = Polygon []
+chaikin lambda (Polygon ps@(p:_)) = Polygon $ concat
+    [ [c, b]
+    | (a, d) <- zip ps (tail ps ++ [p])
+    , let b = lambda *. a +. (1-lambda) *. d
+    , let c = (1-lambda) *. a +. lambda *. d
+    ]
+
 
 --------------------------------------------------------------------------------
 
