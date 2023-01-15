@@ -19,6 +19,7 @@ import Control.Applicative (Applicative(liftA2))
 import Debug.Trace
 import Numerics.VectorAnalysis (grad)
 import Numerics.DifferentialEquation (rungeKuttaAdaptiveStep)
+import Data.List.Extended (nubOrd)
 
 
 
@@ -45,26 +46,22 @@ main = render file picWidth picHeight $ do
         fieldLines =
             [ fieldLine (p +. polar phi 50)
             | (p, _) <- charges
-            , phi <- rad <$> [0, 0.05*pi .. 2*pi]
+            , phi <- rad <$> [0, 0.2*pi .. 2*pi]
             ]
-        intersectionPoints = do
+        intersectionPoints = nubOrd $ do
             pl <- potentialLines
             fl <- fieldLines
             lineIntersections pl fl
         cells = clipCellsToBox canvas $ voronoiCells $ delaunayTriangulation intersectionPoints
-    for_ intersectionPoints $ \p -> do
-        sketch (Circle p 10)
+    for_ cells $ \cell -> do
+        sketch (growPolygon (-5) cell)
         C.fill
-    --for_ cells $ \cell -> do
-    --    sketch (growPolygon (-2) cell)
-    --    C.fill
 
 charges :: [(Vec2, Double)]
 charges = [ (Vec2 500 300, 1000), (Vec2 2000 500, -1000), (Vec2 1500 1000, 1000) ]
 
 potential :: Vec2 -> Double
 potential p = sum [ q / (picWidth / 5 + norm (p -. p')) | (p', q) <- charges ]
-  where
 
 vectorField :: Vec2 -> Vec2
 vectorField = grad potential
