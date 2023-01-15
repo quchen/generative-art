@@ -46,16 +46,26 @@ main = render file picWidth picHeight $ do
         fieldLines =
             [ fieldLine (p +. polar phi 50)
             | (p, _) <- charges
-            , phi <- rad <$> [0, 0.2*pi .. 2*pi]
+            , phi <- rad <$> [0, 0.1*pi .. 2*pi]
             ]
         intersectionPoints = nubOrd $ do
             pl <- potentialLines
             fl <- fieldLines
             lineIntersections pl fl
-        cells = clipCellsToBox canvas $ voronoiCells $ delaunayTriangulation intersectionPoints
+        cells = clipCellsToBox canvas $ voronoiCells $ delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
     for_ cells $ \cell -> do
-        sketch (growPolygon (-5) cell)
+        let area = polygonArea cell
+        sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
         C.fill
+
+chaikin :: Double -> Polygon -> Polygon
+chaikin _ (Polygon []) = Polygon []
+chaikin lambda (Polygon ps@(p:_)) = Polygon $ concat
+    [ [c, b]
+    | (a, d) <- zip ps (tail ps ++ [p])
+    , let b = lambda *. a +. (1-lambda) *. d
+    , let c = (1-lambda) *. a +. lambda *. d
+    ]
 
 charges :: [(Vec2, Double)]
 charges = [ (Vec2 500 300, 1000), (Vec2 2000 500, -1000), (Vec2 1500 1000, 1000) ]
