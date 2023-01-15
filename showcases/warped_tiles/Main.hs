@@ -37,16 +37,27 @@ main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 10
-    for_ [-1, -0.9 .. 2] $ \z -> do
-        for_ (isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential z) $ \isoline -> do
-            sketch (Polyline isoline)
-            C.stroke
-    for_ [Vec2 1750 750, Vec2 1000 900] $ \p -> do
-        sketch (fieldLine p)
-        C.stroke
-    for_ [ p +. polar phi 50 | (p, _) <- charges, phi <- rad <$> [0, 0.05*pi .. 2*pi] ] $ \p -> do
-        sketch (fieldLine p)
-        C.stroke
+    let potentialLines = 
+            [ Polyline isoline
+            | z <- [-1, -0.9 .. 2]
+            , isoline <- isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential z
+            ]
+        fieldLines =
+            [ fieldLine (p +. polar phi 50)
+            | (p, _) <- charges
+            , phi <- rad <$> [0, 0.05*pi .. 2*pi]
+            ]
+        intersectionPoints = do
+            pl <- potentialLines
+            fl <- fieldLines
+            lineIntersections pl fl
+        cells = clipCellsToBox canvas $ voronoiCells $ delaunayTriangulation intersectionPoints
+    for_ intersectionPoints $ \p -> do
+        sketch (Circle p 10)
+        C.fill
+    --for_ cells $ \cell -> do
+    --    sketch (growPolygon (-2) cell)
+    --    C.fill
 
 charges :: [(Vec2, Double)]
 charges = [ (Vec2 500 300, 1000), (Vec2 2000 500, -1000), (Vec2 1500 1000, 1000) ]
@@ -71,3 +82,12 @@ takeUntil p = takeWhile (not . p)
 hitsCharge :: Vec2 -> Bool
 hitsCharge p = any (\(p', _) -> norm (p -. p') < 10) charges
 
+lineIntersections :: Polyline -> Polyline -> [Vec2]
+lineIntersections (Polyline xs) (Polyline ys) = 
+    [ p
+    | l1 <- zipWith Line xs (tail xs)
+    , l2 <- zipWith Line ys (tail ys)
+    , p <- case intersectionLL l1 l2 of
+        IntersectionReal p -> [p]
+        _otherwise -> []
+    ]
