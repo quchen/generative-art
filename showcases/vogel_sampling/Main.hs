@@ -31,17 +31,18 @@ file = "out/voronoi_3d.png"
 main :: IO ()
 main = do
     let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
-            { _vogelRadius = 720 * sqrt(2)
+            { _vogelRadius = 720
             , _vogelCenter = Vec2 720 720
-            , _vogelDensity = 0.000318
+            , _vogelDensity = 0.0008
             }
 
     let cells = V.toList $ clipCellsToBox extents $ voronoiCells $ delaunayTriangulation points
+        voronoi = filter (\(seed, _) -> norm (seed -. Vec2 720 720) < 680) $ zip points cells
 
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
-        for_ (zip points cells) $ \(seed, cell) -> do
-            let cellGutter = 3 + norm (Vec2 720 720 -. seed) / 144
+        for_ voronoi $ \(seed, cell) -> do
+            let cellGutter = 3 + norm (Vec2 720 720 -. seed) / (12*12)
             drawCell (growPolygon (-cellGutter) cell)
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
