@@ -58,18 +58,18 @@ uniformDistribution count = do
 main1 :: IO ()
 main1 = do
     let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
-            { _vogelRadius = 720 * sqrt(2)
+            { _vogelRadius = 720
             , _vogelCenter = Vec2 720 720
-            , _vogelDensity = 0.000318
+            , _vogelDensity = 0.0008
             }
 
     let voronoi = toVoronoi (bowyerWatson extents points)
-        voronoiCells = _voronoiCells voronoi
+        voronoiCells = filter (\VoronoiCell{..} -> norm (_voronoiSeed -. Vec2 720 720) < 680) $ _voronoiCells voronoi
 
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
         for_ voronoiCells $ \cell@VoronoiCell{..} -> do
-            let cellGutter = 3 + norm (Vec2 720 720 -. _voronoiSeed) / 144
+            let cellGutter = 3 + norm (Vec2 720 720 -. _voronoiSeed) / (12*12)
             drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
