@@ -1,5 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-module Main (main, main0, main1, main2, main3) where
+module Main (main) where
 
 
 
@@ -8,17 +8,15 @@ import Data.Maybe ( fromMaybe )
 import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
-import Math.Noise (Perlin (..), getValue, perlin)
 import System.Random.MWC ( initialize, uniformRM )
 
 import Draw
 import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
-import Geometry.Algorithms.Sampling.Vogel
-import Geometry.Algorithms.Voronoi
 import Control.Monad (replicateM)
 import Control.Applicative (Applicative(liftA2))
+import Debug.Trace
 
 
 
@@ -30,4 +28,16 @@ file :: FilePath
 file = "out/warped-tiles.png"
 
 main :: IO ()
-main = pure ()
+main = render file picWidth picHeight $ do
+    cairoScope (setColor white >> C.paint)
+    setColor black
+    C.setLineWidth 10
+    for_ [-0.05, -0.045 .. 0.1] $ \z -> do
+        for_ (isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (64, 36)} potential z) $ \isoline -> do
+            sketch (Polyline $ traceShowId isoline)
+            C.stroke
+
+potential :: Vec2 -> Double
+potential p = sum [ q / sqrt (norm (p -. p')) | (p', q) <- charges ]
+  where
+    charges = [ (Vec2 500 300, 1), (Vec2 2000 500, -1), (Vec2 1500 1000, 1) ]
