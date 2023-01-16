@@ -18,6 +18,7 @@ import Geometry                     as G hiding (Grid)
 import Geometry.Algorithms.WaveFunctionCollapse
 import Data.Function (on)
 import Data.Maybe (maybeToList)
+import Control.Monad.ST (runST)
 
 
 
@@ -25,17 +26,27 @@ picWidth, picHeight :: Num a => a
 picWidth = 2560
 picHeight = 1440
 
-scaleFactor :: Double
-scaleFactor = 1
+cellSize :: Num a => a
+cellSize = 160
 
 main :: IO ()
-main = pure ()
+main = do
+    let grid = M.findMax <$> gridGenerations !! 0
+    render "out/fabric.png" picWidth picHeight $ do
+        cairoScope (setColor white >> paint)
+        setLineWidth 20
+        drawGrid cellSize grid
+
+gridGenerations :: [Grid (M.MultiSet (Tile ColorIndex))]
+gridGenerations = runST $ do
+    gen <- create
+    wfc wfcSettings (picWidth `div` cellSize) (picHeight `div` cellSize) gen
 
 drawGrid :: Double -> Grid (Tile ColorIndex) -> C.Render ()
 drawGrid cellSize grid@(Grid _ _ _ _ cells) = do
     let (w, h) = size grid
     for_ [0..w-1] $ \x -> for_ [0..h-1] $ \y -> cairoScope $ do
-        C.translate (fromIntegral x * cellSize) (fromIntegral y * cellSize)
+        C.translate ((fromIntegral x + 0.5) * cellSize) ((fromIntegral y + 0.5) * cellSize)
         drawCell cellSize (cells V.! y V.! x)
 
 drawCell :: Double -> Tile ColorIndex -> C.Render ()
@@ -59,7 +70,14 @@ drawCell cellSize = cairoScope . \case
 wfcSettings :: WfcSettings (Tile ColorIndex)
 wfcSettings = WfcSettings {..}
   where
-    wfcTiles = M.fromList [Empty, Single Horizontal 0, Single Vertical 0, Cross Horizontal 0 0, Cross Vertical 0 0]
+    wfcTiles = M.fromList $ concat
+        [ [Empty]
+        , Single Horizontal <$> colors
+        , Single Vertical <$> colors
+        , Cross Horizontal <$> colors <*> colors
+        , Cross Vertical <$> colors <*> colors
+        ]
+      where colors = [0..1]
     wfcLocalProjection grid = M.map fst $ M.filter (any compatible . snd) $ M.map (\tile -> (tile, neighbours tile)) (extract grid)
       where
         neighbours tile = 
