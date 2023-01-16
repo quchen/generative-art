@@ -929,7 +929,7 @@ instance MWC.Uniform Angle where
 instance NFData Angle where rnf _ = ()
 
 instance Show Angle where
-    show (Rad r) = printf "deg %2.8f" (r / pi * 180)
+    show (Rad r) = printf "deg (%2.8f)" (r / pi * 180)
 
 instance VectorSpace Angle where
     Rad a +. Rad b = Rad (a + b)

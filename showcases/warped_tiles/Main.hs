@@ -1,14 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 module Main (main) where
 
 
 
-import Data.List ( sortOn )
-import Data.Maybe ( fromMaybe )
+import Data.List ( sortOn, (\\) )
+import Data.Maybe ( fromMaybe, isJust, catMaybes )
 import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
-import System.Random.MWC ( initialize, uniformRM )
+import System.Random.MWC ( initialize, uniformRM, GenIO )
 
 import Draw
 import Geometry as G
@@ -18,7 +19,7 @@ import Geometry.Algorithms.Sampling
 import Control.Monad (replicateM)
 import Control.Applicative (Applicative(liftA2))
 import Debug.Trace
-import Numerics.VectorAnalysis (grad)
+import Numerics.VectorAnalysis (grad, divergence)
 import Numerics.DifferentialEquation (rungeKuttaAdaptiveStep)
 import Geometry.Algorithms.Voronoi (Voronoi(_voronoiCells))
 import Data.List.Extended (nubOrd)
@@ -39,23 +40,26 @@ main :: IO ()
 main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
-    C.setLineWidth 10
+    C.setLineWidth 1
     let iso = isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential
         potentialLines = 
             [ Polyline isoline
             | z <- [3, 3.3 .. 10]
             , isoline <- iso z
             ]
-        fieldLines =
-            [ fieldLine (p +. polar phi 50)
-            | (p, _) <- charges
-            , phi <- rad <$> [0, 0.1*pi .. 2*pi]
-            ]
+        fieldLines = sampleFieldLines
         intersectionPoints = nubOrd $ do
             pl <- potentialLines
             fl <- fieldLines
             lineIntersections pl fl
         cells = _voronoiCells $ toVoronoi $ bowyerWatson canvas (intersectionPoints ++ (fst <$> charges))
+    for_ potentialLines $ \l -> do
+        sketch l
+        stroke
+    for_ fieldLines $ \l -> cairoScope $ do
+        setColor (black `withOpacity` 0.3)
+        sketch l
+        stroke
     for_ cells $ \VoronoiCell{..} -> do
         let area = polygonArea _voronoiRegion
         sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) _voronoiRegion
@@ -79,18 +83,8 @@ potential p = sum [ q * log (norm (p -. p')) | (p', q) <- charges ]
 vectorField :: Vec2 -> Vec2
 vectorField = grad potential
 
-fieldLine :: Vec2 -> Polyline []
-fieldLine p = Polyline (reverse trajectoryB ++ trajectoryA)
-  where
-    trajectory vf = rungeKuttaAdaptiveStep (const vf) p 0 0.1 normSquare 0.001
-    trajectoryA = takeWhile (`insideBoundingBox` canvas) $ takeUntil hitsCharge (snd <$> trajectory vectorField)
-    trajectoryB = takeWhile (`insideBoundingBox` canvas) $ takeUntil hitsCharge (snd <$> trajectory (negateV vectorField))
-
 takeUntil :: (a -> Bool) -> [a] -> [a]
 takeUntil p = takeWhile (not . p)
-
-hitsCharge :: Vec2 -> Bool
-hitsCharge p = any (\(p', _) -> norm (p -. p') < 10) charges
 
 lineIntersections :: Polyline [] -> Polyline [] -> [Vec2]
 lineIntersections (Polyline xs) (Polyline ys) = 
@@ -101,3 +95,57 @@ lineIntersections (Polyline xs) (Polyline ys) =
         IntersectionReal p -> [p]
         _otherwise -> []
     ]
+
+sampleFieldLines :: [Polyline []]
+sampleFieldLines = go charges [] []
+  where
+    go :: [(Vec2, Double)] -> [((Vec2, Double), Polyline [])] -> [Polyline []] -> [Polyline []]
+    go [] _ fls = fls
+    go ((p, q):cs) sourcePoints fls' =
+        go cs' (catMaybes targetPoints ++ sourcePoints) (fls' ++ fls)
+      where
+        deltaPhi = 15 / abs q
+        psis =
+            [ angleOfLine (Line p' (last fl'))
+            | ((p', _), Polyline fl') <- sourcePoints
+            , p' == p
+            ]
+        phi_0 = case psis of
+            [] -> deg 0
+            _  -> deg (sum (fmap ((`fmod` deltaPhi) . getDeg) psis) / fromIntegral (length psis))
+        (fls, targetPoints) = unzip
+            [ (fl, fmap (, fl) maybeP')
+            | phi <- (phi_0 +.) . deg <$> [0, deltaPhi .. 360]
+            , let startingPoint = p +. polar phi 10
+            , let vf = if q > 0 then vectorField else negateV vectorField
+            , let (fl, maybeP') = fieldLine vf startingPoint
+            , and [ case normalizeAngle zero (phi -. psi) of
+                    alpha | getDeg alpha < 5 -> False
+                          | getDeg alpha > 355 -> False
+                          | otherwise -> True
+                  | psi <- psis
+                  ]
+            ]
+        cs' = case fst <$> catMaybes targetPoints of
+            (p', q'):_ | (p', q') `elem` cs -> (p', q') : (cs \\ [(p', q')])
+            _otherwise -> cs
+
+
+fmod :: Double -> Double -> Double
+a `fmod` b = let c = a / b in (c - fromIntegral (floor c)) * b
+
+
+fieldLine :: (Vec2 -> Vec2) -> Vec2 -> (Polyline [], Maybe (Vec2, Double))
+fieldLine vf p = (Polyline (fst <$> fl), snd (last fl))
+  where
+    trajectory = snd <$> rungeKuttaAdaptiveStep (const vf) p 0 0.1 normSquare 0.0001
+    fl = takeWhile ((`insideBoundingBox` canvas) . fst) $ takeUntil1 (isJust . snd) $ dropWhile (isJust . snd) $ fmap (\p -> (p, closeToCharge p)) trajectory
+
+takeUntil1 :: (a -> Bool) -> [a] -> [a]
+takeUntil1 _ [] = []
+takeUntil1 p (x:xs)
+    | p x = [x]
+    | otherwise = x : takeUntil1 p xs
+
+closeToCharge :: Vec2 -> Maybe (Vec2, Double)
+closeToCharge p = find (\(p', _) -> norm (p -. p') < 10) charges
