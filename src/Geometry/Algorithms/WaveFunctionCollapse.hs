@@ -13,6 +13,7 @@ module Geometry.Algorithms.WaveFunctionCollapse (
     , Stencil3x3(..)
     , stencilToGrid
     , stencil3x3
+    , extractStencil
 
     , module Data.Grid
 ) where
@@ -30,6 +31,7 @@ import qualified Data.Vector as V
 import System.Random.MWC as MWC
 
 import Data.Grid
+import Draw.Grid
 
 
 
@@ -100,6 +102,9 @@ data Stencil3x3 a = Stencil3x3
 instance Foldable Stencil3x3 where
     foldr plus zero Stencil3x3{..} = foldr plus zero (catMaybes [s11, s12, s13, s21, Just s22, s23, s31, s32, s33])
 
+instance DrawToSize a => DrawToSize (Stencil3x3 a) where
+    drawToSize (w, h) = drawGrid (w, h) . stencilToGrid
+
 stencil3x3 :: Grid a -> Stencil3x3 a
 stencil3x3 (Grid l' d' r' u' xs) = Stencil3x3 a b c d e f g h i
   where
@@ -146,6 +151,9 @@ stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid l' d' r' u' xs
               Just _ -> Just $ V.catMaybes $ V.fromList [g, h, i]
               Nothing -> Nothing
         ]
+
+extractStencil :: Stencil3x3 a -> a 
+extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e
 
 settingsFromGrid :: (Eq a, Ord a) => Grid a -> WfcSettings (Stencil3x3 a)
 settingsFromGrid grid = WfcSettings{..}
