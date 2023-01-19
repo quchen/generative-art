@@ -33,7 +33,6 @@ main = do
     let grid = (\[a] -> a) . M.toList <$> last gridGenerations
     render "out/fabric.png" picWidth picHeight $ do
         cairoScope (setColor white >> paint)
-        setLineWidth 20
         renderGrid cellSize grid
 
 instance DrawToSize Tile where
@@ -49,6 +48,7 @@ renderGrid cellSize grid@(Grid _ _ _ _ cells) = do
     let (w, h) = size grid
     for_ [0..w-1] $ \x -> for_ [0..h-1] $ \y -> cairoScope $ do
         C.translate (fromIntegral x * cellSize) (fromIntegral y * cellSize)
+        setLineWidth (cellSize/2)
         drawCell cellSize (cells V.! y V.! x)
 
 drawCell :: Double -> Tile -> C.Render ()
@@ -63,11 +63,21 @@ drawCell cellSize = cairoScope . \case
         setColor (mathematica97 i)
         C.stroke
     Cross Vertical i j -> do
-        drawCell cellSize (Single Horizontal i)
-        drawCell cellSize (Single Vertical j)
+        sketch (Line (Vec2 0 (cellSize/2)) (Vec2 cellSize (cellSize/2)))
+        setColor (mathematica97 i)
+        C.stroke
+        sketch (Line (Vec2 (cellSize/2) 0               ) (Vec2 (cellSize/2) (0.2 * cellSize)))
+        sketch (Line (Vec2 (cellSize/2) (0.8 * cellSize)) (Vec2 (cellSize/2) cellSize))
+        setColor (mathematica97 j)
+        C.stroke
     Cross Horizontal i j -> do
-        drawCell cellSize (Single Vertical j)
-        drawCell cellSize (Single Horizontal i)
+        sketch (Line (Vec2 0                (cellSize/2)) (Vec2 (0.2 * cellSize) (cellSize/2)))
+        sketch (Line (Vec2 (0.8 * cellSize) (cellSize/2)) (Vec2 cellSize         (cellSize/2)))
+        setColor (mathematica97 i)
+        C.stroke
+        sketch (Line (Vec2 (cellSize/2) 0) (Vec2 (cellSize/2) cellSize))
+        setColor (mathematica97 j)
+        C.stroke
 
 wfcSettings :: WfcSettings Tile
 wfcSettings = WfcSettings {..}
@@ -79,7 +89,7 @@ wfcSettings = WfcSettings {..}
         , Cross Horizontal <$> colors <*> colors
         , Cross Vertical <$> colors <*> colors
         ]
-      where colors = [0..1]
+      where colors = [0..3]
     wfcLocalProjection grid = M.fromAscOccurList
         [ (tile, n)
         | (tile, n) <- M.toAscOccurList (extract grid)
