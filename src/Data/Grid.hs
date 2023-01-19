@@ -10,6 +10,7 @@ module Data.Grid (
     , slice
     , mapAt
     , setAt
+    , mapCurrent
     , size
 
     , Comonad(..)
@@ -81,3 +82,6 @@ mapAt (x, y) f (Grid l d r u xs) = Grid l d r u (xs V.// [(y, (xs V.! y) V.// [(
 
 setAt :: (Int, Int) -> a -> Grid a -> Grid a
 setAt (x, y) a = mapAt (x, y) (const a)
+
+mapCurrent :: (a -> a) -> Grid a -> Grid a
+mapCurrent f g@(Grid l _ _ u _) = mapAt (l, u) f g

@@ -15,6 +15,9 @@ module Geometry.Algorithms.WaveFunctionCollapse (
     , stencil3x3
     , extractStencil
 
+    , Touched(..)
+    , getTouched
+
     , module Data.Grid
 ) where
 
@@ -37,7 +40,7 @@ import Draw.Grid
 
 data WfcSettings a = WfcSettings
     { wfcTiles :: MultiSet a
-    , wfcLocalProjection :: Grid (MultiSet a) -> MultiSet a
+    , wfcLocalProjection :: Grid (Touched (MultiSet a)) -> Touched (MultiSet a)
     }
 
 wfc :: (Eq a, Ord a) => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x [Grid (MultiSet a)]
@@ -80,12 +83,18 @@ eigenstates grid@(Grid l _ _ u _) = case M.toList (extract grid) of
     [_] -> [grid]
     xs -> fmap (\x -> setAt (l, u) (M.singleton x) grid) xs
 
-propagate :: Eq a => (Grid (MultiSet a) -> MultiSet a) -> Grid (MultiSet a) -> Grid (MultiSet a)
-propagate projection = go
+data Touched a = Touched a | Untouched a deriving Functor
+
+getTouched :: Touched p -> p
+getTouched (Touched a) = a
+getTouched (Untouched a) = a
+
+propagate :: Eq a => (Grid (Touched (MultiSet a)) -> Touched (MultiSet a)) -> Grid (MultiSet a) -> Grid (MultiSet a)
+propagate projection = fmap getTouched . go . mapCurrent (Touched . getTouched) . fmap Untouched
   where
     go grid =
         let grid' = extend projection grid
-        in if grid' == grid then grid else go grid'
+        in if fmap getTouched grid' == fmap getTouched grid then grid else go grid'
 
 data Stencil3x3 a = Stencil3x3
     { s11 :: !(Maybe a)
@@ -162,7 +171,7 @@ settingsFromGrid grid = WfcSettings{..}
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
-    wfcLocalProjection :: (Eq a, Ord a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
+    wfcLocalProjection :: (Eq a, Ord a) => Grid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
     wfcLocalProjection = remainingEigenvalues
 
 {-
@@ -187,21 +196,33 @@ _ d e   d e f   e f _
 _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
-remainingEigenvalues :: (Eq a, Ord a) => Grid (MultiSet (Stencil3x3 a)) -> MultiSet (Stencil3x3 a)
-remainingEigenvalues grid = M.fromAscOccurList
-    [ (this, n)
-    | (this, n) <- M.toAscOccurList (extract grid)
-    , let isCompatible = and
-            [ not (null compatibleOthers)
-            | (there, back) <- zip neighbouringDirections neighbouringDirections
-            , let others = maybeToList (there grid) >>= M.distinctElems . extract
-            , not (null others)
-            , thisShifted <- maybeToList (back (stencilToGrid this))
-            , let compatibleOthers = filter (weakEq (stencil3x3 thisShifted)) others
-            ]
-    , isCompatible
-    ]
+remainingEigenvalues :: (Eq a, Ord a) => Grid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
+remainingEigenvalues grid
+    | all isUntouched (fmap (fmap extract) (neighbouringDirections <*> [grid]))
+    = Untouched oldState
+    | oldState == newState
+    = Untouched oldState
+    | otherwise
+    = Touched newState
   where
+    oldState = getTouched (extract grid)
+    newState = M.fromAscOccurList
+        [ (this, n)
+        | (this, n) <- M.toAscOccurList (getTouched (extract grid))
+        , let isCompatible = and
+                [ not (null compatibleOthers)
+                | (there, back) <- zip neighbouringDirections neighbouringDirections
+                , let others = maybeToList (there grid) >>= M.distinctElems . getTouched . extract
+                , not (null others)
+                , thisShifted <- maybeToList (back (stencilToGrid this))
+                , let compatibleOthers = filter (weakEq (stencil3x3 thisShifted)) others
+                ]
+        , isCompatible
+        ]
+    isUntouched = \case
+        Nothing -> True
+        Just (Untouched _) -> True
+        _otherwise -> False
     neighbouringDirections :: [Grid b -> Maybe (Grid b)]
     neighbouringDirections =
         [ up >=> left

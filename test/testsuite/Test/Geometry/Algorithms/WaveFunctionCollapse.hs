@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Test.Geometry.Algorithms.WaveFunctionCollapse (tests) where
 
 
@@ -64,7 +65,7 @@ testCollapse = testVisual "Collapse grid at position" 240 240 "docs/grid_collaps
 testPropagate :: TestTree
 testPropagate = testGroup "Propagation"
     [ testVisual ("Generation " ++ show i) 720 720 ("docs/propagation_" ++ show i) $ \(w, h) ->
-        drawGrid (w, h) grid
+        drawGrid (w, h) (getTouched <$> grid)
     | (i, grid) <- take 7 $ zip [0..] generations
     ]
   where
@@ -72,7 +73,7 @@ testPropagate = testGroup "Propagation"
     generations = iterate (extend (wfcLocalProjection settings)) $ runST $ do
         gen <- create
         let initial = initialGrid settings 6 6
-        collapse gen initial
+        mapCurrent (Touched . getTouched) . fmap Untouched <$> collapse gen initial
 
 testWaveFunctionCollapse :: TestTree
 testWaveFunctionCollapse = testGroup "WaveFunctionCollapse"

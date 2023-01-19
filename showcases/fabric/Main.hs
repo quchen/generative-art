@@ -26,7 +26,7 @@ picWidth = 2560
 picHeight = 1440
 
 cellSize :: Num a => a
-cellSize = 160
+cellSize = 20
 
 main :: IO ()
 main = do
@@ -90,19 +90,33 @@ wfcSettings = WfcSettings {..}
         , Cross Vertical <$> colors <*> colors
         ]
       where colors = [0..3]
-    wfcLocalProjection grid = M.fromAscOccurList
-        [ (tile, n)
-        | (tile, n) <- M.toAscOccurList (extract grid)
-        , maybe True (any (`beside` tile)) neighboursLeft
-        , maybe True (any (tile `above`))  neighboursDown
-        , maybe True (any (tile `beside`)) neighboursRight
-        , maybe True (any (`above` tile))  neighboursUp
-        ]
+    wfcLocalProjection :: Grid (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
+    wfcLocalProjection grid
+        | isUntouched neighboursLeft && isUntouched neighboursDown && isUntouched neighboursRight && isUntouched neighboursUp
+        = Untouched oldState
+        | newState == oldState
+        = Untouched oldState
+        | otherwise
+        = Touched newState
       where
-        neighboursLeft  = fmap (M.toList . extract) (left  grid)
-        neighboursDown  = fmap (M.toList . extract) (down  grid)
-        neighboursRight = fmap (M.toList . extract) (right grid)
-        neighboursUp    = fmap (M.toList . extract) (up    grid)
+        neighboursLeft  = fmap (fmap M.toList . extract) (left  grid)
+        neighboursDown  = fmap (fmap M.toList . extract) (down  grid)
+        neighboursRight = fmap (fmap M.toList . extract) (right grid)
+        neighboursUp    = fmap (fmap M.toList . extract) (up    grid)
+        oldState = getTouched (extract grid)
+        newState = M.fromAscOccurList
+            [ (tile, n)
+            | (tile, n) <- M.toAscOccurList oldState
+            , maybe True (any (`beside` tile) . getTouched) neighboursLeft
+            , maybe True (any (tile `above`)  . getTouched)  neighboursDown
+            , maybe True (any (tile `beside`) . getTouched) neighboursRight
+            , maybe True (any (`above` tile)  . getTouched)  neighboursUp
+            ]
+        isUntouched = \case
+            Nothing -> True
+            Just (Untouched _) -> True
+            _otherwise -> False
+
 
 data Tile
     = Empty
