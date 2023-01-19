@@ -17,8 +17,6 @@ import Draw hiding (Cross)
 import Draw.Grid
 import Geometry                     as G hiding (Grid)
 import Geometry.Algorithms.WaveFunctionCollapse
-import Data.Function (on)
-import Data.Maybe (maybeToList)
 import Control.Monad.ST (runST)
 
 
@@ -82,15 +80,19 @@ wfcSettings = WfcSettings {..}
         , Cross Vertical <$> colors <*> colors
         ]
       where colors = [0..1]
-    wfcLocalProjection grid = M.map fst $ M.filter (any compatible . snd) $ M.map (\tile -> (tile, neighbours tile)) (extract grid)
+    wfcLocalProjection grid = M.fromAscOccurList
+        [ (tile, n)
+        | (tile, n) <- M.toAscOccurList (extract grid)
+        , maybe True (any (`beside` tile)) neighboursLeft
+        , maybe True (any (tile `above`))  neighboursDown
+        , maybe True (any (tile `beside`)) neighboursRight
+        , maybe True (any (`above` tile))  neighboursUp
+        ]
       where
-        neighbours tile = 
-            [ Stencil3x3 Nothing a Nothing b tile c Nothing d Nothing
-            | a <- traverse (M.toList . extract) (up    grid)
-            , b <- traverse (M.toList . extract) (left  grid)
-            , c <- traverse (M.toList . extract) (right grid)
-            , d <- traverse (M.toList . extract) (down  grid)
-            ]
+        neighboursLeft  = fmap (M.toList . extract) (left  grid)
+        neighboursDown  = fmap (M.toList . extract) (down  grid)
+        neighboursRight = fmap (M.toList . extract) (right grid)
+        neighboursUp    = fmap (M.toList . extract) (up    grid)
 
 data Tile
     = Empty
@@ -114,48 +116,23 @@ component Vertical (Cross Horizontal a b) = Single Vertical b
 component Vertical (Cross Vertical a b) = Single Vertical b
 component Vertical _ = Empty
 
+beside, above :: Tile -> Tile -> Bool
+l `beside` r
+    | Empty <- component Horizontal l
+    , Empty <- component Horizontal r
+    = True
+    | Single Horizontal a <- component Horizontal l
+    , Single Horizontal b <- component Horizontal r
+    = a == b
+    | otherwise
+    = False
 
-compatible :: Stencil3x3 Tile -> Bool
-compatible (Stencil3x3 _ a _ b Empty c _ d _)
-    | Just Single{} <- component Vertical <$> a = False
-    | Just Single{} <- component Horizontal <$> b = False
-    | Just Single{} <- component Horizontal <$> c = False
-    | Just Single{} <- component Vertical <$> d = False
-    | otherwise = True
-compatible (Stencil3x3 _ a _ b (Single Horizontal color) c _ d _)
-    | Just Single{} <- component Vertical <$> a = False
-    | Just Single{} <- component Vertical <$> d = False
-    | Just (Single Horizontal color1) <- component Horizontal <$> b
-    , Just (Single Horizontal color2) <- component Horizontal <$> c 
-    = color == color1 && color == color2
-    | Just (Single Horizontal color1) <- component Horizontal <$> b
-    , Nothing <- c
-    = color == color1
-    | Nothing <- b
-    , Just (Single Horizontal color2) <- component Horizontal <$> c 
-    = color == color2
-    | otherwise = False
-compatible (Stencil3x3 _ a _ b (Single Vertical color) c _ d _)
-    | Just Single{} <- component Horizontal <$> b = False
-    | Just Single{} <- component Horizontal <$> c = False
-    | Just (Single Vertical color1) <- component Vertical <$> a
-    , Just (Single Vertical color2) <- component Vertical <$> d
-    = color == color1 && color == color2
-    | Just (Single Vertical color1) <- component Vertical <$> a
-    , Nothing <- d
-    = color == color1
-    | Nothing <- a
-    , Just (Single Vertical color2) <- component Vertical <$> d
-    = color == color2
-    | otherwise = False
-compatible s@(Stencil3x3 _ a _ b (Cross _ colorH colorV) c _ d _)
-    | Nothing <- a = compatible s { s12 = Just (Single Vertical   colorV) }
-    | Nothing <- b = compatible s { s21 = Just (Single Horizontal colorH) }
-    | Nothing <- c = compatible s { s23 = Just (Single Horizontal colorH) }
-    | Nothing <- d = compatible s { s32 = Just (Single Vertical   colorV) }
-    | Just (Single Vertical colorA) <- component Vertical <$> a
-    , Just (Single Horizontal colorB) <- component Horizontal <$> b
-    , Just (Single Horizontal colorC) <- component Horizontal <$> c
-    , Just (Single Vertical colorD) <- component Vertical <$> d
-    = colorA == colorV && colorB == colorH && colorC == colorH && colorD == colorV
-    | otherwise = False
+t `above` b
+    | Empty <- component Vertical t
+    , Empty <- component Vertical b
+    = True
+    | Single Vertical a <- component Vertical t
+    , Single Vertical b <- component Vertical b
+    = a == b
+    | otherwise
+    = False
