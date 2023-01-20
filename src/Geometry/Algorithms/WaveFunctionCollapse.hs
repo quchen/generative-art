@@ -59,14 +59,19 @@ initialGrid :: WfcSettings a -> Int -> Int -> Grid (MultiSet a)
 initialGrid WfcSettings{..} width height = fromList $ replicate height (replicate width wfcTiles)
 
 pickMin :: MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
-pickMin gen grid = case shortestGrids of
+pickMin gen grid = case gridsWithLowestEntropy of
     Nothing -> pure Nothing
     Just xs -> Just <$> pick gen xs
   where
     lengthIndexed = fmap (\g -> (M.distinctSize (extract g), g)) (foldr (:) [] (duplicate grid))
-    shortestGrids = case groupBy ((==) `on` fst) $ sortOn fst $ filter ((> 1) . fst) $ lengthIndexed of
+    entropyIndexed = (\g -> (entropy (extract g), g)) . snd <$> filter ((> 1) . fst) lengthIndexed
+    gridsWithLowestEntropy = case groupBy ((==) `on` fst) $ sortOn fst $ entropyIndexed of
         [] -> Nothing
         (lengthIndexedShortestGrids : _) -> Just (snd <$> lengthIndexedShortestGrids)
+
+entropy :: MultiSet a -> Double
+entropy multiset = sum weights - sum ((\w -> w * log w) <$> weights) / sum weights
+  where weights = fromIntegral . snd <$> M.toOccurList multiset
 
 collapse :: (Eq a, Ord a) => MWC.GenST x -> Grid (MultiSet a) -> ST x (Grid (MultiSet a))
 collapse gen = pick gen . eigenstates
