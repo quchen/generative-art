@@ -38,10 +38,11 @@ main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 10
-    let potentialLines = 
+    let iso = isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential
+        potentialLines = 
             [ Polyline isoline
             | z <- [3, 3.3 .. 10]
-            , isoline <- isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential z
+            , isoline <- iso z
             ]
         fieldLines =
             [ fieldLine (p +. polar phi 50)
