@@ -247,16 +247,16 @@ hexagonalCoordinateSystem sideLength range = do
                 sketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             stroke
 
-    -- cairoScope $ grouped (paintWithAlpha 0.5) $
-    --     for_ hexagons $ \hexCoord@(Hex q r s) ->
-    --         for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
-    --             let center = toVec2 sideLength hexCoord
-    --                 coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
-    --             moveToVec coord
-    --             setColor (hsva angle 1 0.7 1)
-    --             if Hex 0 0 0 == Hex q r s
-    --                 then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
-    --                 else showTextAligned HCenter VCenter (show val)
+    cairoScope $ grouped (paintWithAlpha 0.5) $
+        for_ hexagons $ \hexCoord@(Hex q r s) ->
+            for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
+                let center = toVec2 sideLength hexCoord
+                    coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
+                moveToVec coord
+                setColor (hsva angle 1 0.7 1)
+                if Hex 0 0 0 == Hex q r s
+                    then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
+                    else showTextAligned HCenter VCenter (show val)
 
 -- | Hexagons reachable within a number of steps from the origin. The boundary of
 -- this will be the 'ring'.
