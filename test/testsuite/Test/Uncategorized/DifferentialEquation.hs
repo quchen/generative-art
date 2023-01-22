@@ -245,8 +245,8 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
 
     let isos =
             let thresholds = [-30, -29 .. 30]
-                grid = Grid entireCanvas (round (w/10), round (h/10))
-                computeIso = isoLines grid terrain
+                gridSpec = GridSpec entireCanvas (round (w/10), round (h/10))
+                computeIso = isoLines gridSpec terrain
             in [(threshold, computeIso threshold) | threshold <- thresholds]
 
     setLineWidth 1

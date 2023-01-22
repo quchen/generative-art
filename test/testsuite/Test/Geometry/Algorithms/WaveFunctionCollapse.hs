@@ -12,7 +12,7 @@ import System.Random.MWC (create, initialize)
 
 import Draw
 import Draw.Grid
-import Geometry hiding (Grid)
+import Geometry
 import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 
 import Test.TastyAll

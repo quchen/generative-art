@@ -6,7 +6,7 @@ import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 
 import Draw
 import Draw.Grid
-import Geometry hiding (Grid)
+import Geometry
 import Geometry.Algorithms.WaveFunctionCollapse as Wfc
 
 import System.Random.MWC (initialize)

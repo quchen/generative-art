@@ -124,8 +124,8 @@ draw SystemResult{..} = do
 
     liftIO (putStrLn "Calculate and paint lines")
     setLineWidth 1
-    let isoGrid = Grid (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi))
-                       (let (w,h) = boundingBoxSize (_boundingBox systemConfig) in (round (w/10), round (h/10)))
+    let isoGrid = GridSpec (let BoundingBox lo hi = _boundingBox systemConfig in (lo, hi))
+                           (let (w,h) = boundingBoxSize (_boundingBox systemConfig) in (round (w/10), round (h/10)))
         isosAt = isoLines isoGrid _potential
         isoThresholds = [1.0, 1.05 .. 2.5]
 

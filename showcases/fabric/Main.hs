@@ -15,7 +15,7 @@ import qualified Data.Vector as V
 
 import Draw hiding (Cross)
 import Draw.Grid
-import Geometry                     as G hiding (Grid)
+import Geometry                     as G
 import Geometry.Algorithms.WaveFunctionCollapse
 import Control.Monad.ST (runST)
 

@@ -28,7 +28,7 @@ tests = testGroup "Physics"
 testParticle :: TestTree
 testParticle = testVisual "Particle in Gauß potential" 200 200 "docs/physics/particleInPotential" $ \_ -> do
     let potential = coulombPotential (-10) (Vec2 100 100)
-        iso = isoLines (Grid (Vec2 0 0, Vec2 200 200) (20, 20)) potential
+        iso = isoLines (GridSpec (Vec2 0 0, Vec2 200 200) (20, 20)) potential
 
     for_ [-0.5,-0.4..0] $ \h -> for_ (iso h) $ \ps -> cairoScope $ do
         sketch (Polyline ps)

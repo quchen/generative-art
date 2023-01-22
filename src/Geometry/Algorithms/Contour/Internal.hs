@@ -19,7 +19,7 @@ import Util
 
 
 -- | Find the iso lines of a function (= where the function has the same height,
--- like e.g. height lines on a map) within a certain 'Grid' (which unifies size and
+-- like e.g. height lines on a map) within a certain 'GridSpec' (which unifies size and
 -- resolution).
 --
 -- This function can be partially applied to cache the function values when drawing
@@ -27,11 +27,11 @@ import Util
 -- expensive:
 --
 -- @
--- -- BAD! Recalculates the values of f across the grid for each invocation
--- 'isosBad' = ['isoLines' grid f isoHeight | isoHeight <- [1..10]]
+-- -- BAD! Recalculates the values of f across the gridSpec for each invocation
+-- 'isosBad' = ['isoLines' gridSpec f isoHeight | isoHeight <- [1..10]]
 --
 -- -- Good: Calculates the value table only once
--- 'isosGood' = let iso = 'isoLines' grid f
+-- 'isosGood' = let iso = 'isoLines' gridSpec f
 --              in [iso isoHeight | isoHeight [1..10]]
 -- @
 --
@@ -59,24 +59,24 @@ import Util
 -- and finding the contour lines at height \(r^2\) gives us our circles!
 --
 -- @
--- grid :: 'Grid'
--- grid = 'Grid' ('Vec2' (-10) (-10), 'Vec2' 10 10) (100, 100)
+-- gridSpec :: 'GridSpec'
+-- gridSpec = 'GridSpec' ('Vec2' (-10) (-10), 'Vec2' 10 10) (100, 100)
 --
 -- circleTrajectory :: 'Double' -> ['Vec2']
 -- circleTrajectory =
---     let iso = 'isoLines' grid (circle 'zero')
+--     let iso = 'isoLines' gridSpec (circle 'zero')
 --     in \\r -> head (iso (r'^'2)) -- NB head is safe here because each of our functions has exactly one iso line at a certain height
 --
 -- manyCircles :: [['Vec2']]
 -- manyCircles = 'map' circleTrajectory [1..9]
 -- @
 isoLines
-    :: Grid
+    :: GridSpec
     -> (Vec2 -> Double) -- ^ Scalar field
     -> Double           -- ^ Contour threshold
     -> [[Vec2]]         -- ^ Contours of the field
-isoLines grid f  =
-    let table = valueTable grid f
+isoLines gridSpec f  =
+    let table = valueTable gridSpec f
     in \threshold ->
         let tableThresholded = applyThreshold threshold table
             classified = classifySquares tableThresholded
@@ -84,7 +84,7 @@ isoLines grid f  =
 
             reassembled = reassembleLines (\(LineBetweenEdges e1 e2) -> (e1, e2)) edgeSemengts
             tolerance = 1e-3
-            sandedDown = (map.map) (\iEdge -> optimizeDiscreteLine grid f threshold iEdge tolerance) reassembled
+            sandedDown = (map.map) (\iEdge -> optimizeDiscreteLine gridSpec f threshold iEdge tolerance) reassembled
         in sandedDown
 
 -- | Find the root of a scalar field along a line.
@@ -108,22 +108,22 @@ binarySearchRoot f line@(Line start end) tolerance
     fEnd    = f end
 
 optimizeIsoIntersections
-    :: Grid
+    :: GridSpec
     -> (Vec2 -> Double)    -- ^ Scalar field
     -> Double              -- ^ Contour threshold
     -> LineBetweenEdges -- ^ Edges of a discrete cell the contour passes through
     -> Double              -- ^ Tolerance
     -> Line                -- ^ Line between points on the discrete edges, which approximates the real contour
-optimizeIsoIntersections grid f threshold (LineBetweenEdges iEdge1 iEdge2) tolerance =
-    let start = optimizeDiscreteLine grid f threshold iEdge1 tolerance
-        end   = optimizeDiscreteLine grid f threshold iEdge2 tolerance
+optimizeIsoIntersections gridSpec f threshold (LineBetweenEdges iEdge1 iEdge2) tolerance =
+    let start = optimizeDiscreteLine gridSpec f threshold iEdge1 tolerance
+        end   = optimizeDiscreteLine gridSpec f threshold iEdge2 tolerance
     in Line start end
 
-optimizeDiscreteLine :: Grid -> (Vec2 -> Double) -> Double -> IEdge -> Double -> Vec2
-optimizeDiscreteLine grid f threshold (IEdge iStart iEnd) tolerance =
-    let line = Line (fromGrid grid iStart) (fromGrid grid iEnd)
+optimizeDiscreteLine :: GridSpec -> (Vec2 -> Double) -> Double -> IEdge -> Double -> Vec2
+optimizeDiscreteLine gridSpec f threshold (IEdge iStart iEnd) tolerance =
+    let line = Line (fromGrid gridSpec iStart) (fromGrid gridSpec iEnd)
     in binarySearchRoot (\x -> f x - threshold) line tolerance
-    -- in (fromGrid grid iStart +. fromGrid grid iEnd) /. 2
+    -- in (fromGridSpec gridSpec iStart +. fromGridSpec grid iEnd) /. 2
 
 data XO = X | O
     deriving (Eq, Ord, Show)

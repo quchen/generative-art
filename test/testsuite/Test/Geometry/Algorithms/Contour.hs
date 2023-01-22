@@ -58,14 +58,14 @@ contourEdgesTests = testGroup "Contour edges" []
 
 closedIsoIsClosedTest :: TestTree
 closedIsoIsClosedTest = testCase "Closed iso line results in closed trajectory" $ do
-    let iso = head (isoLines (Grid (Vec2 (-2) (-2), Vec2 2 2) (10, 10)) normSquare 1)
+    let iso = head (isoLines (GridSpec (Vec2 (-2) (-2), Vec2 2 2) (10, 10)) normSquare 1)
     assertBool "First and last entries are not the same" (head iso == last iso)
 
 visualTests :: TestTree
 visualTests = testGroup "Visual"
     [ testVisual "Single parabola" 100 100 "docs/iso_lines/parabola" $ \(w, h) -> do
         let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
-            isos = Polyline <$> isoLines (Grid gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
+            isos = Polyline <$> isoLines (GridSpec gridDimension (10, 10)) (\(Vec2 x y) -> y-0.1*x*x) 0
             fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
             fitToBox =
                 G.transform (G.transformBoundingBox gridDimension (Vec2 (0+10) (0+10), Vec2 (w-10) (h-10)) def)
@@ -80,7 +80,7 @@ visualTests = testGroup "Visual"
         for_ (zip [1..] [1,2..20]) $ \(colorIndex, r) -> do
             let gridDimension = (Vec2 (-10) (-10), Vec2 10 10)
                 gridResolution = (32, 32)
-                isos = Polyline <$> isoLines (Grid gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
+                isos = Polyline <$> isoLines (GridSpec gridDimension gridResolution) (\(Vec2 x y) -> x*x+y*y) (r*r)
                 fitToBox :: (HasBoundingBox geo, Transform geo) => geo -> geo
                 fitToBox =
                     G.transform (G.transformBoundingBox gridDimension (Vec2 0 0, Vec2 w h) def)
@@ -107,9 +107,9 @@ visualTests = testGroup "Visual"
             gridDimension = (Vec2 (-400) (-300), Vec2 400 300)
             resolutionFactor = 80
             gridResolution = (4*resolutionFactor, 3*resolutionFactor)
-            grid = Grid gridDimension gridResolution
+            gridSpec = GridSpec gridDimension gridResolution
 
-            isoLinesAtThreshold = isoLines grid geometry
+            isoLinesAtThreshold = isoLines gridSpec geometry
 
         C.translate (-20) (-50)
         for_ (zip [0..] [2**fromIntegral n | n <- [1..7]]) $ \(colorIx, threshold) -> do

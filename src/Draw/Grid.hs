@@ -8,7 +8,7 @@ import qualified Graphics.Rendering.Cairo as Cairo
 
 import Draw
 import Data.Grid
-import Geometry hiding (Grid)
+import Geometry
 
 
 
