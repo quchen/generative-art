@@ -416,3 +416,121 @@ over quickly.
 ![Missing image!](../../../docs/voronoi/delaunay_voronoi.svg)
 
 ![Missing image!](../../../docs/voronoi/lloyd_relaxation.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/grid.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/grid_collapse.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/grid_duplicate.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/grid_stencil.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/grid_stencil_grid.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_0.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_1.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_2.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_3.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_4.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_5.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/propagation_6.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_01.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_02.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_03.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_04.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_05.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_06.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_07.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_08.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_09.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_10.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_11.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_12.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_13.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_14.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_15.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_16.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_17.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_18.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_19.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_20.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_21.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_22.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_23.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_24.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_25.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_26.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_27.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_28.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_29.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_30.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_31.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_32.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_33.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_34.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_35.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_36.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_37.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_38.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_39.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_40.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_41.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_42.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_43.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_44.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_45.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_46.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_47.svg)
