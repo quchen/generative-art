@@ -44,38 +44,38 @@ gridGenerations = runST $ do
     wfc wfcSettings (picWidth `div` cellSize) (picHeight `div` cellSize) gen
 
 renderGrid :: Double -> Grid Tile -> C.Render ()
-renderGrid cellSize grid@(Grid _ _ _ _ cells) = do
+renderGrid cs grid@(Grid _ _ _ _ cells) = do
     let (w, h) = size grid
     for_ [0..w-1] $ \x -> for_ [0..h-1] $ \y -> cairoScope $ do
-        C.translate (fromIntegral x * cellSize) (fromIntegral y * cellSize)
-        setLineWidth (cellSize/2)
-        drawCell cellSize (cells V.! y V.! x)
+        C.translate (fromIntegral x * cs) (fromIntegral y * cs)
+        setLineWidth (cs/2)
+        drawCell cs (cells V.! y V.! x)
 
 drawCell :: Double -> Tile -> C.Render ()
-drawCell cellSize = cairoScope . \case
+drawCell cs = cairoScope . \case
     Empty -> pure ()
     Single Horizontal i -> do
-        sketch (Line (Vec2 0 (cellSize/2)) (Vec2 cellSize (cellSize/2)))
+        sketch (Line (Vec2 0 (cs/2)) (Vec2 cs (cs/2)))
         setColor (mathematica97 i)
         C.stroke
     Single Vertical i -> do
-        sketch (Line (Vec2 (cellSize/2) 0) (Vec2 (cellSize/2) cellSize))
+        sketch (Line (Vec2 (cs/2) 0) (Vec2 (cs/2) cs))
         setColor (mathematica97 i)
         C.stroke
     Cross Vertical i j -> do
-        sketch (Line (Vec2 0 (cellSize/2)) (Vec2 cellSize (cellSize/2)))
+        sketch (Line (Vec2 0 (cs/2)) (Vec2 cs (cs/2)))
         setColor (mathematica97 i)
         C.stroke
-        sketch (Line (Vec2 (cellSize/2) 0               ) (Vec2 (cellSize/2) (0.2 * cellSize)))
-        sketch (Line (Vec2 (cellSize/2) (0.8 * cellSize)) (Vec2 (cellSize/2) cellSize))
+        sketch (Line (Vec2 (cs/2) 0         ) (Vec2 (cs/2) (0.2 * cs)))
+        sketch (Line (Vec2 (cs/2) (0.8 * cs)) (Vec2 (cs/2) cs))
         setColor (mathematica97 j)
         C.stroke
     Cross Horizontal i j -> do
-        sketch (Line (Vec2 0                (cellSize/2)) (Vec2 (0.2 * cellSize) (cellSize/2)))
-        sketch (Line (Vec2 (0.8 * cellSize) (cellSize/2)) (Vec2 cellSize         (cellSize/2)))
+        sketch (Line (Vec2 0          (cs/2)) (Vec2 (0.2 * cs) (cs/2)))
+        sketch (Line (Vec2 (0.8 * cs) (cs/2)) (Vec2 cs         (cs/2)))
         setColor (mathematica97 i)
         C.stroke
-        sketch (Line (Vec2 (cellSize/2) 0) (Vec2 (cellSize/2) cellSize))
+        sketch (Line (Vec2 (cs/2) 0) (Vec2 (cs/2) cs))
         setColor (mathematica97 j)
         C.stroke
 
@@ -132,12 +132,12 @@ type ColorIndex = Int
 
 component :: Direction -> Tile -> Tile
 component Horizontal (Single Horizontal a) = Single Horizontal a
-component Horizontal (Cross Horizontal a b) = Single Horizontal a
-component Horizontal (Cross Vertical a b) = Single Horizontal a
+component Horizontal (Cross Horizontal a _) = Single Horizontal a
+component Horizontal (Cross Vertical a _) = Single Horizontal a
 component Horizontal _ = Empty
 component Vertical (Single Vertical a) = Single Vertical a
-component Vertical (Cross Horizontal a b) = Single Vertical b
-component Vertical (Cross Vertical a b) = Single Vertical b
+component Vertical (Cross Horizontal _ b) = Single Vertical b
+component Vertical (Cross Vertical _ b) = Single Vertical b
 component Vertical _ = Empty
 
 beside, above :: Tile -> Tile -> Bool
@@ -145,9 +145,9 @@ l `beside` r
     | Empty <- component Horizontal l
     , Empty <- component Horizontal r
     = True
-    | Single Horizontal a <- component Horizontal l
-    , Single Horizontal b <- component Horizontal r
-    = a == b
+    | Single Horizontal l' <- component Horizontal l
+    , Single Horizontal r' <- component Horizontal r
+    = l' == r'
     | otherwise
     = False
 
@@ -155,8 +155,8 @@ t `above` b
     | Empty <- component Vertical t
     , Empty <- component Vertical b
     = True
-    | Single Vertical a <- component Vertical t
-    , Single Vertical b <- component Vertical b
-    = a == b
+    | Single Vertical t' <- component Vertical t
+    , Single Vertical b' <- component Vertical b
+    = t' == b'
     | otherwise
     = False
