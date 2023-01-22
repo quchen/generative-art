@@ -76,11 +76,13 @@ testPropagate = testGroup "Propagation"
         mapCurrent (Touched . getTouched) . fmap Untouched <$> collapse gen initial
 
 testWaveFunctionCollapse :: TestTree
-testWaveFunctionCollapse = testGroup "WaveFunctionCollapse"
-    [ testVisual ("WaveFunctionCollapse step " ++ show i) 480 480 ("docs/wave_function_collapse_" ++ show i) $ \(w, h) ->
-        drawGrid (w, h) (averageColor . fmap extractStencil . M.toList <$> step)
-    | (i, step) <- zip [1..] steps
-    ]
+testWaveFunctionCollapse = testCase "WaveFunctionCollapse" $ do
+    let w, h :: Num a => a
+        w = 480
+        h = 480
+    for_ (zip [1..] steps) $ \(i, step) ->
+        renderAllFormats w h ("WaveFunctionCollapse step " ++ show i) $
+            drawGrid (w, h) (averageColor . fmap extractStencil . M.toList <$> step)
   where
     steps = runST $ do
         gen <- initialize (V.fromList [5])
