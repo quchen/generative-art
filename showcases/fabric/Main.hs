@@ -26,13 +26,13 @@ picWidth = 2560
 picHeight = 1440
 
 cellSize :: Num a => a
-cellSize = 20
+cellSize = 40
 
 main :: IO ()
 main = do
     let grid = (\[a] -> a) . M.toList <$> last gridGenerations
     render "out/fabric.png" picWidth picHeight $ do
-        cairoScope (setColor white >> paint)
+        cairoScope (setColor black >> paint)
         renderGrid cellSize grid
 
 instance DrawToSize Tile where
