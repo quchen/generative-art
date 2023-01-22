@@ -9,6 +9,7 @@ import qualified Data.MultiSet as M
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as Cairo hiding (transform, x, y)
 import System.Random.MWC (create, initialize)
+import Text.Printf (printf)
 
 import Draw
 import Draw.Grid
@@ -38,23 +39,23 @@ exampleGrid = fromList
     ]
 
 testDrawGrid :: TestTree
-testDrawGrid = testVisual "3x3 Grid" 240 240 "docs/grid" $ \(w, h) ->
+testDrawGrid = testVisual "3x3 Grid" 240 240 "docs/wave_function_collapse/grid" $ \(w, h) ->
     drawGrid (w, h) exampleGrid
 
 testDuplicate :: TestTree
-testDuplicate = testVisual "Duplicated grid" 240 240 "docs/grid_duplicate" $ \(w, h) ->
+testDuplicate = testVisual "Duplicated grid" 240 240 "docs/wave_function_collapse/grid_duplicate" $ \(w, h) ->
     drawGrid (w, h) (duplicate exampleGrid)
 
 testStencil :: TestTree
-testStencil = testVisual "Create stencils from grid" 240 240 "docs/grid_stencil" $ \(w, h) ->
+testStencil = testVisual "Create stencils from grid" 240 240 "docs/wave_function_collapse/grid_stencil" $ \(w, h) ->
     drawGrid (w, h) (extend stencil3x3 exampleGrid)
 
 testStencilToGrid :: TestTree
-testStencilToGrid = testVisual "Create stencils from grid" 240 240 "docs/grid_stencil_grid" $ \(w, h) ->
+testStencilToGrid = testVisual "Create stencils from grid" 240 240 "docs/wave_function_collapse/grid_stencil_grid" $ \(w, h) ->
     drawGrid (w, h) (stencilToGrid <$> extend stencil3x3 exampleGrid)
 
 testCollapse :: TestTree
-testCollapse = testVisual "Collapse grid at position" 240 240 "docs/grid_collapse" $ \(w, h) ->
+testCollapse = testVisual "Collapse grid at position" 240 240 "docs/wave_function_collapse/grid_collapse" $ \(w, h) ->
     drawGrid (w, h) $ runST $ do
         gen <- create
         let settings = settingsFromGrid example
@@ -64,9 +65,9 @@ testCollapse = testVisual "Collapse grid at position" 240 240 "docs/grid_collaps
 
 testPropagate :: TestTree
 testPropagate = testGroup "Propagation"
-    [ testVisual ("Generation " ++ show i) 720 720 ("docs/propagation_" ++ show i) $ \(w, h) ->
+    [ testVisual (printf "Generation %i" i) 720 720 (printf "docs/wave_function_collapse/propagation_%i" i) $ \(w, h) ->
         drawGrid (w, h) (getTouched <$> grid)
-    | (i, grid) <- take 7 $ zip [0..] generations
+    | (i, grid) <- take 7 $ zip [0 :: Int ..] generations
     ]
   where
     settings = settingsFromGrid example
@@ -80,8 +81,8 @@ testWaveFunctionCollapse = testCase "WaveFunctionCollapse" $ do
     let w, h :: Num a => a
         w = 480
         h = 480
-    for_ (zip [1..] steps) $ \(i, step) ->
-        renderAllFormats w h ("WaveFunctionCollapse step " ++ show i) $
+    for_ (zip [1 :: Int ..] steps) $ \(i, step) ->
+        renderAllFormats w h (printf "docs/wave_function_collapse/wave_function_collapse_%02i" i) $
             drawGrid (w, h) (averageColor . fmap extractStencil . M.toList <$> step)
   where
     steps = runST $ do
@@ -92,8 +93,6 @@ testWaveFunctionCollapse = testCase "WaveFunctionCollapse" $ do
 instance DrawToSize (Color Double) where
     drawToSize (w, h) color = cairoScope $ do
         sketch (Polygon [Vec2 0 0, Vec2 w 0, Vec2 w h, Vec2 0 h])
-        setColor black
-        strokePreserve
         setColor color
         fill
 
@@ -104,8 +103,8 @@ data XO = X | O deriving (Eq, Ord, Show)
 
 toColor :: XO -> Color Double
 toColor = \case
-    X -> rgb 1 1 1
-    O -> rgb 1 0 0
+    X -> blend 0.1 white $ mathematica97 1
+    O -> blend 0.1 white $ mathematica97 0
 
 example :: Grid XO
 example = fromList

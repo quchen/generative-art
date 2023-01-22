@@ -29,8 +29,8 @@ drawGrid (w, h) grid@(Grid l _ _ u zz) = cairoScope $ do
         drawToSize (cellW, cellH) content
     highlightCurrent = do
         Cairo.translate (fromIntegral l * cellW) (fromIntegral u * cellH)
-        Cairo.setLineWidth 2
-        setColor $ rgb 0 0 1
+        Cairo.setLineWidth 1
+        setColor $ mathematica97 3
         sketch (Polygon [Vec2 0 0, Vec2 cellW 0, Vec2 cellW cellH, Vec2 0 cellH])
         Cairo.stroke
 
