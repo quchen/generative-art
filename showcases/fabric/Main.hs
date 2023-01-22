@@ -34,6 +34,9 @@ main = do
     render "out/fabric.png" picWidth picHeight $ do
         cairoScope (setColor black >> paint)
         renderGrid cellSize grid
+    render "out/fabric.svg" picWidth picHeight $ do
+        cairoScope (setColor black >> paint)
+        renderGrid cellSize grid
 
 instance DrawToSize Tile where
     drawToSize (w, h) = drawCell (min w h)
