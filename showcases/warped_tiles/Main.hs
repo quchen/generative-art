@@ -4,12 +4,13 @@ module Main (main) where
 
 
 
+import Control.Monad.Primitive
 import Data.List ( sortOn, (\\) )
 import Data.Maybe ( fromMaybe, isJust, catMaybes )
 import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
-import System.Random.MWC ( initialize, uniformRM, GenIO )
+import System.Random.MWC ( initialize, uniformRM, GenIO, create, Gen )
 
 import Draw
 import Geometry as G
@@ -23,6 +24,8 @@ import Numerics.VectorAnalysis (grad, divergence)
 import Numerics.DifferentialEquation (rungeKuttaAdaptiveStep)
 import Geometry.Algorithms.Voronoi (Voronoi(_voronoiCells))
 import Data.List.Extended (nubOrd)
+import Control.Monad.ST
+import Data.Traversable
 
 
 
@@ -41,11 +44,12 @@ main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 1
-    let iso = isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (128, 72)} potential
+    let iso = isoLines GridSpec { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (256, 144)} potential
         potentialLines = 
             [ Polyline isoline
-            | z <- [3, 3.3 .. 10]
-            , isoline <- iso z
+            | z <- [-50, -49.7 .. 20]
+            , isoline@(p:_) <- iso z
+            , and [ norm (p -. p') > 20 | (p', _) <- charges ]
             ]
         fieldLines = sampleFieldLines
         intersectionPoints = nubOrd $ do
@@ -75,7 +79,17 @@ chaikin lambda (Polygon ps@(p:_)) = Polygon $ concat
     ]
 
 charges :: [(Vec2, Double)]
-charges = [ (Vec2 500 300, 1), (Vec2 2000 500, -1), (Vec2 1500 1000, 1) ]
+charges = traceShowId $ runST $ do
+    gen <- create
+    ps <- poissonDisc gen PoissonDiscParams { _poissonK = 10, _poissonShape = canvas, _poissonRadius = 800 }
+    for ps $ \p -> do
+        q <- pick gen [-1, 1]
+        pure (p, q)
+
+pick :: PrimMonad m => Gen (PrimState m) -> [a] -> m a
+pick gen xs = do
+    i <- uniformRM (0, length xs - 1) gen
+    pure (xs !! i)
 
 potential :: Vec2 -> Double
 potential p = sum [ q * log (norm (p -. p')) | (p', q) <- charges ]
@@ -104,7 +118,7 @@ sampleFieldLines = go charges [] []
     go ((p, q):cs) sourcePoints fls' =
         go cs' (catMaybes targetPoints ++ sourcePoints) (fls' ++ fls)
       where
-        deltaPhi = 15 / abs q
+        deltaPhi = 24 / abs q
         psis =
             [ angleOfLine (Line p' (last fl'))
             | ((p', _), Polyline fl') <- sourcePoints
