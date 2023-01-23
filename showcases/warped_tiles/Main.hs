@@ -56,7 +56,8 @@ main = render file picWidth picHeight $ do
             pl <- potentialLines
             fl <- fieldLines
             lineIntersections pl fl
-        cells = _voronoiCells $ toVoronoi $ bowyerWatson canvas (intersectionPoints ++ (fst <$> charges))
+        triangles = bowyerWatson canvas (intersectionPoints ++ (fst <$> charges))
+        cells = _voronoiCells $ toVoronoi triangles
     for_ potentialLines $ \l -> do
         sketch l
         stroke
@@ -64,10 +65,13 @@ main = render file picWidth picHeight $ do
         setColor (black `withOpacity` 0.3)
         sketch l
         stroke
-    for_ cells $ \VoronoiCell{..} -> do
-        let area = polygonArea _voronoiRegion
-        sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) _voronoiRegion
-        C.fill
+    for_ (getPolygons triangles) $ \poly -> do
+        sketch poly
+        C.stroke
+    --for_ cells $ \VoronoiCell{..} -> do
+    --    let area = polygonArea _voronoiRegion
+    --    sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) _voronoiRegion
+    --    C.fill
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
