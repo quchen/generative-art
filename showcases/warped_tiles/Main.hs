@@ -54,7 +54,9 @@ main = render file picWidth picHeight $ do
             pl <- potentialLines
             fl <- fieldLines
             lineIntersections pl fl
-        cells = clipCellsToBox canvas $ voronoiCells $ delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
+        triangulation = delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
+        triangles = delaunayTriangles triangulation
+        cells = clipCellsToBox canvas $ voronoiCells triangulation
     for_ potentialLines $ \l -> do
         sketch l
         stroke
@@ -62,10 +64,13 @@ main = render file picWidth picHeight $ do
         setColor (black `withOpacity` 0.3)
         sketch l
         stroke
-    for_ cells $ \cell -> do
-        let area = polygonArea cell
-        sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
-        C.fill
+    for_ triangles $ \poly -> do
+        sketch poly
+        C.stroke
+    --for_ cells $ \cell -> do
+    --    let area = polygonArea cell
+    --    sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
+    --    C.fill
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
