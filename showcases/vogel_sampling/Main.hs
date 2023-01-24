@@ -3,6 +3,7 @@ module Main (main) where
 
 
 
+import Data.Colour.Names
 import Data.List ( sortOn )
 import Data.Maybe ( fromMaybe )
 import Data.Ord ( comparing )
@@ -16,7 +17,7 @@ import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Sampling.Vogel
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, when)
 import Control.Applicative (Applicative(liftA2))
 
 
@@ -30,20 +31,28 @@ file = "out/voronoi_3d.png"
 
 main :: IO ()
 main = do
+    let center = Vec2 720 720
     let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
             { _vogelRadius = 720 * sqrt 2
-            , _vogelCenter = Vec2 720 720
-            , _vogelDensity = 0.0008
+            , _vogelCenter = center
+            , _vogelDensity = 0.0005
             }
+        cutoff = 680
 
     let seeds = V.toList $ V.last $ V.iterateN 5 (lloydRelaxation extents 1) $ V.fromList points
-        cells = V.toList $ clipCellsToBox extents $ voronoiCells $ delaunayTriangulation seeds
-        voronoi = filter (\(seed, _) -> norm (seed -. Vec2 720 720) < 680) $ zip seeds cells
+        delaunay = delaunayTriangulation seeds
+        cells = V.toList $ clipCellsToBox extents $ voronoiCells delaunay
+        voronoi = filter (\(seed, _) -> norm (seed -. center) < cutoff) $ zip seeds cells
 
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
+        for_ (delaunayTriangles delaunay) $ \poly@(Polygon ps) -> cairoScope $ do
+            when (all (\p -> norm (p -. center) < cutoff) ps) $ do
+                setColor mediumseagreen
+                sketch poly
+                C.stroke
         for_ voronoi $ \(seed, cell) -> do
-            let cellGutter = 6 - norm (Vec2 720 720 -. seed) / (18*12)
+            let cellGutter = 6 - norm (center -. seed) / (18*12)
             drawCell (growPolygon (-cellGutter) cell)
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -53,7 +62,7 @@ drawCell cell = cairoScope $ do
     C.setLineJoin C.LineJoinBevel
     sketch (chaikin 0.25 (chaikin 0.25 (chaikin 0.15 cell)))
     setColor black
-    fill
+    stroke
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
