@@ -9,6 +9,7 @@ dependencies:
     - generative-art
     - base
     - cairo
+    - colour
     - mwc-random
     - Noise
     - vector

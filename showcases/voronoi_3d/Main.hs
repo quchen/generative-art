@@ -3,6 +3,7 @@ module Main (main, main0, main1, main2, main3) where
 
 
 
+import Data.Colour.Names
 import Data.List ( sortOn )
 import Data.Maybe ( fromMaybe )
 import Data.Ord ( comparing )
@@ -17,7 +18,7 @@ import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Sampling.Vogel
 import Geometry.Algorithms.Voronoi
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, when)
 import Control.Applicative (Applicative(liftA2))
 
 
@@ -57,17 +58,25 @@ uniformDistribution count = do
 
 main1 :: IO ()
 main1 = do
+    let center = Vec2 720 720
     let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
             { _vogelRadius = 720 * sqrt 2
-            , _vogelCenter = Vec2 720 720
-            , _vogelDensity = 0.0008
+            , _vogelCenter = center
+            , _vogelDensity = 0.0005
             }
+        cutoff = 680
 
-    let voronoi = toVoronoi $ lloydRelaxation 5 (bowyerWatson extents points)
-        voronoiCells = filter (\VoronoiCell{..} -> norm (_voronoiSeed -. Vec2 720 720) < 680) $ _voronoiCells voronoi
+    let delaunay = lloydRelaxation 5 (bowyerWatson extents points)
+        voronoi = toVoronoi delaunay
+        voronoiCells = filter (\VoronoiCell{..} -> norm (_voronoiSeed -. center) < cutoff) $ _voronoiCells voronoi
 
     render file 1440 1440 $ do
         cairoScope (setColor white >> paint)
+        for_ (getPolygons delaunay) $ \poly@(Polygon ps) -> cairoScope $ do
+            when (all (\p -> norm (p -. center) < cutoff) ps) $ do
+                setColor mediumseagreen
+                sketch poly
+                C.stroke
         for_ voronoiCells $ \cell@VoronoiCell{..} -> do
             let cellGutter = 6 - norm (Vec2 720 720 -. _voronoiSeed) / (18*12)
             drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
@@ -94,7 +103,7 @@ drawCell VoronoiCell{..} = cairoScope $ do
     C.setLineJoin C.LineJoinBevel
     sketch (Polygon ps)
     setColor black
-    fill
+    stroke
   where
     Polygon ps = chaikin 0.25 (chaikin 0.25 (chaikin 0.15 _voronoiRegion))
 
