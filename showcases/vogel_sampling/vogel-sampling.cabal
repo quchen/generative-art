@@ -29,6 +29,7 @@ executable vogel-sampling
       Noise
     , base
     , cairo
+    , colour
     , generative-art
     , mwc-random
     , vector

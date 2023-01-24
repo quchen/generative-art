@@ -3,6 +3,7 @@ module Main (main) where
 
 
 
+import Data.Colour.Names
 import Data.List ( sortOn )
 import Data.Maybe ( fromMaybe )
 import Data.Ord ( comparing )
@@ -16,44 +17,61 @@ import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Sampling.Vogel
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, when)
 import Control.Applicative (Applicative(liftA2))
 
 
 
-picWidth, picHeight :: Num a => a
-picWidth = 2560
+picWidth, picHeight, squareSize :: (Num a, Ord a) => a
+picWidth = 1440
 picHeight = 1440
+squareSize = min picWidth picHeight
 
 file :: FilePath
-file = "out/voronoi_3d.png"
+file = "out/vogel_sampling.png"
 
 main :: IO ()
 main = do
-    let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
-            { _vogelRadius = 720 * sqrt 2
-            , _vogelCenter = Vec2 720 720
-            , _vogelDensity = 0.0008
+    let center = Vec2 (picWidth/2) (picHeight/2)
+        extents = boundingBox [Vec2 0 0, Vec2 picWidth picHeight]
+
+    let seeds = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
+            { _vogelRadius = squareSize / sqrt 2
+            , _vogelCenter = center
+            , _vogelDensity = 1282.10688 / squareSize^2
             }
+        cutoff = 0.47 * squareSize
+    
+    print (length seeds)
 
-    let seeds = V.toList $ V.last $ V.iterateN 5 (lloydRelaxation extents 1) $ V.fromList points
-        cells = V.toList $ clipCellsToBox extents $ voronoiCells $ delaunayTriangulation seeds
-        voronoi = filter (\(seed, _) -> norm (seed -. Vec2 720 720) < 680) $ zip seeds cells
+    let delaunay = delaunayTriangulation seeds
+        cells = V.toList $ clipCellsToBox extents $ voronoiCells delaunay
+        triangles = filter
+            (\(Polygon ps) -> all (\p -> norm (p -. center) < cutoff) ps)
+            (V.toList $ delaunayTriangles delaunay)
+        voronoi = filter
+            (\(seed, _) -> norm (seed -. center) < cutoff)
+            (zip seeds cells)
+        addCellGutter (seed, poly) =
+            let cellGutter = 2 + norm (center -. seed) / (12*12)
+            in  (seed, shrinkPolygon cellGutter poly)
+        voronoiSmoothed = fmap (snd . fmap (chaikin 0.25 . chaikin 0.25 . chaikin 0.15) . addCellGutter) voronoi
 
-    render file 1440 1440 $ do
+    render file picWidth picHeight $ do
         cairoScope (setColor white >> paint)
-        for_ voronoi $ \(seed, cell) -> do
-            let cellGutter = 6 - norm (Vec2 720 720 -. seed) / (18*12)
-            drawCell (growPolygon (-cellGutter) cell)
-  where
-    extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
-
-drawCell :: Polygon -> Render ()
-drawCell cell = cairoScope $ do
-    C.setLineJoin C.LineJoinBevel
-    sketch (chaikin 0.25 (chaikin 0.25 (chaikin 0.15 cell)))
-    setColor black
-    fill
+        C.setLineJoin C.LineJoinBevel
+        cairoScope $ do 
+            setColor black
+            setLineWidth 0.25
+            for_ triangles $ \poly -> do
+                sketch poly
+                C.stroke
+        cairoScope $ do
+            setColor black
+            setLineWidth 1
+            for_ voronoiSmoothed $ \cell -> do
+                sketch cell
+                C.stroke
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
