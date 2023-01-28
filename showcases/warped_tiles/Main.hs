@@ -17,7 +17,7 @@ import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Voronoi
 import Geometry.Algorithms.Sampling
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, guard)
 import Control.Applicative (Applicative(liftA2))
 import Debug.Trace
 import Numerics.VectorAnalysis (grad, divergence)
@@ -58,20 +58,20 @@ main = render file picWidth picHeight $ do
             lineIntersections pl fl
         triangles = bowyerWatson canvas (intersectionPoints ++ (fst <$> charges))
         cells = _voronoiCells $ toVoronoi triangles
-    for_ potentialLines $ \l -> do
-        sketch l
-        stroke
-    for_ fieldLines $ \l -> cairoScope $ do
-        setColor (black `withOpacity` 0.3)
-        sketch l
-        stroke
+    --for_ potentialLines $ \l -> do
+    --    sketch l
+    --    stroke
+    --for_ fieldLines $ \l -> cairoScope $ do
+    --    setColor (black `withOpacity` 0.3)
+    --    sketch l
+    --    stroke
     for_ (getPolygons triangles) $ \poly -> do
         sketch poly
         C.stroke
-    --for_ cells $ \VoronoiCell{..} -> do
-    --    let area = polygonArea _voronoiRegion
-    --    sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) _voronoiRegion
-    --    C.fill
+    -- for_ cells $ \VoronoiCell{..} -> do
+    --     let area = polygonArea _voronoiRegion
+    --     sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) _voronoiRegion
+    --     C.fill
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
@@ -87,7 +87,7 @@ charges = traceShowId $ runST $ do
     gen <- create
     ps <- poissonDisc gen PoissonDiscParams { _poissonK = 10, _poissonShape = canvas, _poissonRadius = 800 }
     for ps $ \p -> do
-        q <- pick gen [-1, 1]
+        q <- pick gen [-1, -0.5, 0.5, 1]
         pure (p, q)
 
 pick :: PrimMonad m => Gen (PrimState m) -> [a] -> m a
