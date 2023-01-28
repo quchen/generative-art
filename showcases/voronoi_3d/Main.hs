@@ -79,6 +79,8 @@ main1 = do
                 C.stroke
         for_ voronoiCells $ \cell@VoronoiCell{..} -> do
             let cellGutter = 6 - norm (Vec2 720 720 -. _voronoiSeed) / (18*12)
+            let l = 1 - norm (center -. _voronoiSeed) / cutoff
+            setColor (black `withOpacity` l)
             drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
   where
     extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
@@ -102,7 +104,6 @@ drawCell :: VoronoiCell a -> Render ()
 drawCell VoronoiCell{..} = cairoScope $ do
     C.setLineJoin C.LineJoinBevel
     sketch (Polygon ps)
-    setColor black
     stroke
   where
     Polygon ps = chaikin 0.25 (chaikin 0.25 (chaikin 0.15 _voronoiRegion))
