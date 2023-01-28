@@ -58,32 +58,36 @@ uniformDistribution count = do
 
 main1 :: IO ()
 main1 = do
-    let center = Vec2 720 720
+    let center = Vec2 (picWidth/2) (picHeight/2)
     let points = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
-            { _vogelRadius = 720 * sqrt 2
+            { _vogelRadius = 1440
             , _vogelCenter = center
-            , _vogelDensity = 0.0005
+            , _vogelDensity = 0.0004
             }
-        cutoff = 680
+        cutoff = 1080
 
     let delaunay = lloydRelaxation 5 (bowyerWatson extents points)
         voronoi = toVoronoi delaunay
-        voronoiCells = filter (\VoronoiCell{..} -> norm (_voronoiSeed -. center) < cutoff) $ _voronoiCells voronoi
+        backToFront (Polygon ps) = maximum (yCoordinate <$> ps)
+        voronoiCells = sortOn (backToFront . _voronoiRegion) $ filter (\VoronoiCell{..} -> norm (_voronoiSeed -. center) < cutoff) $ _voronoiCells voronoi
 
-    render file 1440 1440 $ do
+    render file picWidth picHeight $ do
         cairoScope (setColor white >> paint)
         for_ (getPolygons delaunay) $ \poly@(Polygon ps) -> cairoScope $ do
             when (all (\p -> norm (p -. center) < cutoff) ps) $ do
-                setColor mediumseagreen
-                sketch poly
+                setColor (blend 0.5 white black)
+                sketch (G.transform isometricPerspective poly)
                 C.stroke
-        for_ voronoiCells $ \cell@VoronoiCell{..} -> do
+        for_ voronoiCells $ \cell@VoronoiCell{..} -> cairoScope $ do
             let cellGutter = 6 - norm (Vec2 720 720 -. _voronoiSeed) / (18*12)
-            let l = 1 - norm (center -. _voronoiSeed) / cutoff
-            setColor (black `withOpacity` l)
-            drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
+            let l = 1 -- norm (center -. _voronoiSeed) / cutoff
+            let h = 240 - 38*log (40 + norm (center -. _voronoiSeed))
+            for_ [0 .. h] $ \y -> cairoScope $ do
+                C.translate 0 (-y)
+                setColor (black `withOpacity` l)
+                drawCell cell { _voronoiRegion = growPolygon (-cellGutter) _voronoiRegion }
   where
-    extents = BoundingBox (Vec2 0 0) (Vec2 1440 1440)
+    extents = BoundingBox (Vec2 0 (-picWidth)) (Vec2 picWidth (2*picWidth))
 
 poissonDiscDistribution :: Int -> IO [Vec2]
 poissonDiscDistribution count = do
@@ -104,9 +108,11 @@ drawCell :: VoronoiCell a -> Render ()
 drawCell VoronoiCell{..} = cairoScope $ do
     C.setLineJoin C.LineJoinBevel
     sketch (Polygon ps)
-    stroke
+    strokePreserve
+    setColor white
+    fill
   where
-    Polygon ps = chaikin 0.25 (chaikin 0.25 (chaikin 0.15 _voronoiRegion))
+    Polygon ps = G.transform isometricPerspective $ chaikin 0.25 (chaikin 0.25 (chaikin 0.15 _voronoiRegion))
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
@@ -219,8 +225,6 @@ isometricPerspective :: Transformation
 isometricPerspective =
        G.translate (Vec2 0 (picHeight/5))
     <> G.scaleAround' origin 1 0.35
-    <> G.rotateAround origin (deg 45)
-    <> G.translate (Vec2 560 0)
   where
     origin = Vec2 (picWidth/2) (picHeight/2)
 
