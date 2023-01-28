@@ -16,7 +16,7 @@ import Draw
 import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
-import Control.Monad (replicateM)
+import Control.Monad (replicateM, guard)
 import Control.Applicative (Applicative(liftA2))
 import Debug.Trace
 import Numerics.VectorAnalysis (grad, divergence)
@@ -57,20 +57,20 @@ main = render file picWidth picHeight $ do
         triangulation = delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
         triangles = delaunayTriangles triangulation
         cells = clipCellsToBox canvas $ voronoiCells triangulation
-    for_ potentialLines $ \l -> do
-        sketch l
-        stroke
-    for_ fieldLines $ \l -> cairoScope $ do
-        setColor (black `withOpacity` 0.3)
-        sketch l
-        stroke
+    --for_ potentialLines $ \l -> do
+    --    sketch l
+    --    stroke
+    --for_ fieldLines $ \l -> cairoScope $ do
+    --    setColor (black `withOpacity` 0.3)
+    --    sketch l
+    --    stroke
     for_ triangles $ \poly -> do
         sketch poly
         C.stroke
-    --for_ cells $ \cell -> do
-    --    let area = polygonArea cell
-    --    sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
-    --    C.fill
+    -- for_ cells $ \cell -> do
+    --     let area = polygonArea cell
+    --     sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
+    --     C.fill
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
@@ -89,7 +89,7 @@ charges = traceShowId $ runST $ do
         poissonK = 10
     ps <- poissonDisc gen poissonShape poissonRadius poissonK
     for ps $ \p -> do
-        q <- pick gen [-1, 1]
+        q <- pick gen [-1, -0.5, 0.5, 1]
         pure (p, q)
 
 pick :: PrimMonad m => Gen (PrimState m) -> [a] -> m a
