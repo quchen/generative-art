@@ -6,6 +6,7 @@ module Test.Data.Grid (tests) where
 
 
 import Data.Grid
+import qualified Data.Map as M
 
 import Test.TastyAll
 
@@ -14,25 +15,30 @@ import Test.TastyAll
 tests :: TestTree
 tests = localOption (QuickCheckMaxSize 15) $ testGroup "Data.Grid"
     [ testGroup "Comonad laws"
-        [ testProperty "extract . duplicate ≡ id" $ \(g :: Grid Int) ->
+        [ testProperty "extract . duplicate ≡ id" $ \(g :: RectilinearGrid Int) ->
             extract (duplicate g) === g
-        , testProperty "fmap extract . duplicate ≡ id" $ \(g :: Grid Int) ->
+        , testProperty "fmap extract . duplicate ≡ id" $ \(g :: RectilinearGrid Int) ->
             fmap extract (duplicate g) === g
-        , testProperty "duplicate . duplicate ≡ fmap duplicate . duplicate" $ \(g :: Grid Int) ->
+        , testProperty "duplicate . duplicate ≡ fmap duplicate . duplicate" $ \(g :: RectilinearGrid Int) ->
             duplicate (duplicate g) === fmap duplicate (duplicate g)
         ]
-    , testProperty "size" $ \(Positive w) (Positive h) -> forAll (listOfLength h (listOfLength w arbitrary)) $ \(xss :: [[Int]]) ->
-        size (fromList xss) === (w, h)
+    , testProperty "size" $ \(Positive w) (Positive h) -> forAll (gridOfSize w h arbitrary) $ \(grid :: RectilinearGrid Int) ->
+        size grid === (w, h)
     ]
 
-instance Arbitrary a => Arbitrary (Grid a) where
+instance Arbitrary a => Arbitrary (Grid (Int, Int) a) where
     arbitrary = do
         Positive w <- arbitrary
         Positive h <- arbitrary
-        Grid _ d r _ xs <- fromList <$> listOfLength h (listOfLength w arbitrary)
-        x <- chooseInt (0, r)
-        y <- chooseInt (0, d)
-        pure (Grid x (d-y) (r-x) y xs)
+        gridOfSize w h arbitrary
 
 listOfLength :: Int -> Gen a -> Gen [a]
 listOfLength n gen = replicateM n gen
+
+gridOfSize :: Int -> Int -> Gen a -> Gen (RectilinearGrid a)
+gridOfSize w h gen = do
+    items <- listOfLength (w*h) gen
+    let xs = M.fromList (zip [(x, y) | x <- [0..w-1], y <- [0..h-1]] items)
+    x <- chooseInt (0, w-1)
+    y <- chooseInt (0, h-1)
+    pure (Grid (x, y) xs)

@@ -14,13 +14,13 @@ import Geometry
 
 
 drawGrid :: DrawToSize a => (Double, Double) -> RectilinearGrid a -> Cairo.Render ()
-drawGrid (w, h) (Grid (x0, y0) xs) = cairoScope $ do
+drawGrid (w, h) g@(Grid (x0, y0) xs) = cairoScope $ do
     Cairo.translate margin margin
     for_ (Map.toList xs) $ \((x, y), cell) -> do
         drawCell x y cell
     highlightCurrent
   where
-    (gridW, gridH) = maximum (Map.keys xs)
+    (gridW, gridH) = size g
     margin = (w + h) * 0.05
     cellW = (w-2*margin) / fromIntegral gridW
     cellH = (h-2*margin) / fromIntegral gridH

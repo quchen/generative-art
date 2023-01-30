@@ -31,8 +31,8 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     , localOption (Timeout (20*10^6) "20s") testWaveFunctionCollapse
     ]
 
-exampleGrid :: Grid XO
-exampleGrid = fromList
+exampleGrid :: RectilinearGrid XO
+exampleGrid = from2DList
     [ [ X, O, X ]
     , [ X, X, O ]
     , [ X, O, O ]
@@ -58,8 +58,8 @@ testCollapse :: TestTree
 testCollapse = testVisual "Collapse grid at position" 240 240 "docs/wave_function_collapse/grid_collapse" $ \(w, h) ->
     drawGrid (w, h) $ runST $ do
         gen <- create
-        let settings = settingsFromGrid example
-            initial = initialGrid settings 6 6
+        let settings = settingsFromGrid (6, 6) example
+            initial = initialGrid settings
         Just grid <- pickMin gen initial
         propagate (wfcLocalProjection settings) <$> collapse gen grid
 
@@ -70,10 +70,10 @@ testPropagate = testGroup "Propagation"
     | (i, grid) <- take 7 $ zip [0 :: Int ..] generations
     ]
   where
-    settings = settingsFromGrid example
+    settings = settingsFromGrid (6, 6) example
     generations = iterate (extend (wfcLocalProjection settings)) $ runST $ do
         gen <- create
-        let initial = initialGrid settings 6 6
+        let initial = initialGrid settings
         mapCurrent (Touched . getTouched) . fmap Untouched <$> collapse gen initial
 
 testWaveFunctionCollapse :: TestTree
@@ -87,7 +87,7 @@ testWaveFunctionCollapse = testCase "WaveFunctionCollapse" $ do
   where
     steps = runST $ do
         gen <- initialize (V.fromList [5])
-        wfc (settingsFromGrid example) 20 20 gen
+        wfc (settingsFromGrid (20, 20) example) gen
     averageColor = average . fmap toColor
 
 instance DrawToSize (Color Double) where
@@ -106,8 +106,8 @@ toColor = \case
     X -> blend 0.1 white $ mathematica97 1
     O -> blend 0.1 white $ mathematica97 0
 
-example :: Grid XO
-example = fromList
+example :: RectilinearGrid XO
+example = from2DList
     [ [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
     , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
     , [ X, X, X, O, X, X, X, X, X, O, X, X, X ]
@@ -116,3 +116,6 @@ example = fromList
     , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
     , [ X, X, X, X, X, X, O, X, X, X, X, X, X ]
     ]
+
+from2DList :: [[a]] -> RectilinearGrid a
+from2DList = fromList . concat . zipWith (\y vs -> fmap (\(x, v) -> ((x, y), v)) vs) [0..] . fmap (zip [0..])
