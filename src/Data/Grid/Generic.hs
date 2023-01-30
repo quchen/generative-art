@@ -19,8 +19,9 @@ import qualified Data.Map.Strict as M
 
 data Grid k a = Grid k (M.Map k a) deriving (Eq, Ord, Show, Functor)
 
-fromList :: Ord k => k -> [(k, a)] -> Grid k a
-fromList k = Grid k . M.fromList
+fromList :: Ord k => [(k, a)] -> Grid k a
+fromList [] = error "Cannot construct empty grid"
+fromList xs@((k0, _):_) = Grid k0 (M.fromList xs)
 
 toList :: Grid k a -> [(k, a)]
 toList (Grid _ xs) = M.toList xs

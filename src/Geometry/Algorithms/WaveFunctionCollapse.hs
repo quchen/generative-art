@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TupleSections #-}
 module Geometry.Algorithms.WaveFunctionCollapse (
       WfcSettings(..)
     , settingsFromGrid
@@ -27,10 +28,10 @@ import Control.Monad ((>=>))
 import Control.Monad.ST
 import Data.Function (on)
 import Data.List (sortOn, groupBy)
-import Data.Maybe (maybeToList, catMaybes)
+import qualified Data.Map as Map
+import Data.Maybe (maybeToList, catMaybes, mapMaybe)
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as M
-import qualified Data.Vector as V
 import System.Random.MWC as MWC
 
 import Data.Grid
@@ -38,34 +39,35 @@ import Draw.Grid
 
 
 
-data WfcSettings a = WfcSettings
-    { wfcTiles :: MultiSet a
-    , wfcLocalProjection :: Grid (Touched (MultiSet a)) -> Touched (MultiSet a)
+data WfcSettings coord a = WfcSettings
+    { wfcRange :: [coord]
+    , wfcTiles :: MultiSet a
+    , wfcLocalProjection :: Grid coord (Touched (MultiSet a)) -> Touched (MultiSet a)
     }
 
-wfc :: (Eq a, Ord a) => WfcSettings a -> Int -> Int -> MWC.GenST x -> ST x [Grid (MultiSet a)]
-wfc settings width height gen = go (initialGrid settings width height)
+wfc :: (Ord coord, Eq a, Ord a) => WfcSettings coord a -> MWC.GenST x -> ST x [Grid coord (MultiSet a)]
+wfc settings gen = go (initialGrid settings)
   where
     go grid = fmap (grid :) $ wfcStep settings gen grid >>= \case
         Just grid' -> go grid'
         Nothing -> pure []
 
-wfcStep :: (Eq a, Ord a) => WfcSettings a -> MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
+wfcStep :: (Ord coord, Eq a, Ord a) => WfcSettings coord a -> MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Maybe (Grid coord (MultiSet a)))
 wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
     Just grid' -> Just . propagate wfcLocalProjection <$> collapse gen grid'
     Nothing -> pure Nothing
 
-initialGrid :: WfcSettings a -> Int -> Int -> Grid (MultiSet a)
-initialGrid WfcSettings{..} width height = fromList $ replicate height (replicate width wfcTiles)
+initialGrid :: Ord coord => WfcSettings coord a -> Grid coord (MultiSet a)
+initialGrid WfcSettings{..} = fromList $ [ (c, wfcTiles) | c <- wfcRange ]
 
-pickMin :: MWC.GenST x -> Grid (MultiSet a) -> ST x (Maybe (Grid (MultiSet a)))
+pickMin :: Ord coord => MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Maybe (Grid coord (MultiSet a)))
 pickMin gen grid = case gridsWithLowestEntropy of
     Nothing -> pure Nothing
     Just xs -> Just <$> pick gen xs
   where
     lengthIndexed = fmap (\g -> (M.distinctSize (extract g), g)) (foldr (:) [] (duplicate grid))
     entropyIndexed = (\g -> (entropy (extract g), g)) . snd <$> filter ((> 1) . fst) lengthIndexed
-    gridsWithLowestEntropy = case groupBy ((==) `on` fst) $ sortOn fst $ entropyIndexed of
+    gridsWithLowestEntropy = case groupBy ((==) `on` fst) $ sortOn fst entropyIndexed of
         [] -> Nothing
         (lengthIndexedShortestGrids : _) -> Just (snd <$> lengthIndexedShortestGrids)
 
@@ -73,7 +75,7 @@ entropy :: MultiSet a -> Double
 entropy multiset = sum weights - sum ((\w -> w * log w) <$> weights) / sum weights
   where weights = fromIntegral . snd <$> M.toOccurList multiset
 
-collapse :: (Eq a, Ord a) => MWC.GenST x -> Grid (MultiSet a) -> ST x (Grid (MultiSet a))
+collapse :: (Ord coord, Eq a, Ord a) => MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Grid coord (MultiSet a))
 collapse gen = pick gen . eigenstates
 
 pick :: GenST x -> [a] -> ST x a
@@ -82,11 +84,11 @@ pick gen xs = do
     i <- uniformRM (0, len-1) gen
     pure (xs !! i)
 
-eigenstates :: (Eq a, Ord a) => Grid (MultiSet a) -> [Grid (MultiSet a)]
-eigenstates grid@(Grid l _ _ u _) = case M.toList (extract grid) of
+eigenstates :: (Ord coord, Eq a, Ord a) => Grid coord (MultiSet a) -> [Grid coord (MultiSet a)]
+eigenstates grid@(Grid c _) = case M.toList (extract grid) of
     [] -> []
     [_] -> [grid]
-    xs -> fmap (\x -> setAt (l, u) (M.singleton x) grid) xs
+    xs -> fmap (\x -> setAt c (M.singleton x) grid) xs
 
 data Touched a = Touched a | Untouched a deriving Functor
 
@@ -94,7 +96,7 @@ getTouched :: Touched p -> p
 getTouched (Touched a) = a
 getTouched (Untouched a) = a
 
-propagate :: Eq a => (Grid (Touched (MultiSet a)) -> Touched (MultiSet a)) -> Grid (MultiSet a) -> Grid (MultiSet a)
+propagate :: (Ord coord, Eq a) => (Grid coord (Touched (MultiSet a)) -> Touched (MultiSet a)) -> Grid coord (MultiSet a) -> Grid coord (MultiSet a)
 propagate projection = fmap getTouched . go . mapCurrent (Touched . getTouched) . fmap Untouched
   where
     go grid =
@@ -119,64 +121,58 @@ instance Foldable Stencil3x3 where
 instance DrawToSize a => DrawToSize (Stencil3x3 a) where
     drawToSize (w, h) = drawGrid (w, h) . stencilToGrid
 
-stencil3x3 :: Grid a -> Stencil3x3 a
-stencil3x3 (Grid l' d' r' u' xs) = Stencil3x3 a b c d e f g h i
+stencil3x3 :: RectilinearGrid a -> Stencil3x3 a
+stencil3x3 (Grid (x, y) xs) = Stencil3x3 a b c d e f g h i
   where
-    a | l' > 0 && u' > 0 = el (l'-1) (u'-1)
-      | otherwise = Nothing
-    b | u' > 0 = el l' (u'-1)
-      | otherwise = Nothing
-    c | r' > 0 && u' > 0 = el (l'+1) (u'-1)
-      | otherwise = Nothing
-    d | l' > 0 = el (l'-1) u'
-      | otherwise = Nothing
-    Just e = el l' u'
-    f | r' > 0 = el (l'+1) u'
-      | otherwise = Nothing
-    g | l' > 0 && d' > 0 = el (l'-1) (u'+1)
-      | otherwise = Nothing
-    h | d' > 0 = el l' (u'+1)
-      | otherwise = Nothing
-    i | r' > 0 && d' > 0 = el (l'+1) (u'+1)
-      | otherwise = Nothing
-    el x y = Just (xs V.! y V.! x)
-    
+    a = el (x-1, y-1)
+    b = el (x,   y-1)
+    c = el (x+1, y-1)
+    d = el (x-1, y)
+    Just e = el (x, y)
+    f = el (x+1, y)
+    g = el (x-1, y+1)
+    h = el (x,   y+1)
+    i = el (x+1, y+1)
+    el coord = Map.lookup coord xs
 
-stencils3x3 :: Grid a -> [Stencil3x3 a]
+
+stencils3x3 :: RectilinearGrid a -> [Stencil3x3 a]
 stencils3x3 = foldr (:) [] . extend stencil3x3
 
-stencilToGrid :: Stencil3x3 a -> Grid a
-stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid l' d' r' u' xs
+stencilToGrid :: Stencil3x3 a -> RectilinearGrid a
+stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (xmin, ymin) m
   where
-    l'  | Just _ <- d = 1
-        | otherwise = 0
-    d'  | Just _ <- h = 1
-        | otherwise = 0
-    r'  | Just _ <- f = 1
-        | otherwise = 0
-    u'  | Just _ <- b = 1
-        | otherwise = 0
-    xs = V.catMaybes $ V.fromList
-        [ case b of
-              Just _ -> Just $ V.catMaybes $ V.fromList [a, b, c]
-              Nothing -> Nothing,
-          Just $ V.catMaybes $ V.fromList [d, Just e, f],
-          case h of
-              Just _ -> Just $ V.catMaybes $ V.fromList [g, h, i]
-              Nothing -> Nothing
+    xs = mapMaybe (\(k, v) -> fmap (k,) v)
+        [ ((0, 0), a), ((1, 0), b), ((2, 0), c)
+        , ((0, 1), d), ((1, 1), Just e), ((2, 1), f)
+        , ((0, 2), g), ((1, 2), h), ((2, 2), i)
         ]
+    (xmin, ymin) = minimum (fst <$> xs)
+    m = Map.fromList (fmap (\((x, y), v) -> ((x-xmin, y-ymin), v)) xs)
 
-extractStencil :: Stencil3x3 a -> a 
+
+--        V.catMaybes $ V.fromList
+--        [ case b of
+--              Just _ -> Just $ V.catMaybes $ V.fromList [a, b, c]
+--              Nothing -> Nothing,
+--          Just $ V.catMaybes $ V.fromList [d, Just e, f],
+--          case h of
+--              Just _ -> Just $ V.catMaybes $ V.fromList [g, h, i]
+--              Nothing -> Nothing
+--        ]
+
+extractStencil :: Stencil3x3 a -> a
 extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e
 
-settingsFromGrid :: (Eq a, Ord a) => Grid a -> WfcSettings (Stencil3x3 a)
-settingsFromGrid grid = WfcSettings{..}
+settingsFromGrid :: (Eq a, Ord a) => (Int, Int) -> RectilinearGrid a -> WfcSettings (Int, Int) (Stencil3x3 a)
+settingsFromGrid (w, h) grid = WfcSettings{..}
   where
+    wfcRange = [ (x, y) | x <- [0..w-1], y <- [0..h-1] ]
     wfcTiles = M.fromList (filter onlyFullStencils (stencils3x3 grid))
     onlyFullStencils = \case
         Stencil3x3 (Just _) (Just _) (Just _) (Just _) _ (Just _) (Just _) (Just _) (Just _) -> True
         _otherwise -> False
-    wfcLocalProjection :: (Eq a, Ord a) => Grid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
+    wfcLocalProjection :: (Eq a, Ord a) => RectilinearGrid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
     wfcLocalProjection = remainingEigenvalues
 
 {-
@@ -201,7 +197,7 @@ _ d e   d e f   e f _
 _ g h   g h i   h i _
 _ _ _   _ _ _   _ _ _
 -}
-remainingEigenvalues :: (Eq a, Ord a) => Grid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
+remainingEigenvalues :: (Eq a, Ord a) => RectilinearGrid (Touched (MultiSet (Stencil3x3 a))) -> Touched (MultiSet (Stencil3x3 a))
 remainingEigenvalues grid
     | all isUntouched (fmap (fmap extract) (neighbouringDirections <*> [grid]))
     = Untouched oldState
@@ -228,7 +224,7 @@ remainingEigenvalues grid
         Nothing -> True
         Just (Untouched _) -> True
         _otherwise -> False
-    neighbouringDirections :: [Grid b -> Maybe (Grid b)]
+    neighbouringDirections :: [RectilinearGrid b -> Maybe (RectilinearGrid b)]
     neighbouringDirections =
         [ up >=> left
         , up

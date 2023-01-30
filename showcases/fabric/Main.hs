@@ -11,8 +11,8 @@ import           Data.Ord
 import           Graphics.Rendering.Cairo as C hiding (height, width, x, y)
 import           Prelude                  hiding ((**))
 import           System.Random.MWC
-import qualified Data.Vector as V
 
+import Data.Grid as Grid
 import Draw hiding (Cross)
 import Draw.Grid
 import Geometry                     as G
@@ -41,18 +41,16 @@ main = do
 instance DrawToSize Tile where
     drawToSize (w, h) = drawCell (min w h)
 
-gridGenerations :: [Grid (M.MultiSet Tile)]
+gridGenerations :: [RectilinearGrid (M.MultiSet Tile)]
 gridGenerations = runST $ do
     gen <- create
-    wfc wfcSettings (picWidth `div` cellSize) (picHeight `div` cellSize) gen
+    wfc wfcSettings gen
 
-renderGrid :: Double -> Grid Tile -> C.Render ()
-renderGrid cs grid@(Grid _ _ _ _ cells) = do
-    let (w, h) = size grid
-    for_ [0..w-1] $ \x -> for_ [0..h-1] $ \y -> cairoScope $ do
-        C.translate (fromIntegral x * cs) (fromIntegral y * cs)
-        setLineWidth (cs/2)
-        drawCell cs (cells V.! y V.! x)
+renderGrid :: Double -> RectilinearGrid Tile -> C.Render ()
+renderGrid cs grid = for_ (Grid.toList grid) $ \((x, y), cell) -> cairoScope $ do
+    C.translate (fromIntegral x * cs) (fromIntegral y * cs)
+    setLineWidth (cs/2)
+    drawCell cs cell
 
 drawCell :: Double -> Tile -> C.Render ()
 drawCell cs = cairoScope . \case
@@ -82,9 +80,10 @@ drawCell cs = cairoScope . \case
         setColor (mathematica97 j)
         C.stroke
 
-wfcSettings :: WfcSettings Tile
+wfcSettings :: WfcSettings (Int, Int) Tile
 wfcSettings = WfcSettings {..}
   where
+    wfcRange = [ (x, y) | x <- [0 .. picWidth `div` cellSize], y <- [0 .. picHeight `div` cellSize] ]
     wfcTiles = M.fromList $ concat
         [ [Empty]
         , Single Horizontal <$> colors
@@ -93,7 +92,7 @@ wfcSettings = WfcSettings {..}
         , Cross Vertical <$> colors <*> colors
         ]
       where colors = [0..3]
-    wfcLocalProjection :: Grid (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
+    wfcLocalProjection :: RectilinearGrid (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
     wfcLocalProjection grid
         | isUntouched neighboursLeft && isUntouched neighboursDown && isUntouched neighboursRight && isUntouched neighboursUp
         = Untouched oldState

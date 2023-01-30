@@ -1,11 +1,12 @@
-module Data.Grid.Hexagonal (
-      module G
+module Data.Grid.Rectilinear (
+      module Data.Grid.Generic
+    , RectilinearGrid
     , left
     , right
-    , upLeft
-    , upRight
-    , downLeft
-    , downRight
+    , up
+    , down
+
+    , size
 
     , Comonad(..)
 ) where
@@ -15,16 +16,17 @@ module Data.Grid.Hexagonal (
 import Control.Comonad
 import qualified Data.Map.Strict as M
 
-import Geometry.Coordinates.Hexagonal
-import Data.Grid.Generic hiding (Grid)
-import qualified Data.Grid.Generic as G
+import Data.Grid.Generic
 
 
 
-type Grid = G.Grid (Int, Int)
+type RectilinearGrid = Grid (Int, Int)
 
-left, right, up, down :: Grid a -> Maybe (Grid a)
-left  g@(G.Grid (x, y) xs) = fmap (const g) (xs M.!? (x-1, y))
-right g@(G.Grid (x, y) xs) = fmap (const g) (xs M.!? (x+1, y))
-up    g@(G.Grid (x, y) xs) = fmap (const g) (xs M.!? (x, y-1))
-down  g@(G.Grid (x, y) xs) = fmap (const g) (xs M.!? (x, y+1))
+left, right, up, down :: RectilinearGrid a -> Maybe (RectilinearGrid a)
+left  g@(Grid (x, y) xs) = fmap (const g) (xs M.!? (x-1, y))
+right g@(Grid (x, y) xs) = fmap (const g) (xs M.!? (x+1, y))
+up    g@(Grid (x, y) xs) = fmap (const g) (xs M.!? (x, y-1))
+down  g@(Grid (x, y) xs) = fmap (const g) (xs M.!? (x, y+1))
+
+size :: RectilinearGrid a -> (Int, Int)
+size (Grid _ xs) = maximum (M.keys xs)
