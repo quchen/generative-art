@@ -24,9 +24,14 @@ import qualified Data.Grid.Generic as G
 type Grid = G.Grid Hex
 
 left, right, upLeft, upRight, downLeft, downRight :: Grid a -> Maybe (Grid a)
-left      g@(G.Grid h xs) = fmap (const g) (xs M.!? move L  1 h)
-right     g@(G.Grid h xs) = fmap (const g) (xs M.!? move R  1 h)
-upLeft    g@(G.Grid h xs) = fmap (const g) (xs M.!? move UL 1 h)
-upRight   g@(G.Grid h xs) = fmap (const g) (xs M.!? move UR 1 h)
-downLeft  g@(G.Grid h xs) = fmap (const g) (xs M.!? move DL 1 h)
-downRight g@(G.Grid h xs) = fmap (const g) (xs M.!? move DR 1 h)
+left      = goto L
+right     = goto R
+upLeft    = goto UL
+upRight   = goto UR
+downLeft  = goto DL
+downRight = goto DR
+
+goto :: Direction -> Grid a -> Maybe (Grid a)
+goto direction (G.Grid h xs) =
+    let h' = move direction 1 h
+    in  G.Grid h' xs <$ M.lookup h' xs

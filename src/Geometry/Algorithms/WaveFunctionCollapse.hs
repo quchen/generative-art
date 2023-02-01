@@ -140,7 +140,7 @@ stencils3x3 :: RectilinearGrid a -> [Stencil3x3 a]
 stencils3x3 = foldr (:) [] . extend stencil3x3
 
 stencilToGrid :: Stencil3x3 a -> RectilinearGrid a
-stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (xmin, ymin) m
+stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (1-xmin, 1-ymin) m
   where
     xs = mapMaybe (\(k, v) -> fmap (k,) v)
         [ ((0, 0), a), ((1, 0), b), ((2, 0), c)
@@ -149,17 +149,6 @@ stencilToGrid (Stencil3x3 a b c d e f g h i) = Grid (xmin, ymin) m
         ]
     (xmin, ymin) = minimum (fst <$> xs)
     m = Map.fromList (fmap (\((x, y), v) -> ((x-xmin, y-ymin), v)) xs)
-
-
---        V.catMaybes $ V.fromList
---        [ case b of
---              Just _ -> Just $ V.catMaybes $ V.fromList [a, b, c]
---              Nothing -> Nothing,
---          Just $ V.catMaybes $ V.fromList [d, Just e, f],
---          case h of
---              Just _ -> Just $ V.catMaybes $ V.fromList [g, h, i]
---              Nothing -> Nothing
---        ]
 
 extractStencil :: Stencil3x3 a -> a
 extractStencil (Stencil3x3 _ _ _ _ e _ _ _ _) = e

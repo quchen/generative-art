@@ -25,7 +25,6 @@ tests = testGroup "WaveFunctionCollapse algorithm"
     [ testDrawGrid
     , testDuplicate
     , testStencil
-    , testStencilToGrid
     , testPropagate
     , testCollapse
     , localOption (Timeout (20*10^6) "20s") testWaveFunctionCollapse
@@ -49,10 +48,6 @@ testDuplicate = testVisual "Duplicated grid" 240 240 "docs/wave_function_collaps
 testStencil :: TestTree
 testStencil = testVisual "Create stencils from grid" 240 240 "docs/wave_function_collapse/grid_stencil" $ \(w, h) ->
     drawGrid (w, h) (extend stencil3x3 exampleGrid)
-
-testStencilToGrid :: TestTree
-testStencilToGrid = testVisual "Create stencils from grid" 240 240 "docs/wave_function_collapse/grid_stencil_grid" $ \(w, h) ->
-    drawGrid (w, h) (stencilToGrid <$> extend stencil3x3 exampleGrid)
 
 testCollapse :: TestTree
 testCollapse = testVisual "Collapse grid at position" 240 240 "docs/wave_function_collapse/grid_collapse" $ \(w, h) ->
