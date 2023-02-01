@@ -425,8 +425,6 @@ over quickly.
 
 ![Missing image!](../../../docs/wave_function_collapse/grid_stencil.svg)
 
-![Missing image!](../../../docs/wave_function_collapse/grid_stencil_grid.svg)
-
 ![Missing image!](../../../docs/wave_function_collapse/propagation_0.svg)
 
 ![Missing image!](../../../docs/wave_function_collapse/propagation_1.svg)
@@ -534,3 +532,15 @@ over quickly.
 ![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_46.svg)
 
 ![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_47.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_48.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_49.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_50.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_51.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_52.svg)
+
+![Missing image!](../../../docs/wave_function_collapse/wave_function_collapse_53.svg)
