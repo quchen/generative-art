@@ -32,9 +32,14 @@ packages:
     - showcases/truchetti
     - showcases/vector_fields
     - showcases/voronoi_3d
+    - showcases/wfc
 
 extra-deps:
     - cairo-0.13.8.1@sha256:1938aaeb5d3504678d995774dfe870f6b66cbd43d336b692fa8779b23b2b67a9,4075
+    - git: https://github.com/fmthoma/svgcairo
+      commit: fd25143acd56e9a2c5af9eea3774dac7fe3936c1
+    - Cabal-3.0.2.0@sha256:caadad83e044cdd38770600fd380055ad1a8c87d454b1f9d0710c14834f8cbc2,27486
+    - glib-0.13.8.2@sha256:f44b829e741b3c3244d523f60b058701dfc067ff64c2ba61d43be4cccfc2663d,3156
     - gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     - data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
