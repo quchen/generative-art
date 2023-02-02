@@ -38,29 +38,8 @@ main = do
         cairoScope (setColor white >> paint)
         C.translate 720 720
         hexagonalCoordinateSystem cellSize (720 `div` cellSize)
-        drawProtoTile Corner
-        drawTile drawProtoTile (Tile [RotatedTile Corner L]) (move DR 1 hexZero)
-        
-
-data ProtoTile
-    = Blank
-    | Corner
-    | Cross
-    | Triple
-    deriving (Eq, Ord, Show)
-
-tileSvg :: IO (ProtoTile -> Render ())
-tileSvg = do
-    corner <- svgNewFromFile "corner.svg"
-    cross <- svgNewFromFile "cross.svg"
-    triple <- svgNewFromFile "triple.svg"
-    pure $ \tile -> cairoScope $ do
-        C.translate (-cellSize * sqrt 3 / 2) (-cellSize)
-        void $ case tile of
-            Blank  -> pure True
-            Corner -> svgRender corner
-            Cross  -> svgRender cross
-            Triple -> svgRender triple
+        for_ (zip allTiles (hexagonsInRange 2 hexZero)) $ \(tile, hex) -> cairoScope $ do
+            drawTile drawProtoTile tile hex
 
 drawTile :: (ProtoTile -> Render ()) -> Tile -> Hex -> Render ()
 drawTile drawProtoTile tile hex = cairoScope $ do
@@ -69,6 +48,52 @@ drawTile drawProtoTile tile hex = cairoScope $ do
     for_ (stack tile) $ \(RotatedTile pt d) -> do
         C.rotate (fromIntegral (fromEnum d) * pi/3)
         drawProtoTile pt
+        
+
+allTiles :: [Tile]
+allTiles = concat
+    [ [Tile []]
+    , simpleTiles
+    ]
+
+simpleTiles :: [Tile]
+simpleTiles =
+    [ Tile [RotatedTile pt d]
+    | pt <- valuesOf :: [ProtoTile]
+    , d  <- valuesOf :: [Direction]
+    ]
+
+powerset :: [a] -> [[a]]
+powerset [] = []
+powerset [x] = [[], [x]]
+powerset (x:xs) = do
+    ys <- powerset xs
+    [ys, x:ys]
+
+valuesOf :: (Enum a, Bounded a) => [a]
+valuesOf = enumFrom minBound
+
+
+data ProtoTile
+    = Corner
+    | Triple
+    | Straight
+    | End
+    deriving (Eq, Ord, Show, Bounded, Enum)
+
+tileSvg :: IO (ProtoTile -> Render ())
+tileSvg = do
+    corner   <- svgNewFromFile "corner.svg"
+    triple   <- svgNewFromFile "triple.svg"
+    straight <- svgNewFromFile "straight.svg"
+    end      <- svgNewFromFile "end.svg"
+    pure $ \tile -> cairoScope $ do
+        C.translate (-cellSize * sqrt 3 / 2) (-cellSize)
+        void $ case tile of
+            Corner   -> svgRender corner
+            Triple   -> svgRender triple
+            Straight -> svgRender straight
+            End      -> svgRender end
 
 -- | R = 0°, DR = 60°, etc.
 data RotatedTile = RotatedTile ProtoTile Direction
@@ -97,20 +122,22 @@ class Connects tile where
 
 instance Connects ProtoTile where
     connector = \case
-        Blank -> const cNone
         Corner -> \case
             L  -> cMiddle
             UR -> cMiddle
-            _  -> cNone
-        Cross -> \case
-            L  -> cLeft <> cRight
-            R  -> cLeft <> cRight
             _  -> cNone
         Triple -> \case
             UL -> cMiddle
             R  -> cMiddle
             DL -> cMiddle
             _  -> cNone
+        Straight -> \case
+            L -> cMiddle
+            R -> cMiddle
+            _ -> cNone
+        End -> \case
+            L -> cMiddle
+            _ -> cNone
       where
         cNone   = Connector (False, False, False)
         cMiddle = Connector (False, True, False)
