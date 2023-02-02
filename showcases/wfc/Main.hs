@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
 module Main (main) where
 
 
@@ -17,11 +18,12 @@ import Draw.Grid
 import Geometry                     as G
 import Geometry.Coordinates.Hexagonal
 import Geometry.Algorithms.WaveFunctionCollapse
-import Control.Monad.ST (runST)
+import Control.Monad.ST.Lazy (runST)
 import Graphics.Rendering.Cairo.SVG as SVG
 import qualified Graphics.Rendering.Cairo.SVG as SVG
 import Control.Monad
 import Data.Maybe
+import Data.List.Extended
 
 
 
@@ -30,7 +32,7 @@ picWidth = 2560
 picHeight = 1440
 
 cellSize :: Num a => a
-cellSize = 128
+cellSize = 64
 
 main :: IO ()
 main = do
@@ -42,20 +44,22 @@ main = do
         cairoScope (setColor white >> paint)
         C.translate (picWidth/2) (picHeight/2)
         hexagonalCoordinateSystem cellSize (max picWidth picHeight `div` cellSize)
-        for_ (toList (last generations)) $ \(hex, superposition) -> do
-            drawSuperposition [ drawTile drawProtoTile tile hex | tile <- M.toList superposition ]
+        for_ (toList (generations !! 10)) $ \(hex, superposition) -> do
+            drawSuperposition [ (drawTile drawProtoTile tile hex, weight) | (tile, weight) <- M.toOccurList superposition ]
+        --for_ (zip (hexagonsInRange 2 hexZero) endTiles) $ \(h, t) -> drawTile drawProtoTile t h
 
-drawSuperposition :: [Render ()] -> Render ()
+drawSuperposition :: [(Render (), Int)] -> Render ()
 drawSuperposition [] = pure ()
 drawSuperposition actions = cairoScope $ do
-    let s = length actions
-    for_ actions $ grouped (paintWithAlpha (1 / fromIntegral s))
+    let s = sum (snd <$> actions)
+    for_ actions $ \(action, weight) -> do
+        grouped (paintWithAlpha (fromIntegral weight / fromIntegral s)) action
 
 drawTile :: (ProtoTile -> Render ()) -> Tile -> Hex -> Render ()
 drawTile drawProtoTile tile hex = cairoScope $ do
     let Vec2 x y = toVec2 cellSize hex
     C.translate x y
-    for_ (stack tile) $ \(RotatedTile pt d) -> do
+    for_ (stack tile) $ \(RotatedTile pt d) -> cairoScope $ do
         C.rotate (fromIntegral (fromEnum d) * pi/3)
         drawProtoTile pt
  
@@ -64,8 +68,8 @@ drawTile drawProtoTile tile hex = cairoScope $ do
 wfcSettings :: WfcSettings Hex Tile
 wfcSettings = WfcSettings {..}
   where
-    wfcRange = hexagonsInRange 2 hexZero
-    wfcTiles = M.fromList allTiles
+    wfcRange = hexagonsInRange 5 hexZero
+    wfcTiles = allTiles
     wfcLocalProjection :: Grid Hex (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
     wfcLocalProjection grid
         | all (isUntouched . snd) neighbours
@@ -93,10 +97,11 @@ wfcSettings = WfcSettings {..}
 
 
 
-allTiles :: [Tile]
-allTiles = concat
-    [ [Tile []]
-    , simpleTiles
+allTiles :: M.MultiSet Tile
+allTiles = M.fromOccurList $ concat
+    [ [(Tile [], 10)]
+    , (, 10) <$> simpleTiles
+    , (, 1) <$>endTiles
     ]
 
 simpleTiles :: [Tile]
@@ -105,6 +110,14 @@ simpleTiles =
     | pt <- valuesOf :: [ProtoTile]
     , d  <- valuesOf :: [Direction]
     ]
+
+endTiles :: [Tile]
+endTiles =
+    [ Tile endPieces
+    | d <- valuesOf :: [Direction]
+    , endPieces <- powerset [RotatedTile End d, RotatedTile EndL d, RotatedTile EndR d]
+    ]
+
 
 powerset :: [a] -> [[a]]
 powerset [] = []
@@ -121,7 +134,8 @@ data ProtoTile
     = Corner
     | Triple
     | Straight
-    | End
+    | End | EndL | EndR
+    | Fork
     deriving (Eq, Ord, Show, Bounded, Enum)
 
 tileSvg :: IO (ProtoTile -> Render ())
@@ -130,13 +144,20 @@ tileSvg = do
     triple   <- svgNewFromFile "triple.svg"
     straight <- svgNewFromFile "straight.svg"
     end      <- svgNewFromFile "end.svg"
+    endL     <- svgNewFromFile "end_l.svg"
+    endR     <- svgNewFromFile "end_r.svg"
+    fork     <- svgNewFromFile "fork.svg"
     pure $ \tile -> cairoScope $ do
         C.translate (-cellSize * sqrt 3 / 2) (-cellSize)
+        C.scale (cellSize / 128) (cellSize / 128)
         void $ case tile of
             Corner   -> svgRender corner
             Triple   -> svgRender triple
             Straight -> svgRender straight
             End      -> svgRender end
+            EndL     -> svgRender endL
+            EndR     -> svgRender endR
+            Fork     -> svgRender fork
 
 -- | R = 0°, DR = 60°, etc.
 data RotatedTile = RotatedTile ProtoTile Direction
@@ -180,6 +201,16 @@ instance Connects ProtoTile where
             _ -> cNone
         End -> \case
             L -> cMiddle
+            _ -> cNone
+        EndL -> \case
+            L -> cLeft
+            _ -> cNone
+        EndR -> \case
+            L -> cRight
+            _ -> cNone
+        Fork -> \case
+            L -> cMiddle
+            R -> cLeft <> cRight <> cMiddle
             _ -> cNone
       where
         cNone   = Connector (False, False, False)
