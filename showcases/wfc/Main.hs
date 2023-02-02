@@ -33,6 +33,9 @@ picWidth, picHeight :: Num a => a
 picWidth = 2560
 picHeight = 1440
 
+canvas :: BoundingBox
+canvas = boundingBox [Vec2 (-picWidth/2) (-picHeight/2), Vec2 (picWidth/2) (picHeight/2)]
+
 cellSize :: Num a => a
 cellSize = 64
 
@@ -48,7 +51,7 @@ main = do
         hexagonalCoordinateSystem cellSize (max picWidth picHeight `div` cellSize)
         for_ (toList (last generations)) $ \(hex, superposition) -> do
             drawSuperposition [ (drawTile drawProtoTile tile hex, weight) | (tile, weight) <- M.toOccurList superposition ]
-        --for_ (zip (hexagonsInRange 2 hexZero) endTiles) $ \(h, t) -> drawTile drawProtoTile t h
+        --for_ (zip (hexagonsInRange 5 hexZero) divergingTiles) $ \(h, t) -> drawTile drawProtoTile t h
 
 drawSuperposition :: [(Render (), Int)] -> Render ()
 drawSuperposition [] = pure ()
@@ -71,7 +74,7 @@ drawTile drawProtoTile tile hex = cairoScope $ do
 wfcSettings :: WfcSettings Hex Tile
 wfcSettings = WfcSettings {..}
   where
-    wfcRange = hexagonsInRange 5 hexZero
+    wfcRange = filter (\h -> toVec2 cellSize h `insideBoundingBox` canvas) $ hexagonsInRange 14 hexZero
     wfcTiles = allTiles
     wfcLocalProjection :: Grid Hex (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
     wfcLocalProjection grid
@@ -103,10 +106,11 @@ wfcSettings = WfcSettings {..}
 allTiles :: M.MultiSet Tile
 allTiles = M.fromOccurList $ concat
     [ (, 30) <$> [Tile []]
+    , (,  4) <$> divergingTiles
     , (,  1) <$> cornerTiles
     , (,  2) <$> straightTiles
     , (,  2) <$> endTiles
-    , (, 10) <$> specialTiles
+    , (, 80) <$> specialTiles
     ]
 
 specialTiles :: [Tile]
@@ -126,6 +130,22 @@ cornerTiles = nubOrd
         , outs <- powerset (reverse $ valuesOf :: [Pos])
         ]
     ]
+
+divergingTiles :: [Tile]
+divergingTiles = nubOrd
+    [ Tile divergingPieces
+    | d <- valuesOf :: [Direction]
+    , divergingPieces <-
+        [ zipWith3 (\i p o -> p d i o) ins pipes outs
+        | ins <- powerset (valuesOf :: [Pos])
+        , pipes <- powerset [flippedCorner, straight, corner]
+        , outs <- powerset (reverse $ valuesOf :: [Pos])
+        ]
+    ]
+  where
+    corner        d i o = RotatedTile (Corner i o) d
+    flippedCorner d i o = RotatedTile (Corner o i) (d `dminus` UL)
+    straight      d i _ = RotatedTile (Straight i) d
 
 straightTiles :: [Tile]
 straightTiles =
@@ -269,8 +289,9 @@ instance Connects ProtoTile where
 instance Connects RotatedTile where
     connector (RotatedTile proto d) d'
         = connector proto (d' `dminus` d)
-      where
-        d1 `dminus` d2 = toEnum ((6 + fromEnum d1 - fromEnum d2) `mod` 6)
+
+dminus :: Direction -> Direction -> Direction
+d1 `dminus` d2 = toEnum ((6 + fromEnum d1 - fromEnum d2) `mod` 6)
 
 instance Connects Tile where
     connector Tile{..} = mconcat (connector <$> stack)
