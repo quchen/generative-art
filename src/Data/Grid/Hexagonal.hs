@@ -6,6 +6,7 @@ module Data.Grid.Hexagonal (
     , upRight
     , downLeft
     , downRight
+    , goto
 
     , Comonad(..)
 ) where

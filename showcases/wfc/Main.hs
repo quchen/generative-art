@@ -12,7 +12,7 @@ import           Prelude                  hiding ((**))
 import           System.Random.MWC
 
 import Data.Grid.Hexagonal as Grid
-import Draw hiding (Cross)
+import Draw hiding (toList)
 import Draw.Grid
 import Geometry                     as G
 import Geometry.Coordinates.Hexagonal
@@ -21,6 +21,7 @@ import Control.Monad.ST (runST)
 import Graphics.Rendering.Cairo.SVG as SVG
 import qualified Graphics.Rendering.Cairo.SVG as SVG
 import Control.Monad
+import Data.Maybe
 
 
 
@@ -33,13 +34,22 @@ cellSize = 128
 
 main :: IO ()
 main = do
+    let generations = runST $ do
+            gen <- create
+            wfc wfcSettings gen
     drawProtoTile <- tileSvg
-    render "showcases/wfc/template.png" 1440 1440 $ do
+    render "showcases/wfc/template.png" picWidth picHeight $ do
         cairoScope (setColor white >> paint)
-        C.translate 720 720
-        hexagonalCoordinateSystem cellSize (720 `div` cellSize)
-        for_ (zip allTiles (hexagonsInRange 2 hexZero)) $ \(tile, hex) -> cairoScope $ do
-            drawTile drawProtoTile tile hex
+        C.translate (picWidth/2) (picHeight/2)
+        hexagonalCoordinateSystem cellSize (max picWidth picHeight `div` cellSize)
+        for_ (toList (last generations)) $ \(hex, superposition) -> do
+            drawSuperposition [ drawTile drawProtoTile tile hex | tile <- M.toList superposition ]
+
+drawSuperposition :: [Render ()] -> Render ()
+drawSuperposition [] = pure ()
+drawSuperposition actions = cairoScope $ do
+    let s = length actions
+    for_ actions $ grouped (paintWithAlpha (1 / fromIntegral s))
 
 drawTile :: (ProtoTile -> Render ()) -> Tile -> Hex -> Render ()
 drawTile drawProtoTile tile hex = cairoScope $ do
@@ -48,7 +58,40 @@ drawTile drawProtoTile tile hex = cairoScope $ do
     for_ (stack tile) $ \(RotatedTile pt d) -> do
         C.rotate (fromIntegral (fromEnum d) * pi/3)
         drawProtoTile pt
-        
+ 
+
+
+wfcSettings :: WfcSettings Hex Tile
+wfcSettings = WfcSettings {..}
+  where
+    wfcRange = hexagonsInRange 2 hexZero
+    wfcTiles = M.fromList allTiles
+    wfcLocalProjection :: Grid Hex (Touched (M.MultiSet Tile)) -> Touched (M.MultiSet Tile)
+    wfcLocalProjection grid
+        | all (isUntouched . snd) neighbours
+        = Untouched oldState
+        | newState == oldState
+        = Untouched oldState
+        | otherwise
+        = Touched newState
+      where
+        oldState = getTouched (extract grid)
+        neighbours = [ (d, extract <$> goto d grid) | d <- valuesOf ]
+        isUntouched = \case
+            Nothing -> True
+            Just (Untouched _) -> True
+            _otherwise -> False
+        newState = M.fromAscOccurList
+            [ (tile, n)
+            | (tile, n) <- M.toAscOccurList oldState
+            , and
+                [ maybe True (any isCompatible . M.toList . getTouched) neighbour
+                | (d, neighbour) <- neighbours
+                , let isCompatible = connects d tile
+                ]
+            ]
+
+
 
 allTiles :: [Tile]
 allTiles = concat
@@ -124,7 +167,7 @@ instance Connects ProtoTile where
     connector = \case
         Corner -> \case
             L  -> cMiddle
-            UR -> cMiddle
+            DR -> cMiddle
             _  -> cNone
         Triple -> \case
             UL -> cMiddle
