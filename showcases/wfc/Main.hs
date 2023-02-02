@@ -24,6 +24,8 @@ import qualified Graphics.Rendering.Cairo.SVG as SVG
 import Control.Monad
 import Data.Maybe
 import Data.List.Extended
+import Data.Traversable
+import Debug.Trace
 
 
 
@@ -44,7 +46,7 @@ main = do
         cairoScope (setColor white >> paint)
         C.translate (picWidth/2) (picHeight/2)
         hexagonalCoordinateSystem cellSize (max picWidth picHeight `div` cellSize)
-        for_ (toList (generations !! 10)) $ \(hex, superposition) -> do
+        for_ (toList (last generations)) $ \(hex, superposition) -> do
             drawSuperposition [ (drawTile drawProtoTile tile hex, weight) | (tile, weight) <- M.toOccurList superposition ]
         --for_ (zip (hexagonsInRange 2 hexZero) endTiles) $ \(h, t) -> drawTile drawProtoTile t h
 
@@ -53,7 +55,8 @@ drawSuperposition [] = pure ()
 drawSuperposition actions = cairoScope $ do
     let s = sum (snd <$> actions)
     for_ actions $ \(action, weight) -> do
-        grouped (paintWithAlpha (fromIntegral weight / fromIntegral s)) action
+        let opacity = fromIntegral weight / fromIntegral s
+        grouped (paintWithAlpha opacity) action
 
 drawTile :: (ProtoTile -> Render ()) -> Tile -> Hex -> Render ()
 drawTile drawProtoTile tile hex = cairoScope $ do
@@ -99,23 +102,43 @@ wfcSettings = WfcSettings {..}
 
 allTiles :: M.MultiSet Tile
 allTiles = M.fromOccurList $ concat
-    [ [(Tile [], 10)]
-    , (, 10) <$> simpleTiles
-    , (, 1) <$>endTiles
+    [ (, 30) <$> [Tile []]
+    , (,  1) <$> cornerTiles
+    , (,  2) <$> straightTiles
+    , (,  2) <$> endTiles
+    , (, 10) <$> specialTiles
     ]
 
-simpleTiles :: [Tile]
-simpleTiles =
+specialTiles :: [Tile]
+specialTiles =
     [ Tile [RotatedTile pt d]
-    | pt <- valuesOf :: [ProtoTile]
+    | pt <- [Triple, Fork]
     , d  <- valuesOf :: [Direction]
+    ]
+
+cornerTiles :: [Tile]
+cornerTiles = nubOrd
+    [ Tile cornerPieces
+    | d <- valuesOf :: [Direction]
+    , cornerPieces <-
+        [ zipWith (\posIn posOut -> RotatedTile (Corner posIn posOut) d) ins outs
+        | ins  <- powerset (valuesOf :: [Pos])
+        , outs <- powerset (reverse $ valuesOf :: [Pos])
+        ]
+    ]
+
+straightTiles :: [Tile]
+straightTiles =
+    [ Tile straightPieces
+    | d <- enumFromTo R DL
+    , straightPieces <- powerset [RotatedTile (Straight pos) d | pos <- valuesOf :: [Pos]]
     ]
 
 endTiles :: [Tile]
 endTiles =
     [ Tile endPieces
     | d <- valuesOf :: [Direction]
-    , endPieces <- powerset [RotatedTile End d, RotatedTile EndL d, RotatedTile EndR d]
+    , endPieces <- powerset [RotatedTile (End pos) d | pos <- valuesOf :: [Pos]]
     ]
 
 
@@ -131,32 +154,55 @@ valuesOf = enumFrom minBound
 
 
 data ProtoTile
-    = Corner
+    = Corner Pos Pos
+    | Straight Pos
+    | End Pos
     | Triple
-    | Straight
-    | End | EndL | EndR
     | Fork
-    deriving (Eq, Ord, Show, Bounded, Enum)
+    deriving (Eq, Ord, Show)
+
+-- | A, B, C = Entry point left/center/right, viewed from the outside
+data Pos = A | B | C deriving (Eq, Ord, Show, Bounded, Enum)
 
 tileSvg :: IO (ProtoTile -> Render ())
 tileSvg = do
-    corner   <- svgNewFromFile "corner.svg"
+    cornerAA <- svgNewFromFile "corner_a_a.svg"
+    cornerAB <- svgNewFromFile "corner_a_b.svg"
+    cornerAC <- svgNewFromFile "corner_a_c.svg"
+    cornerBA <- svgNewFromFile "corner_b_a.svg"
+    cornerBB <- svgNewFromFile "corner_b_b.svg"
+    cornerBC <- svgNewFromFile "corner_b_c.svg"
+    cornerCA <- svgNewFromFile "corner_c_a.svg"
+    cornerCB <- svgNewFromFile "corner_c_b.svg"
+    cornerCC <- svgNewFromFile "corner_c_c.svg"
     triple   <- svgNewFromFile "triple.svg"
-    straight <- svgNewFromFile "straight.svg"
-    end      <- svgNewFromFile "end.svg"
-    endL     <- svgNewFromFile "end_l.svg"
-    endR     <- svgNewFromFile "end_r.svg"
+    straightA <- svgNewFromFile "straight_a.svg"
+    straightB <- svgNewFromFile "straight_b.svg"
+    straightC <- svgNewFromFile "straight_c.svg"
+    endA     <- svgNewFromFile "end_a.svg"
+    endB     <- svgNewFromFile "end_b.svg"
+    endC     <- svgNewFromFile "end_c.svg"
     fork     <- svgNewFromFile "fork.svg"
     pure $ \tile -> cairoScope $ do
         C.translate (-cellSize * sqrt 3 / 2) (-cellSize)
         C.scale (cellSize / 128) (cellSize / 128)
         void $ case tile of
-            Corner   -> svgRender corner
+            Corner A A  -> svgRender cornerAA
+            Corner A B  -> svgRender cornerAB
+            Corner A C  -> svgRender cornerAC
+            Corner B A  -> svgRender cornerBA
+            Corner B B  -> svgRender cornerBB
+            Corner B C  -> svgRender cornerBC
+            Corner C A  -> svgRender cornerCA
+            Corner C B  -> svgRender cornerCB
+            Corner C C  -> svgRender cornerCC
+            Straight A -> svgRender straightA
+            Straight B -> svgRender straightB
+            Straight C -> svgRender straightC
+            End A    -> svgRender endA
+            End B    -> svgRender endB
+            End C    -> svgRender endC
             Triple   -> svgRender triple
-            Straight -> svgRender straight
-            End      -> svgRender end
-            EndL     -> svgRender endL
-            EndR     -> svgRender endR
             Fork     -> svgRender fork
 
 -- | R = 0°, DR = 60°, etc.
@@ -186,33 +232,35 @@ class Connects tile where
 
 instance Connects ProtoTile where
     connector = \case
-        Corner -> \case
-            L  -> cMiddle
-            DR -> cMiddle
+        Corner i o -> \case
+            L  -> conn i
+            DR -> conn o
             _  -> cNone
+        Straight i -> \case
+            L -> conn i
+            R -> nnoc i
+            _ -> cNone
+        End i -> \case
+            L -> conn i
+            _ -> cNone
         Triple -> \case
             UL -> cMiddle
             R  -> cMiddle
             DL -> cMiddle
             _  -> cNone
-        Straight -> \case
-            L -> cMiddle
-            R -> cMiddle
-            _ -> cNone
-        End -> \case
-            L -> cMiddle
-            _ -> cNone
-        EndL -> \case
-            L -> cLeft
-            _ -> cNone
-        EndR -> \case
-            L -> cRight
-            _ -> cNone
         Fork -> \case
             L -> cMiddle
             R -> cLeft <> cRight <> cMiddle
             _ -> cNone
       where
+        conn = \case
+            A -> cLeft
+            B -> cMiddle
+            C -> cRight
+        nnoc = \case
+            A -> cRight
+            B -> cMiddle
+            C -> cLeft
         cNone   = Connector (False, False, False)
         cMiddle = Connector (False, True, False)
         cLeft   = Connector (True, False, False)
