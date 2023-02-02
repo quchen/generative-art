@@ -106,7 +106,7 @@ wfcSettings = WfcSettings {..}
 allTiles :: M.MultiSet Tile
 allTiles = M.fromOccurList $ concat
     [ (, 30) <$> [Tile []]
-    , (,  4) <$> divergingTiles
+    , (,  3) <$> divergingTiles
     , (,  1) <$> cornerTiles
     , (,  2) <$> straightTiles
     , (,  2) <$> endTiles
