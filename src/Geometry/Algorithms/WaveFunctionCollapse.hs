@@ -25,7 +25,7 @@ module Geometry.Algorithms.WaveFunctionCollapse (
 
 
 import Control.Monad ((>=>))
-import Control.Monad.ST
+import Control.Monad.Primitive
 import Data.Function (on)
 import Data.List (sortOn, groupBy)
 import qualified Data.Map as Map
@@ -45,14 +45,14 @@ data WfcSettings coord a = WfcSettings
     , wfcLocalProjection :: Grid coord (Touched (MultiSet a)) -> Touched (MultiSet a)
     }
 
-wfc :: (Ord coord, Eq a, Ord a) => WfcSettings coord a -> MWC.GenST x -> ST x [Grid coord (MultiSet a)]
+wfc :: (Ord coord, Eq a, Ord a, PrimMonad m) => WfcSettings coord a -> Gen (PrimState m) -> m [Grid coord (MultiSet a)]
 wfc settings gen = go (initialGrid settings)
   where
     go grid = fmap (grid :) $ wfcStep settings gen grid >>= \case
         Just grid' -> go grid'
         Nothing -> pure []
 
-wfcStep :: (Ord coord, Eq a, Ord a) => WfcSettings coord a -> MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Maybe (Grid coord (MultiSet a)))
+wfcStep :: (Ord coord, Eq a, Ord a, PrimMonad m) => WfcSettings coord a -> Gen (PrimState m) -> Grid coord (MultiSet a) -> m (Maybe (Grid coord (MultiSet a)))
 wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
     Just grid' -> Just . propagate wfcLocalProjection <$> collapse gen grid'
     Nothing -> pure Nothing
@@ -60,7 +60,7 @@ wfcStep WfcSettings{..} gen grid = pickMin gen grid >>= \case
 initialGrid :: Ord coord => WfcSettings coord a -> Grid coord (MultiSet a)
 initialGrid WfcSettings{..} = fromList $ [ (c, wfcTiles) | c <- wfcRange ]
 
-pickMin :: Ord coord => MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Maybe (Grid coord (MultiSet a)))
+pickMin :: (Ord coord, PrimMonad m) => Gen (PrimState m) -> Grid coord (MultiSet a) -> m (Maybe (Grid coord (MultiSet a)))
 pickMin gen grid = case gridsWithLowestEntropy of
     Nothing -> pure Nothing
     Just xs -> Just <$> pick gen xs
@@ -75,10 +75,10 @@ entropy :: MultiSet a -> Double
 entropy multiset = sum weights - sum ((\w -> w * log w) <$> weights) / sum weights
   where weights = fromIntegral . snd <$> M.toOccurList multiset
 
-collapse :: (Ord coord, Eq a, Ord a) => MWC.GenST x -> Grid coord (MultiSet a) -> ST x (Grid coord (MultiSet a))
+collapse :: (Ord coord, Eq a, Ord a, PrimMonad m) => Gen (PrimState m) -> Grid coord (MultiSet a) -> m (Grid coord (MultiSet a))
 collapse gen = pick gen . eigenstates
 
-pick :: GenST x -> [a] -> ST x a
+pick :: PrimMonad m => Gen (PrimState m) -> [a] -> m a
 pick gen xs = do
     let len = length xs
     i <- uniformRM (0, len-1) gen
