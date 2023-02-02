@@ -34,7 +34,7 @@ picWidth = 2560
 picHeight = 1440
 
 canvas :: BoundingBox
-canvas = boundingBox [Vec2 (-picWidth/2) (-picHeight/2), Vec2 (picWidth/2) (picHeight/2)]
+canvas = boundingBox [Vec2 (-(picWidth-cellSize)/2) (-(picHeight-cellSize)/2), Vec2 ((picWidth-cellSize)/2) ((picHeight-cellSize)/2)]
 
 cellSize :: Num a => a
 cellSize = 64
@@ -95,7 +95,7 @@ wfcSettings = WfcSettings {..}
             [ (tile, n)
             | (tile, n) <- M.toAscOccurList oldState
             , and
-                [ maybe True (any isCompatible . M.toList . getTouched) neighbour
+                [ maybe (isCompatible (Tile [])) (any isCompatible . M.distinctElems . getTouched) neighbour
                 | (d, neighbour) <- neighbours
                 , let isCompatible = connects d tile
                 ]
@@ -105,12 +105,12 @@ wfcSettings = WfcSettings {..}
 
 allTiles :: M.MultiSet Tile
 allTiles = M.fromOccurList $ concat
-    [ (, 30) <$> [Tile []]
-    , (,  3) <$> divergingTiles
-    , (,  1) <$> cornerTiles
-    , (,  2) <$> straightTiles
-    , (,  2) <$> endTiles
-    , (, 80) <$> specialTiles
+    [ (, 3000) <$> [Tile []]
+    , (,   30) <$> divergingTiles
+    , (,    5) <$> cornerTiles
+    , (,   20) <$> straightTiles
+    , (,   30) <$> endTiles
+    , (,  900) <$> specialTiles
     ]
 
 specialTiles :: [Tile]
