@@ -13,6 +13,7 @@ module Geometry.Coordinates.Hexagonal (
 
     -- * Movement
     , Direction(..)
+    , opposite
     , move
 
     -- * Arithmetic
@@ -73,12 +74,20 @@ instance NFData Hex where
 -- | Hexagonal direction, used by 'move'.
 data Direction
     = R  -- ^ Right
-    | UR -- ^ Up+right
-    | UL -- ^ Up+left
-    | L  -- ^ Left
-    | DL -- ^ Down+left
     | DR -- ^ Down+right
+    | DL -- ^ Down+left
+    | L  -- ^ Left
+    | UL -- ^ Up+left
+    | UR -- ^ Up+right
     deriving (Eq, Ord, Show, Bounded, Enum)
+
+opposite :: Direction -> Direction
+opposite R  = L
+opposite UR = DL
+opposite UL = DR
+opposite L  = R
+opposite DL = UR
+opposite DR = UL
 
 -- | Move x steps in a direction
 move :: Direction -> Int -> Hex -> Hex
