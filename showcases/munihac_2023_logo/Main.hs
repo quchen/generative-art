@@ -16,8 +16,6 @@ import           Geometry.Algorithms.Sampling
 import           Geometry.Algorithms.Voronoi
 import           Geometry.Shapes              (haskellLogo)
 import           Graphics.Rendering.Cairo     as C
-import Control.Monad (guard)
-import Graphics.Rendering.Cairo.Types (Cairo(Cairo))
 
 
 
@@ -49,16 +47,18 @@ mainHaskellLogo = do
             (polygon, _) <- intersectionPP voronoiRegion glyph
             pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-4) polygon, color)
 
-    render "munihac-2023-logo.png" picWidth picHeight $ do
-        cairoScope (setColor white >> C.paint)
-        for_ polygonsAndColors $ \(polygon, color) ->
-            drawPoly polygon color
+    let drawing = do
+            cairoScope (setColor white >> C.paint)
+            for_ polygonsAndColors $ \(polygon, color) ->
+                drawPoly polygon color
+    render "munihac-2023-logo.png" picWidth picHeight drawing
+    render "munihac-2023-logo.svg" picWidth picHeight drawing
 
 haskellLogoWithColors :: (Double, Double) -> [(Polygon, Color Double)]
 haskellLogoWithColors (picWidth, picHeight)= zip haskellLogoCentered haskellLogoColors
   where
     haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) haskellLogo
-    haskellLogoColors = [haskell 0, haskell 1, haskell 2, haskell 2]
+    haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
 
 drawPoly :: Polygon -> Color Double -> Render ()
 drawPoly (Polygon []) _ = pure ()
@@ -67,9 +67,6 @@ drawPoly poly color = do
     setColor color
     setLineWidth 6
     stroke
-
-darkGrey :: Color Double
-darkGrey = hsv 0 0 0.1
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
