@@ -57,6 +57,8 @@ cradle:
       component: haskell-logo-voronoi
     - path: ./showcases/munihac_2022_logo
       component: munihac2022logo
+    - path: ./showcases/munihac_2023_logo
+      component: munihac2022logo
     - path: ./showcases/particle_shooter
       component: particle-shooter
     - path: ./showcases/pulsar
