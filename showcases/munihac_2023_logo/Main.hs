@@ -28,8 +28,8 @@ mainHaskellLogo = do
         picWidth = 1000
         picHeight = 720
         lineWidth = 6
-        count = 100
-    gen <- initialize (V.fromList [1])
+        count = 250
+    gen <- initialize (V.fromList [8, 13, 9])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
@@ -39,19 +39,21 @@ mainHaskellLogo = do
             }
     points <- poissonDisc gen samplingProps
     print (length points)
-    let voronoi = toVoronoi (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
+    let voronoi = toVoronoi (lloydRelaxation 2 $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
 
     let polygonsAndColors = do
             voronoiRegion <- _voronoiRegion <$> _voronoiCells voronoi
             (glyph, color) <- haskellLogoWithColors (picWidth, picHeight)
-            (polygon, _) <- intersectionPP voronoiRegion glyph
-            guard $ polygonArea polygon > 700
+            (polygon, _) <- intersectionPP voronoiRegion (growPolygon (lineWidth/1.2) glyph)
+            guard $ polygonArea polygon > 500
             pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-lineWidth/1.2) polygon, color)
 
     let drawing = do
             cairoScope (setColor white >> C.paint)
             for_ polygonsAndColors $ \(polygon, color) ->
                 drawPoly polygon color lineWidth
+            for_ (haskellLogoWithColors (picWidth, picHeight)) $ \(poly, color) ->
+                drawPoly poly color lineWidth
     render "munihac-2023-logo.png" picWidth picHeight drawing
     render "munihac-2023-logo.svg" picWidth picHeight drawing
 
