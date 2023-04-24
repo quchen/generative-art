@@ -3,8 +3,6 @@ module Main (main) where
 
 
 
-import           Data.Char
-import           Data.Maybe
 import qualified Data.Vector         as V
 import           Prelude             hiding ((**))
 import           System.Random.MWC
@@ -16,6 +14,7 @@ import           Geometry.Algorithms.Sampling
 import           Geometry.Algorithms.Voronoi
 import           Geometry.Shapes              (haskellLogo)
 import           Graphics.Rendering.Cairo     as C
+import Control.Monad (guard)
 
 
 
@@ -28,8 +27,9 @@ mainHaskellLogo = do
     let picWidth, picHeight :: Num a => a
         picWidth = 1000
         picHeight = 720
-        count = 200
-    gen <- initialize (V.fromList (map (fromIntegral . ord) (show count)))
+        lineWidth = 6
+        count = 100
+    gen <- initialize (V.fromList [1])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
@@ -45,12 +45,13 @@ mainHaskellLogo = do
             voronoiRegion <- _voronoiRegion <$> _voronoiCells voronoi
             (glyph, color) <- haskellLogoWithColors (picWidth, picHeight)
             (polygon, _) <- intersectionPP voronoiRegion glyph
-            pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-4) polygon, color)
+            guard $ polygonArea polygon > 700
+            pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-lineWidth/1.2) polygon, color)
 
     let drawing = do
             cairoScope (setColor white >> C.paint)
             for_ polygonsAndColors $ \(polygon, color) ->
-                drawPoly polygon color
+                drawPoly polygon color lineWidth
     render "munihac-2023-logo.png" picWidth picHeight drawing
     render "munihac-2023-logo.svg" picWidth picHeight drawing
 
@@ -60,12 +61,12 @@ haskellLogoWithColors (picWidth, picHeight)= zip haskellLogoCentered haskellLogo
     haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) haskellLogo
     haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
 
-drawPoly :: Polygon -> Color Double -> Render ()
-drawPoly (Polygon []) _ = pure ()
-drawPoly poly color = do
+drawPoly :: Polygon -> Color Double -> Double -> Render ()
+drawPoly (Polygon []) _ _ = pure ()
+drawPoly poly color lineWidth = do
     sketch poly
     setColor color
-    setLineWidth 6
+    setLineWidth lineWidth
     stroke
 
 chaikin :: Double -> Polygon -> Polygon
