@@ -1,19 +1,17 @@
-{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 
 
-import qualified Data.Vector         as V
-import           Prelude             hiding ((**))
-import           System.Random.MWC
+import qualified Data.Vector as V
+import Prelude hiding ((**))
+import System.Random.MWC
 
-import           Draw
-import           Geometry                     as G
-import           Geometry.Algorithms.Delaunay
-import           Geometry.Algorithms.Sampling
-import           Geometry.Algorithms.Voronoi
-import           Geometry.Shapes              (haskellLogo)
-import           Graphics.Rendering.Cairo     as C
+import Draw
+import Geometry as G
+import Geometry.Algorithms.Delaunay
+import Geometry.Algorithms.Sampling
+import Geometry.Algorithms.Voronoi
+import qualified Graphics.Rendering.Cairo     as C
 import Control.Monad (guard)
 
 
@@ -29,7 +27,7 @@ mainHaskellLogo = do
         picHeight = 720
         lineWidth = 6
         count = 250
-    gen <- initialize (V.fromList [8, 13, 9])
+    gen <- initialize (V.fromList [11, 5])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
         samplingProps = PoissonDiscParams
@@ -58,18 +56,29 @@ mainHaskellLogo = do
     render "munihac-2023-logo.svg" picWidth picHeight drawing
 
 haskellLogoWithColors :: (Double, Double) -> [(Polygon, Color Double)]
-haskellLogoWithColors (picWidth, picHeight)= zip haskellLogoCentered haskellLogoColors
+haskellLogoWithColors (picWidth, picHeight) = zip haskellLogoCentered haskellLogoColors
   where
-    haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) haskellLogo
+    haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) $ rescaleNormalizePolygons haskellLogoRaw
     haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
+    haskellLogoRaw = [left, lambda, upper, lower]
+      where
+        left   = Polygon [Vec2 0 340.15625, Vec2 113.386719 170.078125, Vec2 0 0, Vec2 85.039062 0, Vec2 198.425781 170.078125, Vec2 85.039062 340.15625]
+        lambda = Polygon [Vec2 113.386719 340.15625, Vec2 226.773438 170.078125, Vec2 113.386719 0, Vec2 198.425781 0, Vec2 425.195312 340.15625, Vec2 340.15625 340.15625, Vec2 269.292969 233.859375, Vec2 198.425781 340.15625]
+        upper  = Polygon [Vec2 330.710938 155.90625, Vec2 292.914062 99.214844, Vec2 345.710938 99.210938, Vec2 345.710938 155.90625]
+        lower  = Polygon [Vec2 387.402344 240.945312, Vec2 349.609375 184.253906, Vec2 392.402344 184.25, Vec2 392.402344 240.945312]
+    rescaleNormalizePolygons polygons =
+        let BoundingBox (Vec2 minX minY) (Vec2 _maxX maxY) = boundingBox polygons
+            scaleFactor = 1 / (maxY - minY)
+            transformation = scale scaleFactor <> translate (Vec2 (- minX) (- minY))
+        in transform transformation polygons
 
-drawPoly :: Polygon -> Color Double -> Double -> Render ()
+drawPoly :: Polygon -> Color Double -> Double -> C.Render ()
 drawPoly (Polygon []) _ _ = pure ()
 drawPoly poly color lineWidth = do
     sketch poly
     setColor color
-    setLineWidth lineWidth
-    stroke
+    C.setLineWidth lineWidth
+    C.stroke
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
