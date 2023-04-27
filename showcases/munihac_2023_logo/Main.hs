@@ -2,7 +2,9 @@ module Main (main) where
 
 
 
+import Control.Monad (guard)
 import qualified Data.Vector as V
+import qualified Graphics.Rendering.Cairo     as C
 import Prelude hiding ((**))
 import System.Random.MWC
 
@@ -11,14 +13,13 @@ import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Voronoi
-import qualified Graphics.Rendering.Cairo     as C
-import Control.Monad (guard)
+import Geometry.Shapes (haskellLogo)
 
 
 
 -- ghcid --command='stack ghci generative-art:lib munihac2023logo --main-is munihac2023logo:exe:munihac2023logo' --test=main --warnings --no-title
 main :: IO ()
-main = mainHaskellLogo
+main = mainHaskellLogoSmall
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
@@ -41,7 +42,7 @@ mainHaskellLogo = do
 
     let polygonsAndColors = do
             voronoiRegion <- _voronoiRegion <$> _voronoiCells voronoi
-            (glyph, color) <- haskellLogoWithColors (picWidth, picHeight)
+            (glyph, color) <- haskellLogoWithColorsShortened (picWidth, picHeight)
             (polygon, _) <- intersectionPP voronoiRegion (growPolygon (lineWidth/1.2) glyph)
             guard $ polygonArea polygon > 500
             pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-lineWidth/1.2) polygon, color)
@@ -55,8 +56,49 @@ mainHaskellLogo = do
     render "munihac-2023-logo.png" picWidth picHeight drawing
     render "munihac-2023-logo.svg" picWidth picHeight drawing
 
+mainHaskellLogoSmall :: IO ()
+mainHaskellLogoSmall = do
+    let picWidth, picHeight :: Num a => a
+        picWidth = 30
+        picHeight = 21
+        lineWidth = 1
+        count = 5
+    gen <- initialize (V.fromList [2])
+    let -- constructed so that we have roughly `count` points
+        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
+        samplingProps = PoissonDiscParams
+            { _poissonShape = boundingBox [zero, Vec2 picWidth picHeight]
+            , _poissonRadius = adaptiveRadius
+            , _poissonK      = 4
+            }
+    points <- poissonDisc gen samplingProps
+    print (length points)
+    let voronoi = toVoronoi (lloydRelaxation 2 $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
+
+    let polygonsAndColors = do
+            voronoiRegion <- _voronoiRegion <$> _voronoiCells voronoi
+            (glyph, color) <- haskellLogoWithColors (picWidth, picHeight)
+            (polygon, _) <- intersectionPP voronoiRegion (growPolygon (lineWidth/1.2) glyph)
+            guard $ polygonArea polygon > 0
+            pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-lineWidth/1.3) polygon, color)
+
+    let drawing = do
+            cairoScope (setColor white >> C.paint)
+            for_ polygonsAndColors $ \(polygon, color) ->
+                drawPoly polygon color lineWidth
+            --for_ (haskellLogoWithColors (picWidth, picHeight)) $ \(poly, color) ->
+            --    drawPoly poly color lineWidth
+    render "munihac-2023-logo-oneline.png" picWidth picHeight drawing
+    render "munihac-2023-logo-oneline.svg" picWidth picHeight drawing
+
 haskellLogoWithColors :: (Double, Double) -> [(Polygon, Color Double)]
 haskellLogoWithColors (picWidth, picHeight) = zip haskellLogoCentered haskellLogoColors
+  where
+    haskellLogoCentered = G.transform (G.translate (Vec2 1 (picHeight/2 - 10)) <> G.scale 20) haskellLogo
+    haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
+
+haskellLogoWithColorsShortened :: (Double, Double) -> [(Polygon, Color Double)]
+haskellLogoWithColorsShortened (picWidth, picHeight) = zip haskellLogoCentered haskellLogoColors
   where
     haskellLogoCentered = G.transform (G.translate (Vec2 (picWidth/2 - 480) (picHeight/2 - 340)) <> G.scale 680) $ rescaleNormalizePolygons haskellLogoRaw
     haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
