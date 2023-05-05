@@ -444,36 +444,36 @@ hull_find_visible_edge hull p points = do
 calc_bbox_center :: Vector Vec2 -> Vec2
 calc_bbox_center = boundingBoxCenter
 
--- | Find the closest point to a reference in the vector that is unequal to the point itself.
-find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe USize
-find_closest_point points p0 = runST $ do
-    minDistRef <- newSTRef Nothing
-    kRef <- newSTRef 0
-
-    for_ (V.indexed points) $ \(i, p) -> do
-        let d = dist2 p0 p
-        m'minDist <- readSTRef minDistRef
-        case m'minDist of
-            Nothing -> do
-                writeSTRef kRef i
-                writeSTRef minDistRef (Just d)
-            Just minDist | d > 0 && d < minDist -> do
-                writeSTRef kRef i
-                writeSTRef minDistRef (Just d)
-            _else -> pure ()
-
-    fmap Just (readSTRef kRef)
+-- | Find the closest point to a reference in the vector that is unequal to the
+-- point itself.
+find_closest_point :: Vector Vec2 -> Vec2 -> Maybe USize
+find_closest_point points p0 =
+    let (minDist, minIx) = search (1/0) 0 0
+    in if isInfinite minDist
+        then Nothing
+        else Just minIx
+  where
+    -- Explicit recursion makes excluding zero-distance points easier than going
+    -- the map/filter/minInxedBy route.
+    search !minDist !minIx !searchIx
+        | searchIx >= V.length points = (minDist, minIx)
+    search !minDist !minIx !searchIx =
+        let p = points!searchIx
+            d = dist2 p p0
+        in if d > 0 && d < minDist
+            then search d searchIx (searchIx+1)
+            else search minDist minIx (searchIx+1)
 
 find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (USize, USize, USize)
 find_seed_triangle points = do
     -- // pick a seed point close to the center
     let bboxCenter = calc_bbox_center points
     i0 <- find_closest_point points bboxCenter
-    let p0 = points ! i0
+    let p0 = points!i0
 
     -- // find the point closest to the seed
     i1 <- find_closest_point points p0
-    let p1 = points ! i1
+    let p1 = points!i1
 
     -- // find the third point which forms the smallest circumcircle with the first two
     let (minRadius, i2) = runST $ do
@@ -481,7 +481,7 @@ find_seed_triangle points = do
             i2Ref <- newSTRef 0
             for_ (V.indexed points) $ \(i, p) -> do
                 case i == i0 || i == i1 of
-                    True -> pure ()
+                    True -> pure () -- continue
                     False -> do
                         let r = circumradiusSquare p0 p1 p
                         m'minRadius <- readSTRef minRadiusRef
@@ -500,7 +500,7 @@ find_seed_triangle points = do
 
     case minRadius of
         Nothing -> Nothing
-        Just _ | orient p1 p1 (points ! i2) > 0 -> Just (i0, i2, i1)
+        Just _ | orient p1 p1 (points!i2) > 0 -> Just (i0, i2, i1)
         _else -> Just (i0, i1, i2)
 
 sortf :: STVector s (uSize, Double) -> ST s ()

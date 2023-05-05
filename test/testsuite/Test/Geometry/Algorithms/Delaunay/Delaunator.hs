@@ -9,6 +9,7 @@ import           Data.Foldable
 import           Data.Function
 import           Data.Ord
 import           Data.STRef
+import           Control.DeepSeq
 import           Data.Traversable
 import           Data.Vector                             (Vector, (!))
 import qualified Data.Vector                             as V
@@ -163,17 +164,40 @@ test_triangulation_empty_after_new = testCase "Triangulation is reported empty a
 test_find_seed_triangle :: TestTree
 test_find_seed_triangle = testGroup "Find seed triangle"
     [ testCase "Smoke test" $ do
-        let actual = Actual (find_seed_triangle points)
+        let actual = find_seed_triangle points
             points = V.fromList niceTestTriangle
-            expected = Expected points
-        print actual
-        actual `seq` pure ()
+        actual `deepseq` pure ()
+    , testCase "All points are distinct" $ do
+        let firstTriangle = find_seed_triangle points
+            points = V.fromList niceTestTriangle
+        assertValidTriangle firstTriangle
+    , testCase "Seed triangle of a point cloud" $ do
+        let points = runST $ do
+                gen <- MWC.initialize (V.fromList [152])
+                ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+                pure (V.fromList ps)
+            firstTriangle = find_seed_triangle points
+        assertValidTriangle firstTriangle
     ]
+  where
+    assertValidTriangle Nothing = assertFailure "No initial triangle found"
+    assertValidTriangle (Just abc@(a,b,c))
+        | a == b || a == c || b == c = assertFailure ("Double corner in initial triangle: (a,b,c) = " <> show abc)
+        | otherwise = pure ()
 
 test_triangulate :: TestTree
 test_triangulate = testGroup "Triangulate"
     [ testCase "Smoke test: 3 points" $ do
         let points = V.fromList niceTestTriangle
+            tri = runST $ do
+                tglMut <- Delaunator.triangulate points
+                freezeTriangulation tglMut
+        print tri
+    , testCase "100 random points" $ do
+        let points = runST $ do
+                gen <- MWC.initialize (V.fromList [12])
+                ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+                pure (V.fromList ps)
             tri = runST $ do
                 tglMut <- Delaunator.triangulate points
                 freezeTriangulation tglMut
