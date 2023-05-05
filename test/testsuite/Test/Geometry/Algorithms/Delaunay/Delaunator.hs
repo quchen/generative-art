@@ -30,10 +30,12 @@ tests = testGroup "Delaunator"
     [ test_orient
     , test_circum_x
     , test_inCircle
+    , test_find_closest_point
     , test_triangulation_new
     , test_triangulation_len_after_new
     , test_triangulation_empty_after_new
-    , triangulate_smoketest
+    , test_find_seed_triangle
+    , test_triangulate
     ]
 
 test_orient :: TestTree
@@ -119,6 +121,24 @@ test_inCircle = testGroup "inCircle"
                 C.fill
     ]
 
+test_find_closest_point :: TestTree
+test_find_closest_point = testGroup "Find closest point"
+    [ testCase "Points on x axis" $ do
+        let index = 10
+            points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
+            p0 = points V.! index +. Vec2 0 10
+            actual = Actual (find_closest_point points p0)
+            expected = Expected (Just index)
+        assertEqual "" expected actual
+    , testCase "Needle’s index is not returned if points match exactly" $ do
+        let index = 10
+            points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
+            p0 = points V.! index
+
+            actual = find_closest_point points p0
+        assertBool "Expecting index not equal to the needle’s" (actual /= Just index)
+    ]
+
 test_triangulation_new :: TestTree
 test_triangulation_new = testCase
     "triangulation_new does not crash"
@@ -140,10 +160,22 @@ test_triangulation_empty_after_new = testCase "Triangulation is reported empty a
         expected = Expected True
     assertEqual "" expected actual
 
-triangulate_smoketest :: TestTree
-triangulate_smoketest = testCase "Triangulation does not crash for three points" $ do
-    let points = V.fromList niceTestTriangle
-        tri = runST $ do
-            tglMut <- Delaunator.triangulate points
-            freezeTriangulation tglMut
-    print tri
+test_find_seed_triangle :: TestTree
+test_find_seed_triangle = testGroup "Find seed triangle"
+    [ testCase "Smoke test" $ do
+        let actual = Actual (find_seed_triangle points)
+            points = V.fromList niceTestTriangle
+            expected = Expected points
+        print actual
+        actual `seq` pure ()
+    ]
+
+test_triangulate :: TestTree
+test_triangulate = testGroup "Triangulate"
+    [ testCase "Smoke test: 3 points" $ do
+        let points = V.fromList niceTestTriangle
+            tri = runST $ do
+                tglMut <- Delaunator.triangulate points
+                freezeTriangulation tglMut
+        print tri
+    ]

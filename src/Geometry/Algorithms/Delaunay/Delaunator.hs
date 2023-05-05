@@ -20,9 +20,9 @@ import qualified Data.Vector                  as V
 import qualified Data.Vector.Algorithms.Intro as VM
 import           Data.Vector.Mutable          (STVector)
 import qualified Data.Vector.Mutable          as VM
-import           Geometry.Core
 import           Debug.Trace
-import GHC.Stack (HasCallStack)
+import           GHC.Stack                    (HasCallStack)
+import           Geometry.Core
 
 
 
