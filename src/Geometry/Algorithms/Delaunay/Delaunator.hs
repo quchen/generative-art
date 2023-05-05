@@ -36,7 +36,7 @@ epsilon = 2*ieee_float64_epsilon
 dist2 :: Vec2 -> Vec2 -> Double
 dist2 x y = normSquare (x -. y)
 
--- | TODO TEST because sign flips and inverted screen coordinates *rage*
+-- | In screen coordinates (y downward),
 --
 -- * Returns a negative value if @x@, @q@ and @r@ occur in counterclockwise order
 --   (@r@ is to the left of the directed line @x@ --> @q@)
@@ -44,7 +44,7 @@ dist2 x y = normSquare (x -. y)
 --   (@r@ is to the right of the directed line @x@ --> @q@)
 -- * Returns zero is they are collinear
 orient :: Vec2 -> Vec2 -> Vec2 -> Double
-orient x q r = cross lineQ lineR
+orient x q r = negate (cross lineQ lineR)
   where
     lineQ = q -. x
     lineR = r -. x
