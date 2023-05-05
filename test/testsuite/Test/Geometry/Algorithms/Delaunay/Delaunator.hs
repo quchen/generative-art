@@ -193,6 +193,15 @@ test_triangulate = testGroup "Triangulate"
                 tglMut <- Delaunator.triangulate points
                 freezeTriangulation tglMut
         print tri
+    , testCase "4 random points" $ do
+        let points = runST $ do
+                gen <- MWC.initialize (V.fromList [1642])
+                ps <- replicateM 4 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+                pure (V.fromList ps)
+            tri = runST $ do
+                tglMut <- Delaunator.triangulate points
+                freezeTriangulation tglMut
+        print tri
     , testCase "100 random points" $ do
         let points = runST $ do
                 gen <- MWC.initialize (V.fromList [12])

@@ -155,7 +155,7 @@ freezeTriangulation tgl = do
     pure Triangulation
         { __triangles = triangles
         , __halfedges = halfedges
-        , __hull = hull
+        , __hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
         }
 
 freezeShrinkTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
@@ -169,7 +169,7 @@ freezeShrinkTriangulation tgl = do
     pure Triangulation
         { __triangles = triangles
         , __halfedges = halfedges
-        , __hull = hull
+        , __hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
         }
 
 {-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
@@ -219,20 +219,18 @@ triangulation_add_triangle
 triangulation_add_triangle tgl i0 i1 i2 a b c = do
     t <- triangulation_len tgl
 
-    let triangles = _triangles tgl
-    VM.write triangles  t    i0
-    VM.write triangles (t+1) i1
-    VM.write triangles (t+2) i2
+    VM.write (_triangles tgl)  t    i0
+    VM.write (_triangles tgl) (t+1) i1
+    VM.write (_triangles tgl) (t+2) i2
     modifySTRef' (_trianglesLen tgl) (+3)
 
-    let halfedges = _halfedges tgl
-    VM.write halfedges  t    a
-    VM.write halfedges (t+1) b
-    VM.write halfedges (t+2) c
+    VM.write (_halfedges tgl)  t    a
+    VM.write (_halfedges tgl) (t+1) b
+    VM.write (_halfedges tgl) (t+2) c
 
-    when (a /= tEMPTY) (VM.write halfedges a  t   )
-    when (b /= tEMPTY) (VM.write halfedges b (t+1))
-    when (c /= tEMPTY) (VM.write halfedges c (t+2))
+    when (a /= tEMPTY) (VM.write (_halfedges tgl) a  t   )
+    when (b /= tEMPTY) (VM.write (_halfedges tgl) b (t+1))
+    when (c /= tEMPTY) (VM.write (_halfedges tgl) c (t+2))
 
     pure t
 
@@ -243,10 +241,7 @@ triangulation_legalize
     -> Vector Vec2
     -> Hull s
     -> ST s USize
-triangulation_legalize tgl a points hull = do
-    let self_triangles = _triangles tgl
-    let self_halfedges = _halfedges tgl
-
+triangulation_legalize tgl !a points hull = do
     b <- VM.read (_halfedges tgl) a
 
     -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
@@ -268,62 +263,64 @@ triangulation_legalize tgl a points hull = do
 
     case b == tEMPTY of
         True -> pure ar
-        False -> do
-            let al = nextHalfedge a;
-                bl = prevHalfedge b;
+        False -> do {
+    ; do
+        let al = nextHalfedge a
+            bl = prevHalfedge b
 
-            p0 <- VM.read self_triangles ar
-            pr <- VM.read self_triangles a
-            pl <- VM.read self_triangles al
-            p1 <- VM.read self_triangles bl
+        p0 <- VM.read (_triangles tgl) ar
+        pr <- VM.read (_triangles tgl) a
+        pl <- VM.read (_triangles tgl) al
+        p1 <- VM.read (_triangles tgl) bl
 
-            let illegal = inCircle (points ! p0) (points ! pr) (points ! pl) (points ! p1)
-            case illegal of
-                True -> do
-                    VM.write self_triangles a p1
-                    VM.write self_triangles a p0
+        let illegal = inCircle (points!p0) (points!pr) (points!pl) (points!p1)
+        case illegal of
+            False -> pure ar
+            True -> do {
+    ; do
+        VM.write (_triangles tgl) a p1
+        VM.write (_triangles tgl) b p0
 
-                    hbl <- VM.read self_triangles bl
-                    har <- VM.read self_triangles ar
+        hbl <- VM.read (_halfedges tgl) bl
+        har <- VM.read (_halfedges tgl) ar
 
-                    -- // edge swapped on the other side of the hull (rare); fix the halfedge reference
-                    when (hbl == tEMPTY) $ do
-                        eRef <- newSTRef =<< readSTRef (_start hull)
-                        fix $ \loop -> do
-                            e <- readSTRef eRef
-                            tri_e <- VM.read (_tri hull) e
-                            if tri_e == bl
-                                then do
-                                    VM.write (_tri hull) e a
-                                    pure () -- break
-                                else do
-                                    prev_e <- VM.read (_prev hull) e
-                                    let e' = prev_e
-                                    writeSTRef eRef e'
-                                    hull_start <- readSTRef (_start hull)
-                                    if e == hull_start
-                                        then pure () -- break
-                                        else loop
+        -- // edge swapped on the other side of the hull (rare); fix the halfedge reference
+        when (hbl == tEMPTY) $ do
+            eRef <- newSTRef =<< readSTRef (_start hull)
+            fix $ \loop -> do
+                e <- readSTRef eRef
+                hull_tri_e <- VM.read (_tri hull) e
+                if hull_tri_e == bl
+                    then do
+                        VM.write (_tri hull) e a
+                        pure () -- break
+                    else do
+                        hull_prev_e <- VM.read (_prev hull) e
+                        let e' = hull_prev_e
+                        writeSTRef eRef e'
+                        hull_start <- readSTRef (_start hull)
+                        if e == hull_start
+                            then pure () -- break
+                            else loop
 
-                    VM.write self_halfedges a hbl
-                    VM.write self_halfedges b har
-                    VM.write self_halfedges ar bl
+        VM.write (_halfedges tgl) a hbl
+        VM.write (_halfedges tgl) b har
+        VM.write (_halfedges tgl) ar bl
 
-                    when (hbl /= tEMPTY) (VM.write self_halfedges hbl a)
-                    when (har /= tEMPTY) (VM.write self_halfedges har b)
-                    when (bl /= tEMPTY) (VM.write self_halfedges bl ar)
+        when (hbl /= tEMPTY) (VM.write (_halfedges tgl) hbl a)
+        when (har /= tEMPTY) (VM.write (_halfedges tgl) har b)
+        when (bl /= tEMPTY) (VM.write (_halfedges tgl) bl ar)
 
-                    let br = nextHalfedge b
-                    _ <- triangulation_legalize tgl a points hull
-                    triangulation_legalize tgl br points hull
-
-                False -> pure ar
+        let br = nextHalfedge b
+        _ <- triangulation_legalize tgl a points hull
+        triangulation_legalize tgl br points hull
+    }}
 
 data Hull s = Hull
-    { _prev :: STVector s USize
-    , _next :: STVector s USize
-    , _tri :: STVector s USize
-    , _hash :: STVector s USize
+    { _prev :: STVector s USize -- ^ edge to prev edge
+    , _next :: STVector s USize -- ^ edge to next edge
+    , _tri :: STVector s USize  -- ^ edge to adjacent halfedge
+    , _hash :: STVector s USize -- ^ angular edge hash
     , _hashLen :: Int
     , _start :: STRef s USize
     , _center :: Vec2
@@ -331,12 +328,14 @@ data Hull s = Hull
 
 hull_new
     :: HasCallStack
-    => USize
-    -> Vec2
-    -> USize
-    -> USize
-    -> USize
-    -> Vector Vec2
+    => USize -- ^ Number of points.
+             -- (Redundant since we’ve also got the input points vector,
+             -- but the Rust source does it this way.)
+    -> Vec2  -- ^ Circumcenter of the initial triangle
+    -> USize -- ^ First corner of the initial triangle
+    -> USize -- ^ Second corner of the initial triangle
+    -> USize -- ^ Third corner of the initial triangle
+    -> Vector Vec2 -- ^ Input points
     -> ST s (Hull s)
 hull_new n center i0 i1 i2 points = do
     let hash_len :: USize
@@ -446,7 +445,7 @@ calc_bbox_center = boundingBoxCenter
 
 -- | Find the closest point to a reference in the vector that is unequal to the
 -- point itself.
-find_closest_point :: Vector Vec2 -> Vec2 -> Maybe USize
+find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe USize
 find_closest_point points p0 =
     let (minDist, minIx) = search (1/0) 0 0
     in if isInfinite minDist
@@ -534,10 +533,10 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 --
 --     triangulation
 -- }
---
--- /// Triangulate a set of 2D points.
--- /// Returns the triangulation for the input points.
--- /// For the degenerated case when all points are collinear, returns an empty triangulation where all points are in the hull.
+
+-- | Triangulate a set of 2D points. Returns the triangulation for the input
+-- points. For the degenerated case when all points are collinear, returns an empty
+-- triangulation where all points are in the hull.
 triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s)
 triangulate points = do
     case find_seed_triangle points of
@@ -546,30 +545,33 @@ triangulate points = do
   where
     triangulate_for_real :: (Int, Int, Int) -> ST s (TriangulationST s)
     triangulate_for_real seed_triangle = do
-        let n = V.length points
+        let numPoints = V.length points
             (i0, i1, i2) = seed_triangle
             center = circumcenter (points!i0) (points!i1) (points!i2)
 
-        tgl <- triangulation_new n
+        tgl <- triangulation_new numPoints
         _ <- triangulation_add_triangle tgl i0 i1 i2 tEMPTY tEMPTY tEMPTY
 
         -- // sort the points by distance from the seed triangle circumcenter
         let dists = V.modify sortf (V.imap (\i p -> (i, dist2 center p)) points)
 
-        hull <- hull_new n center i0 i1 i2 points
+        hull <- hull_new numPoints center i0 i1 i2 points
 
         -- Those indices, argh!
-        for_ (V.indexed dists) $ \(k, (i, _)) -> do
+        -- k: the loop runs over the k-th closest input point to the seed triangle center.
+        -- i: index of the current subject point, as in »we are looking at point[i]«
+        V.iforM_ dists $ \k (i, _) -> do
             let p = points!i
+                isNearDuplicate =
+                    let (previousI, _previousDist) = dists!(k-1)
+                        previousP = points!previousI
+                    in k > 0 && nearlyEquals p previousP -- k>0 so we don’t underrun in the k-1 lookup
+                isInSeedTriangle = i == i0 || i == i1 || i == i2
 
             -- // skip near-duplicates
-            if k > 0 && nearlyEquals p (points! fst (dists!(k-1)))
-                then pure ()
-                else do {
-
             -- // skip seed triangle points
-            if i `elem` [i0, i1, i2]
-                then pure ()
+            if isNearDuplicate || isInSeedTriangle
+                then pure () -- continue
                 else do {
 
             -- // find a visible edge on the convex hull using edge hash
@@ -583,31 +585,31 @@ triangulate points = do
             ; do
                 e <- readSTRef eRef
                 t <- do
-                    next_e <- VM.read (_next hull) e
-                    tri_e <- VM.read (_tri hull) e
-                    triangulation_add_triangle tgl e i next_e tEMPTY tEMPTY tri_e
-
+                    hull_next_e <- VM.read (_next hull) e
+                    hull_tri_e <- VM.read (_tri hull) e
+                    triangulation_add_triangle tgl e i hull_next_e tEMPTY tEMPTY hull_tri_e
 
                 -- // recursively flip triangles from the point until they satisfy the Delaunay condition
-                new_tri_i <- triangulation_legalize tgl (t+2) points hull
-                VM.write (_tri hull) i new_tri_i
+                VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
                 VM.write (_tri hull) e t -- // keep track of boundary triangles on the hull
 
             -- // walk forward through the hull, adding more triangles and flipping recursively
-            ; do
+            ; nRef <- do
                 e <- readSTRef eRef
-                nRef <- newSTRef =<< VM.read (_next hull) e
+                hull_next_e <- VM.read (_next hull) e
+                newSTRef hull_next_e
+            ; do
                 fix $ \loop -> do
-                    q <- VM.read (_next hull) e
+                    n <- readSTRef nRef
+                    q <- VM.read (_next hull) n
                     if orient p (points!n) (points!q) <= 0
                         then pure () -- break
                         else do
-                            !hull_tri_i <- VM.read (_hull tgl) i
-                            hull_tri_n <- VM.read (_hull tgl) n
+                            hull_tri_i <- VM.read (_tri hull) i
+                            hull_tri_n <- VM.read (_tri hull) n
                             t <- triangulation_add_triangle tgl n i q hull_tri_i tEMPTY hull_tri_n
-                            legal <- triangulation_legalize tgl (t+2) points hull
-                            VM.write (_tri hull) i legal
-                            VM.write (_next hull) n tEMPTY
+                            VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
+                            VM.write (_next hull) n tEMPTY -- // mark as removed
                             writeSTRef nRef q
                             loop
 
@@ -632,6 +634,7 @@ triangulate points = do
             ; do
                 -- // update the hull indices
                 e <- readSTRef eRef
+                n <- readSTRef nRef
                 VM.write (_prev hull) i e
                 VM.write (_next hull) i n
                 VM.write (_prev hull) n i
@@ -655,6 +658,6 @@ triangulate points = do
                     hull_start <- readSTRef (_start hull)
                     unless (e == hull_start) loop
 
-            }}}
+            }}
 
         pure tgl
