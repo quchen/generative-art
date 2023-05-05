@@ -42,6 +42,7 @@ dependencies:
     - tf-random
     - transformers
     - vector
+    - vector-algorithms
 
 default-extensions:
     - BangPatterns
