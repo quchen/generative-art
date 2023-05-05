@@ -873,6 +873,11 @@ instance VectorSpace Vec2 where
     negateV (Vec2 x y) = Vec2 (-x) (-y)
     zero = Vec2 0 0
 
+-- | Dot product.
+--
+-- \[ \begin{pmatrix}a \\ b\end{pmatrix} \cdot \begin{pmatrix}x \\ y\end{pmatrix}\ = ax + by\]
+--
+-- Can be used to check whether two vectors point into the same direction (product > 0).
 dotProduct :: Vec2 -> Vec2 -> Double
 dotProduct (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
