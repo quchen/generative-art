@@ -21,6 +21,8 @@ import qualified Data.Vector.Algorithms.Intro as VM
 import           Data.Vector.Mutable          (STVector)
 import qualified Data.Vector.Mutable          as VM
 import           Geometry.Core
+import           Debug.Trace
+import GHC.Stack (HasCallStack)
 
 
 
@@ -119,7 +121,7 @@ nextHalfedge, prevHalfedge :: USize -> USize
 nextHalfedge i = if mod i 3 == 2 then i-2 else i+1
 prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
 
-data Triangulation s = Triangulation
+data TriangulationST s = TriangulationST
     { _triangles :: STVector s USize
     -- ^ A vector of point indices where each triple represents a Delaunay triangle.
     -- All triangles are directed counter-clockwise.
@@ -138,23 +140,58 @@ data Triangulation s = Triangulation
     , _hullLen :: STRef s USize
     }
 
+data Triangulation = Triangulation
+    { __triangles :: Vector USize
+    , __halfedges :: Vector USize
+    , __hull :: Vector USize
+    } deriving (Eq, Ord, Show)
+
+freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
+freezeTriangulation tgl = do
+    triangles <- V.freeze (_triangles tgl)
+    halfedges <- V.freeze (_halfedges tgl)
+
+    hull <- V.freeze (_hull tgl)
+    pure Triangulation
+        { __triangles = triangles
+        , __halfedges = halfedges
+        , __hull = hull
+        }
+
+freezeShrinkTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
+freezeShrinkTriangulation tgl = do
+    trianglesLen <- readSTRef (_trianglesLen tgl)
+    triangles <- V.freeze (VM.take trianglesLen (_triangles tgl))
+    halfedges <- V.freeze (VM.take trianglesLen (_halfedges tgl))
+
+    hullLen <- readSTRef (_hullLen tgl)
+    hull <- V.freeze (VM.take hullLen (_hull tgl))
+    pure Triangulation
+        { __triangles = triangles
+        , __halfedges = halfedges
+        , __hull = hull
+        }
+
 {-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
-newVectorWithGoodErrorMessages :: String -> Int -> ST s (STVector s a)
+newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s a)
 newVectorWithGoodErrorMessages name n
     | libTested = VM.unsafeNew n
     | otherwise = VM.generate n (\i -> error ("Uninitialized element " ++ show i ++ " in vector " ++ name))
   where
     libTested = False
 
-triangulation_new :: USize -> ST s (Triangulation s)
+triangulation_new
+    :: HasCallStack
+    => USize -- ^ Number of points
+    -> ST s (TriangulationST s)
 triangulation_new n = do
     let maxTriangles = if n > 2 then 2*n-5 else 0
-    triangles <- newVectorWithGoodErrorMessages "triangles" (maxTriangles*3)
+    triangles <- newVectorWithGoodErrorMessages "triangulation.triangles" (maxTriangles*3)
     trianglesLen <- newSTRef 0
-    halfedges <- newVectorWithGoodErrorMessages "halfedges" (maxTriangles*3)
-    hull <- newVectorWithGoodErrorMessages "halfedges, probably oversized" (maxTriangles*3)
+    halfedges <- newVectorWithGoodErrorMessages "triangulation.halfedges" (maxTriangles*3)
+    hull <- newVectorWithGoodErrorMessages "triangulation.hull" n
     hullLenRef <- newSTRef 0
-    pure Triangulation
+    pure TriangulationST
         { _triangles = triangles
         , _trianglesLen = trianglesLen
         , _halfedges = halfedges
@@ -162,15 +199,16 @@ triangulation_new n = do
         , _hullLen = hullLenRef
         }
 
-triangulation_len :: Triangulation s -> ST s USize
-triangulation_len Triangulation{_trianglesLen = lenRef} = readSTRef lenRef
+triangulation_len :: TriangulationST s -> ST s USize
+triangulation_len TriangulationST{_trianglesLen = lenRef} = readSTRef lenRef
 
-triangulation_is_empty :: Triangulation s -> ST s Bool
+triangulation_is_empty :: TriangulationST s -> ST s Bool
 triangulation_is_empty tri = fmap (== 0) (triangulation_len tri)
 
 -- | Add a new triangle to the triangulation; report the old (!) size (why, Rust source?!).
 triangulation_add_triangle
-    :: Triangulation s
+    :: HasCallStack
+    => TriangulationST s
     -> USize -- ^ Corner i0
     -> USize -- ^ Corner i1
     -> USize -- ^ Corner i2
@@ -198,7 +236,13 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
 
     pure t
 
-triangulation_legalize :: Triangulation s -> USize -> Vector Vec2 -> Hull s -> ST s USize
+triangulation_legalize
+    :: HasCallStack
+    => TriangulationST s
+    -> USize
+    -> Vector Vec2
+    -> Hull s
+    -> ST s USize
 triangulation_legalize tgl a points hull = do
     let self_triangles = _triangles tgl
     let self_halfedges = _halfedges tgl
@@ -285,7 +329,15 @@ data Hull s = Hull
     , _center :: Vec2
     }
 
-hull_new :: USize -> Vec2 -> USize -> USize -> USize -> Vector Vec2 -> ST s (Hull s)
+hull_new
+    :: HasCallStack
+    => USize
+    -> Vec2
+    -> USize
+    -> USize
+    -> USize
+    -> Vector Vec2
+    -> ST s (Hull s)
 hull_new n center i0 i1 i2 points = do
     let hash_len :: USize
         hash_len = floor (sqrt (fromIntegral n))
@@ -323,7 +375,11 @@ hull_new n center i0 i1 i2 points = do
 
     pure hull
 
-hull_hash_key :: Hull s -> Vec2 -> ST s USize
+hull_hash_key
+    :: HasCallStack
+    => Hull s
+    -> Vec2
+    -> ST s USize
 hull_hash_key hull p = do
     let center = _center hull
         Vec2 dx dy = p -. center
@@ -334,12 +390,22 @@ hull_hash_key hull p = do
     let len = _hashLen hull
     pure ((floor((fromIntegral len :: Double) * a) :: USize) `mod` len)
 
-hull_hash_edge :: Hull s -> Vec2 -> USize -> ST s ()
+hull_hash_edge
+    :: HasCallStack
+    => Hull s
+    -> Vec2
+    -> USize
+    -> ST s ()
 hull_hash_edge hull p i = do
     key <- hull_hash_key hull p
     VM.write (_hash hull) key i
 
-hull_find_visible_edge :: Hull s -> Vec2 -> Vector Vec2 -> ST s (USize, Bool)
+hull_find_visible_edge
+    :: HasCallStack
+    => Hull s
+    -> Vec2
+    -> Vector Vec2
+    -> ST s (USize, Bool)
 hull_find_visible_edge hull p points = do
     startRef <- newSTRef 0
     key <- hull_hash_key hull p
@@ -379,7 +445,7 @@ calc_bbox_center :: Vector Vec2 -> Vec2
 calc_bbox_center = boundingBoxCenter
 
 -- | Find the closest point to a reference in the vector that is unequal to the point itself.
-find_closest_point :: Vector Vec2 -> Vec2 -> Maybe USize
+find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe USize
 find_closest_point points p0 = runST $ do
     minDistRef <- newSTRef Nothing
     kRef <- newSTRef 0
@@ -398,7 +464,7 @@ find_closest_point points p0 = runST $ do
 
     fmap Just (readSTRef kRef)
 
-find_seed_triangle :: Vector Vec2 -> Maybe (USize, USize, USize)
+find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (USize, USize, USize)
 find_seed_triangle points = do
     -- // pick a seed point close to the center
     let bboxCenter = calc_bbox_center points
@@ -472,17 +538,17 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 -- /// Triangulate a set of 2D points.
 -- /// Returns the triangulation for the input points.
 -- /// For the degenerated case when all points are collinear, returns an empty triangulation where all points are in the hull.
-triangulate :: Vector Vec2 -> ST s (Triangulation s)
+triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s)
 triangulate points = do
     case find_seed_triangle points of
         Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented"
         Just seed_triangle -> triangulate_for_real seed_triangle
   where
-    triangulate_for_real :: (Int, Int, Int) -> ST s (Triangulation s)
+    triangulate_for_real :: (Int, Int, Int) -> ST s (TriangulationST s)
     triangulate_for_real seed_triangle = do
         let n = V.length points
             (i0, i1, i2) = seed_triangle
-            center = circumcenter (points ! i0) (points ! i1) (points ! i2)
+            center = circumcenter (points!i0) (points!i1) (points!i2)
 
         tgl <- triangulation_new n
         _ <- triangulation_add_triangle tgl i0 i1 i2 tEMPTY tEMPTY tEMPTY
@@ -531,13 +597,12 @@ triangulate points = do
             ; do
                 e <- readSTRef eRef
                 nRef <- newSTRef =<< VM.read (_next hull) e
-
                 fix $ \loop -> do
                     q <- VM.read (_next hull) e
                     if orient p (points!n) (points!q) <= 0
                         then pure () -- break
                         else do
-                            hull_tri_i <- VM.read (_hull tgl) i
+                            !hull_tri_i <- VM.read (_hull tgl) i
                             hull_tri_n <- VM.read (_hull tgl) n
                             t <- triangulation_add_triangle tgl n i q hull_tri_i tEMPTY hull_tri_n
                             legal <- triangulation_legalize tgl (t+2) points hull
@@ -584,6 +649,7 @@ triangulate points = do
                     hullPushIndex <- readSTRef (_hullLen tgl)
                     e <- readSTRef eeRef
                     VM.write (_hull tgl) hullPushIndex e
+                    modifySTRef' (_hullLen tgl) (+1)
                     hull_next_e <- VM.read (_next hull) e
                     writeSTRef eeRef hull_next_e
                     hull_start <- readSTRef (_start hull)
