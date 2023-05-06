@@ -115,16 +115,23 @@ type USize = Int
 -- Represents the area outside of the triangulation. Halfedges on the convex hull
 -- (which don't have an adjacent halfedge) will have this value.
 tEMPTY :: USize
-tEMPTY = maxBound
+tEMPTY = min 1000000 maxBound
 
-nextHalfedge, prevHalfedge :: USize -> USize
+-- | Given one halfedge, go to the next one. This allows walking around a single
+-- triangle.
+nextHalfedge :: USize -> USize
 nextHalfedge i = if mod i 3 == 2 then i-2 else i+1
+
+-- | Inverse of 'nextHalfedge'.
+prevHalfedge :: USize -> USize
 prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
 
 data TriangulationST s = TriangulationST
     { _triangles :: STVector s USize
     -- ^ A vector of point indices where each triple represents a Delaunay triangle.
     -- All triangles are directed counter-clockwise.
+    --
+    -- The i-th triangle is points[3i] points[3i+1] points[3i+2].
     , _trianglesLen :: STRef s USize
 
     , _halfedges :: STVector s USize
@@ -173,12 +180,15 @@ freezeShrinkTriangulation tgl = do
         }
 
 {-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
-newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s a)
-newVectorWithGoodErrorMessages name n
-    | libTested = VM.unsafeNew n
-    | otherwise = VM.generate n (\i -> error ("Uninitialized element " ++ show i ++ " in vector " ++ name))
+newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s USize)
+newVectorWithGoodErrorMessages name n = case debugMode of
+    Chatty -> VM.generate n (\i -> error ("Uninitialized element " ++ show i ++ " in vector " ++ name))
+    NonsenseValue -> VM.generate n (\i -> 200000+i)
+    DebuggedAndUnsafe -> VM.unsafeNew n
   where
-    libTested = False
+    debugMode = NonsenseValue
+
+data DebugMode = Chatty | NonsenseValue | DebuggedAndUnsafe
 
 triangulation_new
     :: HasCallStack

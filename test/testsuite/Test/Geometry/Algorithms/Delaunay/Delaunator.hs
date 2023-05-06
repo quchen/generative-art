@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 module Test.Geometry.Algorithms.Delaunay.Delaunator (tests) where
 
 
