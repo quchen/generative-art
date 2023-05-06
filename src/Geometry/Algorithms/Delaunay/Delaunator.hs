@@ -192,7 +192,7 @@ newVectorWithGoodErrorMessages name n = case debugMode of
     NonsenseValue -> VM.generate n (\i -> 200000+i)
     DebuggedAndUnsafe -> VM.unsafeNew n
   where
-    debugMode = NonsenseValue
+    debugMode = Chatty
 
 data DebugMode = Chatty | NonsenseValue | DebuggedAndUnsafe
 
@@ -300,7 +300,6 @@ triangulation_legalize tgl !a points hull = do
         p1 <- VM.read (_triangles tgl) bl
 
         let illegal = inCircle (points!p0) (points!pr) (points!pl) (points!p1)
-        traceShowM ("###### Triangulate", (ar, a, al, bl), (p0, pr, pl, p1))
         case illegal of
             False -> pure ar
             True -> do {
@@ -606,8 +605,6 @@ triangulate points = do
                     hull_next_e <- VM.read (_next hull) e
                     hull_tri_e <- VM.read (_tri hull) e
                     triangulation_add_triangle tgl e i hull_next_e tEMPTY tEMPTY hull_tri_e
-
-                traceShowTriangulation tgl
 
                 -- // recursively flip triangles from the point until they satisfy the Delaunay condition
                 VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull

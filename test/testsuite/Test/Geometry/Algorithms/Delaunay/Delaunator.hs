@@ -189,29 +189,24 @@ test_find_seed_triangle = testGroup "Find seed triangle"
 test_triangulate :: TestTree
 test_triangulate = testGroup "Triangulate"
     [ testGroup "Smoke tests"
-        [ testCase "Smoke test: 3 points" $ do
+        [ testCase "Smoke test: 3 easy points" $ do
             let points = V.fromList niceTestTriangle
                 tri = runST $ do
                     tglMut <- Delaunator.triangulate points
                     freezeTriangulation tglMut
             tri `deepseq` pure ()
-        , testCase "Smoke test: 4 random points" $ do
-            let points = runST $ do
-                    gen <- MWC.initialize (V.fromList [1642])
-                    ps <- replicateM 4 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
-                    pure (V.fromList ps)
-                tri = runST $ do
-                    tglMut <- Delaunator.triangulate points
-                    freezeTriangulation tglMut
-            tri `deepseq` pure ()
-        , testCase "Smoke 100 random points" $ do
-            let points = runST $ do
-                    gen <- MWC.initialize (V.fromList [12])
-                    ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
-                    pure (V.fromList ps)
-                tri = runST $ do
-                    tglMut <- Delaunator.triangulate points
-                    freezeTriangulation tglMut
-            print tri
+        , triangulateSmoketest 3 [142]
+        , triangulateSmoketest 4 [13]
         ]
     ]
+
+triangulateSmoketest :: Int -> [Int] -> TestTree
+triangulateSmoketest n seed = testCase ("Smoke test: " ++ show n ++ " random points") $ do
+    let points = runST $ do
+            gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+            ps <- replicateM n (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+            pure (V.fromList ps)
+        tri = runST $ do
+            tglMut <- Delaunator.triangulate points
+            freezeTriangulation tglMut
+    tri `deepseq` pure ()
