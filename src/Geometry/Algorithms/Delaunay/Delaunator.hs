@@ -35,8 +35,8 @@ epsilon = 2*ieee_float64_epsilon
     -- Couldn’t find it in Haskell’s base.
     ieee_float64_epsilon = 2.2204460492503131e-16
 
-dist2 :: Vec2 -> Vec2 -> Double
-dist2 x y = normSquare (x -. y)
+distSquare :: Vec2 -> Vec2 -> Double
+distSquare x y = normSquare (x -. y)
 
 -- | In screen coordinates (y downward),
 --
@@ -398,13 +398,8 @@ hull_hash_key
     -> Vec2
     -> ST s USize
 hull_hash_key hull p = do
-    let center = _center hull
-        Vec2 dx dy = p -. center
-
-        pp = dx / (abs dx + abs dy);
-        a = (if dy > 0.0 then 3.0 - pp else 1.0 + pp) / 4.0; -- [0..1] --- <- I don’t understand this comment in the Rust source
-
-    let len = _hashLen hull
+    let a = pseudoAngle (p -. _center hull)
+        len = _hashLen hull
     pure ((floor((fromIntegral len :: Double) * a) :: USize) `mod` len)
 
 hull_hash_edge
@@ -428,35 +423,31 @@ hull_find_visible_edge hull p points = do
     key <- hull_hash_key hull p
     let len = _hashLen hull
 
-    flip fix 0 $ \loop j -> do
-        start <- VM.read (_hash hull) ((key+j) `mod` len)
-        writeSTRef startRef start
-        next <- VM.read (_next hull) start
-        if start /= tEMPTY && next /= tEMPTY
-            then pure () -- break
-            else loop (j+1)
+    do  let loop j | j >= len = pure () -- end of loop
+            loop j = do
+                start <- VM.read (_hash hull) ((key+j) `mod` len)
+                writeSTRef startRef start
+                next <- VM.read (_next hull) start
+                if start /= tEMPTY && next /= tEMPTY
+                    then pure () -- break
+                    else loop (j+1)
+        loop 0
 
-    start <- readSTRef startRef
-    prev_start <- VM.read (_prev hull) start
-    eRef <- newSTRef prev_start
+    start <- do
+        oldStart <- readSTRef startRef
+        VM.read (_prev hull) oldStart
+    eRef <- newSTRef start
 
-    earlyReturnHack <- fix $ \loop -> do
+    fix $ \loop -> do
         e <- readSTRef eRef
         next_e <- VM.read (_next hull) e
         if orient p (points ! e) (points ! next_e) <= 0
             then do
                 writeSTRef eRef next_e
-                e' <- readSTRef eRef
-                if e' == start
-                    then pure (Just (tEMPTY, False))
+                if next_e == start
+                    then pure (tEMPTY, False)
                     else loop
-            else pure Nothing -- exit while loop
-
-    case earlyReturnHack of
-        Just earlyReturn -> pure earlyReturn
-        Nothing -> do
-            e <- readSTRef eRef
-            pure (e, e == start)
+            else pure (e, e == start)
 
 calc_bbox_center :: Vector Vec2 -> Vec2
 calc_bbox_center = boundingBoxCenter
@@ -476,7 +467,7 @@ find_closest_point points p0 =
         | searchIx >= V.length points = (minDist, minIx)
     search !minDist !minIx !searchIx =
         let p = points!searchIx
-            d = dist2 p p0
+            d = distSquare p p0
         in if d > 0 && d < minDist
             then search d searchIx (searchIx+1)
             else search minDist minIx (searchIx+1)
@@ -571,7 +562,7 @@ triangulate points = do
         _ <- triangulation_add_triangle tgl i0 i1 i2 tEMPTY tEMPTY tEMPTY
 
         -- // sort the points by distance from the seed triangle circumcenter
-        let dists = V.modify sortf (V.imap (\i p -> (i, dist2 center p)) points)
+        let dists = V.modify sortf (V.imap (\i p -> (i, distSquare center p)) points)
 
         hull <- hull_new numPoints center i0 i1 i2 points
 
@@ -594,6 +585,8 @@ triangulate points = do
 
             -- // find a visible edge on the convex hull using edge hash
             ; (e0, walk_back) <- hull_find_visible_edge hull p points
+            ; traceShowM ("### Triangulate", e0, e0 == tEMPTY)
+
             ; if e0 == tEMPTY
                 then pure () -- // likely a near-duplicate point; skip it
                 else do {
