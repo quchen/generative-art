@@ -107,7 +107,7 @@ inCircle (Vec2 ax ay) (Vec2 bx by) (Vec2 cx cy) (Vec2 px py) =
 nearlyEquals :: Vec2 -> Vec2 -> Bool
 nearlyEquals a b =
     let Vec2 dx dy = a -. b
-    in dx <= epsilon && dy <= epsilon
+    in abs dx <= epsilon && abs dy <= epsilon
 
 -- Type synonym so copy+paste is less ambiguous from the Rust code
 type USize = Int
