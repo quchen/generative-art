@@ -133,8 +133,8 @@ data TriangulationST s = TriangulationST
     --
     -- The i-th triangle is points[3i] points[3i+1] points[3i+2].
 
-    , _numTriangles :: STRef s USize
-    -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_numTriangles'.
+    , _trianglesLen :: STRef s USize
+    -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_trianglesLen'.
 
     , _halfedges :: STVector s USize
     -- ^ A vector of adjacent halfedge indices that allows traversing the triangulation graph.
@@ -169,9 +169,9 @@ freezeTriangulation tgl = do
 
 freezeShrinkTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
 freezeShrinkTriangulation tgl = do
-    numTriangles <- readSTRef (_numTriangles tgl)
-    triangles <- V.freeze (VM.take numTriangles (_triangles tgl))
-    halfedges <- V.freeze (VM.take numTriangles (_halfedges tgl))
+    trianglesLen <- readSTRef (_trianglesLen tgl)
+    triangles <- V.freeze (VM.take trianglesLen (_triangles tgl))
+    halfedges <- V.freeze (VM.take trianglesLen (_halfedges tgl))
 
     hullLen <- readSTRef (_hullLen tgl)
     hull <- V.freeze (VM.take hullLen (_hull tgl))
@@ -199,26 +199,21 @@ triangulation_new
 triangulation_new n = do
     let maxTriangles = if n > 2 then 2*n-5 else 0
     triangles <- newVectorWithGoodErrorMessages "triangulation.triangles" (maxTriangles*3)
-    numTriangles <- newSTRef 0
+    trianglesLen <- newSTRef 0
     halfedges <- newVectorWithGoodErrorMessages "triangulation.halfedges" (maxTriangles*3)
     hull <- newVectorWithGoodErrorMessages "triangulation.hull" n
     hullLenRef <- newSTRef 0
     pure TriangulationST
         { _triangles = triangles
-        , _numTriangles = numTriangles
+        , _trianglesLen = trianglesLen
         , _halfedges = halfedges
         , _hull = hull
         , _hullLen = hullLenRef
         }
 
 -- ^ Number of triangles in the triangulation.
---
---
--- The name can be misunderstood as the number of valid entries in the _triangles
--- array (which is 3*triangulation_len), but is being kept to stay coherent with
--- the Rust source.
 triangulation_len :: TriangulationST s -> ST s USize
-triangulation_len TriangulationST{_numTriangles = lenRef} = readSTRef lenRef
+triangulation_len TriangulationST{_trianglesLen = lenRef} = fmap (`div` 3) (readSTRef lenRef)
 
 triangulation_is_empty :: TriangulationST s -> ST s Bool
 triangulation_is_empty tri = fmap (== 0) (triangulation_len tri)
@@ -240,7 +235,7 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
     VM.write (_triangles tgl)  t    i0
     VM.write (_triangles tgl) (t+1) i1
     VM.write (_triangles tgl) (t+2) i2
-    modifySTRef' (_numTriangles tgl) (+1)
+    modifySTRef' (_trianglesLen tgl) (+3)
 
     VM.write (_halfedges tgl)  t    a
     VM.write (_halfedges tgl) (t+1) b
