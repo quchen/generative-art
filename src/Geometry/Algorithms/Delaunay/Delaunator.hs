@@ -13,6 +13,7 @@ import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Function
+import           Control.DeepSeq
 import           Data.Ord
 import           Data.STRef
 import           Data.Vector                  (Vector, (!))
@@ -155,6 +156,9 @@ data Triangulation = Triangulation
     , __hull :: Vector USize
     } deriving (Eq, Ord, Show)
 
+instance NFData Triangulation where
+    rnf (Triangulation a b c) = rnf (a,b,c)
+
 freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
 freezeTriangulation tgl = do
     triangles <- V.freeze (_triangles tgl)
@@ -211,9 +215,10 @@ triangulation_new n = do
         , _hullLen = hullLenRef
         }
 
--- ^ Number of triangles in the triangulation.
+-- ^ Number of entries in the _triangles array. Note that this is 3 times the
+-- number of triangles!
 triangulation_len :: TriangulationST s -> ST s USize
-triangulation_len TriangulationST{_trianglesLen = lenRef} = fmap (`div` 3) (readSTRef lenRef)
+triangulation_len TriangulationST{_trianglesLen = lenRef} = readSTRef lenRef
 
 triangulation_is_empty :: TriangulationST s -> ST s Bool
 triangulation_is_empty tri = fmap (== 0) (triangulation_len tri)
@@ -247,6 +252,15 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
 
     pure t
 
+traceShowTriangulation :: TriangulationST s -> ST s ()
+traceShowTriangulation tgl = do
+    let TriangulationST {_triangles = ts, _halfedges = es, _trianglesLen = nRef} = tgl
+    n <- readSTRef nRef
+    ts' <- V.freeze (VM.take n ts)
+    es' <- V.freeze (VM.take n es)
+    traceM ("Triangles: " ++ show ts')
+    traceM ("Halfedges: " ++ show es')
+
 triangulation_legalize
     :: HasCallStack
     => TriangulationST s
@@ -256,7 +270,6 @@ triangulation_legalize
     -> ST s USize
 triangulation_legalize tgl !a points hull = do
     b <- VM.read (_halfedges tgl) a
-
     -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
     -- inside the circumcircle of [p0, pl, pr]), flip them, then do the same
     -- check/flip recursively for the new pair of triangles
@@ -287,6 +300,7 @@ triangulation_legalize tgl !a points hull = do
         p1 <- VM.read (_triangles tgl) bl
 
         let illegal = inCircle (points!p0) (points!pr) (points!pl) (points!p1)
+        traceShowM ("###### Triangulate", (ar, a, al, bl), (p0, pr, pl, p1))
         case illegal of
             False -> pure ar
             True -> do {
@@ -418,25 +432,24 @@ hull_find_visible_edge hull p points = do
     key <- hull_hash_key hull p
     let len = _hashLen hull
 
+    -- // find a visible edge on the convex hull using edge hash
     do  let loop j | j >= len = pure () -- end of loop
             loop j = do
                 start <- VM.read (_hash hull) ((key+j) `mod` len)
                 writeSTRef startRef start
                 next <- VM.read (_next hull) start
                 if start /= tEMPTY && next /= tEMPTY
-                    then pure () -- break
+                    then pure () -- break: we found a good start
                     else loop (j+1)
         loop 0
 
-    start <- do
-        oldStart <- readSTRef startRef
-        VM.read (_prev hull) oldStart
+    start <- VM.read (_prev hull) =<< readSTRef startRef
     eRef <- newSTRef start
 
     fix $ \loop -> do
         e <- readSTRef eRef
         next_e <- VM.read (_next hull) e
-        if orient p (points ! e) (points ! next_e) <= 0
+        if orient p (points!e) (points!next_e) <= 0
             then do
                 writeSTRef eRef next_e
                 if next_e == start
@@ -580,7 +593,6 @@ triangulate points = do
 
             -- // find a visible edge on the convex hull using edge hash
             ; (e0, walk_back) <- hull_find_visible_edge hull p points
-            ; traceShowM ("### Triangulate", e0, e0 == tEMPTY)
 
             ; if e0 == tEMPTY
                 then pure () -- // likely a near-duplicate point; skip it
@@ -594,6 +606,8 @@ triangulate points = do
                     hull_next_e <- VM.read (_next hull) e
                     hull_tri_e <- VM.read (_tri hull) e
                     triangulation_add_triangle tgl e i hull_next_e tEMPTY tEMPTY hull_tri_e
+
+                traceShowTriangulation tgl
 
                 -- // recursively flip triangles from the point until they satisfy the Delaunay condition
                 VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
@@ -635,7 +649,6 @@ triangulate points = do
                             VM.write (_next hull) e tEMPTY -- // mark as removed
                             writeSTRef eRef q
                             loop
-
 
             ; do
                 -- // update the hull indices

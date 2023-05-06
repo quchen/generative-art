@@ -188,28 +188,30 @@ test_find_seed_triangle = testGroup "Find seed triangle"
 
 test_triangulate :: TestTree
 test_triangulate = testGroup "Triangulate"
-    [ testCase "Smoke test: 3 points" $ do
-        let points = V.fromList niceTestTriangle
-            tri = runST $ do
-                tglMut <- Delaunator.triangulate points
-                freezeTriangulation tglMut
-        print tri
-    , testCase "4 random points" $ do
-        let points = runST $ do
-                gen <- MWC.initialize (V.fromList [1642])
-                ps <- replicateM 4 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
-                pure (V.fromList ps)
-            tri = runST $ do
-                tglMut <- Delaunator.triangulate points
-                freezeTriangulation tglMut
-        print tri
-    , testCase "100 random points" $ do
-        let points = runST $ do
-                gen <- MWC.initialize (V.fromList [12])
-                ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
-                pure (V.fromList ps)
-            tri = runST $ do
-                tglMut <- Delaunator.triangulate points
-                freezeTriangulation tglMut
-        print tri
+    [ testGroup "Smoke tests"
+        [ testCase "Smoke test: 3 points" $ do
+            let points = V.fromList niceTestTriangle
+                tri = runST $ do
+                    tglMut <- Delaunator.triangulate points
+                    freezeTriangulation tglMut
+            tri `deepseq` pure ()
+        , testCase "Smoke test: 4 random points" $ do
+            let points = runST $ do
+                    gen <- MWC.initialize (V.fromList [1642])
+                    ps <- replicateM 4 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+                    pure (V.fromList ps)
+                tri = runST $ do
+                    tglMut <- Delaunator.triangulate points
+                    freezeTriangulation tglMut
+            tri `deepseq` pure ()
+        , testCase "Smoke 100 random points" $ do
+            let points = runST $ do
+                    gen <- MWC.initialize (V.fromList [12])
+                    ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
+                    pure (V.fromList ps)
+                tri = runST $ do
+                    tglMut <- Delaunator.triangulate points
+                    freezeTriangulation tglMut
+            print tri
+        ]
     ]
