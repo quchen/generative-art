@@ -337,6 +337,8 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/shear.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg)
+
 ![Missing image!](../../../docs/haddock/Geometry/Core.hs/translate.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Shapes.hs/haskell_logo.svg)

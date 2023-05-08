@@ -27,6 +27,8 @@ module Geometry.Core (
     , LLIntersection(..)
     , intersectionLL
     , intersectionPoint
+    , subdivideLine
+    , subdivideLineByLength
     , reflection
 
     -- ** Polylines
@@ -1160,6 +1162,52 @@ intersectionLL lineL lineR
     forwardness v = dotProduct
         (direction lineL)
         (direction (Line v1 v))
+
+-- | Subdivide a line into a number of equally long parts. Useful for
+-- distorting straight lines. The first and last points are (exactly) equal to the
+-- start and end of the input line.
+--
+-- See 'subdivideLineByLength' for a code example.
+subdivideLine :: Int -> Line -> [Vec2]
+subdivideLine _ (Line start end) | start == end = [start, end]
+subdivideLine numSegments line@(Line start end) = do
+    let v = vectorOf line
+    segment <- [0..numSegments]
+    pure $ if | segment == 0 -> start
+              | segment == numSegments -> end
+              | otherwise -> let fraction = fromIntegral segment / fromIntegral numSegments
+                             in start +. fraction*.v
+
+-- | Subdivide a line into evenly-sized intervals of a maximum length. Useful for
+-- distorting straight lines. The first and last points are (exactly) equal to the
+-- start and end of the input line.
+--
+-- See also 'subdivideLineByLength'.
+--
+-- <<docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg>>
+--
+-- === __(Expand to see the code for the picture)__
+-- >>> :{
+-- haddockRender "Geometry/Core.hs/subdivide_line_by_length.svg" 200 150 $ do
+--     let line = Line (Vec2 10 10) (Vec2 190 140)
+--         subdivisions = subdivideLineByLength 30 line
+--     cairoScope $ do
+--         setColor (mathematica97 0)
+--         sketch line
+--         C.stroke
+--     cairoScope $ for_ subdivisions $ \point -> do
+--         sketch (Circle point 3)
+--         setColor (mathematica97 1)
+--         C.fill
+-- :}
+-- docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg
+subdivideLineByLength
+    :: Double -- ^ Maximum segment length
+    -> Line
+    -> [Vec2]
+subdivideLineByLength segmentLength line =
+    let numSegments = ceiling (lineLength line / segmentLength)
+    in subdivideLine numSegments line
 
 -- | All the polygon’s edges, in order, starting at an arbitrary corner.
 --
