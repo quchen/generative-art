@@ -24,6 +24,8 @@ cradle:
       component: penplotting-flowlines
     - path: ./penplotting/Hatched
       component: penplotting-hatched
+    - path: ./penplotting/HatchedBlob
+      component: hatched-blob
     - path: ./penplotting/Kilometer
       component: kilometer
     - path: ./penplotting/PenChangeCalibration
