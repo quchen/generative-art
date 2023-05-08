@@ -1309,14 +1309,20 @@ instance Transform Ellipse where
     transform t (Ellipse t') = Ellipse (t <> t')
 
 -- | Total length of a 'Polyline'.
+--
+-- >>> polylineLength (Polyline [zero, Vec2 123.4 0])
+-- 123.4
 polylineLength :: Sequential f => Polyline f -> Double
 polylineLength = foldl' (+) 0 . map lineLength . polylineEdges
 
 -- | All lines composing a 'Polyline' (in order).
+--
+-- >>> polylineEdges (Polyline [zero, Vec2 50 50, Vec2 100 0])
+-- [Line (Vec2 0.0 0.0) (Vec2 50.0 50.0),Line (Vec2 50.0 50.0) (Vec2 100.0 0.0)]
 polylineEdges :: Sequential f => Polyline f -> [Line]
 polylineEdges (Polyline points) =
     let pointsList = toList points
-    in zipWith Line pointsList (tail (cycle pointsList))
+    in zipWith Line pointsList (tail pointsList)
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
