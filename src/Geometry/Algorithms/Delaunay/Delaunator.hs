@@ -129,51 +129,48 @@ nearlyEquals a b =
     let Vec2 dx dy = a -. b
     in abs dx <= epsilon && abs dy <= epsilon
 
--- Type synonym so copy+paste is less ambiguous from the Rust code
-type USize = Int
-
 -- Represents the area outside of the triangulation. Halfedges on the convex hull
 -- (which don't have an adjacent halfedge) will have this value.
-tEMPTY :: USize
+tEMPTY :: Int
 tEMPTY = maxBound
 
 -- | Given one halfedge, go to the next one. This allows walking around a single
 -- triangle.
-nextHalfedge :: USize -> USize
+nextHalfedge :: Int -> Int
 nextHalfedge i = if mod i 3 == 2 then i-2 else i+1
 
 -- | Inverse of 'nextHalfedge'.
-prevHalfedge :: USize -> USize
+prevHalfedge :: Int -> Int
 prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
 
 data TriangulationST s = TriangulationST
-    { _triangles :: STVector s USize
+    { _triangles :: STVector s Int
     -- ^ A vector of point indices where each triple represents a Delaunay
     -- triangle. All triangles are directed counter-clockwise (in screen
     -- coordinates, i.e. y pointing downwards).
     --
     --   The i-th triangle is points[3i], points[3i+1], points[3i+2].
 
-    , _trianglesLen :: STRef s USize
+    , _trianglesLen :: STRef s Int
     -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_trianglesLen'.
 
-    , _halfedges :: STVector s USize
+    , _halfedges :: STVector s Int
     -- ^ A vector of adjacent halfedge indices that allows traversing the triangulation graph.
     --
     -- `i`-th half-edge in the array corresponds to vertex `triangles[i]`
     -- the half-edge is coming from. `halfedges[i]` is the index of a twin half-edge
     -- in an adjacent triangle (or `tEMPTY` for outer halfedges on the convex hull).
 
-    , _hull :: STVector s USize
+    , _hull :: STVector s Int
     -- ^ A vector of indices that reference points on the convex hull of the triangulation,
     -- counter-clockwise.
-    , _hullLen :: STRef s USize
+    , _hullLen :: STRef s Int
     }
 
 data Triangulation = Triangulation
-    { __triangles :: Vector USize
-    , __halfedges :: Vector USize
-    , __hull :: Vector USize
+    { __triangles :: Vector Int
+    , __halfedges :: Vector Int
+    , __hull :: Vector Int
     } deriving (Eq, Ord, Show)
 
 instance NFData Triangulation where
@@ -194,7 +191,7 @@ freezeTriangulation tgl = do
         }
 
 {-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
-newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s USize)
+newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s Int)
 newVectorWithGoodErrorMessages name n = case debugMode of
     Chatty -> VM.generate n (\i -> error ("Uninitialized element " ++ show i ++ " in vector " ++ name))
     NonsenseValue -> VM.generate n (\i -> 200000+i)
@@ -206,7 +203,7 @@ data DebugMode = Chatty | NonsenseValue | DebuggedAndUnsafe
 
 triangulation_new
     :: HasCallStack
-    => USize -- ^ Number of points
+    => Int -- ^ Number of points
     -> ST s (TriangulationST s)
 triangulation_new n = do
     let maxTriangles = if n > 2 then 2*n-5 else 0
@@ -227,13 +224,13 @@ triangulation_new n = do
 triangulation_add_triangle
     :: HasCallStack
     => TriangulationST s
-    -> USize -- ^ Corner i0
-    -> USize -- ^ Corner i1
-    -> USize -- ^ Corner i2
-    -> USize -- ^ Halfedge a
-    -> USize -- ^ Halfedge b
-    -> USize -- ^ Halfedge c
-    -> ST s USize
+    -> Int -- ^ Corner i0
+    -> Int -- ^ Corner i1
+    -> Int -- ^ Corner i2
+    -> Int -- ^ Halfedge a
+    -> Int -- ^ Halfedge b
+    -> Int -- ^ Halfedge c
+    -> ST s Int
 triangulation_add_triangle tgl i0 i1 i2 a b c = do
     t <- readSTRef (_trianglesLen tgl)
 
@@ -255,10 +252,10 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
 triangulation_legalize
     :: HasCallStack
     => TriangulationST s -- ^ Triangulation that needs legalization
-    -> USize             -- ^ ID of the halfedge to potentially flip
+    -> Int             -- ^ ID of the halfedge to potentially flip
     -> Vector Vec2       -- ^ Delaunay input points
     -> Hull s
-    -> ST s USize -- ^ Halfedge adjacent to a. I don’t fully understand this value yet.
+    -> ST s Int -- ^ Halfedge adjacent to a. I don’t fully understand this value yet.
 triangulation_legalize tgl !a points hull = do
     b <- VM.read (_halfedges tgl) a
     -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
@@ -336,28 +333,28 @@ triangulation_legalize tgl !a points hull = do
     }}
 
 data Hull s = Hull
-    { _prev :: STVector s USize -- ^ Edge to previous edge
-    , _next :: STVector s USize -- ^ Edge to next edge
-    , _tri :: STVector s USize  -- ^ Edge to adjacent halfedge
-    , _hash :: STVector s USize -- ^ angular edge hash
+    { _prev :: STVector s Int -- ^ Edge to previous edge
+    , _next :: STVector s Int -- ^ Edge to next edge
+    , _tri :: STVector s Int  -- ^ Edge to adjacent halfedge
+    , _hash :: STVector s Int -- ^ angular edge hash
     , _hashLen :: Int
-    , _start :: STRef s USize
+    , _start :: STRef s Int
     , _center :: Vec2
     }
 
 hull_new
     :: HasCallStack
-    => USize       -- ^ Number of points.
+    => Int       -- ^ Number of points.
                    --   (Redundant since we’ve also got the input points vector,
                    --   but the Rust source does it this way.)
     -> Vec2        -- ^ Circumcenter of the initial triangle
-    -> USize       -- ^ First corner of the initial triangle
-    -> USize       -- ^ Second corner of the initial triangle
-    -> USize       -- ^ Third corner of the initial triangle
+    -> Int       -- ^ First corner of the initial triangle
+    -> Int       -- ^ Second corner of the initial triangle
+    -> Int       -- ^ Third corner of the initial triangle
     -> Vector Vec2 -- ^ Input points
     -> ST s (Hull s)
 hull_new n center i0 i1 i2 points = do
-    let hash_len :: USize
+    let hash_len :: Int
         hash_len = floor (sqrt (fromIntegral n))
 
     prev <- VM.replicate n 0
@@ -400,17 +397,17 @@ hull_hash_key
     :: HasCallStack
     => Hull s
     -> Vec2
-    -> ST s USize
+    -> ST s Int
 hull_hash_key hull p = do
     let a = pseudoAngle (p -. _center hull)
         len = _hashLen hull
-    pure ((floor((fromIntegral len :: Double) * a) :: USize) `mod` len)
+    pure ((floor((fromIntegral len :: Double) * a) :: Int) `mod` len)
 
 hull_hash_edge
     :: HasCallStack
     => Hull s
     -> Vec2
-    -> USize
+    -> Int
     -> ST s ()
 hull_hash_edge hull p i = do
     key <- hull_hash_key hull p
@@ -421,7 +418,7 @@ hull_find_visible_edge
     => Hull s
     -> Vec2        -- ^ Newly inserted point
     -> Vector Vec2 -- ^ Input points
-    -> ST s (USize, Bool)
+    -> ST s (Int, Bool)
 hull_find_visible_edge hull p points = do
     startRef <- newSTRef 0
     key <- hull_hash_key hull p
@@ -460,7 +457,7 @@ calc_bbox_center = boundingBoxCenter
 
 -- | Find the closest point to a reference in the vector that is unequal to the
 -- point itself.
-find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe USize
+find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe Int
 find_closest_point points p0 =
     let (minDist, minIx) = search (1/0) 0 0
     in if isInfinite minDist
@@ -478,7 +475,7 @@ find_closest_point points p0 =
             then search d searchIx (searchIx+1)
             else search minDist minIx (searchIx+1)
 
-find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (USize, USize, USize)
+find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (Int, Int, Int)
 find_seed_triangle points = do
     -- // pick a seed point close to the center
     let bboxCenter = calc_bbox_center points
@@ -520,7 +517,7 @@ find_seed_triangle points = do
                                            --  counter-clockwise (in screen coordinates).
             | otherwise -> Just (i0, i1, i2)
 
-sortf :: STVector s (uSize, Double) -> ST s ()
+sortf :: STVector s (Int, Double) -> ST s ()
 sortf = VM.sortBy (comparing (\(_, d) -> d))
 
 -- /// Order collinear points by dx (or dy if all x are identical) and return the list as a hull
