@@ -437,9 +437,12 @@ hull_find_visible_edge hull p points = do
             loop j = do
                 start <- VM.read (_hash hull) ((key+j) `mod` len)
                 writeSTRef startRef start
+                if start /= tEMPTY
+                    then do
                 next <- VM.read (_next hull) start
-                if start /= tEMPTY && next /= tEMPTY
+                        if next /= tEMPTY
                     then pure () -- break: we found a good start
+                            else loop (j+1)
                     else loop (j+1)
         loop 0
 
