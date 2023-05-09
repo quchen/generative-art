@@ -144,51 +144,29 @@ prevHalfedge :: Int -> Int
 prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
 
 data TriangulationST s = TriangulationST
-    { _triangles :: STVector s Int
+    { __triangles :: STVector s Int
     -- ^ A vector of point indices where each triple represents a Delaunay
     -- triangle. All triangles are directed counter-clockwise (in screen
     -- coordinates, i.e. y pointing downwards).
     --
     --   The i-th triangle is points[3i], points[3i+1], points[3i+2].
 
-    , _trianglesLen :: STRef s Int
-    -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_trianglesLen'.
+    , __trianglesLen :: STRef s Int
+    -- ^ Number of valid entries in '__triangles'. n/3 is the number of triangles
+    --   in the triangulation.
 
-    , _halfedges :: STVector s Int
+    , __halfedges :: STVector s Int
     -- ^ A vector of adjacent halfedge indices that allows traversing the triangulation graph.
     --
     -- `i`-th half-edge in the array corresponds to vertex `triangles[i]`
     -- the half-edge is coming from. `halfedges[i]` is the index of a twin half-edge
     -- in an adjacent triangle (or `tEMPTY` for outer halfedges on the convex hull).
 
-    , _hull :: STVector s Int
+    , __hull :: STVector s Int
     -- ^ A vector of indices that reference points on the convex hull of the triangulation,
     -- counter-clockwise.
-    , _hullLen :: STRef s Int
+    , __hullLen :: STRef s Int
     }
-
-data Triangulation = Triangulation
-    { __triangles :: Vector Int
-    , __halfedges :: Vector Int
-    , __hull :: Vector Int
-    } deriving (Eq, Ord, Show)
-
-instance NFData Triangulation where
-    rnf (Triangulation a b c) = rnf (a,b,c)
-
-freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
-freezeTriangulation tgl = do
-    trianglesLen <- readSTRef (_trianglesLen tgl)
-    triangles <- V.freeze (VM.take trianglesLen (_triangles tgl)) -- TODO unsafeFreeze should work here
-    halfedges <- V.freeze (VM.take trianglesLen (_halfedges tgl))
-
-    hullLen <- readSTRef (_hullLen tgl)
-    hull <- V.freeze (VM.take hullLen (_hull tgl))
-    pure Triangulation
-        { __triangles = triangles
-        , __halfedges = halfedges
-        , __hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
-        }
 
 {-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
 newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s Int)
@@ -213,11 +191,11 @@ triangulation_new n = do
     hull <- newVectorWithGoodErrorMessages "triangulation.hull" n
     hullLenRef <- newSTRef 0
     pure TriangulationST
-        { _triangles = triangles
-        , _trianglesLen = trianglesLen
-        , _halfedges = halfedges
-        , _hull = hull
-        , _hullLen = hullLenRef
+        { __triangles = triangles
+        , __trianglesLen = trianglesLen
+        , __halfedges = halfedges
+        , __hull = hull
+        , __hullLen = hullLenRef
         }
 
 -- | Add a new triangle to the triangulation; report the old (!) size (why, Rust source?!).
@@ -232,20 +210,20 @@ triangulation_add_triangle
     -> Int -- ^ Halfedge c
     -> ST s Int
 triangulation_add_triangle tgl i0 i1 i2 a b c = do
-    t <- readSTRef (_trianglesLen tgl)
+    t <- readSTRef (__trianglesLen tgl)
 
-    VM.write (_triangles tgl)  t    i0
-    VM.write (_triangles tgl) (t+1) i1
-    VM.write (_triangles tgl) (t+2) i2
-    modifySTRef' (_trianglesLen tgl) (+3)
+    VM.write (__triangles tgl)  t    i0
+    VM.write (__triangles tgl) (t+1) i1
+    VM.write (__triangles tgl) (t+2) i2
+    modifySTRef' (__trianglesLen tgl) (+3)
 
-    VM.write (_halfedges tgl)  t    a
-    VM.write (_halfedges tgl) (t+1) b
-    VM.write (_halfedges tgl) (t+2) c
+    VM.write (__halfedges tgl)  t    a
+    VM.write (__halfedges tgl) (t+1) b
+    VM.write (__halfedges tgl) (t+2) c
 
-    when (a /= tEMPTY) (VM.write (_halfedges tgl) a  t   )
-    when (b /= tEMPTY) (VM.write (_halfedges tgl) b (t+1))
-    when (c /= tEMPTY) (VM.write (_halfedges tgl) c (t+2))
+    when (a /= tEMPTY) (VM.write (__halfedges tgl) a  t   )
+    when (b /= tEMPTY) (VM.write (__halfedges tgl) b (t+1))
+    when (c /= tEMPTY) (VM.write (__halfedges tgl) c (t+2))
 
     pure t
 
@@ -257,7 +235,7 @@ triangulation_legalize
     -> Hull s
     -> ST s Int -- ^ Halfedge adjacent to a. I don’t fully understand this value yet.
 triangulation_legalize tgl !a points hull = do
-    b <- VM.read (_halfedges tgl) a
+    b <- VM.read (__halfedges tgl) a
     -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
     -- inside the circumcircle of [p0, pl, pr]), flip them, then do the same
     -- check/flip recursively for the new pair of triangles
@@ -266,7 +244,7 @@ triangulation_legalize tgl !a points hull = do
     --          /||\                  /  \
     --       al/ || \bl            al/    \a
     --        /  ||  \              /      \
-    --       /  a||b  \    flip    /___ar___\
+    --       /  a||b  \    flip    /__ar__\
     --     p0\   ||   /p1   =>   p0\---bl---/p1
     --        \  ||  /              \      /
     --       ar\ || /br             b\    /br
@@ -283,10 +261,10 @@ triangulation_legalize tgl !a points hull = do
         let al = nextHalfedge a
             bl = prevHalfedge b
 
-        p0 <- VM.read (_triangles tgl) ar
-        pr <- VM.read (_triangles tgl) a
-        pl <- VM.read (_triangles tgl) al
-        p1 <- VM.read (_triangles tgl) bl
+        p0 <- VM.read (__triangles tgl) ar
+        pr <- VM.read (__triangles tgl) a
+        pl <- VM.read (__triangles tgl) al
+        p1 <- VM.read (__triangles tgl) bl
 
         -- Delaunay condition: No point may be inside the circumcircle of another triangle.
         let illegal = inCircle (points!p0, points!pr, points!pl) (points!p1)
@@ -294,11 +272,11 @@ triangulation_legalize tgl !a points hull = do
             False -> pure ar
             True -> do {
     ; do
-        VM.write (_triangles tgl) a p1
-        VM.write (_triangles tgl) b p0
+        VM.write (__triangles tgl) a p1
+        VM.write (__triangles tgl) b p0
 
-        hbl <- VM.read (_halfedges tgl) bl
-        har <- VM.read (_halfedges tgl) ar
+        hbl <- VM.read (__halfedges tgl) bl
+        har <- VM.read (__halfedges tgl) ar
 
         -- // edge swapped on the other side of the hull (rare); fix the halfedge reference
         when (hbl == tEMPTY) $ do
@@ -319,13 +297,13 @@ triangulation_legalize tgl !a points hull = do
                             then loop
                             else pure () -- break
 
-        VM.write (_halfedges tgl) a hbl
-        VM.write (_halfedges tgl) b har
-        VM.write (_halfedges tgl) ar bl
+        VM.write (__halfedges tgl) a hbl
+        VM.write (__halfedges tgl) b har
+        VM.write (__halfedges tgl) ar bl
 
-        when (hbl /= tEMPTY) (VM.write (_halfedges tgl) hbl a)
-        when (har /= tEMPTY) (VM.write (_halfedges tgl) har b)
-        when (bl /= tEMPTY) (VM.write (_halfedges tgl) bl ar)
+        when (hbl /= tEMPTY) (VM.write (__halfedges tgl) hbl a)
+        when (har /= tEMPTY) (VM.write (__halfedges tgl) har b)
+        when (bl /= tEMPTY) (VM.write (__halfedges tgl) bl ar)
 
         let br = nextHalfedge b
         _ <- triangulation_legalize tgl a points hull
@@ -552,8 +530,8 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 -- | Triangulate a set of 2D points. Returns the triangulation for the input
 -- points. For the degenerated case when all points are collinear, returns an empty
 -- triangulation where all points are in the hull.
-triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s)
-triangulate points = do
+triangulation_triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s)
+triangulation_triangulate points = do
     case find_seed_triangle points of
         Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented" -- TODO!
         Just seed_triangle -> triangulate_for_real seed_triangle
@@ -664,10 +642,10 @@ triangulate points = do
             ; do
                 eeRef <- newSTRef =<< readSTRef (_start hull)
                 fix $ \loop -> do
-                    hullPushIndex <- readSTRef (_hullLen tgl)
+                    hullPushIndex <- readSTRef (__hullLen tgl)
                     e <- readSTRef eeRef
-                    VM.write (_hull tgl) hullPushIndex e
-                    modifySTRef' (_hullLen tgl) (+1)
+                    VM.write (__hull tgl) hullPushIndex e
+                    modifySTRef' (__hullLen tgl) (+1)
                     hull_next_e <- VM.read (_next hull) e
                     writeSTRef eeRef hull_next_e
                     hull_start <- readSTRef (_start hull)
@@ -676,3 +654,34 @@ triangulate points = do
             }}
 
         pure tgl
+
+-- | User-facing raw triangulation data.
+data Triangulation = Triangulation
+    { _triangles :: Vector Int
+    , _halfedges :: Vector Int
+    , _hull :: Vector Int
+    } deriving (Eq, Ord, Show)
+
+instance NFData Triangulation where
+    rnf (Triangulation a b c) = rnf (a,b,c)
+
+-- | NB: unsafeFreeze is safe here, since this module encapsulates the mutable
+-- triangulation along with 'triangulation_new'.
+freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
+freezeTriangulation tgl = do
+    trianglesLen <- readSTRef (__trianglesLen tgl)
+    triangles <- V.unsafeFreeze (VM.take trianglesLen (__triangles tgl))
+    halfedges <- V.unsafeFreeze (VM.take trianglesLen (__halfedges tgl))
+
+    hullLen <- readSTRef (__hullLen tgl)
+    hull <- V.unsafeFreeze (VM.take hullLen (__hull tgl))
+    pure Triangulation
+        { _triangles = triangles
+        , _halfedges = halfedges
+        , _hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
+        }
+
+triangulate :: HasCallStack => Vector Vec2 -> Triangulation
+triangulate points = runST $ do
+    tglMut <- triangulation_triangulate points
+    freezeTriangulation tglMut

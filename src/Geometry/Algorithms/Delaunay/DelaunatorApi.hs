@@ -13,7 +13,7 @@ import           Geometry.Core
 
 triangles :: Vector Vec2 -> D.Triangulation -> [Polygon]
 triangles points triangulation =
-    let triangleIndices = D.__triangles triangulation
+    let triangleIndices = D._triangles triangulation
         cornersInline = V.backpermute points triangleIndices
     in extractAllTriangles cornersInline
 

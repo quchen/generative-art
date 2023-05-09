@@ -196,9 +196,7 @@ test_triangulate = testGroup "Triangulate"
     [ testGroup "Smoke tests"
         [ testCase "Smoke test: 3 easy points" $ do
             let points = V.fromList niceTestTriangle
-                tri = runST $ do
-                    tglMut <- Delaunator.triangulate points
-                    Delaunator.freezeTriangulation tglMut
+                tri = Delaunator.triangulate points
             tri `deepseq` pure ()
         , triangulateSmoketest 3 [142]
         , triangulateSmoketest 4 [13]
@@ -217,9 +215,7 @@ triangulateSmoketest n seed = testCase ("Smoke test: " ++ show n ++ " random poi
             gen <- MWC.initialize (V.fromList (map fromIntegral seed))
             ps <- replicateM n (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
             pure (V.fromList ps)
-        tri = runST $ do
-            tglMut <- Delaunator.triangulate points
-            Delaunator.freezeTriangulation tglMut
+        tri = Delaunator.triangulate points
     tri `deepseq` pure ()
 
 triangulateVisualSmoketest :: Int -> [Int] -> TestTree
@@ -232,9 +228,7 @@ triangulateVisualSmoketest n seed =
             let points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
-                tri = runST $ do
-                    tglMut <- Delaunator.triangulate points
-                    Delaunator.freezeTriangulation tglMut
+                tri = Delaunator.triangulate points
                 triangles = DelaunatorApi.triangles points tri
             D.cairoScope $ for_ points $ \point -> do
                 D.setColor (D.mathematica97 0)
