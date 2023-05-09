@@ -151,7 +151,7 @@ data TriangulationST s = TriangulationST
     -- ^ A vector of point indices where each triple represents a Delaunay triangle.
     -- All triangles are directed counter-clockwise.
     --
-    -- The i-th triangle is points[3i] points[3i+1] points[3i+2].
+    -- The i-th triangle is points[3i], points[3i+1], points[3i+2].
 
     , _trianglesLen :: STRef s USize
     -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_trianglesLen'.
@@ -161,7 +161,7 @@ data TriangulationST s = TriangulationST
     --
     -- `i`-th half-edge in the array corresponds to vertex `triangles[i]`
     -- the half-edge is coming from. `halfedges[i]` is the index of a twin half-edge
-    -- in an adjacent triangle (or `EMPTY` for outer half-edges on the convex hull).
+    -- in an adjacent triangle (or `tEMPTY` for outer halfedges on the convex hull).
 
     , _hull :: STVector s USize
     -- ^ A vector of indices that reference points on the convex hull of the triangulation,
@@ -262,11 +262,11 @@ traceShowTriangulation tgl = do
 
 triangulation_legalize
     :: HasCallStack
-    => TriangulationST s
-    -> USize
-    -> Vector Vec2
+    => TriangulationST s -- ^ Triangulation that needs legalization
+    -> USize             -- ^ ID of the halfedge to potentially flip
+    -> Vector Vec2       -- ^ Delaunay input points
     -> Hull s
-    -> ST s USize
+    -> ST s USize -- ^ Halfedge adjacent to a. I don’t fully understand this value yet.
 triangulation_legalize tgl !a points hull = do
     b <- VM.read (_halfedges tgl) a
     -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
@@ -286,6 +286,7 @@ triangulation_legalize tgl !a points hull = do
     --
     let ar = prevHalfedge a
 
+    -- b is a’s opposite halfedge. If it’s not there, it can’t be wrong.
     case b == tEMPTY of
         True -> pure ar
         False -> do {
@@ -343,9 +344,9 @@ triangulation_legalize tgl !a points hull = do
     }}
 
 data Hull s = Hull
-    { _prev :: STVector s USize -- ^ edge to prev edge
-    , _next :: STVector s USize -- ^ edge to next edge
-    , _tri :: STVector s USize  -- ^ edge to adjacent halfedge
+    { _prev :: STVector s USize -- ^ Edge to previous edge
+    , _next :: STVector s USize -- ^ Edge to next edge
+    , _tri :: STVector s USize  -- ^ Edge to adjacent halfedge
     , _hash :: STVector s USize -- ^ angular edge hash
     , _hashLen :: Int
     , _start :: STRef s USize
@@ -354,13 +355,13 @@ data Hull s = Hull
 
 hull_new
     :: HasCallStack
-    => USize -- ^ Number of points.
-             -- (Redundant since we’ve also got the input points vector,
-             -- but the Rust source does it this way.)
-    -> Vec2  -- ^ Circumcenter of the initial triangle
-    -> USize -- ^ First corner of the initial triangle
-    -> USize -- ^ Second corner of the initial triangle
-    -> USize -- ^ Third corner of the initial triangle
+    => USize       -- ^ Number of points.
+                   --   (Redundant since we’ve also got the input points vector,
+                   --   but the Rust source does it this way.)
+    -> Vec2        -- ^ Circumcenter of the initial triangle
+    -> USize       -- ^ First corner of the initial triangle
+    -> USize       -- ^ Second corner of the initial triangle
+    -> USize       -- ^ Third corner of the initial triangle
     -> Vector Vec2 -- ^ Input points
     -> ST s (Hull s)
 hull_new n center i0 i1 i2 points = do
@@ -423,8 +424,8 @@ hull_hash_edge hull p i = do
 hull_find_visible_edge
     :: HasCallStack
     => Hull s
-    -> Vec2
-    -> Vector Vec2
+    -> Vec2        -- ^ Newly inserted point
+    -> Vector Vec2 -- ^ Input points
     -> ST s (USize, Bool)
 hull_find_visible_edge hull p points = do
     startRef <- newSTRef 0
