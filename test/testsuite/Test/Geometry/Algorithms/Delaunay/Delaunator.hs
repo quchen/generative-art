@@ -20,8 +20,8 @@ import           Data.Vector.Mutable                        (STVector)
 import qualified Data.Vector.Mutable                        as VM
 import qualified Draw                                       as D
 import           Geometry
-import           Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
-import           Geometry.Algorithms.Delaunay.DelaunatorApi as DelaunatorApi
+import qualified Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
+import qualified Geometry.Algorithms.Delaunay.DelaunatorApi as DelaunatorApi
 import           Geometry.Algorithms.Sampling
 import           Geometry.Core
 import qualified Graphics.Rendering.Cairo                   as C
@@ -50,13 +50,13 @@ test_orientation :: TestTree
 test_orientation = testGroup "orientation"
     [ testCase "Screen coordinates: clockwise" $ do
         let (a,b,c) = screenClockwiseTriangle
-            actual = Actual (orientation a b c)
-            expected = Expected Clockwise
+            actual = Actual (Delaunator.orientation a b c)
+            expected = Expected Delaunator.Clockwise
         assertEqual "Clockwise" expected actual
     , testCase "Screen coordinates: counterclockwise" $ do
         let (a,b,c) = screenCounterclockwiseTriangle
-            actual = Actual (orientation a b c)
-            expected = Expected Counterclockwise
+            actual = Actual (Delaunator.orientation a b c)
+            expected = Expected Delaunator.Counterclockwise
         assertEqual "Clockwise" expected actual
     ]
 
@@ -79,17 +79,17 @@ niceTestTriangle = [a,b,c]
 test_circum_x :: TestTree
 test_circum_x = testGroup "Circum* functions"
     [ testCase "Circumdelta" $ do
-        let actual = Actual (circumdelta a b c)
+        let actual = Actual (Delaunator.circumdelta a b c)
             expected = ExpectedWithin 1e-10 (Vec2 50 50)
         assertApproxEqual "" expected actual
     , testCase "circumRadiusSquare" $ do
         let arbitraryOffset = Vec2 12 34
-            actual = Actual $ circumradiusSquare (a+.arbitraryOffset) (b+.arbitraryOffset) (c+.arbitraryOffset)
+            actual = Actual $ Delaunator.circumradiusSquare (a+.arbitraryOffset) (b+.arbitraryOffset) (c+.arbitraryOffset)
             expected = ExpectedWithin 1e-10 (normSquare (Vec2 50 50))
         assertApproxEqual "circumradius²" expected actual
     , testCase "circumcenter" $ do
         let arbitraryOffset = Vec2 12 34
-            actual = Actual $ circumcenter (a+.arbitraryOffset) (b+.arbitraryOffset) (c+.arbitraryOffset)
+            actual = Actual $ Delaunator.circumcenter (a+.arbitraryOffset) (b+.arbitraryOffset) (c+.arbitraryOffset)
             expected = ExpectedWithin 1e-10 (Vec2 50 50 +. arbitraryOffset)
         assertApproxEqual "circumcenter" expected actual
     ]
@@ -100,16 +100,16 @@ test_inCircleCcw :: TestTree
 test_inCircleCcw = testGroup "inCircleCcw"
     [ testCase "Sanitc check" $ do
         assertEqual "Screen counterclockwise triangle is not actually ccw!"
-            (Expected Counterclockwise)
-            (Actual (let (a,b,c) = screenCounterclockwiseTriangle in orientation a b c))
+            (Expected Delaunator.Counterclockwise)
+            (Actual (let (a,b,c) = screenCounterclockwiseTriangle in Delaunator.orientation a b c))
     , testCase "Inside" $ do
         let p = Vec2 1 1
-            actual = Actual (inCircleCcw screenCounterclockwiseTriangle p)
+            actual = Actual (Delaunator.inCircleCcw screenCounterclockwiseTriangle p)
             expected = Expected True
         assertEqual "Point should be inside" expected actual
     , testCase "Outside" $ do
         let p = Vec2 (-1) (-1)
-            actual = Actual (inCircleCcw screenCounterclockwiseTriangle p)
+            actual = Actual (Delaunator.inCircleCcw screenCounterclockwiseTriangle p)
             expected = Expected False
         assertEqual "Point should be outside" expected actual
     ]
@@ -118,12 +118,12 @@ test_inCircle :: TestTree
 test_inCircle = testGroup "inCircle"
     [ testCase "Inside" $ do
         let p = Vec2 1 1
-            actual = Actual (inCircle screenClockwiseTriangle p)
+            actual = Actual (Delaunator.inCircle screenClockwiseTriangle p)
             expected = Expected True
         assertEqual "Point should be inside" expected actual
     , testCase "Outside" $ do
         let p = Vec2 (-1) (-1)
-            actual = Actual (inCircle screenClockwiseTriangle p)
+            actual = Actual (Delaunator.inCircle screenClockwiseTriangle p)
             expected = Expected False
         assertEqual "Point should be outside" expected actual
     , testVisual "Visual test" 150 150 "out/in_circle" $ \_ -> do
@@ -139,7 +139,7 @@ test_inCircle = testGroup "inCircle"
             point <- liftIO (MWC.uniformRM (Vec2 (-25) (-25), Vec2 125 125) gen)
             D.cairoScope $ do
                 C.setLineWidth 1
-                if inCircle (a, b, c) point
+                if Delaunator.inCircle (a, b, c) point
                     then D.sketch (Circle point 1.5) >> D.setColor (D.mathematica97 2) >> C.fill
                     else D.sketch (D.Cross point 3) >>  D.setColor (D.mathematica97 3) >> C.stroke
     ]
@@ -150,7 +150,7 @@ test_find_closest_point = testGroup "Find closest point"
         let index = 10
             points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
             p0 = points V.! index +. Vec2 0 10
-            actual = Actual (find_closest_point points p0)
+            actual = Actual (Delaunator.find_closest_point points p0)
             expected = Expected (Just index)
         assertEqual "" expected actual
     , testCase "Needle’s index is not returned if points match exactly" $ do
@@ -158,23 +158,23 @@ test_find_closest_point = testGroup "Find closest point"
             points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
             p0 = points V.! index
 
-            actual = find_closest_point points p0
+            actual = Delaunator.find_closest_point points p0
         assertBool "Expecting index not equal to the needle’s" (actual /= Just index)
     ]
 
 test_triangulation_new :: TestTree
 test_triangulation_new = testCase
     "triangulation_new does not crash"
-    (triangulation_new 10 `seq` pure ())
+    (Delaunator.triangulation_new 10 `seq` pure ())
 
 test_find_seed_triangle :: TestTree
 test_find_seed_triangle = testGroup "Find seed triangle"
     [ testCase "Smoke test" $ do
-        let actual = find_seed_triangle points
+        let actual = Delaunator.find_seed_triangle points
             points = V.fromList niceTestTriangle
         actual `deepseq` pure ()
     , testCase "All points are distinct" $ do
-        let firstTriangle = find_seed_triangle points
+        let firstTriangle = Delaunator.find_seed_triangle points
             points = V.fromList niceTestTriangle
         assertValidTriangle firstTriangle
     , testCase "Seed triangle of a point cloud" $ do
@@ -182,7 +182,7 @@ test_find_seed_triangle = testGroup "Find seed triangle"
                 gen <- MWC.initialize (V.fromList [152])
                 ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
                 pure (V.fromList ps)
-            firstTriangle = find_seed_triangle points
+            firstTriangle = Delaunator.find_seed_triangle points
         assertValidTriangle firstTriangle
     ]
   where
@@ -198,7 +198,7 @@ test_triangulate = testGroup "Triangulate"
             let points = V.fromList niceTestTriangle
                 tri = runST $ do
                     tglMut <- Delaunator.triangulate points
-                    freezeTriangulation tglMut
+                    Delaunator.freezeTriangulation tglMut
             tri `deepseq` pure ()
         , triangulateSmoketest 3 [142]
         , triangulateSmoketest 4 [13]
@@ -206,7 +206,7 @@ test_triangulate = testGroup "Triangulate"
         , triangulateSmoketest 100 [13]
         , triangulateSmoketest 1000 [13]
         , testGroup "Visual"
-            [ triangulateVisualSmoketest 500 [142]
+            [ triangulateVisualSmoketest 100 [142]
             ]
         ]
     ]
@@ -219,7 +219,7 @@ triangulateSmoketest n seed = testCase ("Smoke test: " ++ show n ++ " random poi
             pure (V.fromList ps)
         tri = runST $ do
             tglMut <- Delaunator.triangulate points
-            freezeTriangulation tglMut
+            Delaunator.freezeTriangulation tglMut
     tri `deepseq` pure ()
 
 triangulateVisualSmoketest :: Int -> [Int] -> TestTree
@@ -231,10 +231,10 @@ triangulateVisualSmoketest n seed =
         "out/smoketest/delaunator" $ \(w, h) -> do
             let points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) 100
+                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
                 tri = runST $ do
                     tglMut <- Delaunator.triangulate points
-                    freezeTriangulation tglMut
+                    Delaunator.freezeTriangulation tglMut
                 triangles = DelaunatorApi.triangles points tri
             D.cairoScope $ for_ points $ \point -> do
                 D.setColor (D.mathematica97 0)
@@ -244,6 +244,3 @@ triangulateVisualSmoketest n seed =
                 D.setColor (D.mathematica97 i)
                 D.sketch triangle
                 C.stroke
-
-showSeed :: [Int] -> String
-showSeed = intercalate "," . map show

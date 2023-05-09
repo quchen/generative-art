@@ -2,9 +2,10 @@
 -- * Original Javascript source: https://github.com/mapbox/delaunator
 -- * Rust port used as second reference: https://github.com/mourner/delaunator-rs
 --
--- This module aims to be as dumb and close to the Rust source implementation as
--- possible. Users of this internal module are responsible for implementing a nice
--- API.
+-- This module aimed to be as dumb and close to the Rust source implementation as
+-- possible. Refactor as long as the tests pass.
+--
+-- Users of this internal module are responsible for implementing a nice API.
 module Geometry.Algorithms.Delaunay.Delaunator where
 
 
@@ -21,7 +22,6 @@ import qualified Data.Vector                  as V
 import qualified Data.Vector.Algorithms.Intro as VM
 import           Data.Vector.Mutable          (STVector)
 import qualified Data.Vector.Mutable          as VM
-import           Debug.Trace
 import           GHC.Stack                    (HasCallStack)
 import           Geometry.Core
 
@@ -148,10 +148,11 @@ prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
 
 data TriangulationST s = TriangulationST
     { _triangles :: STVector s USize
-    -- ^ A vector of point indices where each triple represents a Delaunay triangle.
-    -- All triangles are directed counter-clockwise.
+    -- ^ A vector of point indices where each triple represents a Delaunay
+    -- triangle. All triangles are directed counter-clockwise (in screen
+    -- coordinates, i.e. y pointing downwards).
     --
-    -- The i-th triangle is points[3i], points[3i+1], points[3i+2].
+    --   The i-th triangle is points[3i], points[3i+1], points[3i+2].
 
     , _trianglesLen :: STRef s USize
     -- ^ Number of triangles. The number of valid entries in '_triangles' is 3*'_trianglesLen'.
@@ -250,15 +251,6 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
     when (c /= tEMPTY) (VM.write (_halfedges tgl) c (t+2))
 
     pure t
-
-traceShowTriangulation :: TriangulationST s -> ST s ()
-traceShowTriangulation tgl = do
-    let TriangulationST {_triangles = ts, _halfedges = es, _trianglesLen = nRef} = tgl
-    n <- readSTRef nRef
-    ts' <- V.freeze (VM.take n ts)
-    es' <- V.freeze (VM.take n es)
-    traceM ("Triangles: " ++ show ts')
-    traceM ("Halfedges: " ++ show es')
 
 triangulation_legalize
     :: HasCallStack
@@ -384,20 +376,23 @@ hull_new n center i0 i1 i2 points = do
             , _center = center
             }
 
+    -- Forward direction: i0 -> i1 -> i2 -> i0
     VM.write next i0 i1
-    VM.write prev i2 i1
     VM.write next i1 i2
-    VM.write prev i0 i2
     VM.write next i2 i0
+
+    -- Backwards direction: i0 -> i2 -> i1 -> i0
+    VM.write prev i0 i2
+    VM.write prev i2 i1
     VM.write prev i1 i0
 
     VM.write tri i0 0
     VM.write tri i1 1
     VM.write tri i2 2
 
-    hull_hash_edge hull (points ! i0) i0
-    hull_hash_edge hull (points ! i1) i1
-    hull_hash_edge hull (points ! i2) i2
+    hull_hash_edge hull (points!i0) i0
+    hull_hash_edge hull (points!i1) i1
+    hull_hash_edge hull (points!i2) i2
 
     pure hull
 
@@ -439,9 +434,9 @@ hull_find_visible_edge hull p points = do
                 writeSTRef startRef start
                 if start /= tEMPTY
                     then do
-                next <- VM.read (_next hull) start
+                        next <- VM.read (_next hull) start
                         if next /= tEMPTY
-                    then pure () -- break: we found a good start
+                            then pure () -- break: we found a good start
                             else loop (j+1)
                     else loop (j+1)
         loop 0
@@ -496,27 +491,24 @@ find_seed_triangle points = do
 
     -- // find the third point which forms the smallest circumcircle with the first two
     let maybe_i2 = runST $ do
-            minRadiusRef <- newSTRef Nothing
-            i2Ref <- newSTRef 0
+            ref <- newSTRef Nothing
             for_ (V.indexed points) $ \(i, p) -> do
                 case i == i0 || i == i1 of
                     True -> pure () -- continue
                     False -> do
                         let r = circumradiusSquare p0 p1 p
-                        m'minRadius <- readSTRef minRadiusRef
-                        case m'minRadius of
+                        m'min <- readSTRef ref
+                        case m'min of
                             Nothing -> do
-                                writeSTRef i2Ref i
-                                writeSTRef minRadiusRef (Just r)
-                            Just minRadius' | r < minRadius' -> do
-                                writeSTRef i2Ref i
-                                writeSTRef minRadiusRef (Just r)
+                                writeSTRef ref (Just (i, r))
+                            Just (_i, minRadius') | r < minRadius' -> do
+                                writeSTRef ref (Just (i, r))
                             _else -> pure ()
-            i2' <- readSTRef i2Ref
-            minRadius <- readSTRef minRadiusRef
-    case minRadius of
-                Nothing -> pure Nothing
-                Just _found -> pure (Just i2')
+                readSTRef ref
+            result <- readSTRef ref
+            pure $ case result of
+                Just (i, _r) -> Just i
+                Nothing -> Nothing
 
     case maybe_i2 of
         Nothing -> Nothing
@@ -566,7 +558,7 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s)
 triangulate points = do
     case find_seed_triangle points of
-        Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented"
+        Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented" -- TODO!
         Just seed_triangle -> triangulate_for_real seed_triangle
   where
     triangulate_for_real :: (Int, Int, Int) -> ST s (TriangulationST s)

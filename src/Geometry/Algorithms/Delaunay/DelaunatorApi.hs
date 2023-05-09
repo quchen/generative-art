@@ -14,8 +14,6 @@ import           Geometry.Core
 triangles :: Vector Vec2 -> D.Triangulation -> [Polygon]
 triangles points triangulation =
     let triangleIndices = D.__triangles triangulation
-        !_ | mod (V.length triangleIndices) 3 /= 0 = error ("Delaunay triangulation broken: number of corners is not divisble by 3: " ++ show (V.length points))
-           | otherwise = ()
         cornersInline = V.backpermute points triangleIndices
     in extractAllTriangles cornersInline
 
