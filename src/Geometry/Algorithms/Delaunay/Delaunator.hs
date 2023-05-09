@@ -132,7 +132,7 @@ nearlyEquals a b =
 -- Represents the area outside of the triangulation. Halfedges on the convex hull
 -- (which don't have an adjacent halfedge) will have this value.
 tEMPTY :: Int
-tEMPTY = maxBound
+tEMPTY = -1
 
 -- | Given one halfedge, go to the next one. This allows walking around a single
 -- triangle.
