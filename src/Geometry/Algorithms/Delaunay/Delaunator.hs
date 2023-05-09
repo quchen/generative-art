@@ -180,20 +180,8 @@ instance NFData Triangulation where
 
 freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
 freezeTriangulation tgl = do
-    triangles <- V.freeze (_triangles tgl)
-    halfedges <- V.freeze (_halfedges tgl)
-
-    hull <- V.freeze (_hull tgl)
-    pure Triangulation
-        { __triangles = triangles
-        , __halfedges = halfedges
-        , __hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
-        }
-
-freezeShrinkTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
-freezeShrinkTriangulation tgl = do
     trianglesLen <- readSTRef (_trianglesLen tgl)
-    triangles <- V.freeze (VM.take trianglesLen (_triangles tgl))
+    triangles <- V.freeze (VM.take trianglesLen (_triangles tgl)) -- TODO unsafeFreeze should work here
     halfedges <- V.freeze (VM.take trianglesLen (_halfedges tgl))
 
     hullLen <- readSTRef (_hullLen tgl)
