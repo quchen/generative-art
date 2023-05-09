@@ -204,9 +204,12 @@ test_triangulate = testGroup "Triangulate"
         , triangulateSmoketest 100 [13]
         , triangulateSmoketest 1000 [13]
         , testGroup "Visual"
-            [ triangulateVisualSmoketest 100 [142]
+            [ triangulateVisualSmoketest 100 [1242]
             ]
         ]
+    , testVisualPaintOnlyEdges 100 [144]
+    , testCase "Convex hull matches the standard Core algorithm" $ do
+        assertFailure "TODO"
     ]
 
 triangulateSmoketest :: Int -> [Int] -> TestTree
@@ -222,19 +225,39 @@ triangulateVisualSmoketest :: Int -> [Int] -> TestTree
 triangulateVisualSmoketest n seed =
     testVisual
         ("Visual smoke test: " ++ show n ++ " random points")
-        1000
-        1000
+        500
+        500
         "out/smoketest/delaunator" $ \(w, h) -> do
             let points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
-                tri = Delaunator.triangulate points
-                triangles = DelaunatorApi.triangles points tri
+                triangles = DelaunatorApi._triangles (DelaunatorApi.delaunayTriangulation points)
             D.cairoScope $ for_ points $ \point -> do
                 D.setColor (D.mathematica97 0)
                 D.sketch (Circle point 5)
                 C.fill
-            D.cairoScope $ for_ (zip [1..] triangles) $ \(i, triangle) -> do
-                D.setColor (D.mathematica97 i)
+            D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
+                D.setColor (D.mathematica97 (i+1))
                 D.sketch triangle
+                C.stroke
+
+
+testVisualPaintOnlyEdges :: Int -> [Int] -> TestTree
+testVisualPaintOnlyEdges n seed =
+    testVisual
+        ("Paint only unique edges for " ++ show n ++ " random points")
+        500
+        500
+        "out/smoketest/delaunator-edges" $ \(w, h) -> do
+            let points = runST $ do
+                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
+                edges = DelaunatorApi._edges (DelaunatorApi.delaunayTriangulation points)
+            D.cairoScope $ for_ points $ \point -> do
+                D.setColor (D.mathematica97 0)
+                D.sketch (Circle point 5)
+                C.fill
+            D.cairoScope $ V.iforM_ edges $ \i edge -> do
+                D.setColor (D.mathematica97 (i+1))
+                D.sketch (D.Arrow edge D.def)
                 C.stroke

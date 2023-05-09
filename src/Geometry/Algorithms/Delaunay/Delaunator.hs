@@ -655,19 +655,20 @@ triangulation_triangulate points = do
 
         pure tgl
 
--- | User-facing raw triangulation data.
-data Triangulation = Triangulation
+-- | User-facing raw Delaunay triangulation data. Build the API based on this and
+-- 'triangulate'. See 'TriangulationST' for documentation of the fields.
+data TriangulationRaw = TriangulationRaw
     { _triangles :: Vector Int
     , _halfedges :: Vector Int
-    , _hull :: Vector Int
+    , _convexHull :: Vector Int
     } deriving (Eq, Ord, Show)
 
-instance NFData Triangulation where
-    rnf (Triangulation a b c) = rnf (a,b,c)
+instance NFData TriangulationRaw where
+    rnf (TriangulationRaw a b c) = rnf (a,b,c)
 
 -- | NB: unsafeFreeze is safe here, since this module encapsulates the mutable
 -- triangulation along with 'triangulation_new'.
-freezeTriangulation :: HasCallStack => TriangulationST s -> ST s Triangulation
+freezeTriangulation :: HasCallStack => TriangulationST s -> ST s TriangulationRaw
 freezeTriangulation tgl = do
     trianglesLen <- readSTRef (__trianglesLen tgl)
     triangles <- V.unsafeFreeze (VM.take trianglesLen (__triangles tgl))
@@ -675,13 +676,13 @@ freezeTriangulation tgl = do
 
     hullLen <- readSTRef (__hullLen tgl)
     hull <- V.unsafeFreeze (VM.take hullLen (__hull tgl))
-    pure Triangulation
+    pure TriangulationRaw
         { _triangles = triangles
         , _halfedges = halfedges
-        , _hull = const V.empty hull -- TODO fix this once the hull doesn’t crash anymore
+        , _convexHull = hull
         }
 
-triangulate :: HasCallStack => Vector Vec2 -> Triangulation
+triangulate :: HasCallStack => Vector Vec2 -> TriangulationRaw
 triangulate points = runST $ do
     tglMut <- triangulation_triangulate points
     freezeTriangulation tglMut
