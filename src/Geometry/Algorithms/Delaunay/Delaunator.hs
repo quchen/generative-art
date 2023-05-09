@@ -325,9 +325,9 @@ triangulation_legalize tgl !a points hull = do
                         let e' = hull_prev_e
                         writeSTRef eRef e'
                         hull_start <- readSTRef (_start hull)
-                        if e == hull_start
-                            then pure () -- break
-                            else loop
+                        if e' /= hull_start
+                            then loop
+                            else pure () -- break
 
         VM.write (_halfedges tgl) a hbl
         VM.write (_halfedges tgl) b har
