@@ -222,14 +222,6 @@ triangulation_new n = do
         , _hullLen = hullLenRef
         }
 
--- ^ Number of entries in the _triangles array. Note that this is 3 times the
--- number of triangles!
-triangulation_len :: TriangulationST s -> ST s USize
-triangulation_len TriangulationST{_trianglesLen = lenRef} = readSTRef lenRef
-
-triangulation_is_empty :: TriangulationST s -> ST s Bool
-triangulation_is_empty tri = fmap (== 0) (triangulation_len tri)
-
 -- | Add a new triangle to the triangulation; report the old (!) size (why, Rust source?!).
 triangulation_add_triangle
     :: HasCallStack
@@ -242,7 +234,7 @@ triangulation_add_triangle
     -> USize -- ^ Halfedge c
     -> ST s USize
 triangulation_add_triangle tgl i0 i1 i2 a b c = do
-    t <- triangulation_len tgl
+    t <- readSTRef (_trianglesLen tgl)
 
     VM.write (_triangles tgl)  t    i0
     VM.write (_triangles tgl) (t+1) i1
