@@ -39,18 +39,25 @@ epsilon = 2*ieee_float64_epsilon
 distSquare :: Vec2 -> Vec2 -> Double
 distSquare x y = normSquare (x -. y)
 
--- | In screen coordinates (y downward),
+-- | Orientation in screen coordinates (y downward).
+data Orientation = Clockwise | Counterclockwise | Degenerate
+    deriving (Eq, Ord, Show)
+
+-- | Orientation of a triangle in screen coordinates (y downward).
 --
--- * Returns a negative value if @x@, @q@ and @r@ occur in counterclockwise order
---   (@r@ is to the left of the directed line @x@ --> @q@)
--- * Returns a positive value if they occur in clockwise order
---   (@r@ is to the right of the directed line @x@ --> @q@)
--- * Returns zero is they are collinear
-orient :: Vec2 -> Vec2 -> Vec2 -> Double
-orient x q r = negate (cross lineQ lineR)
-  where
-    lineQ = q -. x
-    lineR = r -. x
+-- >>> (a,b,c) = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+-- >>> orientation a b c
+-- Clockwise
+-- >>> orientation b a c
+-- >>> Counterclockwise
+orientation :: Vec2 -> Vec2 -> Vec2 -> Orientation
+orientation x q r =
+    let lineQ = q -. x
+        lineR = r -. x
+    in case compare (cross lineQ lineR) 0 of
+        GT -> Clockwise
+        EQ -> Degenerate
+        LT -> Counterclockwise
 
 -- | Offset of the circumcenter of the triangle (a,b,c) from a.
 circumdelta :: Vec2 -> Vec2 -> Vec2 -> Vec2
@@ -84,26 +91,38 @@ circumcenter
     -> Vec2
 circumcenter a b c = a +. circumdelta a b c
 
--- | Check whether a point is inside the circumcircle of a triangle.
+-- | Check if a point is inside the circumcircle of a triangle.
+--
+-- This could be optimized so that when used and the orientation was calculated
+-- previously, the re-computation of it could be skipped, to directly use
+-- 'inCircleCcw'.
 inCircle
-    :: Vec2 -- ^ Corner a
-    -> Vec2 -- ^ Corner b
-    -> Vec2 -- ^ Corner c
-    -> Vec2 -- ^ Point to check
+    :: (Vec2, Vec2, Vec2)
+    -> Vec2
     -> Bool
-inCircle (Vec2 ax ay) (Vec2 bx by) (Vec2 cx cy) (Vec2 px py) =
-    let dx = ax - px;
-        dy = ay - py;
-        ex = bx - px;
-        ey = by - py;
-        fx = cx - px;
-        fy = cy - py;
+inCircle abc@(a,b,c) p = case orientation a b c of
+    Counterclockwise -> inCircleCcw abc p
+    Degenerate -> False
+    Clockwise -> not (inCircleCcw abc p)
 
-        ap' = dx*dx + dy*dy; -- ap shadowed by Control.Monad.ap
-        bp  = ex*ex + ey*ey;
-        cp  = fx*fx + fy*fy;
+-- | Check whether a point is inside the circumcircle of a triangle. The triangle
+-- must be oriented in counter-clockwise orientation in screen coordinates.
+inCircleCcw
+    :: (Vec2, Vec2, Vec2) -- ^ Triangle’s corners
+    -> Vec2 -- ^ Point
+    -> Bool
+inCircleCcw (a, b, c) p =
+    let d@(Vec2 dx dy) = a -. p
+        e@(Vec2 ex ey) = b -. p
+        f@(Vec2 fx fy) = c -. p
 
-    in dx*(ey*cp - bp*fy) - dy*(ex*cp - bp*fx) + ap'*(ex*fy - ey*fx) < 0
+        ap' = normSquare d -- ap shadowed by Control.Monad.ap
+        bp  = normSquare e
+        cp  = normSquare f
+
+        val = dx*(ey*cp - bp*fy) - dy*(ex*cp - bp*fx) + ap'*(ex*fy - ey*fx)
+
+    in val < 0
 
 nearlyEquals :: Vec2 -> Vec2 -> Bool
 nearlyEquals a b =
@@ -299,7 +318,8 @@ triangulation_legalize tgl !a points hull = do
         pl <- VM.read (_triangles tgl) al
         p1 <- VM.read (_triangles tgl) bl
 
-        let illegal = inCircle (points!p0) (points!pr) (points!pl) (points!p1)
+        -- Delaunay condition: No point may be inside the circumcircle of another triangle.
+        let illegal = inCircle (points!p0, points!pr, points!pl) (points!p1)
         case illegal of
             False -> pure ar
             True -> do {
@@ -448,7 +468,7 @@ hull_find_visible_edge hull p points = do
     fix $ \loop -> do
         e <- readSTRef eRef
         next_e <- VM.read (_next hull) e
-        if orient p (points!e) (points!next_e) <= 0
+        if orientation p (points!e) (points!next_e) /= Clockwise -- Rust source: <=0, equivalent to degenerate or counterclockwise
             then do
                 writeSTRef eRef next_e
                 if next_e == start
@@ -491,7 +511,7 @@ find_seed_triangle points = do
     let p1 = points!i1
 
     -- // find the third point which forms the smallest circumcircle with the first two
-    let (minRadius, i2) = runST $ do
+    let maybe_i2 = runST $ do
             minRadiusRef <- newSTRef Nothing
             i2Ref <- newSTRef 0
             for_ (V.indexed points) $ \(i, p) -> do
@@ -508,15 +528,21 @@ find_seed_triangle points = do
                                 writeSTRef i2Ref i
                                 writeSTRef minRadiusRef (Just r)
                             _else -> pure ()
-
-            minRadius' <- readSTRef minRadiusRef
             i2' <- readSTRef i2Ref
-            pure (minRadius', i2')
-
+            minRadius <- readSTRef minRadiusRef
     case minRadius of
+                Nothing -> pure Nothing
+                Just _found -> pure (Just i2')
+
+    case maybe_i2 of
         Nothing -> Nothing
-        Just _ | orient p1 p1 (points!i2) > 0 -> Just (i0, i2, i1)
-        _else -> Just (i0, i1, i2)
+        Just i2
+            | orientation p0 p1 (points!i2) == Clockwise -> Just (i0, i2, i1)
+                                           --  ^^^^^^^^^
+                                           --  Rust source: > 0, equivalent to clockwise.
+                                           --  In other words: all triangles will be oriented
+                                           --  counter-clockwise (in screen coordinates).
+            | otherwise -> Just (i0, i1, i2)
 
 sortf :: STVector s (uSize, Double) -> ST s ()
 sortf = VM.sortBy (comparing (\(_, d) -> d))
@@ -619,7 +645,7 @@ triangulate points = do
                 fix $ \loop -> do
                     n <- readSTRef nRef
                     q <- VM.read (_next hull) n
-                    if orient p (points!n) (points!q) <= 0
+                    if orientation p (points!n) (points!q) /= Clockwise -- Rust source: <=0, equivalent to degenerate or counterclockwise
                         then pure () -- break
                         else do
                             hull_tri_i <- VM.read (_tri hull) i
@@ -635,7 +661,7 @@ triangulate points = do
                 fix $ \loop -> do
                     e <- readSTRef eRef
                     q <- VM.read (_prev hull) e
-                    if orient p (points!q) (points!e) <= 0
+                    if orientation p (points!q) (points!e) /= Clockwise -- Rust source: <=0, equivalent to degenerate or counterclockwise
                         then pure () -- break
                         else do
                             hull_tri_e <- VM.read (_tri hull) e
