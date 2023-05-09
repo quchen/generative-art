@@ -3,57 +3,61 @@ module Test.Geometry.Algorithms.Delaunay.Delaunator (tests) where
 
 
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Function
+import           Data.List
 import           Data.Ord
 import           Data.STRef
-import           Control.DeepSeq
 import           Data.Traversable
-import           Data.Vector                             (Vector, (!))
-import qualified Data.Vector                             as V
-import qualified Data.Vector.Algorithms.Intro            as VM
-import           Data.Vector.Mutable                     (STVector)
-import qualified Data.Vector.Mutable                     as VM
-import qualified Draw                                    as D
+import           Data.Vector                                (Vector, (!))
+import qualified Data.Vector                                as V
+import qualified Data.Vector.Algorithms.Intro               as VM
+import           Data.Vector.Mutable                        (STVector)
+import qualified Data.Vector.Mutable                        as VM
+import qualified Draw                                       as D
 import           Geometry
-import           Geometry.Algorithms.Delaunay.Delaunator as Delaunator
+import           Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
+import           Geometry.Algorithms.Delaunay.DelaunatorApi as DelaunatorApi
+import           Geometry.Algorithms.Sampling
 import           Geometry.Core
-import qualified Graphics.Rendering.Cairo                as C
-import qualified System.Random.MWC                       as MWC
+import qualified Graphics.Rendering.Cairo                   as C
+import qualified System.Random.MWC                          as MWC
 import           Test.TastyAll
 
 
 
 tests :: TestTree
 tests = testGroup "Delaunator"
-    [ test_orient
+    [ test_orientation
     , test_circum_x
+    , test_inCircleCcw
     , test_inCircle
     , test_find_closest_point
     , test_triangulation_new
-    , test_triangulation_len_after_new
-    , test_triangulation_empty_after_new
     , test_find_seed_triangle
     , test_triangulate
     ]
 
-test_orient :: TestTree
-test_orient = testGroup "orient"
-    [ testCase "Screen coordinates: counterclockwise => >0" $ do
-        let a = Vec2 0 0
-            b = Vec2 10 0
-            p = Vec2 5 (-5) -- To the left of a---b
-            actual = orient a b p
-        assertBool "Clockwise: positive" (actual > 0)
-    , testCase "Screen coordinates: clockwise => <0" $ do
-        let a = Vec2 0 0
-            b = Vec2 10 0
-            p = Vec2 5 5 -- To the right of a---b
-            actual = orient a b p
-        assertBool "Couter-clockwise: negative" (actual < 0)
+screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
+screenClockwiseTriangle = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+screenCounterclockwiseTriangle = (Vec2 0 0, Vec2 0 100, Vec2 100 0)
+
+test_orientation :: TestTree
+test_orientation = testGroup "orientation"
+    [ testCase "Screen coordinates: clockwise" $ do
+        let (a,b,c) = screenClockwiseTriangle
+            actual = Actual (orientation a b c)
+            expected = Expected Clockwise
+        assertEqual "Clockwise" expected actual
+    , testCase "Screen coordinates: counterclockwise" $ do
+        let (a,b,c) = screenCounterclockwiseTriangle
+            actual = Actual (orientation a b c)
+            expected = Expected Counterclockwise
+        assertEqual "Clockwise" expected actual
     ]
 
 niceTestTriangle :: [Vec2]
@@ -92,18 +96,34 @@ test_circum_x = testGroup "Circum* functions"
   where
     [a,b,c] = niceTestTriangle
 
-test_inCircle :: TestTree
-test_inCircle = testGroup "inCircle"
-    [ testCase "Inside" $ do
+test_inCircleCcw :: TestTree
+test_inCircleCcw = testGroup "inCircleCcw"
+    [ testCase "Sanitc check" $ do
+        assertEqual "Screen counterclockwise triangle is not actually ccw!"
+            (Expected Counterclockwise)
+            (Actual (let (a,b,c) = screenCounterclockwiseTriangle in orientation a b c))
+    , testCase "Inside" $ do
         let p = Vec2 1 1
-            [a,b,c] = niceTestTriangle
-            actual = Actual (inCircle p a b c)
+            actual = Actual (inCircleCcw screenCounterclockwiseTriangle p)
             expected = Expected True
         assertEqual "Point should be inside" expected actual
     , testCase "Outside" $ do
         let p = Vec2 (-1) (-1)
-            [a,b,c] = niceTestTriangle
-            actual = Actual (inCircle p a b c)
+            actual = Actual (inCircleCcw screenCounterclockwiseTriangle p)
+            expected = Expected False
+        assertEqual "Point should be outside" expected actual
+    ]
+
+test_inCircle :: TestTree
+test_inCircle = testGroup "inCircle"
+    [ testCase "Inside" $ do
+        let p = Vec2 1 1
+            actual = Actual (inCircle screenClockwiseTriangle p)
+            expected = Expected True
+        assertEqual "Point should be inside" expected actual
+    , testCase "Outside" $ do
+        let p = Vec2 (-1) (-1)
+            actual = Actual (inCircle screenClockwiseTriangle p)
             expected = Expected False
         assertEqual "Point should be outside" expected actual
     , testVisual "Visual test" 150 150 "out/in_circle" $ \_ -> do
@@ -115,12 +135,13 @@ test_inCircle = testGroup "inCircle"
             D.setColor (D.mathematica97 0)
             C.stroke
         gen <- liftIO MWC.create
-        for_ [1..1000] $ \_ -> do
+        for_ [1..2^8] $ \_ -> do
             point <- liftIO (MWC.uniformRM (Vec2 (-25) (-25), Vec2 125 125) gen)
             D.cairoScope $ do
-                D.sketch (Circle point 1)
-                D.setColor (D.mathematica97 (if inCircle point a b c then 2 else 3))
-                C.fill
+                C.setLineWidth 1
+                if inCircle (a, b, c) point
+                    then D.sketch (Circle point 1.5) >> D.setColor (D.mathematica97 2) >> C.fill
+                    else D.sketch (D.Cross point 3) >>  D.setColor (D.mathematica97 3) >> C.stroke
     ]
 
 test_find_closest_point :: TestTree
@@ -145,22 +166,6 @@ test_triangulation_new :: TestTree
 test_triangulation_new = testCase
     "triangulation_new does not crash"
     (triangulation_new 10 `seq` pure ())
-
-test_triangulation_len_after_new :: TestTree
-test_triangulation_len_after_new = testCase "triangulation_len reports size 0 after initialization" $ do
-    let actual = Actual $ runST $ do
-            tgl <- triangulation_new 123
-            triangulation_len tgl
-        expected = Expected 0 --
-    assertEqual "" expected actual
-
-test_triangulation_empty_after_new :: TestTree
-test_triangulation_empty_after_new = testCase "Triangulation is reported empty after initialization" $ do
-    let actual = Actual $ runST $ do
-            tgl <- triangulation_new 123
-            triangulation_is_empty tgl
-        expected = Expected True
-    assertEqual "" expected actual
 
 test_find_seed_triangle :: TestTree
 test_find_seed_triangle = testGroup "Find seed triangle"
@@ -197,6 +202,12 @@ test_triangulate = testGroup "Triangulate"
             tri `deepseq` pure ()
         , triangulateSmoketest 3 [142]
         , triangulateSmoketest 4 [13]
+        , triangulateSmoketest 10 [13]
+        , triangulateSmoketest 100 [13]
+        , triangulateSmoketest 1000 [13]
+        , testGroup "Visual"
+            [ triangulateVisualSmoketest 500 [142]
+            ]
         ]
     ]
 
@@ -210,3 +221,29 @@ triangulateSmoketest n seed = testCase ("Smoke test: " ++ show n ++ " random poi
             tglMut <- Delaunator.triangulate points
             freezeTriangulation tglMut
     tri `deepseq` pure ()
+
+triangulateVisualSmoketest :: Int -> [Int] -> TestTree
+triangulateVisualSmoketest n seed =
+    testVisual
+        ("Visual smoke test: " ++ show n ++ " random points")
+        1000
+        1000
+        "out/smoketest/delaunator" $ \(w, h) -> do
+            let points = runST $ do
+                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) 100
+                tri = runST $ do
+                    tglMut <- Delaunator.triangulate points
+                    freezeTriangulation tglMut
+                triangles = DelaunatorApi.triangles points tri
+            D.cairoScope $ for_ points $ \point -> do
+                D.setColor (D.mathematica97 0)
+                D.sketch (Circle point 5)
+                C.fill
+            D.cairoScope $ for_ (zip [1..] triangles) $ \(i, triangle) -> do
+                D.setColor (D.mathematica97 i)
+                D.sketch triangle
+                C.stroke
+
+showSeed :: [Int] -> String
+showSeed = intercalate "," . map show
