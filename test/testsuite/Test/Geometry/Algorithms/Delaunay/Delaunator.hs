@@ -11,7 +11,6 @@ import           Data.Foldable
 import           Data.Function
 import           Data.List
 import           Data.Ord
-import Numerics.Interpolation
 import           Data.STRef
 import           Data.Traversable
 import           Data.Vector                                (Vector, (!))
@@ -22,10 +21,11 @@ import qualified Data.Vector.Mutable                        as VM
 import qualified Draw                                       as D
 import           Geometry
 import qualified Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
-import qualified Geometry.Algorithms.Delaunay.DelaunatorApi as DelaunatorApi
+import qualified Geometry.Algorithms.Delaunay.DelaunatorApi as DApi
 import           Geometry.Algorithms.Sampling
 import           Geometry.Core
 import qualified Graphics.Rendering.Cairo                   as C
+import           Numerics.Interpolation
 import qualified System.Random.MWC                          as MWC
 import           Test.TastyAll
 
@@ -209,8 +209,8 @@ test_triangulate = testGroup "Triangulate"
     , testGroup "Convex hull"
         [ testCase "Simple case: square" $ do
             let points = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
-                delaunay = DelaunatorApi.delaunayTriangulation points
-                actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
+                delaunay = DApi.delaunayTriangulation points
+                actual = Actual (normalizePolygon (DApi._convexHull delaunay))
                 expected = Expected (normalizePolygon (convexHull points))
             assertEqual "Convex hull should match" expected actual
         , testCase "Convex hull matches the standard Core algorithm" $ do
@@ -219,8 +219,8 @@ test_triangulate = testGroup "Triangulate"
                 points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
-                delaunay = DelaunatorApi.delaunayTriangulation points
-                actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
+                delaunay = DApi.delaunayTriangulation points
+                actual = Actual (normalizePolygon (DApi._convexHull delaunay))
                 expected = Expected (normalizePolygon (convexHull points))
             assertEqual "Convex hull should match" expected actual
         ]
@@ -251,7 +251,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     points = runST $ do
         gen <- MWC.initialize (V.fromList (map fromIntegral seed))
         gaussianDistributedPoints gen (boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]) (sigma *. mempty) n
-    delaunay = DelaunatorApi.delaunayTriangulation points
+    delaunay = DApi.delaunayTriangulation points
 
     triangulateVisualSmoketest =
         testVisual
@@ -259,7 +259,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             width
             height
             "out/smoketest/delaunator" $ \_ -> do
-                let triangles = DelaunatorApi._triangles delaunay
+                let triangles = DApi._triangles delaunay
                 C.setLineWidth 1
                 -- D.cairoScope $ for_ points $ \point -> do
                 --     D.setColor (D.mathematica97 0)
@@ -280,7 +280,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             width
             height
             "out/smoketest/delaunator-edges" $ \_ -> do
-                let edges = DelaunatorApi._edges delaunay
+                let edges = DApi._edges delaunay
                     numEdges = length edges
                 C.setLineWidth 1
                 D.cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
@@ -289,7 +289,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     C.stroke
 
     test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
-        let voronoiEdges = DelaunatorApi._voronoiEdges delaunay
+        let voronoiEdges = DApi._voronoiEdges delaunay
             numEdges = length voronoiEdges
         D.cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
             C.setLineWidth 1
@@ -298,9 +298,11 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             C.stroke
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
-        let voronoiCells = DelaunatorApi._voronoiCells delaunay
-        D.cairoScope $ for_ (zip [0..] voronoiCells) $ \(i, cell) -> do
+        let voronoiCells = DApi._voronoiCells delaunay
+        D.cairoScope $ for_ (zip [0..] voronoiCells) $ \(i, (center, cell)) -> do
             C.setLineWidth 1
             D.setColor (D.mathematica97 i)
             D.sketch (growPolygon (-1) cell)
             C.stroke
+            D.sketch (Circle center 1)
+            C.fill

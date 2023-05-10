@@ -31,7 +31,7 @@ data Triangulation = Triangulation
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
 
-    , _voronoiCells :: [Polygon]
+    , _voronoiCells :: [(Vec2, Polygon)]
     -- ^ All Voronoi polygons
 
     , _convexHull :: Polygon
@@ -142,27 +142,47 @@ atLeast3 :: [a] -> Bool
 atLeast3 (_:_:_:_) = True
 atLeast3 _ = False
 
-voronoiCell :: Vector Vec2 -> D.TriangulationRaw -> Int -> Maybe Polygon
-voronoiCell points delaunay e =
+voronoiCell
+    :: Vector Vec2 -- ^ Points
+    -> D.TriangulationRaw
+    -> Int -- ^ Index of an *incoming* edge towards the point in question
+    -> Maybe Polygon
+voronoiCell points delaunay e = do
     let cellEdges = edgesAroundPoint delaunay e
         cellTriangles = map triangleOfEdge cellEdges
         vertices = map (\t -> circumcenter points delaunay t) cellTriangles
-    in if atLeast3 vertices
-        then Just (Polygon vertices)
-        else Nothing
+    guard (atLeast3 vertices)
+    Just (Polygon vertices)
 
-voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> [Polygon]
+voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> [(Vec2, Polygon)]
 voronoiCells points delaunay = loop S.empty 0
   where
     loop _ e | e >= V.length (D._triangles delaunay) = []
     loop seen e =
         let p = D._triangles delaunay ! D.nextHalfedge e
             m'polygon = voronoiCell points delaunay e
+            center = points!p
         in case m'polygon of
             Nothing -> loop (S.insert p seen) (e+1)
             Just polygon
                 | S.member p seen -> loop seen (e+1)
-                | otherwise -> polygon : loop (S.insert p seen) (e+1)
+                | otherwise -> (center, polygon) : loop (S.insert p seen) (e+1)
 
-lloydRelaxation :: Sequential vector => vector Vec2 -> [Vec2]
-lloydRelaxation = map polygonCentroid . _voronoiCells . delaunayTriangulation
+-- Relax the input points by moving them to(wards) their cell’s centroid, leading
+-- to a uniform distribution of points. Works well when applied multiple times.
+--
+-- The parameter \(\omega\) controls how far the Voronoi cell center moves towards
+-- the centroid.
+-- [See here for a cool live visualization.](https://observablehq.com/@mbostock/lloyds-algorithm)
+--
+--   * \(0\) does not move the points at all.
+--   * \(1\) moves the cell’s centers to the cell’s centroid (standard Lloyd).
+--   * \(\sim 2\) overshoots the move towards the cell’s center, leading to faster convergence.
+lloydRelaxation
+    :: Sequential vector
+    => Double -- ^ Convergence factor \(\omega\).
+    -> vector Vec2
+    -> [Vec2]
+lloydRelaxation omega = fmap newCenter . _voronoiCells . delaunayTriangulation
+  where
+    newCenter (old, cell) = old +. omega*.(old-.polygonCentroid cell)
