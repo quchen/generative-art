@@ -206,16 +206,24 @@ test_triangulate = testGroup "Triangulate"
         , triangulateSmoketest 100 [13]
         , triangulateSmoketest 1000 [13]
         ]
-    , testCase "Convex hull matches the standard Core algorithm" $ do
-        let n = 10
-            seed = [1242]
-            points = runST $ do
-                gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-                gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
-            delaunay = DelaunatorApi.delaunayTriangulation points
-            actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
-            expected = Expected (normalizePolygon (convexHull points))
-        assertEqual "Convex hull should match" expected actual
+    , testGroup "Convex hull"
+        [ testCase "Simple case: square" $ do
+            let points = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
+                delaunay = DelaunatorApi.delaunayTriangulation points
+                actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
+                expected = Expected (normalizePolygon (convexHull points))
+            assertEqual "Convex hull should match" expected actual
+        , testCase "Convex hull matches the standard Core algorithm" $ do
+            let n = 10
+                seed = [1242]
+                points = runST $ do
+                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
+                delaunay = DelaunatorApi.delaunayTriangulation points
+                actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
+                expected = Expected (normalizePolygon (convexHull points))
+            assertEqual "Convex hull should match" expected actual
+        ]
     ]
 
 triangulateSmoketest :: Int -> [Int] -> TestTree
@@ -236,14 +244,13 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     ]
 
   where
-    n = 2^10
+    n = 2^8
     seed = [1242]
     (width, height) = (400::Int, 300::Int)
-    sigma = fromIntegral (min width height) / 2
+    sigma = fromIntegral (min width height) / 5
     points = runST $ do
         gen <- MWC.initialize (V.fromList (map fromIntegral seed))
         gaussianDistributedPoints gen (boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]) (sigma *. mempty) n
-        uniformlyDistributedPoints gen width height n
     delaunay = DelaunatorApi.delaunayTriangulation points
 
     triangulateVisualSmoketest =
@@ -254,10 +261,10 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             "out/smoketest/delaunator" $ \_ -> do
                 let triangles = DelaunatorApi._triangles delaunay
                 C.setLineWidth 1
-                D.cairoScope $ for_ points $ \point -> do
-                    D.setColor (D.mathematica97 0)
-                    D.sketch (Circle point 3)
-                    C.stroke
+                -- D.cairoScope $ for_ points $ \point -> do
+                --     D.setColor (D.mathematica97 0)
+                --     D.sketch (Circle point 3)
+                --     C.stroke
                 D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
                     D.setColor (D.mathematica97 (i+1))
                     D.sketch (growPolygon (-1) triangle)
