@@ -11,6 +11,7 @@ import           Data.Foldable
 import           Data.Function
 import           Data.List
 import           Data.Ord
+import Numerics.Interpolation
 import           Data.STRef
 import           Data.Traversable
 import           Data.Vector                                (Vector, (!))
@@ -230,17 +231,19 @@ test_visual_delaunay_voronoi :: TestTree
 test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ " points")
     [ triangulateVisualSmoketest
     , testVisualPaintOnlyEdges
-    , test_voronoi
+    , test_voronoi_edges
+    , test_voronoi_cells
     ]
 
   where
-    n = 64
+    n = 2^10
     seed = [1242]
     (width, height) = (400::Int, 300::Int)
     sigma = fromIntegral (min width height) / 2
     points = runST $ do
         gen <- MWC.initialize (V.fromList (map fromIntegral seed))
         gaussianDistributedPoints gen (boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]) (sigma *. mempty) n
+        uniformlyDistributedPoints gen width height n
     delaunay = DelaunatorApi.delaunayTriangulation points
 
     triangulateVisualSmoketest =
@@ -259,10 +262,10 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     D.setColor (D.mathematica97 (i+1))
                     D.sketch (growPolygon (-1) triangle)
                     C.stroke
-                    D.cairoScope $ do
-                        let Vec2 cx cy = polygonCentroid triangle
-                        C.moveTo cx cy
-                        D.showTextAligned D.HCenter D.VCenter (show i)
+                    -- D.cairoScope $ do
+                    --     let Vec2 cx cy = polygonCentroid triangle
+                    --     C.moveTo cx cy
+                    --     D.showTextAligned D.HCenter D.VCenter (show i)
 
     testVisualPaintOnlyEdges =
         testVisual
@@ -271,16 +274,26 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             height
             "out/smoketest/delaunator-edges" $ \_ -> do
                 let edges = DelaunatorApi._edges delaunay
+                    numEdges = length edges
                 C.setLineWidth 1
-                D.cairoScope $ for_ (zip [1..] edges) $ \(i, edge) -> do
-                    D.setColor (D.mathematica97 i)
+                D.cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
+                    D.setColor (D.mako (lerpID (0, numEdges) (0,1) i))
                     D.sketch edge
                     C.stroke
 
-    test_voronoi = testVisual "Voronoi cells" width height "out/smoketest/vorolay" $ \_ -> do
+    test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
         let voronoiEdges = DelaunatorApi._voronoiEdges delaunay
-        D.cairoScope $ for_ (zip [1..] voronoiEdges) $ \(i, vedge) -> do
+            numEdges = length voronoiEdges
+        D.cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
+            C.setLineWidth 1
+            D.setColor (D.rocket (lerpID (0, numEdges) (0,1) i))
+            D.sketch vedge
+            C.stroke
+
+    test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
+        let voronoiCells = DelaunatorApi._voronoiCells delaunay
+        D.cairoScope $ for_ (zip [0..] voronoiCells) $ \(i, cell) -> do
             C.setLineWidth 1
             D.setColor (D.mathematica97 i)
-            D.sketch vedge
+            D.sketch (growPolygon (-1) cell)
             C.stroke

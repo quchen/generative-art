@@ -3,6 +3,7 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
       delaunayTriangulation
     , Triangulation(..)
     , D.TriangulationRaw
+    , lloydRelaxation
 ) where
 
 
@@ -10,10 +11,12 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Foldable
+import qualified Data.Set                                as S
 import           Data.Vector                             (Vector, (!))
 import qualified Data.Vector                             as V
 import qualified Geometry.Algorithms.Delaunay.Delaunator as D
 import           Geometry.Core
+
 
 
 data Triangulation = Triangulation
@@ -27,6 +30,9 @@ data Triangulation = Triangulation
 
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
+
+    , _voronoiCells :: [Polygon]
+    -- ^ All Voronoi polygons
 
     , _convexHull :: Polygon
     -- ^ We get the convex hull for free out of the calculation. Equivalent to
@@ -45,12 +51,13 @@ delaunayTriangulation points' =
         { _triangles = triangles points raw
         , _edges = edges points raw
         , _voronoiEdges = voronoiEdges points raw
+        , _voronoiCells = voronoiCells points raw
         , _convexHull = convexHull' points raw
         , _raw = raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e) = rnf (a,b,c,d,e)
+    rnf (Triangulation a b c d e f) = rnf (a,b,c,d,e,f)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
 triangles points triangulation =
@@ -100,10 +107,11 @@ voronoiEdges points triangulation = do
 
     e <- [0..numHalfedges-1]
     guard (e < halfedgeIxs!e)
+
     let t1 = triangleOfEdge e
-        t2 = triangleOfEdge (halfedgeIxs!e)
-    let
         p1 = circumcenter points triangulation t1
+
+        t2 = triangleOfEdge (halfedgeIxs!e)
         p2 = circumcenter points triangulation t2
     pure (Line p1 p2)
 
@@ -113,6 +121,48 @@ circumcenter
     -> D.TriangulationRaw
     -> Int -- ^ i-th triangle
     -> Vec2
-circumcenter points tri i =
-    let [a,b,c] = pointsOfTriangle tri i
+circumcenter points tri t =
+    let [a,b,c] = pointsOfTriangle tri t
     in D.circumcenter (points!a) (points!b) (points!c)
+
+edgesAroundPoint
+    :: D.TriangulationRaw
+    -> Int -- ^ Incoming (!) edge to the center point
+    -> [Int]
+edgesAroundPoint delaunay start = loop start
+  where
+    loop incoming =
+        let outgoing = D.nextHalfedge incoming
+            incoming' = D._halfedges delaunay ! outgoing
+        in if incoming' /= D.tEMPTY && incoming' /= start
+            then incoming : loop incoming'
+            else [incoming]
+
+atLeast3 :: [a] -> Bool
+atLeast3 (_:_:_:_) = True
+atLeast3 _ = False
+
+voronoiCell :: Vector Vec2 -> D.TriangulationRaw -> Int -> Maybe Polygon
+voronoiCell points delaunay e =
+    let cellEdges = edgesAroundPoint delaunay e
+        cellTriangles = map triangleOfEdge cellEdges
+        vertices = map (\t -> circumcenter points delaunay t) cellTriangles
+    in if atLeast3 vertices
+        then Just (Polygon vertices)
+        else Nothing
+
+voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> [Polygon]
+voronoiCells points delaunay = loop S.empty 0
+  where
+    loop _ e | e >= V.length (D._triangles delaunay) = []
+    loop seen e =
+        let p = D._triangles delaunay ! D.nextHalfedge e
+            m'polygon = voronoiCell points delaunay e
+        in case m'polygon of
+            Nothing -> loop (S.insert p seen) (e+1)
+            Just polygon
+                | S.member p seen -> loop seen (e+1)
+                | otherwise -> polygon : loop (S.insert p seen) (e+1)
+
+lloydRelaxation :: Sequential vector => vector Vec2 -> [Vec2]
+lloydRelaxation = map polygonCentroid . _voronoiCells . delaunayTriangulation
