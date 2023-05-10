@@ -40,6 +40,7 @@ tests = testGroup "Delaunator"
     , test_triangulation_new
     , test_find_seed_triangle
     , test_triangulate
+    , test_visual_delaunay_voronoi
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -203,13 +204,17 @@ test_triangulate = testGroup "Triangulate"
         , triangulateSmoketest 10 [13]
         , triangulateSmoketest 100 [13]
         , triangulateSmoketest 1000 [13]
-        , testGroup "Visual"
-            [ triangulateVisualSmoketest 100 [1242]
-            ]
         ]
-    , testVisualPaintOnlyEdges 100 [144]
     , testCase "Convex hull matches the standard Core algorithm" $ do
-        assertFailure "TODO"
+        let n = 10
+            seed = [1242]
+            points = runST $ do
+                gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+                gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
+            delaunay = DelaunatorApi.delaunayTriangulation points
+            actual = Actual (normalizePolygon (DelaunatorApi._convexHull delaunay))
+            expected = Expected (normalizePolygon (convexHull points))
+        assertEqual "Convex hull should match" expected actual
     ]
 
 triangulateSmoketest :: Int -> [Int] -> TestTree
@@ -221,43 +226,61 @@ triangulateSmoketest n seed = testCase ("Smoke test: " ++ show n ++ " random poi
         tri = Delaunator.triangulate points
     tri `deepseq` pure ()
 
-triangulateVisualSmoketest :: Int -> [Int] -> TestTree
-triangulateVisualSmoketest n seed =
-    testVisual
-        ("Visual smoke test: " ++ show n ++ " random points")
-        500
-        500
-        "out/smoketest/delaunator" $ \(w, h) -> do
-            let points = runST $ do
-                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
-                triangles = DelaunatorApi._triangles (DelaunatorApi.delaunayTriangulation points)
-            D.cairoScope $ for_ points $ \point -> do
-                D.setColor (D.mathematica97 0)
-                D.sketch (Circle point 5)
-                C.fill
-            D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
-                D.setColor (D.mathematica97 (i+1))
-                D.sketch triangle
-                C.stroke
+test_visual_delaunay_voronoi :: TestTree
+test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ " points")
+    [ triangulateVisualSmoketest
+    , testVisualPaintOnlyEdges
+    , test_voronoi
+    ]
 
+  where
+    n = 64
+    seed = [1242]
+    (width, height) = (400::Int, 300::Int)
+    sigma = fromIntegral (min width height) / 2
+    points = runST $ do
+        gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+        gaussianDistributedPoints gen (boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]) (sigma *. mempty) n
+    delaunay = DelaunatorApi.delaunayTriangulation points
 
-testVisualPaintOnlyEdges :: Int -> [Int] -> TestTree
-testVisualPaintOnlyEdges n seed =
-    testVisual
-        ("Paint only unique edges for " ++ show n ++ " random points")
-        500
-        500
-        "out/smoketest/delaunator-edges" $ \(w, h) -> do
-            let points = runST $ do
-                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 w h]) (100 *. mempty) n
-                edges = DelaunatorApi._edges (DelaunatorApi.delaunayTriangulation points)
-            D.cairoScope $ for_ points $ \point -> do
-                D.setColor (D.mathematica97 0)
-                D.sketch (Circle point 5)
-                C.fill
-            D.cairoScope $ V.iforM_ edges $ \i edge -> do
-                D.setColor (D.mathematica97 (i+1))
-                D.sketch (D.Arrow edge D.def)
-                C.stroke
+    triangulateVisualSmoketest =
+        testVisual
+            ("Visual smoke test: " ++ show n ++ " random points")
+            width
+            height
+            "out/smoketest/delaunator" $ \_ -> do
+                let triangles = DelaunatorApi._triangles delaunay
+                C.setLineWidth 1
+                D.cairoScope $ for_ points $ \point -> do
+                    D.setColor (D.mathematica97 0)
+                    D.sketch (Circle point 3)
+                    C.stroke
+                D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
+                    D.setColor (D.mathematica97 (i+1))
+                    D.sketch (growPolygon (-1) triangle)
+                    C.stroke
+                    D.cairoScope $ do
+                        let Vec2 cx cy = polygonCentroid triangle
+                        C.moveTo cx cy
+                        D.showTextAligned D.HCenter D.VCenter (show i)
+
+    testVisualPaintOnlyEdges =
+        testVisual
+            ("Paint only unique edges for " ++ show n ++ " random points")
+            width
+            height
+            "out/smoketest/delaunator-edges" $ \_ -> do
+                let edges = DelaunatorApi._edges delaunay
+                C.setLineWidth 1
+                D.cairoScope $ for_ (zip [1..] edges) $ \(i, edge) -> do
+                    D.setColor (D.mathematica97 i)
+                    D.sketch edge
+                    C.stroke
+
+    test_voronoi = testVisual "Voronoi cells" width height "out/smoketest/vorolay" $ \_ -> do
+        let voronoiEdges = DelaunatorApi._voronoiEdges delaunay
+        D.cairoScope $ for_ (zip [1..] voronoiEdges) $ \(i, vedge) -> do
+            C.setLineWidth 1
+            D.setColor (D.mathematica97 i)
+            D.sketch vedge
+            C.stroke

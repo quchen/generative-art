@@ -61,11 +61,9 @@ orientation x q r =
 
 -- | Offset of the circumcenter of the triangle (a,b,c) from a.
 circumdelta :: Vec2 -> Vec2 -> Vec2 -> Vec2
-circumdelta (Vec2 ax ay) (Vec2 bx by) (Vec2 cx cy) =
-    let dx = bx - ax;
-        dy = by - ay;
-        ex = cx - ax;
-        ey = cy - ay;
+circumdelta a b c =
+    let Vec2 dx dy = b -. a
+        Vec2 ex ey = c -. a
 
         bl = dx*dx + dy*dy;
         cl = ex*ex + ey*ey;
