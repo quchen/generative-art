@@ -242,6 +242,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     , testVisualPaintOnlyEdges
     , test_voronoi_edges
     , test_voronoi_cells
+    , test_delaunay_voronoi
     ]
 
   where
@@ -298,6 +299,21 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             D.sketch (growPolygon (-1) cell)
             C.stroke
             D.sketch (Circle center 1)
+            C.fill
+
+    test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
+        C.setLineWidth 1
+        for_ (DApi._voronoiCells delaunay) $ \(_, cell) -> do
+            D.setColor (D.mathematica97 0)
+            D.sketch (growPolygon (-1) cell)
+            C.stroke
+        for_ (DApi._edges delaunay) $ \edge -> do
+            D.setColor (D.mathematica97 1)
+            D.sketch edge
+            C.stroke
+        for_ points $ \point -> do
+            D.setColor (D.mathematica97 1)
+            D.sketch (Circle point 2)
             C.fill
 
 test_projectToViewport :: TestTree
