@@ -262,18 +262,10 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             "out/smoketest/delaunator" $ \_ -> do
                 let triangles = DApi._triangles delaunay
                 C.setLineWidth 1
-                -- D.cairoScope $ for_ points $ \point -> do
-                --     D.setColor (D.mathematica97 0)
-                --     D.sketch (Circle point 3)
-                --     C.stroke
                 D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
                     D.setColor (D.mathematica97 (i+1))
                     D.sketch (growPolygon (-1) triangle)
                     C.stroke
-                    -- D.cairoScope $ do
-                    --     let Vec2 cx cy = polygonCentroid triangle
-                    --     C.moveTo cx cy
-                    --     D.showTextAligned D.HCenter D.VCenter (show i)
 
     testVisualPaintOnlyEdges =
         testVisual
@@ -308,6 +300,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             D.sketch (Circle center 1)
             C.fill
 
+test_projectToViewport :: TestTree
 test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
     let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
         rays = [ DApi.Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]

@@ -321,9 +321,9 @@ data Hull s = Hull
 hull_new
     :: HasCallStack
     => Int       -- ^ Number of points.
-                   --   (Redundant since we’ve also got the input points vector,
-                   --   but the Rust source does it this way.)
-    -> Vec2        -- ^ Circumcenter of the initial triangle
+                 --   (Redundant since we’ve also got the input points vector,
+                 --   but the Rust source does it this way.)
+    -> Vec2      -- ^ Circumcenter of the initial triangle
     -> Int       -- ^ First corner of the initial triangle
     -> Int       -- ^ Second corner of the initial triangle
     -> Int       -- ^ Third corner of the initial triangle

@@ -12,7 +12,6 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
 
 
 import           Control.DeepSeq
-import Debug.Trace
 import           Control.Monad
 import           Data.Foldable
 import qualified Data.Map                                as M
@@ -213,29 +212,28 @@ projectToViewport bbox ray = do
 
         -- Direction points up (in screen coordinates), possibly hitting top
         LT | y0 <= yMin -> Nothing -- Starts above the bounding box, points away to infinity
-           | c < t -> trace ("A (vy<0) " ++ show c) $ Just (c, Vec2 (x0 + c*vx) yMin)
+           | c < t -> Just (c, Vec2 (x0 + c*vx) yMin)
            where c = (yMin-y0)/vy
 
         -- Direction points down (in screen coordinates), possibly hitting top
         GT | y0 >= yMax -> Nothing -- Starts below the bounding box, points away to infinity
-           | c < t -> trace ("B (vy>0) " ++ show c) $ Just (c, Vec2 (x0 + c*vx) yMax)
+           | c < t -> Just (c, Vec2 (x0 + c*vx) yMax)
            where c = (yMax-y0)/vy
 
         -- y search did not yield any result.
         -- Direction points straight left/right: pass decision on to x comparison.
         _otherwise -> Just (t, zero) -- zero is a dummy value, to be overwritten below.
 
-    traceShowM ("ty", ty)
     case compare vx 0 of
 
         -- Direction points left (in screen coordinates), possibly hitting left
         LT | x0 <= xMin -> Nothing  -- Starts on the left of the bounding box, points away to infinity
-           | c < ty -> trace ("D (vx>0) " ++ show c) $ Just (Vec2 xMin (y0+c*vy))
+           | c < ty -> Just (Vec2 xMin (y0+c*vy))
            where c = (xMin-x0)/vx
 
         -- Direction points right (in screen coordinates), possibly hitting right
         GT | x0 >= xMax -> Nothing -- Starts on the right of the bounding box, points away to infinity
-           | c < ty -> trace ("C (vx<0) " ++ show c) $ Just (Vec2 xMax (y0+c*vy))
+           | c < ty -> Just (Vec2 xMax (y0+c*vy))
            where c = (xMax-x0)/vx
 
         -- x did not yield better search, fall back to y’s result vector
