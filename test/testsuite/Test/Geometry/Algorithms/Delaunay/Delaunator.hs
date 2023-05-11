@@ -42,6 +42,7 @@ tests = testGroup "Delaunator"
     , test_find_seed_triangle
     , test_triangulate
     , test_visual_delaunay_voronoi
+    , test_projectToViewport
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -299,10 +300,39 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
         let voronoiCells = DApi._voronoiCells delaunay
-        D.cairoScope $ for_ (zip [0..] voronoiCells) $ \(i, (center, cell)) -> do
+        D.cairoScope $ V.iforM_ voronoiCells $ \i (center, cell) -> do
             C.setLineWidth 1
             D.setColor (D.mathematica97 i)
             D.sketch (growPolygon (-1) cell)
             C.stroke
             D.sketch (Circle center 1)
             C.fill
+
+test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
+    let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
+        rays = [ DApi.Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
+        -- missingRays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
+        -- rays = hittingRays ++ missingRays
+        -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
+        drawRay r = resizeLine (const (max w h)) (Line (DApi._rayStart r) (DApi._rayStart r +. DApi._rayDirection r))
+    C.setLineWidth 1
+    D.cairoScope $ do
+        D.sketch (boundingBoxPolygon squareBB)
+        D.setColor (D.mathematica97 0)
+        C.stroke
+    for_ (zip [1..] rays) $ \(i, ray) -> D.cairoScope $ do
+        case DApi.projectToViewport squareBB ray of
+            Nothing -> do
+                C.setDash [] 0
+                D.setColor (D.rgb 1 0 0)
+                D.sketch (drawRay ray)
+                C.stroke
+            Just p -> do
+                D.setColor (D.mathematica97 i)
+                D.cairoScope $ do
+                    C.setDash [2,4] 0
+                    D.sketch (drawRay ray)
+                    C.stroke
+                D.cairoScope $ do
+                    D.sketch (Circle p 3)
+                    C.stroke
