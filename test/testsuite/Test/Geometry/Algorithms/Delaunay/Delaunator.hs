@@ -243,16 +243,18 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     , test_voronoi_edges
     , test_voronoi_cells
     , test_delaunay_voronoi
+    , test_hull
     ]
 
   where
-    n = 2^8
+    n = 2^3
     seed = [1242]
     (width, height) = (400::Int, 300::Int)
     sigma = fromIntegral (min width height) / 5
     points = runST $ do
         gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-        gaussianDistributedPoints gen (boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]) (sigma *. mempty) n
+        let margin = 60
+        gaussianDistributedPoints gen (boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]) (sigma *. mempty) n
     delaunay = DApi.delaunayTriangulation points
 
     triangulateVisualSmoketest =
@@ -316,6 +318,38 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             D.sketch (Circle point 2)
             C.fill
 
+    test_hull = testVisual "Hull" width height "out/smoketest/delaunay-hull" $ \(w,h) -> do
+        C.setLineWidth 1
+        let arrowSpec = D.def{D._arrowheadSize = 5}
+        D.cairoScope $ for_ (DApi._edges delaunay) $ \edge -> do
+            D.setColor (D.mathematica97 0 `D.withOpacity` 0.2)
+            D.sketch edge
+            C.stroke
+        D.cairoScope $ do
+            D.setColor (D.mathematica97 0)
+            let Polygon points = DApi._convexHull delaunay
+            for_ (zipWith Line points (tail (cycle points))) $ \line -> do
+                D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.5})
+                C.stroke
+            for_ points $ \p -> do
+                D.sketch (Circle p 2)
+                C.fill
+        D.cairoScope $ for_ (V.indexed (DApi._exteriorRays delaunay)) $ \(i, ray) -> do
+            case ray of
+                Nothing -> pure ()
+                Just (DApi.Ray start dir) -> do
+                    let linePrototype = Line start (start +. dir)
+                        line = resizeLine (const 50) linePrototype
+                        Line _ textPos = resizeLine (const 60) linePrototype
+                    if even i -- even = incoming
+                        then D.setColor (D.mathematica97 1) >> D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.4}) >> C.stroke
+                        else D.setColor (D.mathematica97 3) >> D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.8}) >> C.stroke
+                    centeredText textPos (show i)
+
+centeredText v str = do
+    D.moveToVec v
+    D.showTextAligned D.HCenter D.VTop str
+
 test_projectToViewport :: TestTree
 test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
     let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
@@ -323,7 +357,7 @@ test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/p
         -- missingRays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
         -- rays = hittingRays ++ missingRays
         -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
-        drawRay r = resizeLine (const (max w h)) (Line (DApi._rayStart r) (DApi._rayStart r +. DApi._rayDirection r))
+        drawRay (DApi.Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
     C.setLineWidth 1
     D.cairoScope $ do
         D.sketch (boundingBoxPolygon squareBB)

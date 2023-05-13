@@ -5,6 +5,9 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
     , Triangulation(..)
     , D.TriangulationRaw
     , lloydRelaxation
+
+    -- * Experimental stuff, TODO remove
+    , lookupRay
     , Ray(..)
     , projectToViewport
 ) where
@@ -13,10 +16,14 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
 
 import           Control.DeepSeq
 import           Control.Monad
+import           Control.Monad.ST
 import           Data.Foldable
 import qualified Data.Map                                as M
+import           Data.STRef
 import           Data.Vector                             (Vector, (!))
 import qualified Data.Vector                             as V
+import           Data.Vector.Mutable                     (STVector)
+import qualified Data.Vector.Mutable                     as VM
 import qualified Geometry.Algorithms.Delaunay.Delaunator as D
 import           Geometry.Core
 
@@ -37,6 +44,9 @@ data Triangulation = Triangulation
     , _voronoiCells :: Vector (Vec2, Polygon)
     -- ^ All Voronoi polygons
 
+    , _exteriorRays :: Vector (Maybe Ray)
+    -- ^ Temporary export for infinite polygon testing
+
     , _convexHull :: Polygon
     -- ^ We get the convex hull for free out of the calculation. Equivalent to
     -- calling 'convexHull' on the input points.
@@ -55,12 +65,13 @@ delaunayTriangulation points' =
         , _edges = edges points raw
         , _voronoiEdges = voronoiEdges points raw
         , _voronoiCells = voronoiCells points raw
+        , _exteriorRays = exteriorRays points raw
         , _convexHull = convexHull' points raw
         , _raw = raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f) = rnf (a,b,c,d,e,f)
+    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
 triangles points triangulation =
@@ -152,6 +163,19 @@ voronoiCell points delaunay e =
         vertices = map (\t -> circumcenter points delaunay t) cellTriangles
     in Polygon vertices
 
+-- | Center and polygon.
+data VoronoiCell = VoronoiCell !Vec2 !VoronoiPolygon
+
+-- | A Voronoi Cell can either be an ordinary (finite) polygon,
+-- or one that extends to infinity for boundary polygons.
+data VoronoiPolygon
+    = VoronoiFinite !Polygon -- ^ Ordinary polygon
+    | VoronoiInfinite !Vec2 [Vec2] !Vec2
+        -- ^ The polygon consists of a list of finite points, and extends to
+        -- infinity at the beginning/end in the direction of the first/last
+        -- argument. For example, the bottom/right quadrant (in screen coordinates)
+    deriving (Eq, Ord, Show)
+
 voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, Polygon)
 voronoiCells points delaunay =
     let -- Index: Point ID to half-edge ID
@@ -169,6 +193,49 @@ voronoiCells points delaunay =
         in case polygon of
             Polygon (_1:_2:_3:_) -> Just (pCoord, polygon)
             _other -> Nothing
+
+-- | Each point on the Delaunay hull defines two rays:
+--     1. The incoming edge (in hull traversal order), rotated by 90° outwards
+--     2. The outgoing edge, rotated 90° outwards
+--
+-- We traverse the hull in order, and create a vector mapping point indices
+-- to the rays originating from the incoming/outgoing edge.
+--
+-- The result vector has the structure
+-- [ p1_ray_incoming, p1_ray_outgoing,  p2_ray_incoming, p2_ray_outgoing, ...]
+-- and the convenience function 'lookupRay' can make the code more readable.
+exteriorRays :: Vector Vec2 -> D.TriangulationRaw -> Vector (Maybe Ray)
+exteriorRays points delaunay = runST $ do
+    let hull = D._convexHull delaunay
+    rays <- VM.replicate (V.length points * 2) Nothing
+    let recordRays = \pStart pEnd -> do
+            let vecStart = points!pStart
+                vecEnd = points!pEnd
+
+                rayDir = rotate90 (vecEnd -. vecStart)
+
+            -- Record as outgoing ray for pStart
+            VM.write rays (2*pStart+1) (Just (Ray vecStart rayDir))
+
+            -- Record as incoming ray for pEnd
+            VM.write rays (2*pEnd) (Just (Ray vecEnd rayDir))
+
+    V.zipWithM_ recordRays hull (V.tail hull)
+    _ <- recordRays (V.last hull) (V.head hull) -- zip omits the cyclic one, so we do it manually
+
+    V.unsafeFreeze rays
+
+-- | Convenience function for the result of 'exteriorRays'.
+lookupRay :: Int -> RayAssociation -> Vector (Maybe Ray) -> Maybe Ray
+lookupRay p Incoming rays = rays V.! (2*p)
+lookupRay p Outgoing rays = rays V.! (2*p+1)
+
+data RayAssociation = Incoming | Outgoing
+    deriving (Eq, Ord, Show)
+
+-- | Rotate a 'Vec2' by 90°
+rotate90 :: Vec2 -> Vec2
+rotate90 (Vec2 x y) = Vec2 y (-x)
 
 -- Relax the input points by moving them to(wards) their cell’s centroid, leading
 -- to a uniform distribution of points. Works well when applied multiple times.
@@ -193,10 +260,11 @@ lloydRelaxation omega = fmap newCenter . _voronoiCells . delaunayTriangulation
 
 -- ^ A ray is a line that extends to infinity on one side. Note that the direction
 -- is a *direction* and not another point.
-data Ray = Ray
-    { _rayStart :: !Vec2 -- ^ Starting point
-    , _rayDirection :: !Vec2 -- ^ Direction vector
-    } deriving (Eq, Ord, Show)
+data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction
+    deriving (Eq, Ord, Show)
+
+instance NFData Ray where
+    rnf _ = () -- Already strict
 
 -- | Where does the ray originating in the bounding box hit it from the inside first?
 projectToViewport
@@ -205,7 +273,7 @@ projectToViewport
     -> Maybe Vec2 -- ^ Nothing if the ray never hits.
 projectToViewport bbox ray = do
     let BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = bbox
-        Ray {_rayStart=Vec2 x0 y0, _rayDirection=Vec2 vx vy} = ray
+        Ray (Vec2 x0 y0) (Vec2 vx vy) = ray
         t = 1/0
 
     (ty, yHit) <- case compare vy 0 of
