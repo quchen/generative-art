@@ -41,7 +41,8 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
             rectangle 0 0 width height
             setColor (mathematica97 1)
             stroke
-            points <- liftIO (uniformlyDistributedPoints gen width height numPoints)
+            let bb = boundingBox [zero, Vec2 width height]
+            points <- liftIO (uniformlyDistributedPoints gen bb numPoints)
             drawPoints points
             C.translate 0 82 >> drawExplanation "Uniformly random"
             C.translate 0 10

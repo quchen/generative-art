@@ -73,7 +73,8 @@ testLloydRelaxation :: TestTree
 testLloydRelaxation = testVisual "Lloyd relaxation" 850 220 "docs/voronoi/lloyd_relaxation" $ \_ -> do
     points <- liftIO $ do
         gen <- MWC.create
-        uniformlyDistributedPoints gen 200 200 15
+        let bb = boundingBox [zero, Vec2 200 200]
+        uniformlyDistributedPoints gen bb 15
     let triangulation0 = bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 200 200)) (toList points)
         triangulations = take 4 (iterate (lloydRelaxation 1) triangulation0)
     C.translate 10 10

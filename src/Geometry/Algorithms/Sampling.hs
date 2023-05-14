@@ -31,19 +31,19 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 -- points :: 'Vector' 'Vec2'
 -- points = 'Control.Monad.ST.runST' $ do
 --     gen <- 'create'
---     'uniformlyDistributedPoints' gen 64 64 100
+--     let region = boundingBox [zero, Vec2 64 64]
+--     'uniformlyDistributedPoints' gen region 100
 -- @
 uniformlyDistributedPoints
-    :: PrimMonad m
+    :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    -> Int               -- ^ Width
-    -> Int               -- ^ Height
+    -> boundingBox       -- ^ Region to generate points in
     -> Int               -- ^ Number of points
     -> m (Vector Vec2)
-uniformlyDistributedPoints gen width height count = V.replicateM count randomPoint
+uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
   where
-    randomPoint = liftA2 Vec2 (randomCoordinate width) (randomCoordinate height)
-    randomCoordinate mx = uniformR (0, fromIntegral mx) gen
+    BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = boundingBox bb
+    randomPoint = liftA2 Vec2 (uniformR (xMin, xMax) gen) (uniformR (yMin, yMax) gen)
 
 -- | @'gaussianDistributedPoints' gen mu sigma (width,height) count@
 -- generates @count@ normal distributed random points within a rectangle of
