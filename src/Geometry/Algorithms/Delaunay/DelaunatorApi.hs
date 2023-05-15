@@ -76,13 +76,20 @@ instance NFData Triangulation where
 triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
 triangles points triangulation =
     let triangleIxs = D._triangles triangulation
-        numTriangles = V.length triangleIxs `div` 3
         corners = V.backpermute points triangleIxs
-        -- I have a hunch this could be done with another single call to backpermute instead of generate/iterate…
-    in V.generate numTriangles (constructTriangle corners)
+    in mapChunksOf3 (\x y z -> Polygon [x,y,z]) corners
 
-constructTriangle :: Vector Vec2 -> Int -> Polygon
-constructTriangle points i = Polygon [points!e | e <- edgesOfTriangle i]
+-- | @mapChunksOf3 f [a,b,c,  i,j,k,  p,q,r] = [f a b c,  f i j k,  f p q r]@
+mapChunksOf3 :: (a -> a -> a -> b) -> Vector a -> Vector b
+mapChunksOf3 f vec = V.create $ do
+    let len = V.length vec `div` 3
+    result <- VM.new len
+    VM.iforM_ result $ \i _x -> do
+        let x = vec ! (3*i+0)
+            y = vec ! (3*i+1)
+            z = vec ! (3*i+2)
+        VM.write result i (f x y z)
+    pure result
 
 pointsOfTriangle :: D.TriangulationRaw -> Int -> [Int]
 pointsOfTriangle tri t = map (\e -> D._triangles tri ! e) (edgesOfTriangle t)
