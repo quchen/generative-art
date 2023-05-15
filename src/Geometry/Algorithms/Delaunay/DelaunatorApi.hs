@@ -92,14 +92,10 @@ mapChunksOf3 f vec = V.create $ do
     pure result
 
 pointsOfTriangle :: D.TriangulationRaw -> Int -> [Int]
-pointsOfTriangle tri t = map (\e -> D._triangles tri ! e) (edgesOfTriangle t)
-
--- ^ Given a single edge, what’s the index of the start of the triangle?
-triangleOfEdge :: Int -> Int
-triangleOfEdge e = div e 3
-
-edgesOfTriangle :: Int -> [Int]
-edgesOfTriangle t = [3*t, 3*t+1, 3*t+2]
+pointsOfTriangle tri t = [D._triangles tri ! e | e <- edgesOfTriangle t]
+  where
+    edgesOfTriangle :: Int -> [Int]
+    edgesOfTriangle i = [3*i, 3*i+1, 3*i+2]
 
 edges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
 edges points triangulation = do
@@ -120,6 +116,10 @@ convexHull' points triangulation =
     let hullIxs = D._convexHull triangulation
         hull = V.backpermute points hullIxs
     in Polygon (toList hull)
+
+-- ^ Given a single edge, what’s the index of the start of the triangle?
+triangleOfEdge :: Int -> Int
+triangleOfEdge e = div e 3
 
 voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
 voronoiEdges points triangulation = do
