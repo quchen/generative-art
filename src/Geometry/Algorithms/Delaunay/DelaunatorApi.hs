@@ -18,10 +18,8 @@ import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
 import qualified Data.Map                                as M
-import           Data.STRef
 import           Data.Vector                             (Vector, (!))
 import qualified Data.Vector                             as V
-import           Data.Vector.Mutable                     (STVector)
 import qualified Data.Vector.Mutable                     as VM
 import qualified Geometry.Algorithms.Delaunay.Delaunator as D
 import           Geometry.Core
@@ -37,6 +35,12 @@ data Triangulation = Triangulation
 
     , _edges :: [Line]
     -- ^ Each (undirected) edge of the Delaunay triangulation.
+
+    , _voronoiCorners :: Vector Vec2
+    -- ^ Corners of the Voronoi cells, useful for painting them in isolation. The
+    -- entries are aligned with '_triangles', since the Voronoi corners are the
+    -- circumcenters of the Delaunay triangles. You can group them correctly with
+    -- 'V.zip'.
 
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
@@ -60,24 +64,27 @@ delaunayTriangulation :: Sequential vector => vector Vec2 -> Triangulation
 delaunayTriangulation points' =
     let points = toVector points'
         raw = D.triangulate points
+        (triPolygons, triCircumcenters) = triangles points raw
     in Triangulation
-        { _triangles = triangles points raw
+        { _triangles = triPolygons
         , _edges = edges points raw
-        , _voronoiEdges = voronoiEdges points raw
-        , _voronoiCells = voronoiCells points raw
+        , _voronoiCorners = triCircumcenters
+        , _voronoiEdges = voronoiEdges triCircumcenters raw
+        , _voronoiCells = voronoiCells points triCircumcenters raw
         , _convexHull = convexHull' points raw
         , _raw = raw
         , _extRays = exteriorRays points raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
+    rnf (Triangulation a b c d e f g h) = rnf (a,b,c,d,e,f,g,h)
 
-triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
+triangles :: Vector Vec2 -> D.TriangulationRaw -> (Vector Polygon, Vector Vec2)
 triangles points triangulation =
     let triangleIxs = D._triangles triangulation
         corners = V.backpermute points triangleIxs
-    in mapChunksOf3 (\x y z -> Polygon [x,y,z]) corners
+    in ( mapChunksOf3 (\x y z -> Polygon [x,y,z]) corners
+       , mapChunksOf3 (\x y z -> D.circumcenter x y z) corners)
 
 -- | @mapChunksOf3 f [a,b,c,  i,j,k,  p,q,r] = [f a b c,  f i j k,  f p q r]@
 mapChunksOf3 :: (a -> a -> a -> b) -> Vector a -> Vector b
@@ -90,12 +97,6 @@ mapChunksOf3 f vec = V.create $ do
             z = vec ! (3*i+2)
         VM.write result i (f x y z)
     pure result
-
-pointsOfTriangle :: D.TriangulationRaw -> Int -> [Int]
-pointsOfTriangle tri t = [D._triangles tri ! e | e <- edgesOfTriangle t]
-  where
-    edgesOfTriangle :: Int -> [Int]
-    edgesOfTriangle i = [3*i, 3*i+1, 3*i+2]
 
 edges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
 edges points triangulation = do
@@ -122,7 +123,7 @@ triangleOfEdge :: Int -> Int
 triangleOfEdge e = div e 3
 
 voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
-voronoiEdges points triangulation = do
+voronoiEdges circumcenters triangulation = do
     let halfedgeIxs = D._halfedges triangulation
         numHalfedges = V.length halfedgeIxs
 
@@ -130,21 +131,11 @@ voronoiEdges points triangulation = do
     guard (e < halfedgeIxs!e)
 
     let t1 = triangleOfEdge e
-        p1 = circumcenter points triangulation t1
+        p1 = circumcenters ! t1
 
         t2 = triangleOfEdge (halfedgeIxs!e)
-        p2 = circumcenter points triangulation t2
+        p2 = circumcenters ! t2
     pure (Line p1 p2)
-
--- | Circumcenter of the i-th polygon.
-circumcenter
-    :: Vector Vec2 -- ^ Input points
-    -> D.TriangulationRaw
-    -> Int -- ^ i-th triangle
-    -> Vec2
-circumcenter points tri t =
-    let [a,b,c] = pointsOfTriangle tri t
-    in D.circumcenter (points!a) (points!b) (points!c)
 
 -- | All edges around a point. The point is specified by an incoming edge.
 edgesAroundPoint
@@ -161,16 +152,16 @@ edgesAroundPoint delaunay start = loop start
             else [incoming]
 
 voronoiCell
-    :: Vector Vec2 -- ^ Points
+    :: Vector Vec2 -- ^ Circumcenters
     -> D.TriangulationRaw
     -> Vector (Maybe (Vec2, Vec2)) -- ^ Exterior rays
     -> Int -- ^ Index of the point itself
     -> Int -- ^ Index of an *incoming* edge towards the point in question
     -> VoronoiPolygon
-voronoiCell points delaunay extRays p e =
+voronoiCell circumcenters delaunay extRays p e =
     let cellEdges = edgesAroundPoint delaunay e
         cellTriangles = map triangleOfEdge cellEdges
-        vertices = map (\t -> circumcenter points delaunay t) cellTriangles
+        vertices = map (circumcenters!) cellTriangles
 
         p = D._triangles delaunay ! e
 
@@ -194,8 +185,8 @@ instance NFData VoronoiPolygon where
     rnf VoronoiFinite{} = ()
     rnf (VoronoiInfinite _in ps _out) = rnf ps
 
-voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, VoronoiPolygon)
-voronoiCells points delaunay =
+voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, VoronoiPolygon)
+voronoiCells points circumcenters delaunay =
     let -- Index: Point ID to incoming halfedge ID. Originates on the hull
         -- for hull points possible, required for reconstructing edge polygons correctly.
         index = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
@@ -209,7 +200,7 @@ voronoiCells points delaunay =
         extRays = exteriorRays points delaunay
     in V.catMaybes $ flip V.imap points $ \pIx pCoord ->
         let incoming = index M.! pIx
-        in case voronoiCell points delaunay extRays pIx incoming of
+        in case voronoiCell circumcenters delaunay extRays pIx incoming of
             polygon@(VoronoiFinite (Polygon (_1:_2:_3:_))) -> Just (pCoord, polygon)
             polygon@(VoronoiInfinite _dirIn (_1:_) _dirOut) -> Just (pCoord, polygon)
             _other -> Nothing
@@ -275,8 +266,6 @@ lloydRelaxation omega = fmap newCenter . abort . _voronoiCells . delaunayTriangu
   where
     newCenter (old, cell) = old +. omega*.(old-.polygonCentroid cell)
     abort = error "Lloyd relaxation is disabled until infinite polygons work" -- TODO
-
-
 
 -- ^ A ray is a line that extends to infinity on one side. Note that the direction
 -- is a *direction* and not another point.
