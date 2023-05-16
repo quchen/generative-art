@@ -191,7 +191,7 @@ voronoiCells points circumcenters delaunay =
             let endpoint = D._triangles delaunay ! D.nextHalfedge e
                 hasSiblingHalfedge = D._halfedges delaunay ! e /= D.tEMPTY
                 seen = M.member endpoint acc
-            in if not seen || hasSiblingHalfedge
+            in if not seen || not hasSiblingHalfedge
                 then M.insert endpoint e acc
                 else acc
         extRays = exteriorRays points delaunay
