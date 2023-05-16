@@ -392,8 +392,8 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
         cairoScope $ do
             setColor (mathematica97 1)
             for_ (V.indexed (DApi._extRays delaunay)) $ \(p, ray) -> case ray of
-                Nothing -> pure ()
-                Just (rayInDir, rayOutDir) -> for_ [rayInDir, rayOutDir] $ \dir -> do
+                DApi.NoExtRays -> pure ()
+                DApi.ExtRays rayInDir rayOutDir -> for_ [rayInDir, rayOutDir] $ \dir -> do
                     let line = resizeLine (const 50) (Line (points!p) (points!p +. dir))
                         Line _ textPos = resizeLine (const 60) line
                     sketch line

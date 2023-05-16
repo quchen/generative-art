@@ -8,6 +8,7 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
 
     -- * Experimental stuff, TODO remove
     , exteriorRays
+    , ExtRays(..)
     , VoronoiPolygon(..)
     , projectToViewport
 ) where
@@ -46,7 +47,7 @@ data Triangulation = Triangulation
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
 
-    , _extRays :: Vector (Maybe (Vec2, Vec2))
+    , _extRays :: Vector ExtRays
     -- ^ TODO REMOVE
 
     , _voronoiCells :: Vector VoronoiCell
@@ -152,23 +153,6 @@ edgesAroundPoint delaunay start = loop start
             then incoming : loop incoming'
             else [incoming]
 
-voronoiPolygon
-    :: Vector Vec2 -- ^ Circumcenters
-    -> D.TriangulationRaw
-    -> Vector (Maybe (Vec2, Vec2)) -- ^ Exterior rays
-    -> Int -- ^ Index of the point itself
-    -> Int -- ^ Index of an *incoming* edge towards the point in question
-    -> VoronoiPolygon
-voronoiPolygon circumcenters delaunay extRays p e =
-    let cellEdges = edgesAroundPoint delaunay e
-        cellTriangles = map triangleOfEdge cellEdges
-        vertices = map (circumcenters!) cellTriangles
-
-    in case extRays ! p of
-            -- (Just (dirIn, dirOut)) -> VoronoiFinite (Polygon vertices)
-            (Just (dirIn, dirOut)) -> VoronoiInfinite dirIn vertices dirOut
-            Nothing -> VoronoiFinite (Polygon vertices)
-
 -- | A Voronoi Cell can either be an ordinary (finite) polygon,
 -- or one that extends to infinity for boundary polygons.
 data VoronoiPolygon
@@ -179,6 +163,23 @@ data VoronoiPolygon
         -- argument. For example, the bottom/right quadrant (in screen coordinates)
         -- would be 'VornoiInfinite (Vec2 0 1) [Vec2 0 0] (Vec2 1 0)'.
     deriving (Eq, Ord, Show)
+
+-- | Construct a single Voronoi polygon.
+voronoiPolygon
+    :: Vector Vec2 -- ^ Circumcenters
+    -> D.TriangulationRaw
+    -> Vector ExtRays -- ^ Exterior rays
+    -> Int -- ^ Index of the point itself
+    -> Int -- ^ Index of an incoming edge towards the point
+    -> VoronoiPolygon
+voronoiPolygon circumcenters delaunay extRays p e =
+    let cellEdges = edgesAroundPoint delaunay e
+        cellTriangles = map triangleOfEdge cellEdges
+        vertices = map (circumcenters!) cellTriangles
+
+    in case extRays!p of
+        ExtRays dirIn dirOut -> VoronoiInfinite dirIn vertices dirOut
+        NoExtRays -> VoronoiFinite (Polygon vertices)
 
 instance NFData VoronoiPolygon where
     rnf VoronoiFinite{} = ()
@@ -210,12 +211,17 @@ voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector Voron
 voronoiCells points circumcenters delaunay =
     let extRays = exteriorRays points delaunay
         index = inedges delaunay
-    in V.catMaybes $ flip V.imap points $ \pIx pCoord ->
+    in flip V.imap points $ \pIx pCoord ->
         let incoming = index M.! pIx
-        in case voronoiPolygon circumcenters delaunay extRays pIx incoming of
-            polygon@(VoronoiFinite (Polygon (_1:_2:_3:_))) -> Just (VoronoiCell pCoord polygon)
-            polygon@(VoronoiInfinite _dirIn (_1:_) _dirOut) -> Just (VoronoiCell pCoord polygon)
-            _other -> Nothing
+            polygon = voronoiPolygon circumcenters delaunay extRays pIx incoming
+        in VoronoiCell pCoord polygon
+
+data ExtRays = NoExtRays | ExtRays !Vec2 !Vec2
+    deriving (Eq, Ord, Show)
+
+instance NFData ExtRays where
+    rnf NoExtRays = ()
+    rnf ExtRays{} = ()
 
 -- | Each point on the Delaunay hull defines two rays:
 --     1. The incoming edge (in hull traversal order), rotated by 90° outwards
@@ -225,7 +231,7 @@ voronoiCells points circumcenters delaunay =
 -- to the rays originating from the incoming/outgoing edge.
 --
 -- The result vector has the structure /point -> (incoming, outgoing)/.
-exteriorRays :: Vector Vec2 -> D.TriangulationRaw -> Vector (Maybe (Vec2, Vec2))
+exteriorRays :: Vector Vec2 -> D.TriangulationRaw -> Vector ExtRays
 exteriorRays points delaunay = runST $ do
     let hull = D._convexHull delaunay
     inRays <- VM.replicate (V.length points) Nothing
@@ -248,8 +254,8 @@ exteriorRays points delaunay = runST $ do
     (a, b) <- (,) <$> V.unsafeFreeze inRays <*> V.unsafeFreeze outRays
     pure (V.zipWith
         (\x y -> case (x,y) of
-            (Just inDir, Just outDir) -> Just (inDir, outDir)
-            (Nothing, Nothing) -> Nothing
+            (Just inDir, Just outDir) -> ExtRays inDir outDir
+            (Nothing, Nothing) -> NoExtRays
             other -> bugError "exteriorRays" ("Bad external ray pair: " ++ show other)
         )
         a
