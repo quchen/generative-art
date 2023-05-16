@@ -18,13 +18,13 @@ import qualified Data.Vector                                as V
 import qualified Data.Vector.Algorithms.Intro               as VM
 import           Data.Vector.Mutable                        (STVector)
 import qualified Data.Vector.Mutable                        as VM
-import  Draw
+import           Draw
 import           Geometry
 import qualified Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
-import qualified Geometry.Algorithms.Delaunay.DelaunatorApi as DApi
+import           Geometry.Algorithms.Delaunay.DelaunatorApi
 import           Geometry.Algorithms.Sampling
 import           Geometry.Core
-import  Graphics.Rendering.Cairo as C
+import           Graphics.Rendering.Cairo                   as C
 import           Numerics.Interpolation
 import qualified System.Random.MWC                          as MWC
 import           Test.TastyAll
@@ -210,9 +210,9 @@ test_triangulate = testGroup "Triangulate"
     , testGroup "Convex hull [reversed]"
         [ testCase "Simple case: square" $ do
             let points = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
-                delaunay = DApi.delaunayTriangulation points
+                delaunay = delaunayTriangulation points
                 reversePolygon (Polygon points) = Polygon (reverse points)
-                actual = Actual (normalizePolygon (DApi._convexHull delaunay))
+                actual = Actual (normalizePolygon (_convexHull delaunay))
                 expected = Expected (normalizePolygon (reversePolygon (convexHull points)))
             assertEqual "Convex hull should match" expected actual
         , testCase "Convex hull matches the standard Core algorithm" $ do
@@ -221,9 +221,9 @@ test_triangulate = testGroup "Triangulate"
                 points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
-                delaunay = DApi.delaunayTriangulation points
+                delaunay = delaunayTriangulation points
                 reversePolygon (Polygon points) = Polygon (reverse points)
-                actual = Actual (normalizePolygon (DApi._convexHull delaunay))
+                actual = Actual (normalizePolygon (_convexHull delaunay))
                 expected = Expected (normalizePolygon (reversePolygon (convexHull points)))
             assertEqual "Convex hull should match" expected actual
         , testCase "Hull orientation matches orientation of Delaunay triangles" $ do
@@ -232,9 +232,9 @@ test_triangulate = testGroup "Triangulate"
                 points = runST $ do
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
-                delaunay = DApi.delaunayTriangulation points
-                actual = Actual (polygonOrientation (DApi._convexHull delaunay))
-                expected = Expected (polygonOrientation (DApi._triangles delaunay ! 1))
+                delaunay = delaunayTriangulation points
+                actual = Actual (polygonOrientation (_convexHull delaunay))
+                expected = Expected (polygonOrientation (_triangles delaunay ! 1))
             assertEqual "Convex hull should match" expected actual
         ]
     ]
@@ -269,7 +269,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
         -- gaussianDistributedPoints gen bb (sigma *. mempty) n
         uniformlyDistributedPoints gen bb n
-    delaunay = DApi.delaunayTriangulation points
+    delaunay = delaunayTriangulation points
 
     triangulateVisualSmoketest =
         testVisual
@@ -277,7 +277,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             width
             height
             "out/smoketest/delaunator" $ \_ -> do
-                let triangles = DApi._triangles delaunay
+                let triangles = _triangles delaunay
                 setLineWidth 1
                 cairoScope $ V.iforM_ triangles $ \i triangle -> do
                     setColor (mathematica97 (i+1))
@@ -290,7 +290,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             width
             height
             "out/smoketest/delaunator-edges" $ \_ -> do
-                let edges = DApi._edges delaunay
+                let edges = _edges delaunay
                     numEdges = length edges
                 setLineWidth 1
                 cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
@@ -299,7 +299,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     stroke
 
     test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
-        let voronoiEdges = DApi._voronoiEdges delaunay
+        let voronoiEdges = _voronoiEdges delaunay
             numEdges = length voronoiEdges
         setLineWidth 1
         cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
@@ -308,7 +308,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     setColor (mathematica97 i)
                     sketch line
                     stroke
-                Right (DApi.Ray start dir) -> cairoScope $ do
+                Right (Ray start dir) -> cairoScope $ do
                     setColor (mathematica97 i)
                     let line = resizeLine (const 50) (Line start (start +. dir))
                     cairoScope $ do
@@ -321,15 +321,15 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
         setLineWidth 1
-        for_ (DApi._edges delaunay) $ \edge -> cairoScope $ do
+        for_ (_edges delaunay) $ \edge -> cairoScope $ do
             setColor (mathematica97 0 `withOpacity` 0.2)
             sketch edge
             stroke
-        for_ (DApi._voronoiCorners delaunay) $ \c -> cairoScope $ do
+        for_ (_voronoiCorners delaunay) $ \c -> cairoScope $ do
             sketch (Circle c 2)
             setColor (mathematica97 0 `withOpacity` 0.5)
             fill
-        V.iforM_ (DApi._voronoiCells delaunay) $ \i (DApi.VoronoiCell center cell) -> cairoScope $ do
+        V.iforM_ (_voronoiCells delaunay) $ \i (VoronoiCell center vpolygon) -> cairoScope $ do
             let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
             setColor (mathematica97 i)
             cairoScope $ do
@@ -340,11 +340,11 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                 fill
                 setColor (mathematica97 i)
                 centeredText center (show i)
-            case cell of
-                DApi.VoronoiFinite fcell -> do
-                    sketch (growPolygon (-2) fcell)
+            case vpolygon of
+                VoronoiFinite polygon -> do
+                    sketch (growPolygon (-2) polygon)
                     stroke
-                DApi.VoronoiInfinite inDir points outDir -> do
+                VoronoiInfinite inDir points outDir -> do
                     setLineWidth 2
                     setLineCap LineCapRound
                     cairoScope $ do
@@ -364,14 +364,14 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
     test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
         setLineWidth 1
-        for_ (DApi._voronoiCells delaunay) $ \(DApi.VoronoiCell _ cell) -> do
+        for_ (_voronoiCells delaunay) $ \(VoronoiCell _ cell) -> do
             case cell of
-                DApi.VoronoiInfinite{} -> pure ()
-                DApi.VoronoiFinite cell' -> do
+                VoronoiInfinite{} -> pure ()
+                VoronoiFinite cell' -> do
                     setColor (mathematica97 0)
                     sketch (growPolygon (-1) cell')
                     stroke
-        for_ (DApi._edges delaunay) $ \edge -> do
+        for_ (_edges delaunay) $ \edge -> do
             setColor (mathematica97 1)
             sketch edge
             stroke
@@ -383,13 +383,13 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     test_hull = testVisual "Hull" width height "out/smoketest/delaunay-hull" $ \(w,h) -> do
         setLineWidth 1
         let arrowSpec = def{_arrowheadSize = 5}
-        cairoScope $ for_ (DApi._edges delaunay) $ \edge -> do
+        cairoScope $ for_ (_edges delaunay) $ \edge -> do
             setColor (mathematica97 0 `withOpacity` 0.2)
             sketch edge
             stroke
         cairoScope $ do
             setColor (mathematica97 0)
-            let Polygon hullPoints = DApi._convexHull delaunay
+            let Polygon hullPoints = _convexHull delaunay
             for_ (zipWith Line hullPoints (tail (cycle hullPoints))) $ \line -> do
                 sketch (Arrow line arrowSpec{_arrowheadRelPos = 0.5})
                 stroke
@@ -403,9 +403,9 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
         cairoScope $ do
             setColor (mathematica97 1)
-            for_ (V.indexed (DApi._extRays delaunay)) $ \(p, ray) -> case ray of
-                DApi.NoExtRays -> pure ()
-                DApi.ExtRays rayInDir rayOutDir -> for_ [rayInDir, rayOutDir] $ \dir -> do
+            for_ (V.indexed (_extRays delaunay)) $ \(p, ray) -> case ray of
+                NoExtRays -> pure ()
+                ExtRays rayInDir rayOutDir -> for_ [rayInDir, rayOutDir] $ \dir -> do
                     let line = resizeLine (const 50) (Line (points!p) (points!p +. dir))
                         Line _ textPos = resizeLine (const 60) line
                     sketch line
@@ -421,18 +421,18 @@ centeredText v str = cairoScope $ do
 -- test_projectToViewport :: TestTree
 -- test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
 --     let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
---         rays = [ DApi.Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
---         -- missingRays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
+--         rays = [ Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
+--         -- missingRays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
 --         -- rays = hittingRays ++ missingRays
---         -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
---         drawRay (DApi.Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
+--         -- rays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
+--         drawRay (Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
 --     setLineWidth 1
 --     cairoScope $ do
 --         sketch (boundingBoxPolygon squareBB)
 --         setColor (mathematica97 0)
 --         stroke
 --     for_ (zip [1..] rays) $ \(i, ray) -> cairoScope $ do
---         case DApi.projectToViewport squareBB ray of
+--         case projectToViewport squareBB ray of
 --             Nothing -> do
 --                 setDash [] 0
 --                 setColor (D.rgb 1 0 0)
