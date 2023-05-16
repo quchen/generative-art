@@ -2,6 +2,7 @@ module Geometry.Algorithms.Clipping (
       cutLineWithLine
     , CutLine(..)
     , cutPolygon
+    , cohenSutherland
 
     , LineType(..)
     , clipPolygonWithLine
@@ -20,6 +21,7 @@ module Geometry.Algorithms.Clipping (
 import Geometry.Algorithms.Clipping.Internal
 import Geometry.Algorithms.Clipping.MargalitKnott
     (IslandOrHole (..), differencePP, intersectionPP, unionPP)
+import Geometry.Algorithms.Clipping.CohenSutherland
 import Geometry.Core
 
 -- $setup
