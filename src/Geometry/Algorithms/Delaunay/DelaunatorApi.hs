@@ -182,19 +182,23 @@ instance NFData VoronoiPolygon where
     rnf VoronoiFinite{} = ()
     rnf (VoronoiInfinite _in ps _out) = rnf ps
 
+-- | Map of point index to an incoming halfedge ID. Originates on the hull for hull
+-- points possible, required for reconstructing edge polygons correctly.
+inedges :: D.TriangulationRaw -> M.Map Int Int
+inedges delaunay = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
+  where
+    addToIndex acc e _t =
+        let endpoint = D._triangles delaunay ! D.nextHalfedge e
+            hasSiblingHalfedge = D._halfedges delaunay ! e /= D.tEMPTY
+            seen = M.member endpoint acc
+        in if not seen || not hasSiblingHalfedge
+            then M.insert endpoint e acc
+            else acc
+
 voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, VoronoiPolygon)
 voronoiCells points circumcenters delaunay =
-    let -- Index: Point ID to incoming halfedge ID. Originates on the hull
-        -- for hull points possible, required for reconstructing edge polygons correctly.
-        index = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
-        addToIndex acc e _t =
-            let endpoint = D._triangles delaunay ! D.nextHalfedge e
-                hasSiblingHalfedge = D._halfedges delaunay ! e /= D.tEMPTY
-                seen = M.member endpoint acc
-            in if not seen || not hasSiblingHalfedge
-                then M.insert endpoint e acc
-                else acc
-        extRays = exteriorRays points delaunay
+    let extRays = exteriorRays points delaunay
+        index = inedges delaunay
     in V.catMaybes $ flip V.imap points $ \pIx pCoord ->
         let incoming = index M.! pIx
         in case voronoiCell circumcenters delaunay extRays pIx incoming of
