@@ -163,9 +163,6 @@ voronoiCell circumcenters delaunay extRays p e =
         cellTriangles = map triangleOfEdge cellEdges
         vertices = map (circumcenters!) cellTriangles
 
-        p = D._triangles delaunay ! e
-
-    -- in VoronoiFinite (Polygon vertices)
     in case extRays ! p of
             -- (Just (dirIn, dirOut)) -> VoronoiFinite (Polygon vertices)
             (Just (dirIn, dirOut)) -> VoronoiInfinite dirIn vertices dirOut

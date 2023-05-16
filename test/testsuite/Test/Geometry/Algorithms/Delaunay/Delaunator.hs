@@ -259,7 +259,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     ]
 
   where
-    n = 2^5
+    n = 2^6
     seed = [2]
     (width, height) = (600::Int, 400::Int)
     sigma = fromIntegral (min width height) / 5
@@ -313,26 +313,30 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             setColor (mathematica97 0 `withOpacity` 0.2)
             sketch edge
             stroke
-        for_ (DApi._triangles delaunay) $ \(Polygon [a,b,c]) -> cairoScope $ do
-            let circumcenter = Delaunator.circumcenter a b c
-            sketch (Circle circumcenter 1)
-            setColor (mathematica97 0 `withOpacity` 0.3)
-            stroke
+        for_ (DApi._voronoiCorners delaunay) $ \c -> cairoScope $ do
+            sketch (Circle c 2)
+            setColor (mathematica97 0 `withOpacity` 0.5)
+            fill
         V.iforM_ (DApi._voronoiCells delaunay) $ \i (center, cell) -> cairoScope $ do
             let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
             setColor (mathematica97 i)
             cairoScope $ do
                 sketch (Circle center 1.5)
                 stroke
+                setColor (black `withOpacity` 1)
+                sketch (Circle center 8)
+                fill
+                setColor (mathematica97 i)
+                centeredText center (show i)
             case cell of
                 DApi.VoronoiFinite fcell -> do
                     sketch (growPolygon (-2) fcell)
                     stroke
-                DApi.VoronoiInfinite inDir points' outDir -> do
-                    let Polygon points = growPolygon (-1) (Polygon points') -- Hack to shrink infinite polygon
-                    liftIO (print points)
+                DApi.VoronoiInfinite inDir points outDir -> do
+                    setLineWidth 2
+                    setLineCap LineCapRound
                     cairoScope $ do
-                        setDash [1,4] 0
+                        setDash [4,4] 0
                         cairoScope $ do
                             let inPoint:_ = points
                             sketch (infiniteEdge inPoint inDir)
@@ -342,7 +346,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                             sketch (infiniteEdge outPoint outDir)
                             stroke
                     cairoScope $ for_ (zipWith Line points (tail points)) $ \line -> do
-                        setDash [3,1] 0
+                        setDash [10,4] 0
                         sketch line
                         stroke
 
@@ -400,7 +404,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
 centeredText v str = cairoScope $ do
     moveToVec v
-    showTextAligned HCenter VTop str
+    showTextAligned HCenter VCenter str
 
 -- test_projectToViewport :: TestTree
 -- test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
