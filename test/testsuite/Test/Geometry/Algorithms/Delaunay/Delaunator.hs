@@ -6,7 +6,6 @@ module Test.Geometry.Algorithms.Delaunay.Delaunator (tests) where
 
 import           Control.DeepSeq
 import           Control.Monad
-import           Control.Monad.IO.Class
 import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Function
@@ -19,13 +18,13 @@ import qualified Data.Vector                                as V
 import qualified Data.Vector.Algorithms.Intro               as VM
 import           Data.Vector.Mutable                        (STVector)
 import qualified Data.Vector.Mutable                        as VM
-import qualified Draw                                       as D
+import  Draw
 import           Geometry
 import qualified Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
 import qualified Geometry.Algorithms.Delaunay.DelaunatorApi as DApi
 import           Geometry.Algorithms.Sampling
 import           Geometry.Core
-import qualified Graphics.Rendering.Cairo                   as C
+import  Graphics.Rendering.Cairo as C
 import           Numerics.Interpolation
 import qualified System.Random.MWC                          as MWC
 import           Test.TastyAll
@@ -133,19 +132,19 @@ test_inCircle = testGroup "inCircle"
     , testVisual "Visual test" 150 150 "out/in_circle" $ \_ -> do
         C.translate 25 25
         let [a,b,c] = niceTestTriangle
-        D.cairoScope $ do -- paint triangle
-            C.setLineWidth 1
-            D.sketch (Polygon [a,b,c])
-            D.setColor (D.mathematica97 0)
-            C.stroke
+        cairoScope $ do -- paint triangle
+            setLineWidth 1
+            sketch (Polygon [a,b,c])
+            setColor (mathematica97 0)
+            stroke
         gen <- liftIO MWC.create
         for_ [1..2^8] $ \_ -> do
             point <- liftIO (MWC.uniformRM (Vec2 (-25) (-25), Vec2 125 125) gen)
-            D.cairoScope $ do
-                C.setLineWidth 1
+            cairoScope $ do
+                setLineWidth 1
                 if Delaunator.inCircle (a, b, c) point
-                    then D.sketch (Circle point 1.5) >> D.setColor (D.mathematica97 2) >> C.fill
-                    else D.sketch (D.Cross point 3) >>  D.setColor (D.mathematica97 3) >> C.stroke
+                    then sketch (Circle point 1.5) >> setColor (mathematica97 2) >> fill
+                    else sketch (Cross point 3) >>  setColor (mathematica97 3) >> stroke
     ]
 
 test_find_closest_point :: TestTree
@@ -279,11 +278,11 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             height
             "out/smoketest/delaunator" $ \_ -> do
                 let triangles = DApi._triangles delaunay
-                C.setLineWidth 1
-                D.cairoScope $ V.iforM_ triangles $ \i triangle -> do
-                    D.setColor (D.mathematica97 (i+1))
-                    D.sketch (growPolygon (-1) triangle)
-                    C.stroke
+                setLineWidth 1
+                cairoScope $ V.iforM_ triangles $ \i triangle -> do
+                    setColor (mathematica97 (i+1))
+                    sketch (growPolygon (-1) triangle)
+                    stroke
 
     testVisualPaintOnlyEdges =
         testVisual
@@ -293,98 +292,115 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             "out/smoketest/delaunator-edges" $ \_ -> do
                 let edges = DApi._edges delaunay
                     numEdges = length edges
-                C.setLineWidth 1
-                D.cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
-                    D.setColor (D.mako (lerpID (0, numEdges) (0,1) i))
-                    D.sketch edge
-                    C.stroke
+                setLineWidth 1
+                cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
+                    setColor (mako (lerpID (0, numEdges) (0,1) i))
+                    sketch edge
+                    stroke
 
     test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
         let voronoiEdges = DApi._voronoiEdges delaunay
             numEdges = length voronoiEdges
-        D.cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
-            C.setLineWidth 1
-            D.setColor (D.rocket (lerpID (0, numEdges) (0,1) i))
-            D.sketch vedge
-            C.stroke
+        cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
+            setLineWidth 1
+            setColor (rocket (lerpID (0, numEdges) (0,1) i))
+            sketch vedge
+            stroke
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
-        C.setLineWidth 1
-        for_ (DApi._edges delaunay) $ \edge -> D.cairoScope $ do
-            D.setColor (D.mathematica97 0 `D.withOpacity` 0.2)
-            D.sketch edge
-            C.stroke
-        for_ (DApi._triangles delaunay) $ \(Polygon [a,b,c]) -> D.cairoScope $ do
+        setLineWidth 1
+        for_ (DApi._edges delaunay) $ \edge -> cairoScope $ do
+            setColor (mathematica97 0 `withOpacity` 0.2)
+            sketch edge
+            stroke
+        for_ (DApi._triangles delaunay) $ \(Polygon [a,b,c]) -> cairoScope $ do
             let circumcenter = Delaunator.circumcenter a b c
-            D.sketch (Circle circumcenter 1)
-            D.setColor (D.mathematica97 0 `D.withOpacity` 0.3)
-            C.stroke
-        V.iforM_ (DApi._voronoiCells delaunay) $ \i (center, cell) -> D.cairoScope $ do
+            sketch (Circle circumcenter 1)
+            setColor (mathematica97 0 `withOpacity` 0.3)
+            stroke
+        V.iforM_ (DApi._voronoiCells delaunay) $ \i (center, cell) -> cairoScope $ do
             let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
-            D.setColor (D.mathematica97 i)
-            D.cairoScope $ do
-                D.sketch (Circle center 1.5)
-                C.stroke
+            setColor (mathematica97 i)
+            cairoScope $ do
+                sketch (Circle center 1.5)
+                stroke
             case cell of
                 DApi.VoronoiFinite fcell -> do
-                    D.sketch (growPolygon (-2) fcell)
-                    C.stroke
+                    sketch (growPolygon (-2) fcell)
+                    stroke
                 DApi.VoronoiInfinite inDir points' outDir -> do
                     let Polygon points = growPolygon (-1) (Polygon points') -- Hack to shrink infinite polygon
                     liftIO (print points)
-                    D.cairoScope $ do
-                        C.setDash [1,4] 0
-                        D.cairoScope $ do
+                    cairoScope $ do
+                        setDash [1,4] 0
+                        cairoScope $ do
                             let inPoint:_ = points
-                            D.sketch (infiniteEdge inPoint inDir)
-                            C.stroke
-                        D.cairoScope $ do
+                            sketch (infiniteEdge inPoint inDir)
+                            stroke
+                        cairoScope $ do
                             let outPoint = last points
-                            D.sketch (infiniteEdge outPoint outDir)
-                            C.stroke
-                    D.cairoScope $ for_ (zipWith Line points (tail points)) $ \line -> do
-                        C.setDash [3,1] 0
-                        D.sketch line
-                        C.stroke
+                            sketch (infiniteEdge outPoint outDir)
+                            stroke
+                    cairoScope $ for_ (zipWith Line points (tail points)) $ \line -> do
+                        setDash [3,1] 0
+                        sketch line
+                        stroke
 
     test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
-        C.setLineWidth 1
+        setLineWidth 1
         for_ (DApi._voronoiCells delaunay) $ \(_, cell) -> do
             case cell of
                 DApi.VoronoiInfinite{} -> pure ()
                 DApi.VoronoiFinite cell' -> do
-                    D.setColor (D.mathematica97 0)
-                    D.sketch (growPolygon (-1) cell')
-                    C.stroke
+                    setColor (mathematica97 0)
+                    sketch (growPolygon (-1) cell')
+                    stroke
         for_ (DApi._edges delaunay) $ \edge -> do
-            D.setColor (D.mathematica97 1)
-            D.sketch edge
-            C.stroke
+            setColor (mathematica97 1)
+            sketch edge
+            stroke
         for_ points $ \point -> do
-            D.setColor (D.mathematica97 1)
-            D.sketch (Circle point 2)
-            C.fill
+            setColor (mathematica97 1)
+            sketch (Circle point 2)
+            fill
 
     test_hull = testVisual "Hull" width height "out/smoketest/delaunay-hull" $ \(w,h) -> do
-        C.setLineWidth 1
-        let arrowSpec = D.def{D._arrowheadSize = 5}
-        D.cairoScope $ for_ (DApi._edges delaunay) $ \edge -> do
-            D.setColor (D.mathematica97 0 `D.withOpacity` 0.2)
-            D.sketch edge
-            C.stroke
-        D.cairoScope $ do
-            D.setColor (D.mathematica97 0)
-            let Polygon points = DApi._convexHull delaunay
-            for_ (zipWith Line points (tail (cycle points))) $ \line -> do
-                D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.5})
-                C.stroke
-            for_ points $ \p -> do
-                D.sketch (Circle p 2)
-                C.fill
+        setLineWidth 1
+        let arrowSpec = def{_arrowheadSize = 5}
+        cairoScope $ for_ (DApi._edges delaunay) $ \edge -> do
+            setColor (mathematica97 0 `withOpacity` 0.2)
+            sketch edge
+            stroke
+        cairoScope $ do
+            setColor (mathematica97 0)
+            let Polygon hullPoints = DApi._convexHull delaunay
+            for_ (zipWith Line hullPoints (tail (cycle hullPoints))) $ \line -> do
+                sketch (Arrow line arrowSpec{_arrowheadRelPos = 0.5})
+                stroke
+            for_ hullPoints $ \p -> do
+                sketch (Circle p 2)
+                fill
 
-centeredText v str = do
-    D.moveToVec v
-    D.showTextAligned D.HCenter D.VTop str
+        for_ (V.indexed points) $ \(i, p) -> do
+            setColor (mathematica97 3)
+            centeredText p (show i)
+
+        cairoScope $ do
+            setColor (mathematica97 1)
+            for_ (V.indexed (DApi._extRays delaunay)) $ \(p, ray) -> case ray of
+                Nothing -> pure ()
+                Just (rayInDir, rayOutDir) -> for_ [rayInDir, rayOutDir] $ \dir -> do
+                    let line = resizeLine (const 50) (Line (points!p) (points!p +. dir))
+                        Line _ textPos = resizeLine (const 60) line
+                    sketch line
+                    stroke
+                    centeredText textPos (show p)
+
+
+
+centeredText v str = cairoScope $ do
+    moveToVec v
+    showTextAligned HCenter VTop str
 
 -- test_projectToViewport :: TestTree
 -- test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
@@ -394,24 +410,24 @@ centeredText v str = do
 --         -- rays = hittingRays ++ missingRays
 --         -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
 --         drawRay (DApi.Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
---     C.setLineWidth 1
---     D.cairoScope $ do
---         D.sketch (boundingBoxPolygon squareBB)
---         D.setColor (D.mathematica97 0)
---         C.stroke
---     for_ (zip [1..] rays) $ \(i, ray) -> D.cairoScope $ do
+--     setLineWidth 1
+--     cairoScope $ do
+--         sketch (boundingBoxPolygon squareBB)
+--         setColor (mathematica97 0)
+--         stroke
+--     for_ (zip [1..] rays) $ \(i, ray) -> cairoScope $ do
 --         case DApi.projectToViewport squareBB ray of
 --             Nothing -> do
---                 C.setDash [] 0
---                 D.setColor (D.rgb 1 0 0)
---                 D.sketch (drawRay ray)
---                 C.stroke
+--                 setDash [] 0
+--                 setColor (D.rgb 1 0 0)
+--                 sketch (drawRay ray)
+--                 stroke
 --             Just p -> do
---                 D.setColor (D.mathematica97 i)
---                 D.cairoScope $ do
---                     C.setDash [2,4] 0
---                     D.sketch (drawRay ray)
---                     C.stroke
---                 D.cairoScope $ do
---                     D.sketch (Circle p 3)
---                     C.stroke
+--                 setColor (mathematica97 i)
+--                 cairoScope $ do
+--                     setDash [2,4] 0
+--                     sketch (drawRay ray)
+--                     stroke
+--                 cairoScope $ do
+--                     sketch (Circle p 3)
+--                     stroke

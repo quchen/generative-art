@@ -6,6 +6,7 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
     , lloydRelaxation
 
     -- * Experimental stuff, TODO remove
+    , exteriorRays
     , VoronoiPolygon(..)
     , projectToViewport
 ) where
@@ -40,6 +41,9 @@ data Triangulation = Triangulation
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
 
+    , _extRays :: Vector (Maybe (Vec2, Vec2))
+    -- ^ TODO REMOVE
+
     , _voronoiCells :: Vector (Vec2, VoronoiPolygon)
     -- ^ All Voronoi polygons
 
@@ -63,10 +67,11 @@ delaunayTriangulation points' =
         , _voronoiCells = voronoiCells points raw
         , _convexHull = convexHull' points raw
         , _raw = raw
+        , _extRays = exteriorRays points raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f) = rnf (a,b,c,d,e,f)
+    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
 triangles points triangulation =
@@ -167,9 +172,6 @@ voronoiCell points delaunay extRays p e =
             -- (Just (dirIn, dirOut)) -> VoronoiFinite (Polygon vertices)
             (Just (dirIn, dirOut)) -> VoronoiInfinite dirIn vertices dirOut
             Nothing -> VoronoiFinite (Polygon vertices)
-
--- | Center and polygon.
-data VoronoiCell = VoronoiCell !Vec2 !VoronoiPolygon
 
 -- | A Voronoi Cell can either be an ordinary (finite) polygon,
 -- or one that extends to infinity for boundary polygons.
