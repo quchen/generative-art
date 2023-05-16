@@ -3,10 +3,11 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
       delaunayTriangulation
     , Triangulation(..)
     , VoronoiCell(..)
+    , Ray(..)
     , D.TriangulationRaw
     , lloydRelaxation
 
-    -- * Experimental stuff, TODO remove
+    -- * Experimental stuff, TODO CLEANUP remove
     , exteriorRays
     , ExtRays(..)
     , VoronoiPolygon(..)
@@ -44,11 +45,12 @@ data Triangulation = Triangulation
     -- circumcenters of the Delaunay triangles. You can group them correctly with
     -- 'V.zip'.
 
-    , _voronoiEdges :: [Line]
-    -- ^ Each (undirected) edge of the Voronoi diagram.
+    , _voronoiEdges :: [Either Line Ray]
+    -- ^ Each edge of the Voronoi diagram. The boundary edges extend to
+    -- infinity, and are provided as 'Ray's.
 
     , _extRays :: Vector ExtRays
-    -- ^ TODO REMOVE
+    -- ^ TODO CLEANUP REMOVE
 
     , _voronoiCells :: Vector VoronoiCell
     -- ^ All Voronoi polygons
@@ -67,15 +69,16 @@ delaunayTriangulation points' =
     let points = toVector points'
         raw = D.triangulate points
         (triPolygons, triCircumcenters) = triangles points raw
+        extRays = exteriorRays points raw
     in Triangulation
         { _triangles = triPolygons
         , _edges = edges points raw
         , _voronoiCorners = triCircumcenters
-        , _voronoiEdges = voronoiEdges triCircumcenters raw
+        , _voronoiEdges = voronoiEdges triCircumcenters raw extRays
         , _voronoiCells = voronoiCells points triCircumcenters raw
-        , _convexHull = convexHull' points raw
+        , _convexHull = convexHullViaDelaunay points raw
         , _raw = raw
-        , _extRays = exteriorRays points raw
+        , _extRays = extRays
         }
 
 instance NFData Triangulation where
@@ -103,41 +106,48 @@ mapChunksOf3 f vec = V.create $ do
 edges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
 edges points triangulation = do
     let triangleIxs = D._triangles triangulation
-        halfedgeIxs = D._halfedges triangulation
-        numHalfedges = V.length halfedgeIxs
+        halfedges = D._halfedges triangulation
+        numHalfedges = V.length halfedges
     e <- [0..numHalfedges - 1]
 
     -- We arbitrarily select the larger of the two edges here. Note that this also
     -- covers the pair-less case, in which the opposite halfedge has index -1.
-    guard (e > halfedgeIxs!e)
+    guard (e > halfedges!e)
     let p = points!(triangleIxs!e)
         q = points!(triangleIxs!D.nextHalfedge e)
     pure (Line p q)
 
-convexHull' :: Vector Vec2 -> D.TriangulationRaw -> Polygon
-convexHull' points triangulation =
-    let hullIxs = D._convexHull triangulation
-        hull = V.backpermute points hullIxs
+convexHullViaDelaunay :: Vector Vec2 -> D.TriangulationRaw -> Polygon
+convexHullViaDelaunay points triangulation =
+    let hull = V.backpermute points (D._convexHull triangulation)
     in Polygon (toList hull)
 
 -- ^ Given a single edge, what’s the index of the start of the triangle?
 triangleOfEdge :: Int -> Int
 triangleOfEdge e = div e 3
 
-voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
-voronoiEdges circumcenters triangulation = do
-    let halfedgeIxs = D._halfedges triangulation
-        numHalfedges = V.length halfedgeIxs
+voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> Vector ExtRays -> [Either Line Ray]
+voronoiEdges circumcenters triangulation extRays = do
+    let halfedges = D._halfedges triangulation
+        numHalfedges = V.length halfedges
 
+    -- guard (e < e')
+    --     -- Note: halfedges!e can be -1 (if there is no partner edge).
+    --     -- This is implicitly handled by the inequality here as well.
     e <- [0..numHalfedges-1]
-    guard (e < halfedgeIxs!e)
-
-    let t1 = triangleOfEdge e
-        p1 = circumcenters ! t1
-
-        t2 = triangleOfEdge (halfedgeIxs!e)
-        p2 = circumcenters ! t2
-    pure (Line p1 p2)
+    let e' = halfedges!e
+        pStart = circumcenters ! triangleOfEdge e
+    if
+        | e' == D.tEMPTY ->
+            let ExtRays _inDir outDir = extRays ! (D._triangles triangulation ! e)
+                -- I don’t know why it’s outDir and not inDir, but I’m quite happy
+                -- it’s consistent in my tests. I would have expected more random
+                -- behavior. Lucky me!
+            in [Right (Ray pStart outDir)]
+        | e < e' ->
+            let pEnd = circumcenters ! triangleOfEdge e'
+            in [Left (Line pStart pEnd)]
+        | otherwise -> []
 
 -- | All edges around a point. The point is specified by an incoming edge.
 edgesAroundPoint

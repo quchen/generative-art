@@ -259,7 +259,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     ]
 
   where
-    n = 2^6
+    n = 2^8
     seed = [2]
     (width, height) = (600::Int, 400::Int)
     sigma = fromIntegral (min width height) / 5
@@ -301,11 +301,23 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
         let voronoiEdges = DApi._voronoiEdges delaunay
             numEdges = length voronoiEdges
+        setLineWidth 1
         cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
-            setLineWidth 1
-            setColor (rocket (lerpID (0, numEdges) (0,1) i))
-            sketch vedge
-            stroke
+            case vedge of
+                Left line -> cairoScope $ do
+                    setColor (mathematica97 i)
+                    sketch line
+                    stroke
+                Right (DApi.Ray start dir) -> cairoScope $ do
+                    setColor (mathematica97 i)
+                    let line = resizeLine (const 50) (Line start (start +. dir))
+                    cairoScope $ do
+                        setDash [3,3] 0
+                        sketch line
+                        stroke
+                    cairoScope $ do
+                        sketch (Arrow line def{_arrowDrawBody = False})
+                        stroke
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
         setLineWidth 1
