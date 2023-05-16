@@ -303,44 +303,53 @@ data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction
 instance NFData Ray where
     rnf _ = () -- Already strict
 
--- | Where does the ray originating in the bounding box hit it from the inside first?
+-- | Where does the ray originating in the bounding box hit it from the inside (!) first?
 projectToViewport
     :: BoundingBox -- ^ Viewport
-    -> Ray -- ^ Ray, originating within the bounding box
-    -> Maybe Vec2 -- ^ Nothing if the ray never hits.
+    -> Ray
+    -> Maybe Vec2 -- ^ Nothing iff the ray never hits.
 projectToViewport bbox ray = do
     let BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = bbox
         Ray (Vec2 x0 y0) (Vec2 vx vy) = ray
         t = 1/0
 
-    (ty, yHit) <- case compare vy 0 of
+        inBounds lo hi x = x >= lo && x <= hi
 
-        -- Direction points up (in screen coordinates), possibly hitting top
-        LT | y0 <= yMin -> Nothing -- Starts above the bounding box, points away to infinity
-           | c < t -> Just (c, Vec2 (x0 + c*vx) yMin)
-           where c = (yMin-y0)/vy
+    (ty, verticalBoxHit) <- case compare vy 0 of
 
-        -- Direction points down (in screen coordinates), possibly hitting top
-        GT | y0 >= yMax -> Nothing -- Starts below the bounding box, points away to infinity
-           | c < t -> Just (c, Vec2 (x0 + c*vx) yMax)
-           where c = (yMax-y0)/vy
+        LT -- Direction points up (in screen coordinates), possibly hitting top
+            | y0 <= yMin -> Nothing -- Starts above the bounding box, points away to infinity
+            | c < t && inBounds xMin xMax xHit -> Just (c, Just (Vec2 xHit yMin))
+            where
+              c = (yMin-y0)/vy
+              xHit = x0+c*vx
+
+        GT -- Direction points down (in screen coordinates), possibly hitting top
+            | y0 >= yMax -> Nothing -- Starts below the bounding box, points away to infinity
+            | c < t && inBounds xMin xMax xHit -> Just (c, Just (Vec2 xHit yMax))
+            where
+              c = (yMax-y0)/vy
+              xHit = x0+c*vx
 
         -- y search did not yield any result.
         -- Direction points straight left/right: pass decision on to x comparison.
-        _otherwise -> Just (t, zero) -- zero is a dummy value, to be overwritten below.
+        _otherwise -> Just (t, Nothing)
 
     case compare vx 0 of
 
-        -- Direction points left (in screen coordinates), possibly hitting left
-        LT | x0 <= xMin -> Nothing  -- Starts on the left of the bounding box, points away to infinity
-           | c < ty -> Just (Vec2 xMin (y0+c*vy))
-           where c = (xMin-x0)/vx
+        LT -- Direction points left (in screen coordinates), possibly hitting left
+            | x0 <= xMin -> Nothing  -- Starts on the left of the bounding box, points away to infinity
+            | c < ty && inBounds yMin yMax yHit -> Just (Vec2 xMin yHit)
+            where
+              c = (xMin-x0)/vx
+              yHit = y0+c*vy
 
-        -- Direction points right (in screen coordinates), possibly hitting right
-        GT | x0 >= xMax -> Nothing -- Starts on the right of the bounding box, points away to infinity
-           | c < ty -> Just (Vec2 xMax (y0+c*vy))
-           where c = (xMax-x0)/vx
+        GT -- Direction points right (in screen coordinates), possibly hitting right
+            | x0 >= xMax -> Nothing -- Starts on the right of the bounding box, points away to infinity
+            | c < ty && inBounds yMin yMax yHit -> Just (Vec2 xMax yHit)
+            where
+              c = (xMax-x0)/vx
+              yHit = y0+c*vy
 
-        -- x did not yield better search, fall back to y’s result vector
-        -- Direction points straight up/down: use whatever y calculation yielded
-        _otherwise -> Just yHit
+        -- x did not yield better search, fall back to vertical result vector
+        _otherwise -> verticalBoxHit

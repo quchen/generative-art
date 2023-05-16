@@ -42,7 +42,7 @@ tests = testGroup "Delaunator"
     , test_find_seed_triangle
     , test_triangulate
     , test_visual_delaunay_voronoi
-    -- , test_projectToViewport
+    , test_projectToViewport
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -418,32 +418,32 @@ centeredText v str = cairoScope $ do
     moveToVec v
     showTextAligned HCenter VCenter str
 
--- test_projectToViewport :: TestTree
--- test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
---     let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
---         rays = [ Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
---         -- missingRays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
---         -- rays = hittingRays ++ missingRays
---         -- rays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
---         drawRay (Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
---     setLineWidth 1
---     cairoScope $ do
---         sketch (boundingBoxPolygon squareBB)
---         setColor (mathematica97 0)
---         stroke
---     for_ (zip [1..] rays) $ \(i, ray) -> cairoScope $ do
---         case projectToViewport squareBB ray of
---             Nothing -> do
---                 setDash [] 0
---                 setColor (D.rgb 1 0 0)
---                 sketch (drawRay ray)
---                 stroke
---             Just p -> do
---                 setColor (mathematica97 i)
---                 cairoScope $ do
---                     setDash [2,4] 0
---                     sketch (drawRay ray)
---                     stroke
---                 cairoScope $ do
---                     sketch (Circle p 3)
---                     stroke
+test_projectToViewport :: TestTree
+test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
+    let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
+        hittingRays = [ Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
+        missingRays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
+        rays = hittingRays ++ missingRays
+        -- rays = hittingRays
+        drawRay (Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
+    setLineWidth 1
+    cairoScope $ do
+        sketch (boundingBoxPolygon squareBB)
+        setColor (mathematica97 0)
+        stroke
+    for_ (zip [1..] rays) $ \(i, ray) -> cairoScope $ do
+        case projectToViewport squareBB ray of
+            Nothing -> do
+                setDash [] 0
+                setColor (rgb 1 0 0)
+                sketch (drawRay ray)
+                stroke
+            Just p -> do
+                setColor (mathematica97 i)
+                cairoScope $ do
+                    setDash [2,4] 0
+                    sketch (drawRay ray)
+                    stroke
+                cairoScope $ do
+                    sketch (Circle p 3)
+                    stroke
