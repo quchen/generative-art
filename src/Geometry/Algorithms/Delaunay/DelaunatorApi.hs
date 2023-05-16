@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 -- | Nice API for Delaunator’s technical output.
 module Geometry.Algorithms.Delaunay.DelaunatorApi (
       delaunayTriangulation
@@ -7,8 +6,7 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
     , lloydRelaxation
 
     -- * Experimental stuff, TODO remove
-    , lookupRay
-    , Ray(..)
+    , VoronoiPolygon(..)
     , projectToViewport
 ) where
 
@@ -26,6 +24,7 @@ import           Data.Vector.Mutable                     (STVector)
 import qualified Data.Vector.Mutable                     as VM
 import qualified Geometry.Algorithms.Delaunay.Delaunator as D
 import           Geometry.Core
+import           Util
 
 
 
@@ -41,11 +40,8 @@ data Triangulation = Triangulation
     , _voronoiEdges :: [Line]
     -- ^ Each (undirected) edge of the Voronoi diagram.
 
-    , _voronoiCells :: Vector (Vec2, Polygon)
+    , _voronoiCells :: Vector (Vec2, VoronoiPolygon)
     -- ^ All Voronoi polygons
-
-    , _exteriorRays :: Vector (Maybe Ray)
-    -- ^ Temporary export for infinite polygon testing
 
     , _convexHull :: Polygon
     -- ^ We get the convex hull for free out of the calculation. Equivalent to
@@ -65,13 +61,12 @@ delaunayTriangulation points' =
         , _edges = edges points raw
         , _voronoiEdges = voronoiEdges points raw
         , _voronoiCells = voronoiCells points raw
-        , _exteriorRays = exteriorRays points raw
         , _convexHull = convexHull' points raw
         , _raw = raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
+    rnf (Triangulation a b c d e f) = rnf (a,b,c,d,e,f)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> Vector Polygon
 triangles points triangulation =
@@ -139,6 +134,7 @@ circumcenter points tri t =
     let [a,b,c] = pointsOfTriangle tri t
     in D.circumcenter (points!a) (points!b) (points!c)
 
+-- | All edges around a point. The point is specified by an incoming edge.
 edgesAroundPoint
     :: D.TriangulationRaw
     -> Int -- ^ Incoming (!) edge to the center point
@@ -155,13 +151,22 @@ edgesAroundPoint delaunay start = loop start
 voronoiCell
     :: Vector Vec2 -- ^ Points
     -> D.TriangulationRaw
+    -> Vector (Maybe (Vec2, Vec2)) -- ^ Exterior rays
+    -> Int -- ^ Index of the point itself
     -> Int -- ^ Index of an *incoming* edge towards the point in question
-    -> Polygon
-voronoiCell points delaunay e =
+    -> VoronoiPolygon
+voronoiCell points delaunay extRays p e =
     let cellEdges = edgesAroundPoint delaunay e
         cellTriangles = map triangleOfEdge cellEdges
         vertices = map (\t -> circumcenter points delaunay t) cellTriangles
-    in Polygon vertices
+
+        p = D._triangles delaunay ! e
+
+    -- in VoronoiFinite (Polygon vertices)
+    in case extRays ! p of
+            -- (Just (dirIn, dirOut)) -> VoronoiFinite (Polygon vertices)
+            (Just (dirIn, dirOut)) -> VoronoiInfinite dirIn vertices dirOut
+            Nothing -> VoronoiFinite (Polygon vertices)
 
 -- | Center and polygon.
 data VoronoiCell = VoronoiCell !Vec2 !VoronoiPolygon
@@ -176,22 +181,28 @@ data VoronoiPolygon
         -- argument. For example, the bottom/right quadrant (in screen coordinates)
     deriving (Eq, Ord, Show)
 
-voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, Polygon)
+instance NFData VoronoiPolygon where
+    rnf VoronoiFinite{} = ()
+    rnf (VoronoiInfinite _in ps _out) = rnf ps
+
+voronoiCells :: Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, VoronoiPolygon)
 voronoiCells points delaunay =
-    let -- Index: Point ID to half-edge ID
-        index = foldl' addToIndex M.empty [0..V.length (D._triangles delaunay)-1]
-        addToIndex acc e =
+    let -- Index: Point ID to incoming halfedge ID. Originates on the hull
+        -- for hull points possible, required for reconstructing edge polygons correctly.
+        index = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
+        addToIndex acc e _t =
             let endpoint = D._triangles delaunay ! D.nextHalfedge e
                 hasSiblingHalfedge = D._halfedges delaunay ! e /= D.tEMPTY
                 seen = M.member endpoint acc
             in if not seen || hasSiblingHalfedge
                 then M.insert endpoint e acc
                 else acc
+        extRays = exteriorRays points delaunay
     in V.catMaybes $ flip V.imap points $ \pIx pCoord ->
         let incoming = index M.! pIx
-            polygon = voronoiCell points delaunay incoming
-        in case polygon of
-            Polygon (_1:_2:_3:_) -> Just (pCoord, polygon)
+        in case voronoiCell points delaunay extRays pIx incoming of
+            polygon@(VoronoiFinite (Polygon (_1:_2:_3:_))) -> Just (pCoord, polygon)
+            polygon@(VoronoiInfinite _dirIn (_1:_) _dirOut) -> Just (pCoord, polygon)
             _other -> Nothing
 
 -- | Each point on the Delaunay hull defines two rays:
@@ -201,13 +212,12 @@ voronoiCells points delaunay =
 -- We traverse the hull in order, and create a vector mapping point indices
 -- to the rays originating from the incoming/outgoing edge.
 --
--- The result vector has the structure
--- [ p1_ray_incoming, p1_ray_outgoing,  p2_ray_incoming, p2_ray_outgoing, ...]
--- and the convenience function 'lookupRay' can make the code more readable.
-exteriorRays :: Vector Vec2 -> D.TriangulationRaw -> Vector (Maybe Ray)
+-- The result vector has the structure /point -> (incoming, outgoing)/.
+exteriorRays :: Vector Vec2 -> D.TriangulationRaw -> Vector (Maybe (Vec2, Vec2))
 exteriorRays points delaunay = runST $ do
     let hull = D._convexHull delaunay
-    rays <- VM.replicate (V.length points * 2) Nothing
+    inRays <- VM.replicate (V.length points) Nothing
+    outRays <- VM.replicate (V.length points) Nothing
     let recordRays = \pStart pEnd -> do
             let vecStart = points!pStart
                 vecEnd = points!pEnd
@@ -215,23 +225,23 @@ exteriorRays points delaunay = runST $ do
                 rayDir = rotate90 (vecEnd -. vecStart)
 
             -- Record as outgoing ray for pStart
-            VM.write rays (2*pStart+1) (Just (Ray vecStart rayDir))
+            VM.write outRays pStart (Just rayDir)
 
             -- Record as incoming ray for pEnd
-            VM.write rays (2*pEnd) (Just (Ray vecEnd rayDir))
+            VM.write inRays pEnd (Just rayDir)
 
     V.zipWithM_ recordRays hull (V.tail hull)
-    _ <- recordRays (V.last hull) (V.head hull) -- zip omits the cyclic one, so we do it manually
+    _ <- recordRays (V.last hull) (V.head hull) -- zip omits the cyclic pair, so we do it manually
 
-    V.unsafeFreeze rays
-
--- | Convenience function for the result of 'exteriorRays'.
-lookupRay :: Int -> RayAssociation -> Vector (Maybe Ray) -> Maybe Ray
-lookupRay p Incoming rays = rays V.! (2*p)
-lookupRay p Outgoing rays = rays V.! (2*p+1)
-
-data RayAssociation = Incoming | Outgoing
-    deriving (Eq, Ord, Show)
+    (a, b) <- (,) <$> V.unsafeFreeze inRays <*> V.unsafeFreeze outRays
+    pure (V.zipWith
+        (\x y -> case (x,y) of
+            (Just inDir, Just outDir) -> Just (inDir, outDir)
+            (Nothing, Nothing) -> Nothing
+            other -> bugError "exteriorRays" ("Bad external ray pair: " ++ show other)
+        )
+        a
+        b)
 
 -- | Rotate a 'Vec2' by 90°
 rotate90 :: Vec2 -> Vec2
@@ -252,9 +262,10 @@ lloydRelaxation
     => Double -- ^ Convergence factor \(\omega\).
     -> vector Vec2
     -> Vector Vec2
-lloydRelaxation omega = fmap newCenter . _voronoiCells . delaunayTriangulation
+lloydRelaxation omega = fmap newCenter . abort . _voronoiCells . delaunayTriangulation
   where
     newCenter (old, cell) = old +. omega*.(old-.polygonCentroid cell)
+    abort = error "Lloyd relaxation is disabled until infinite polygons work" -- TODO
 
 
 

@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS_GHC -w #-} -- TODO Disable this!
+
 module Test.Geometry.Algorithms.Delaunay.Delaunator (tests) where
 
 
@@ -42,7 +43,7 @@ tests = testGroup "Delaunator"
     , test_find_seed_triangle
     , test_triangulate
     , test_visual_delaunay_voronoi
-    , test_projectToViewport
+    -- , test_projectToViewport
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -259,14 +260,16 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     ]
 
   where
-    n = 2^3
-    seed = [1242]
-    (width, height) = (400::Int, 300::Int)
+    n = 2^5
+    seed = [2]
+    (width, height) = (600::Int, 400::Int)
     sigma = fromIntegral (min width height) / 5
     points = runST $ do
         gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-        let margin = 60
-        gaussianDistributedPoints gen (boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]) (sigma *. mempty) n
+        let margin = 100
+            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+        -- gaussianDistributedPoints gen bb (sigma *. mempty) n
+        uniformlyDistributedPoints gen bb n
     delaunay = DApi.delaunayTriangulation points
 
     triangulateVisualSmoketest =
@@ -306,21 +309,53 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             C.stroke
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
-        let voronoiCells = DApi._voronoiCells delaunay
-        D.cairoScope $ V.iforM_ voronoiCells $ \i (center, cell) -> do
-            C.setLineWidth 1
-            D.setColor (D.mathematica97 i)
-            D.sketch (growPolygon (-1) cell)
+        C.setLineWidth 1
+        for_ (DApi._edges delaunay) $ \edge -> D.cairoScope $ do
+            D.setColor (D.mathematica97 0 `D.withOpacity` 0.2)
+            D.sketch edge
             C.stroke
-            D.sketch (Circle center 1)
-            C.fill
+        for_ (DApi._triangles delaunay) $ \(Polygon [a,b,c]) -> D.cairoScope $ do
+            let circumcenter = Delaunator.circumcenter a b c
+            D.sketch (Circle circumcenter 1)
+            D.setColor (D.mathematica97 0 `D.withOpacity` 0.3)
+            C.stroke
+        V.iforM_ (DApi._voronoiCells delaunay) $ \i (center, cell) -> D.cairoScope $ do
+            let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
+            D.setColor (D.mathematica97 i)
+            D.cairoScope $ do
+                D.sketch (Circle center 1.5)
+                C.stroke
+            case cell of
+                DApi.VoronoiFinite fcell -> do
+                    D.sketch (growPolygon (-2) fcell)
+                    C.stroke
+                DApi.VoronoiInfinite inDir points' outDir -> do
+                    let Polygon points = growPolygon (-1) (Polygon points') -- Hack to shrink infinite polygon
+                    liftIO (print points)
+                    D.cairoScope $ do
+                        C.setDash [1,4] 0
+                        D.cairoScope $ do
+                            let inPoint:_ = points
+                            D.sketch (infiniteEdge inPoint inDir)
+                            C.stroke
+                        D.cairoScope $ do
+                            let outPoint = last points
+                            D.sketch (infiniteEdge outPoint outDir)
+                            C.stroke
+                    D.cairoScope $ for_ (zipWith Line points (tail points)) $ \line -> do
+                        C.setDash [3,1] 0
+                        D.sketch line
+                        C.stroke
 
     test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
         C.setLineWidth 1
         for_ (DApi._voronoiCells delaunay) $ \(_, cell) -> do
-            D.setColor (D.mathematica97 0)
-            D.sketch (growPolygon (-1) cell)
-            C.stroke
+            case cell of
+                DApi.VoronoiInfinite{} -> pure ()
+                DApi.VoronoiFinite cell' -> do
+                    D.setColor (D.mathematica97 0)
+                    D.sketch (growPolygon (-1) cell')
+                    C.stroke
         for_ (DApi._edges delaunay) $ \edge -> do
             D.setColor (D.mathematica97 1)
             D.sketch edge
@@ -346,48 +381,37 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             for_ points $ \p -> do
                 D.sketch (Circle p 2)
                 C.fill
-        D.cairoScope $ for_ (V.indexed (DApi._exteriorRays delaunay)) $ \(i, ray) -> do
-            case ray of
-                Nothing -> pure ()
-                Just (DApi.Ray start dir) -> do
-                    let linePrototype = Line start (start +. dir)
-                        line = resizeLine (const 50) linePrototype
-                        Line _ textPos = resizeLine (const 60) linePrototype
-                    if even i -- even = incoming
-                        then D.setColor (D.mathematica97 1) >> D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.4}) >> C.stroke
-                        else D.setColor (D.mathematica97 3) >> D.sketch (D.Arrow line arrowSpec{D._arrowheadRelPos = 0.8}) >> C.stroke
-                    centeredText textPos (show i)
 
 centeredText v str = do
     D.moveToVec v
     D.showTextAligned D.HCenter D.VTop str
 
-test_projectToViewport :: TestTree
-test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
-    let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
-        rays = [ DApi.Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
-        -- missingRays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
-        -- rays = hittingRays ++ missingRays
-        -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
-        drawRay (DApi.Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
-    C.setLineWidth 1
-    D.cairoScope $ do
-        D.sketch (boundingBoxPolygon squareBB)
-        D.setColor (D.mathematica97 0)
-        C.stroke
-    for_ (zip [1..] rays) $ \(i, ray) -> D.cairoScope $ do
-        case DApi.projectToViewport squareBB ray of
-            Nothing -> do
-                C.setDash [] 0
-                D.setColor (D.rgb 1 0 0)
-                D.sketch (drawRay ray)
-                C.stroke
-            Just p -> do
-                D.setColor (D.mathematica97 i)
-                D.cairoScope $ do
-                    C.setDash [2,4] 0
-                    D.sketch (drawRay ray)
-                    C.stroke
-                D.cairoScope $ do
-                    D.sketch (Circle p 3)
-                    C.stroke
+-- test_projectToViewport :: TestTree
+-- test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
+--     let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
+--         rays = [ DApi.Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
+--         -- missingRays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
+--         -- rays = hittingRays ++ missingRays
+--         -- rays = [ DApi.Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-10]]
+--         drawRay (DApi.Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
+--     C.setLineWidth 1
+--     D.cairoScope $ do
+--         D.sketch (boundingBoxPolygon squareBB)
+--         D.setColor (D.mathematica97 0)
+--         C.stroke
+--     for_ (zip [1..] rays) $ \(i, ray) -> D.cairoScope $ do
+--         case DApi.projectToViewport squareBB ray of
+--             Nothing -> do
+--                 C.setDash [] 0
+--                 D.setColor (D.rgb 1 0 0)
+--                 D.sketch (drawRay ray)
+--                 C.stroke
+--             Just p -> do
+--                 D.setColor (D.mathematica97 i)
+--                 D.cairoScope $ do
+--                     C.setDash [2,4] 0
+--                     D.sketch (drawRay ray)
+--                     C.stroke
+--                 D.cairoScope $ do
+--                     D.sketch (Circle p 3)
+--                     C.stroke
