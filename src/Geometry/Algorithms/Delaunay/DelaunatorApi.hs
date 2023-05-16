@@ -6,12 +6,12 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
     , Ray(..)
     , D.TriangulationRaw
     , lloydRelaxation
+    , clipEdgesToBox
 
     -- * Experimental stuff, TODO CLEANUP remove
     , exteriorRays
     , ExtRays(..)
     , VoronoiPolygon(..)
-    , projectToViewport
 ) where
 
 
@@ -24,6 +24,7 @@ import qualified Data.Map                                as M
 import           Data.Vector                             (Vector, (!))
 import qualified Data.Vector                             as V
 import qualified Data.Vector.Mutable                     as VM
+import qualified Geometry.Algorithms.Clipping            as Clipping
 import qualified Geometry.Algorithms.Delaunay.Delaunator as D
 import           Geometry.Core
 import           Util
@@ -48,6 +49,9 @@ data Triangulation = Triangulation
     , _voronoiEdges :: [Either Line Ray]
     -- ^ Each edge of the Voronoi diagram. The boundary edges extend to
     -- infinity, and are provided as 'Ray's.
+    --
+    -- 'constrainLinesToBox' conveniently handles the case of constraining
+    -- this to a rectangular viewport.
 
     , _extRays :: Vector ExtRays
     -- ^ TODO CLEANUP REMOVE
@@ -303,53 +307,33 @@ data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction
 instance NFData Ray where
     rnf _ = () -- Already strict
 
--- | Where does the ray originating in the bounding box hit it from the inside (!) first?
-projectToViewport
-    :: BoundingBox -- ^ Viewport
+-- | Convert a 'Ray' to a 'Line', cutting it off when it hits the 'BoundingBox'.
+clipRay
+    :: BoundingBox
     -> Ray
-    -> Maybe Vec2 -- ^ Nothing iff the ray never hits.
-projectToViewport bbox ray = do
-    let BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = bbox
-        Ray (Vec2 x0 y0) (Vec2 vx vy) = ray
-        t = 1/0
+    -> Maybe Line -- ^ Nothing if the ray does not hit the bounding box.
+clipRay bb (Ray start dir) = do
+    let BoundingBox bbMin bbMax = bb
+        boundingBoxDiagonalNormSquare = normSquare (bbMin -. bbMax)
+        dirNormSquare = normSquare dir
+        end = start +. sqrt (boundingBoxDiagonalNormSquare/dirNormSquare) *. dir
+        excessivelyLongLine = Line start end
+    Clipping.cohenSutherland bb excessivelyLongLine
 
-        inBounds lo hi x = x >= lo && x <= hi
-
-    (ty, verticalBoxHit) <- case compare vy 0 of
-
-        LT -- Direction points up (in screen coordinates), possibly hitting top
-            | y0 <= yMin -> Nothing -- Starts above the bounding box, points away to infinity
-            | c < t && inBounds xMin xMax xHit -> Just (c, Just (Vec2 xHit yMin))
-            where
-              c = (yMin-y0)/vy
-              xHit = x0+c*vx
-
-        GT -- Direction points down (in screen coordinates), possibly hitting top
-            | y0 >= yMax -> Nothing -- Starts below the bounding box, points away to infinity
-            | c < t && inBounds xMin xMax xHit -> Just (c, Just (Vec2 xHit yMax))
-            where
-              c = (yMax-y0)/vy
-              xHit = x0+c*vx
-
-        -- y search did not yield any result.
-        -- Direction points straight left/right: pass decision on to x comparison.
-        _otherwise -> Just (t, Nothing)
-
-    case compare vx 0 of
-
-        LT -- Direction points left (in screen coordinates), possibly hitting left
-            | x0 <= xMin -> Nothing  -- Starts on the left of the bounding box, points away to infinity
-            | c < ty && inBounds yMin yMax yHit -> Just (Vec2 xMin yHit)
-            where
-              c = (xMin-x0)/vx
-              yHit = y0+c*vy
-
-        GT -- Direction points right (in screen coordinates), possibly hitting right
-            | x0 >= xMax -> Nothing -- Starts on the right of the bounding box, points away to infinity
-            | c < ty && inBounds yMin yMax yHit -> Just (Vec2 xMax yHit)
-            where
-              c = (xMax-x0)/vx
-              yHit = y0+c*vy
-
-        -- x did not yield better search, fall back to vertical result vector
-        _otherwise -> verticalBoxHit
+-- | Cut off all 'Ray's to end at the provided 'BoundingBox'. Convenient to take
+-- the result of '_voronoiEdges' and clip it to a rectangular viewport.
+clipEdgesToBox
+    :: HasBoundingBox boundingBox
+    => boundingBox
+    -> [Either Line Ray]
+    -> [Line]
+clipEdgesToBox bb' segments = do
+    let bb = boundingBox bb'
+    segment <- segments
+    case segment of
+        Left line -> case Clipping.cohenSutherland bb line of
+            Just line' -> [line']
+            Nothing -> []
+        Right ray -> case clipRay bb ray of
+            Just line -> [line]
+            Nothing -> []

@@ -42,7 +42,6 @@ tests = testGroup "Delaunator"
     , test_find_seed_triangle
     , test_triangulate
     , test_visual_delaunay_voronoi
-    , test_projectToViewport
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -259,7 +258,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
     ]
 
   where
-    n = 2^8
+    n = 2^7
     seed = [2]
     (width, height) = (600::Int, 400::Int)
     sigma = fromIntegral (min width height) / 5
@@ -298,26 +297,27 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     sketch edge
                     stroke
 
-    test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \_ -> do
-        let voronoiEdges = _voronoiEdges delaunay
+    test_voronoi_edges = testVisual "Voronoi edges" width height "out/smoketest/voronoi-edges" $ \(w,h) -> do
+        let voronoiEdges = clipEdgesToBox clipBB (_voronoiEdges delaunay)
             numEdges = length voronoiEdges
+            margin = 10
+            clipBB = boundingBox [Vec2 margin margin, Vec2 (w-margin) (h-margin)]
+            paperBB = boundingBox [zero, Vec2 w h]
         setLineWidth 1
-        cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, vedge) -> do
-            case vedge of
-                Left line -> cairoScope $ do
-                    setColor (mathematica97 i)
-                    sketch line
-                    stroke
-                Right (Ray start dir) -> cairoScope $ do
-                    setColor (mathematica97 i)
-                    let line = resizeLine (const 50) (Line start (start +. dir))
-                    cairoScope $ do
-                        setDash [3,3] 0
-                        sketch line
-                        stroke
-                    cairoScope $ do
-                        sketch (Arrow line def{_arrowDrawBody = False})
-                        stroke
+        cairoScope $ do
+            setColor (mathematica97 0)
+            sketch (boundingBoxPolygon paperBB)
+            stroke
+        cairoScope $ do
+            setColor (mathematica97 1)
+            setDash [5,5] 0
+            sketch (boundingBoxPolygon clipBB)
+            stroke
+        cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, edge) -> do
+            cairoScope $ do
+                setColor (mathematica97 i)
+                sketch edge
+                stroke
 
     test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
         setLineWidth 1
@@ -417,33 +417,3 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 centeredText v str = cairoScope $ do
     moveToVec v
     showTextAligned HCenter VCenter str
-
-test_projectToViewport :: TestTree
-test_projectToViewport = testVisual "projectToViewport" 200 300 "out/smoketest/projectToViewport" $ \(w,h) -> do
-    let squareBB = boundingBox [Vec2 10 10, Vec2 w (h/2) -. Vec2 10 10]
-        hittingRays = [ Ray (boundingBoxCenter squareBB +. polar (deg d) 20) (polar (deg d) 1) | d <- takeWhile (<360) [0,16..]]
-        missingRays = [ Ray (Vec2 100 250 +. polar (deg d) 20) (polar (deg d) 1) | d <- [-60,-50..280]]
-        rays = hittingRays ++ missingRays
-        -- rays = hittingRays
-        drawRay (Ray start direction) = resizeLine (const (max w h)) (Line start (start +. direction))
-    setLineWidth 1
-    cairoScope $ do
-        sketch (boundingBoxPolygon squareBB)
-        setColor (mathematica97 0)
-        stroke
-    for_ (zip [1..] rays) $ \(i, ray) -> cairoScope $ do
-        case projectToViewport squareBB ray of
-            Nothing -> do
-                setDash [] 0
-                setColor (rgb 1 0 0)
-                sketch (drawRay ray)
-                stroke
-            Just p -> do
-                setColor (mathematica97 i)
-                cairoScope $ do
-                    setDash [2,4] 0
-                    sketch (drawRay ray)
-                    stroke
-                cairoScope $ do
-                    sketch (Circle p 3)
-                    stroke
