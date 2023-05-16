@@ -49,7 +49,7 @@ data Orientation = Clockwise | Counterclockwise | Degenerate
 -- >>> orientation a b c
 -- Clockwise
 -- >>> orientation b a c
--- >>> Counterclockwise
+-- Counterclockwise
 orientation :: Vec2 -> Vec2 -> Vec2 -> Orientation
 orientation x q r =
     let lineQ = q -. x
@@ -642,7 +642,7 @@ freezeHull hull = do
         --    1. We start with e == hull_start but want to continue
         --    2. We have e == hull_start after circling the hull and want to terminate
         (\(e, isFirst) -> do
-            next_e <- VM.read (_prev hull) e -- prev/next switch hull orientation here. Pick whatever you like.
+            next_e <- VM.read (_next hull) e -- prev/next switch hull orientation here. Pick whatever you like.
             if not isFirst && e == hull_start
                 then pure Nothing
                 else pure (Just (e, (next_e, False)))

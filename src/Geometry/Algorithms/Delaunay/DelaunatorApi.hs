@@ -235,7 +235,7 @@ data RayAssociation = Incoming | Outgoing
 
 -- | Rotate a 'Vec2' by 90°
 rotate90 :: Vec2 -> Vec2
-rotate90 (Vec2 x y) = Vec2 y (-x)
+rotate90 (Vec2 x y) = Vec2 (-y) x
 
 -- Relax the input points by moving them to(wards) their cell’s centroid, leading
 -- to a uniform distribution of points. Works well when applied multiple times.

@@ -207,12 +207,13 @@ test_triangulate = testGroup "Triangulate"
         , triangulateSmoketest 100 [13]
         , triangulateSmoketest 1000 [13]
         ]
-    , testGroup "Convex hull"
+    , testGroup "Convex hull [reversed]"
         [ testCase "Simple case: square" $ do
             let points = [Vec2 0 0, Vec2 100 0, Vec2 100 100, Vec2 0 100]
                 delaunay = DApi.delaunayTriangulation points
+                reversePolygon (Polygon points) = Polygon (reverse points)
                 actual = Actual (normalizePolygon (DApi._convexHull delaunay))
-                expected = Expected (normalizePolygon (convexHull points))
+                expected = Expected (normalizePolygon (reversePolygon (convexHull points)))
             assertEqual "Convex hull should match" expected actual
         , testCase "Convex hull matches the standard Core algorithm" $ do
             let n = 10
@@ -221,8 +222,19 @@ test_triangulate = testGroup "Triangulate"
                     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
                     gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
                 delaunay = DApi.delaunayTriangulation points
+                reversePolygon (Polygon points) = Polygon (reverse points)
                 actual = Actual (normalizePolygon (DApi._convexHull delaunay))
-                expected = Expected (normalizePolygon (convexHull points))
+                expected = Expected (normalizePolygon (reversePolygon (convexHull points)))
+            assertEqual "Convex hull should match" expected actual
+        , testCase "Hull orientation matches orientation of Delaunay triangles" $ do
+            let n = 10
+                seed = [1242]
+                points = runST $ do
+                    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+                    gaussianDistributedPoints gen (boundingBox [zero, Vec2 1000 1000]) (100 *. mempty) n
+                delaunay = DApi.delaunayTriangulation points
+                actual = Actual (polygonOrientation (DApi._convexHull delaunay))
+                expected = Expected (polygonOrientation (DApi._triangles delaunay ! 1))
             assertEqual "Convex hull should match" expected actual
         ]
     ]
