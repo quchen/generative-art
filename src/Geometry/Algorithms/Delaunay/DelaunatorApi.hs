@@ -2,6 +2,7 @@
 module Geometry.Algorithms.Delaunay.DelaunatorApi (
       delaunayTriangulation
     , Triangulation(..)
+    , VoronoiCell(..)
     , D.TriangulationRaw
     , lloydRelaxation
 
@@ -48,7 +49,7 @@ data Triangulation = Triangulation
     , _extRays :: Vector (Maybe (Vec2, Vec2))
     -- ^ TODO REMOVE
 
-    , _voronoiCells :: Vector (Vec2, VoronoiPolygon)
+    , _voronoiCells :: Vector VoronoiCell
     -- ^ All Voronoi polygons
 
     , _convexHull :: Polygon
@@ -151,14 +152,14 @@ edgesAroundPoint delaunay start = loop start
             then incoming : loop incoming'
             else [incoming]
 
-voronoiCell
+voronoiPolygon
     :: Vector Vec2 -- ^ Circumcenters
     -> D.TriangulationRaw
     -> Vector (Maybe (Vec2, Vec2)) -- ^ Exterior rays
     -> Int -- ^ Index of the point itself
     -> Int -- ^ Index of an *incoming* edge towards the point in question
     -> VoronoiPolygon
-voronoiCell circumcenters delaunay extRays p e =
+voronoiPolygon circumcenters delaunay extRays p e =
     let cellEdges = edgesAroundPoint delaunay e
         cellTriangles = map triangleOfEdge cellEdges
         vertices = map (circumcenters!) cellTriangles
@@ -176,6 +177,7 @@ data VoronoiPolygon
         -- ^ The polygon consists of a list of finite points, and extends to
         -- infinity at the beginning/end in the direction of the first/last
         -- argument. For example, the bottom/right quadrant (in screen coordinates)
+        -- would be 'VornoiInfinite (Vec2 0 1) [Vec2 0 0] (Vec2 1 0)'.
     deriving (Eq, Ord, Show)
 
 instance NFData VoronoiPolygon where
@@ -195,15 +197,24 @@ inedges delaunay = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
             then M.insert endpoint e acc
             else acc
 
-voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector (Vec2, VoronoiPolygon)
+-- | A Voronoi cell, consisting of a point and its Voronoi neighbourhood region.
+data VoronoiCell = VoronoiCell
+    { _voronoiCenter :: !Vec2
+    , _voronoiPolygon :: !VoronoiPolygon
+    } deriving (Eq, Ord, Show)
+
+instance NFData VoronoiCell where
+    rnf (VoronoiCell a b) = rnf (a,b)
+
+voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector VoronoiCell
 voronoiCells points circumcenters delaunay =
     let extRays = exteriorRays points delaunay
         index = inedges delaunay
     in V.catMaybes $ flip V.imap points $ \pIx pCoord ->
         let incoming = index M.! pIx
-        in case voronoiCell circumcenters delaunay extRays pIx incoming of
-            polygon@(VoronoiFinite (Polygon (_1:_2:_3:_))) -> Just (pCoord, polygon)
-            polygon@(VoronoiInfinite _dirIn (_1:_) _dirOut) -> Just (pCoord, polygon)
+        in case voronoiPolygon circumcenters delaunay extRays pIx incoming of
+            polygon@(VoronoiFinite (Polygon (_1:_2:_3:_))) -> Just (VoronoiCell pCoord polygon)
+            polygon@(VoronoiInfinite _dirIn (_1:_) _dirOut) -> Just (VoronoiCell pCoord polygon)
             _other -> Nothing
 
 -- | Each point on the Delaunay hull defines two rays:

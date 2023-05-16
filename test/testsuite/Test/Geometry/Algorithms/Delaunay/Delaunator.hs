@@ -317,7 +317,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             sketch (Circle c 2)
             setColor (mathematica97 0 `withOpacity` 0.5)
             fill
-        V.iforM_ (DApi._voronoiCells delaunay) $ \i (center, cell) -> cairoScope $ do
+        V.iforM_ (DApi._voronoiCells delaunay) $ \i (DApi.VoronoiCell center cell) -> cairoScope $ do
             let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
             setColor (mathematica97 i)
             cairoScope $ do
@@ -352,7 +352,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
 
     test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
         setLineWidth 1
-        for_ (DApi._voronoiCells delaunay) $ \(_, cell) -> do
+        for_ (DApi._voronoiCells delaunay) $ \(DApi.VoronoiCell _ cell) -> do
             case cell of
                 DApi.VoronoiInfinite{} -> pure ()
                 DApi.VoronoiFinite cell' -> do
