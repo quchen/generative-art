@@ -432,7 +432,7 @@ exteriorRays points delaunay = runST $ do
 rotate90 :: Vec2 -> Vec2
 rotate90 (Vec2 x y) = Vec2 (-y) x
 
--- Relax the input points by moving them to(wards) their cell’s centroid, leading
+-- | Relax the input points by moving them to(wards) their cell’s centroid, leading
 -- to a uniform distribution of points. Works well when applied multiple times.
 --
 -- The parameter \(\omega\) controls how far the Voronoi cell center moves towards
@@ -442,15 +442,44 @@ rotate90 (Vec2 x y) = Vec2 (-y) x
 --   * \(0\) does not move the points at all.
 --   * \(1\) moves the cell’s centers to the cell’s centroid (standard Lloyd).
 --   * \(\sim 2\) overshoots the move towards the cell’s center, leading to faster convergence.
+--   * \(<0\) values yield wonky-but-interesting behavior! \(\ddot\smile\)
+--
+-- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg" width height $ do
+--     setLineWidth 1
+--     let margin = 10
+--         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+--     cairoScope $ do
+--         setColor (mathematica97 0)
+--         setDash [5,5] 0
+--         sketch (boundingBoxPolygon bb)
+--         stroke
+--     let points' = iterate (lloydRelaxation bb 1) points !! 5
+--         delaunay' = delaunayTriangulation points'
+--     V.iforM_ (clipCellsToBox bb (_voronoiCells delaunay')) $ \i polygon -> do
+--         setColor (mathematica97 i)
+--         sketch (growPolygon (-2) polygon)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg
 lloydRelaxation
-    :: Sequential vector
-    => Double -- ^ Convergence factor \(\omega\).
+    :: (HasBoundingBox boundingBox, Sequential vector)
+    => boundingBox
+    -> Double -- ^ Convergence factor \(\omega\).
     -> vector Vec2
     -> Vector Vec2
-lloydRelaxation omega = fmap newCenter . abort . _voronoiCells . delaunayTriangulation
+lloydRelaxation bb omega = relax . _voronoiCells . delaunayTriangulation
   where
-    newCenter (old, cell) = old +. omega*.(old-.polygonCentroid cell)
-    abort = error "Lloyd relaxation is disabled until infinite polygons work" -- TODO
+    newCenter old cell = old +. omega*.(polygonCentroid cell-.old)
+
+    relax :: Vector VoronoiCell -> Vector Vec2
+    relax cells = V.zipWith
+        (\(VoronoiCell center _) polygon -> newCenter center polygon)
+        cells
+        (clipCellsToBox (boundingBox bb) cells)
 
 -- ^ A ray is a line that extends to infinity on one side. Note that the direction
 -- is a *direction* and not another point.
