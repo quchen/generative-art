@@ -1,19 +1,5 @@
 -- | Nice API for Delaunator’s technical output.
-module Geometry.Algorithms.Delaunay.Internal.Delaunator.Api (
-      delaunayTriangulation
-    , Triangulation(..)
-    , VoronoiCell(..)
-    , Ray(..)
-    , D.TriangulationRaw
-    , lloydRelaxation
-    , clipEdgesToBox
-    , clipCellsToBox
-
-    -- * Experimental stuff, TODO CLEANUP remove
-    , exteriorRays
-    , ExtRays(..)
-    , VoronoiPolygon(..)
-) where
+module Geometry.Algorithms.Delaunay.Internal.Delaunator.Api where
 
 
 
@@ -160,9 +146,6 @@ data Triangulation = Triangulation
     -- :}
     -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_edges.svg
 
-    , _extRays :: Vector ExtRays
-    -- ^ TODO CLEANUP REMOVE
-
     , _voronoiCells :: Vector VoronoiCell
     -- ^ All Voronoi polygons. The polygons at the hull can be infinite.
     --
@@ -237,11 +220,10 @@ delaunayTriangulation points' =
         , _voronoiCells = voronoiCells points triCircumcenters raw
         , _convexHull = convexHullViaDelaunay points raw
         , _raw = raw
-        , _extRays = extRays
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f g h) = rnf (a,b,c,d,e,f,g,h)
+    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> (Vector Polygon, Vector Vec2)
 triangles points triangulation =
