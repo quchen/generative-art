@@ -7,6 +7,7 @@ module Geometry.Algorithms.Delaunay.DelaunatorApi (
     , D.TriangulationRaw
     , lloydRelaxation
     , clipEdgesToBox
+    , clipCellsToBox
 
     -- * Experimental stuff, TODO CLEANUP remove
     , exteriorRays
@@ -50,14 +51,17 @@ data Triangulation = Triangulation
     -- ^ Each edge of the Voronoi diagram. The boundary edges extend to
     -- infinity, and are provided as 'Ray's.
     --
-    -- 'constrainLinesToBox' conveniently handles the case of constraining
+    -- 'clipEdgesToBox' conveniently handles the case of constraining
     -- this to a rectangular viewport.
 
     , _extRays :: Vector ExtRays
     -- ^ TODO CLEANUP REMOVE
 
     , _voronoiCells :: Vector VoronoiCell
-    -- ^ All Voronoi polygons
+    -- ^ All Voronoi polygons. The polygons at the hull can be infinite.
+    --
+    -- 'clipCellsToBox' conveniently handles the case of constraining
+    -- this to a rectangular viewport.
 
     , _convexHull :: Polygon
     -- ^ We get the convex hull for free out of the calculation. Equivalent to
@@ -312,13 +316,7 @@ clipRay
     :: BoundingBox
     -> Ray
     -> Maybe Line -- ^ Nothing if the ray does not hit the bounding box.
-clipRay bb (Ray start dir) = do
-    let BoundingBox bbMin bbMax = bb
-        boundingBoxDiagonalNormSquare = normSquare (bbMin -. bbMax)
-        dirNormSquare = normSquare dir
-        end = start +. sqrt (boundingBoxDiagonalNormSquare/dirNormSquare) *. dir
-        excessivelyLongLine = Line start end
-    Clipping.cohenSutherland bb excessivelyLongLine
+clipRay bb ray = Clipping.cohenSutherland bb (comicallyLengthen bb ray)
 
 -- | Cut off all 'Ray's to end at the provided 'BoundingBox'. Convenient to take
 -- the result of '_voronoiEdges' and clip it to a rectangular viewport.
@@ -337,3 +335,38 @@ clipEdgesToBox bb' segments = do
         Right ray -> case clipRay bb ray of
             Just line -> [line]
             Nothing -> []
+
+-- | Cut off all infinite 'VoronoiCells' with the provided 'BoundingBox'. Convenient to take
+-- the result of '_voronoiCells' and clip it to a rectangular viewport.
+--
+-- This function yields incorrect results when the angle between the directions is
+-- too large, because it simply comically enlarges the »infinite« directions to
+-- finite size, closes the then finite polygon, and clips the resulting polygon.
+-- Since Voronoi cells don’t produce such wide angels for even small point sizes,
+-- this is a worthwhile tradeoff. The issue can probably be hacked around by adding
+-- another point for all corners enclosed by the direction vectors.
+clipCellsToBox
+    :: HasBoundingBox boundingBox
+    => boundingBox
+    -> Vector VoronoiCell
+    -> Vector Polygon
+clipCellsToBox bb' = V.map $ \(VoronoiCell _center vPoly) -> case vPoly of
+    VoronoiFinite polygon -> Clipping.sutherlandHodgman polygon  viewport
+    VoronoiInfinite dirIn vertices dirOut ->
+        let comicallyLargePolygon = Polygon ([looongIn] ++ vertices ++ [looongOut])
+            Line _ looongIn = comicallyLengthen bb (Ray (head vertices) dirIn)
+            Line _ looongOut = comicallyLengthen bb (Ray (last vertices) dirOut)
+        in Clipping.sutherlandHodgman comicallyLargePolygon viewport
+  where
+    bb = boundingBox bb'
+    viewport = boundingBoxPolygon bb
+
+-- | Create a stupidly long line out of a 'Ray' so that it definitely spans well
+-- over the bounding box.
+comicallyLengthen :: BoundingBox -> Ray -> Line
+comicallyLengthen bb (Ray start dir) =
+    let BoundingBox bbMin bbMax = bb
+        boundingBoxDiagonalNormSquare = normSquare (bbMin -. bbMax)
+        dirNormSquare = normSquare dir
+        end = start +. (max 1 boundingBoxDiagonalNormSquare / max 1 dirNormSquare) *. dir
+    in Line start end

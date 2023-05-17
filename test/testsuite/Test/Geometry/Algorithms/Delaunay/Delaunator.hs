@@ -319,48 +319,25 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                 sketch edge
                 stroke
 
-    test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \_ -> do
+    test_voronoi_cells = testVisual "Voronoi cells" width height "out/smoketest/voronoi-cells" $ \(w,h) -> do
+        let voronoiPolygons = clipCellsToBox clipBB (_voronoiCells delaunay)
+            margin = 10
+            clipBB = boundingBox [Vec2 margin margin, Vec2 (w-margin) (h-margin)]
+            paperBB = boundingBox [zero, Vec2 w h]
         setLineWidth 1
-        for_ (_edges delaunay) $ \edge -> cairoScope $ do
-            setColor (mathematica97 0 `withOpacity` 0.2)
-            sketch edge
+        cairoScope $ do
+            setColor (mathematica97 0)
+            sketch (boundingBoxPolygon paperBB)
             stroke
-        for_ (_voronoiCorners delaunay) $ \c -> cairoScope $ do
-            sketch (Circle c 2)
-            setColor (mathematica97 0 `withOpacity` 0.5)
-            fill
-        V.iforM_ (_voronoiCells delaunay) $ \i (VoronoiCell center vpolygon) -> cairoScope $ do
-            let infiniteEdge p dir = resizeLine (const 90) (Line p (p +. dir))
+        cairoScope $ do
+            setColor (mathematica97 1)
+            setDash [5,5] 0
+            sketch (boundingBoxPolygon clipBB)
+            stroke
+        V.iforM_ voronoiPolygons $ \i polygon -> cairoScope $ do
             setColor (mathematica97 i)
-            cairoScope $ do
-                sketch (Circle center 1.5)
-                stroke
-                setColor (black `withOpacity` 1)
-                sketch (Circle center 8)
-                fill
-                setColor (mathematica97 i)
-                centeredText center (show i)
-            case vpolygon of
-                VoronoiFinite polygon -> do
-                    sketch (growPolygon (-2) polygon)
-                    stroke
-                VoronoiInfinite inDir points outDir -> do
-                    setLineWidth 2
-                    setLineCap LineCapRound
-                    cairoScope $ do
-                        setDash [4,4] 0
-                        cairoScope $ do
-                            let inPoint:_ = points
-                            sketch (infiniteEdge inPoint inDir)
-                            stroke
-                        cairoScope $ do
-                            let outPoint = last points
-                            sketch (infiniteEdge outPoint outDir)
-                            stroke
-                    cairoScope $ for_ (zipWith Line points (tail points)) $ \line -> do
-                        setDash [10,4] 0
-                        sketch line
-                        stroke
+            sketch (growPolygon (-1) polygon)
+            stroke
 
     test_delaunay_voronoi = testVisual "Delaunay+Voronoi" width height "out/smoketest/delaunay-voronoi-edges" $ \(w,h) -> do
         setLineWidth 1
