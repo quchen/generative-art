@@ -1,5 +1,5 @@
 -- | Nice API for Delaunator’s technical output.
-module Geometry.Algorithms.Delaunay.DelaunatorApi (
+module Geometry.Algorithms.Delaunay.Internal.Delaunator.Api (
       delaunayTriangulation
     , Triangulation(..)
     , VoronoiCell(..)
@@ -21,14 +21,15 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
-import qualified Data.Map                                as M
-import           Data.Vector                             (Vector, (!))
-import qualified Data.Vector                             as V
-import qualified Data.Vector.Mutable                     as VM
-import qualified Geometry.Algorithms.Clipping            as Clipping
-import qualified Geometry.Algorithms.Delaunay.Delaunator as D
+import qualified Data.Map                     as M
+import           Data.Vector                  (Vector, (!))
+import qualified Data.Vector                  as V
+import qualified Data.Vector.Mutable          as VM
+import qualified Geometry.Algorithms.Clipping as Clipping
 import           Geometry.Core
 import           Util
+
+import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 
 
 

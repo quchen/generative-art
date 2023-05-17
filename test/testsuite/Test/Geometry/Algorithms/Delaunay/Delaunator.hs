@@ -13,21 +13,22 @@ import           Data.List
 import           Data.Ord
 import           Data.STRef
 import           Data.Traversable
-import           Data.Vector                                (Vector, (!))
-import qualified Data.Vector                                as V
-import qualified Data.Vector.Algorithms.Intro               as VM
-import           Data.Vector.Mutable                        (STVector)
-import qualified Data.Vector.Mutable                        as VM
+import           Data.Vector                  (Vector, (!))
+import qualified Data.Vector                  as V
+import qualified Data.Vector.Algorithms.Intro as VM
+import           Data.Vector.Mutable          (STVector)
+import qualified Data.Vector.Mutable          as VM
 import           Draw
 import           Geometry
-import qualified Geometry.Algorithms.Delaunay.Delaunator    as Delaunator
-import           Geometry.Algorithms.Delaunay.DelaunatorApi
 import           Geometry.Algorithms.Sampling
 import           Geometry.Core
-import           Graphics.Rendering.Cairo                   as C
+import           Graphics.Rendering.Cairo     as C
 import           Numerics.Interpolation
-import qualified System.Random.MWC                          as MWC
+import qualified System.Random.MWC            as MWC
 import           Test.TastyAll
+
+import           Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
+import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as Delaunator
 
 
 
@@ -388,8 +389,6 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                     sketch line
                     stroke
                     centeredText textPos (show p)
-
-
 
 centeredText v str = cairoScope $ do
     moveToVec v

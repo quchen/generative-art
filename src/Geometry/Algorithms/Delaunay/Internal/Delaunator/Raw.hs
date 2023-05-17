@@ -6,7 +6,7 @@
 -- possible. Refactor as long as the tests pass.
 --
 -- Users of this internal module are responsible for implementing a nice API.
-module Geometry.Algorithms.Delaunay.Delaunator where
+module Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw where
 
 
 
