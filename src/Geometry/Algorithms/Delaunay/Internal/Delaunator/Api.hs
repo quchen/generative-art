@@ -221,6 +221,8 @@ data Triangulation = Triangulation
 
     } deriving (Eq, Ord, Show)
 
+-- | Create a 'Triangulation' from a set of points. See 'Triangulation' for further
+-- details.
 delaunayTriangulation :: Sequential vector => vector Vec2 -> Triangulation
 delaunayTriangulation points' =
     let points = toVector points'
