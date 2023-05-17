@@ -17,6 +17,11 @@ import           Util
 
 import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 
+import           Debug.Trace
+import           Draw
+import           Geometry.Algorithms.Sampling
+import           Graphics.Rendering.Cairo
+import qualified System.Random.MWC            as MWC
 
 
 -- $setup
@@ -29,13 +34,16 @@ import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 -- >>>
 -- >>> :{
 -- >>> numPoints = 2^7
+-- >>> numFindPoints = 8
 -- >>> seed = [2]
 -- >>> (width, height) = (600::Int, 400::Int)
--- >>> points = runST $ do
+-- >>> (points, findThesePoints) = runST $ do
 -- >>>     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
 -- >>>     let margin = 100
 -- >>>         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
--- >>>     uniformlyDistributedPoints gen bb numPoints
+-- >>>     ps <- uniformlyDistributedPoints gen bb numPoints
+-- >>>     findUs <- uniformlyDistributedPoints gen bb numFindPoints
+-- >>>     pure (ps, findUs)
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :}
 
@@ -108,7 +116,7 @@ data Triangulation = Triangulation
     --         setDash [5,5] 0
     --         sketch (boundingBoxPolygon bb)
     --         stroke
-    --     forM_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \edge -> do
+    --     for_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \edge -> do
     --         setColor (mathematica97 0 `withOpacity` 0.2)
     --         sketch edge
     --         stroke
@@ -139,7 +147,7 @@ data Triangulation = Triangulation
     --         setDash [5,5] 0
     --         sketch (boundingBoxPolygon bb)
     --         stroke
-    --     forM_ (zip [1..] (clipEdgesToBox bb (_voronoiEdges delaunay))) $ \(i, edge) -> do
+    --     for_ (zip [1..] (clipEdgesToBox bb (_voronoiEdges delaunay))) $ \(i, edge) -> do
     --         setColor (mathematica97 i)
     --         sketch edge
     --         stroke
@@ -199,10 +207,42 @@ data Triangulation = Triangulation
     -- :}
     -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/convex_hull.svg
 
+    , _findClosestInputPoint :: Vec2 -> Int -> Int
+    -- ^ Find the index of the closest input point.
+    --
+    -- @'_findClosestInputPoint' needle start@ returns the index @i@ of the closest input
+    -- point to @needle@, starting the search at @start@. @start=0@ searches the
+    -- entire input. @points!i@ is the closest point’s position.
+    --
+    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg>>
+    --
+    -- === __(image code)__
+    -- >>> :{
+    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg" width height $ do
+    --     setLineWidth 1
+    --     let margin = 10
+    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+    --     cairoScope $ do
+    --         setColor (mathematica97 0)
+    --         setDash [5,5] 0
+    --         sketch (boundingBoxPolygon bb)
+    --         stroke
+    --     let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
+    --     for_ (zip [0..] foundTriangleIndices) $ \(i, (point, t)) -> do
+    --         let triangle = _triangles delaunay ! t
+    --         sketch triangle >> setColor (mathematica97 i) >> fill
+    --         sketch (Circle point 2) >> fill
+    --         sketch (Circle point 2) >> setColor black >> stroke
+    --     forM_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \edge -> do
+    --         setColor black
+    --         sketch edge
+    --         stroke
+    -- :}
+    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg
+
     , _raw :: D.TriangulationRaw
     -- ^ Raw triangulation data. Import the internal module to access its constructors.
-
-    } deriving (Eq, Ord, Show)
+    }
 
 -- | Create a 'Triangulation' from a set of points. See 'Triangulation' for further
 -- details.
@@ -212,18 +252,30 @@ delaunayTriangulation points' =
         raw = D.triangulate points
         (triPolygons, triCircumcenters) = triangles points raw
         extRays = exteriorRays points raw
+        inedges = bulidInedgesLookup raw
+        findTriangle needle i0 = findClosestInputPointIndex points inedges raw needle i0
     in Triangulation
         { _triangles = triPolygons
         , _edges = edges points raw
+        , _findClosestInputPoint = findTriangle
         , _voronoiCorners = triCircumcenters
         , _voronoiEdges = voronoiEdges triCircumcenters raw extRays
-        , _voronoiCells = voronoiCells points triCircumcenters raw
+        , _voronoiCells = voronoiCells points triCircumcenters inedges raw
         , _convexHull = convexHullViaDelaunay points raw
         , _raw = raw
         }
 
 instance NFData Triangulation where
-    rnf (Triangulation a b c d e f g) = rnf (a,b,c,d,e,f,g)
+    rnf Triangulation
+        { _triangles = x1
+        , _edges = x2
+        , _findClosestInputPoint = _
+        , _voronoiCorners = x3
+        , _voronoiEdges = x4
+        , _voronoiCells = x5
+        , _convexHull = x6
+        , _raw = x7
+        } = rnf (x1, x2, x3, x4, x5, x6, x7)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> (Vector Polygon, Vector Vec2)
 triangles points triangulation =
@@ -338,8 +390,8 @@ instance NFData VoronoiPolygon where
 
 -- | Map of point index to an incoming halfedge ID. Originates on the hull for hull
 -- points possible, required for reconstructing edge polygons correctly.
-inedges :: D.TriangulationRaw -> M.Map Int Int
-inedges delaunay = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
+bulidInedgesLookup :: D.TriangulationRaw -> M.Map Int Int
+bulidInedgesLookup delaunay = V.ifoldl' addToIndex M.empty (D._triangles delaunay)
   where
     addToIndex acc e _t =
         let endpoint = D._triangles delaunay ! D.nextHalfedge e
@@ -358,12 +410,11 @@ data VoronoiCell = VoronoiCell
 instance NFData VoronoiCell where
     rnf (VoronoiCell a b) = rnf (a,b)
 
-voronoiCells :: Vector Vec2 -> Vector Vec2 -> D.TriangulationRaw -> Vector VoronoiCell
-voronoiCells points circumcenters delaunay =
+voronoiCells :: Vector Vec2 -> Vector Vec2 -> M.Map Int Int -> D.TriangulationRaw -> Vector VoronoiCell
+voronoiCells points circumcenters inedges delaunay =
     let extRays = exteriorRays points delaunay
-        index = inedges delaunay
     in flip V.imap points $ \pIx pCoord ->
-        let incoming = index M.! pIx
+        let incoming = inedges M.! pIx
             polygon = voronoiPolygon circumcenters delaunay extRays pIx incoming
         in VoronoiCell pCoord polygon
 
@@ -532,3 +583,96 @@ comicallyLengthen bb (Ray start dir) =
         dirNormSquare = normSquare dir
         end = start +. (max 1 boundingBoxDiagonalNormSquare / max 1 dirNormSquare) *. dir
     in Line start end
+
+-- | Find the input point closest to the needle. Search starts at specified point i.
+findClosestInputPointIndex
+    :: Vector Vec2   -- ^ Input points
+    -> M.Map Int Int -- ^ Incoming edges table
+    -> D.TriangulationRaw
+    -> Vec2          -- ^ Needle: which input point is closest to this?
+    -> Int           -- ^ Start the search at this index. 0 searches from the beginning.
+    -> Int           -- ^ Index of the closest point
+findClosestInputPointIndex points inedges tri needle i0 = loopFind i0
+  where
+    loopFind i =
+        let c' = step i
+        in if c' >= 0 && c' /= i && c' /= i0
+            then loopFind c'
+            else c'
+
+    step j | M.notMember j inedges = error "TODO what is this case for"
+    step j =
+        let c = j
+            dc = normSquare (needle -. points!j)
+            e0 = inedges M.! j
+            e = e0
+        in loopStep c dc e0 e
+
+    loopStep
+        :: Int    -- c: Start of search (candidate)
+        -> Double -- dc: Distance² from candidate to needle
+        -> Int    -- e0: inedge at point i
+        -> Int    -- e:  ???
+        -> Int    -- Better candidate after the step
+    loopStep c dc e0 e = traceShow ("   ", "loopStep", "c", c, "dc", dc, "e0", e0, "e", e) $
+        let t = D._triangles tri ! e
+            dt = normSquare (needle -. points!t)
+            (dc', c') | dt < dc   = (dt, t)
+                        | otherwise = (dc, c)
+            e' = D._halfedges tri ! D.nextHalfedge e
+            -- !_ = traceShow ("   ", "Sanity check: ", D._triangles tri ! D.nextHalfedge e == i) () -- TODO CLEANUP
+        in if e' == D.tEMPTY
+            then -- The next edge has no partner: we’re on the hull
+                let e'' = error "TODO hull handling" -- JS: e = hull[(_hullIndex[i] + 1) % hull.length];
+                in if e'' /= t && normSquare (needle -. points!e) < dc'
+                    then e'' -- JS: return e
+                    else c' -- JS: break
+            else -- We’re not on the hull
+                if e' /= e0
+                    then loopStep c' dc' e0 e'
+                    else c'
+
+testi :: t -> IO ()
+testi _ = go
+  where
+    numPoints = 2^6
+    numFindPoints = 10
+    seed = [3]
+    (width, height) = (600::Int, 400::Int)
+    (points, findThesePoints) = runST $ do
+        gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+        let margin = 100
+            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+        ps <- uniformlyDistributedPoints gen bb numPoints
+        let margin' = 150
+            bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
+        findUs <- uniformlyDistributedPoints gen bb' numFindPoints
+        pure (ps, findUs)
+    delaunay = delaunayTriangulation points
+    go = haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg" width height $ do
+        setLineWidth 1
+        let margin = 10
+            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+        cairoScope $ do
+            setColor (mathematica97 0)
+            setDash [5,5] 0
+            sketch (boundingBoxPolygon bb)
+            stroke
+        for_ (_edges delaunay) $ \edge -> do
+            setColor (black `withOpacity` 0.5)
+            sketch edge
+            stroke
+        let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
+        for_ (zip [0..] foundTriangleIndices) $ \(i, (needle, p)) -> do
+            let closest = points ! p
+            cairoScope $ do
+                setColor (mathematica97 i)
+                sketch (Circle closest 3) >> fill
+                sketch (Circle needle 3) >> fill
+            cairoScope $ do
+                setColor black
+                sketch (Circle closest 3) >> stroke
+                sketch (Circle needle 3) >> stroke
+            cairoScope $ do
+                setColor (mathematica97 i)
+                sketch (Line needle closest) >> stroke
