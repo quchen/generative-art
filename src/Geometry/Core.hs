@@ -24,6 +24,7 @@ module Geometry.Core (
     , perpendicularBisector
     , perpendicularLineThrough
     , distanceFromLine
+    , intersectInfiniteLines
     , LLIntersection(..)
     , intersectionLL
     , intersectionPoint
@@ -1099,6 +1100,18 @@ data LLIntersection
         -- ^ Lines are collinear, and maybe overlap along a 'Line' segment.
 
     deriving (Eq, Ord, Show)
+
+-- | Intersection of two infinite lines. Fast, but does not provide any error
+-- handling (such as the parallel inputs case) and does not provide any detail
+-- about the nature of the intersection point.
+--
+-- Use 'intersectionLL' for more detailed information, at the cost of computational
+-- complexity.
+intersectInfiniteLines :: Line -> Line -> Vec2
+intersectInfiniteLines (Line (Vec2 x1 y1) (Vec2 x2 y2)) (Line (Vec2 x3 y3) (Vec2 x4 y4)) = Vec2 x y
+  where
+    x = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+    y = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
 
 -- | The single point of intersection of two lines, or 'Nothing' for none (or
 -- collinear).
