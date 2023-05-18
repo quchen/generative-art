@@ -380,10 +380,19 @@ data VoronoiPolygon
     = VoronoiFinite !Polygon -- ^ Ordinary polygon
     | VoronoiInfinite !Vec2 [Vec2] !Vec2
         -- ^ The polygon consists of a list of finite points, and extends to
-        -- infinity at the beginning/end in the direction of the first/last
-        -- argument. For example, the bottom/right quadrant (in screen coordinates)
-        -- would be 'VornoiInfinite (Vec2 0 1) [Vec2 0 0] (Vec2 1 0)'.
+        -- infinity at the beginning\/end in the direction of the first\/last
+        -- argument. For example, the bottom\/right quadrant (in screen coordinates)
+        -- would be @'VornoiInfinite' ('Vec2' 0 1) ['Vec2' 0 0] ('Vec2' 1 0)@.
     deriving (Eq, Ord, Show)
+
+instance Sketch VoronoiPolygon where
+    sketch (VoronoiFinite polygon) = sketch polygon
+    sketch (VoronoiInfinite _ [] _) = pure ()
+    sketch (VoronoiInfinite dirIn points dirOut) = do
+        let sketchRay start dir = cairoScope $ setDash [3,3] 0 >> sketch (resizeLine (const 30) (Line start (start +. dir)))
+        sketchRay (head points) dirIn
+        sketch (Polyline points)
+        sketchRay (head points) dirOut
 
 -- | Construct a single Voronoi polygon.
 voronoiPolygon
@@ -567,7 +576,7 @@ clipEdgesToBox bb' segments = do
             Just line -> [line]
             Nothing -> []
 
--- | Cut off all infinite 'VoronoiCells' with the provided 'BoundingBox'. Convenient to take
+-- | Cut off all infinite 'VoronoiCell's with the provided 'BoundingBox'. Convenient to take
 -- the result of '_voronoiCells' and clip it to a rectangular viewport.
 --
 -- This function yields incorrect results when the angle between the directions is
