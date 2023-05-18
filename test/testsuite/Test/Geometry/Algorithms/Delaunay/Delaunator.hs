@@ -36,7 +36,6 @@ tests :: TestTree
 tests = testGroup "Delaunator"
     [ test_orientation
     , test_circum_x
-    , test_inCircleCcw
     , test_inCircle
     , test_find_closest_point
     , test_triangulation_new
@@ -99,24 +98,6 @@ test_circum_x = testGroup "Circum* functions"
     ]
   where
     [a,b,c] = niceTestTriangle
-
-test_inCircleCcw :: TestTree
-test_inCircleCcw = testGroup "inCircleCcw"
-    [ testCase "Sanitc check" $ do
-        assertEqual "Screen counterclockwise triangle is not actually ccw!"
-            (Expected Delaunator.Counterclockwise)
-            (Actual (let (a,b,c) = screenCounterclockwiseTriangle in Delaunator.orientation a b c))
-    , testCase "Inside" $ do
-        let p = Vec2 1 1
-            actual = Actual (Delaunator.inCircleCcw screenCounterclockwiseTriangle p)
-            expected = Expected True
-        assertEqual "Point should be inside" expected actual
-    , testCase "Outside" $ do
-        let p = Vec2 (-1) (-1)
-            actual = Actual (Delaunator.inCircleCcw screenCounterclockwiseTriangle p)
-            expected = Expected False
-        assertEqual "Point should be outside" expected actual
-    ]
 
 test_inCircle :: TestTree
 test_inCircle = testGroup "inCircle"

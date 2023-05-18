@@ -10,19 +10,19 @@ module Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw where
 
 
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Function
-import           Control.DeepSeq
 import           Data.Ord
 import           Data.STRef
-import           Data.Vector                  (Vector, (!))
-import qualified Data.Vector                  as V
-import qualified Data.Vector.Algorithms.Intro as VM
-import           Data.Vector.Mutable          (STVector)
-import qualified Data.Vector.Mutable          as VM
-import           GHC.Stack                    (HasCallStack)
+import           Data.Vector                (Vector, (!))
+import qualified Data.Vector                as V
+import qualified Data.Vector.Algorithms.Tim as VM
+import           Data.Vector.Mutable        (STVector)
+import qualified Data.Vector.Mutable        as VM
+import           GHC.Stack                  (HasCallStack)
 import           Geometry.Core
 
 
@@ -89,27 +89,13 @@ circumcenter
     -> Vec2
 circumcenter a b c = a +. circumdelta a b c
 
--- | Check if a point is inside the circumcircle of a triangle.
---
--- This could be optimized so that when used and the orientation was calculated
--- previously, the re-computation of it could be skipped, to directly use
--- 'inCircleCcw'.
-inCircle
-    :: (Vec2, Vec2, Vec2)
-    -> Vec2
-    -> Bool
-inCircle abc@(a,b,c) p = case orientation a b c of
-    Counterclockwise -> inCircleCcw abc p
-    Degenerate -> False
-    Clockwise -> not (inCircleCcw abc p)
-
 -- | Check whether a point is inside the circumcircle of a triangle. The triangle
 -- must be oriented in counter-clockwise orientation in screen coordinates.
-inCircleCcw
+inCircle
     :: (Vec2, Vec2, Vec2) -- ^ Triangle’s corners
     -> Vec2 -- ^ Point
     -> Bool
-inCircleCcw (a, b, c) p =
+inCircle (a, b, c) p =
     let d@(Vec2 dx dy) = a -. p
         e@(Vec2 ex ey) = b -. p
         f@(Vec2 fx fy) = c -. p
