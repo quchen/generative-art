@@ -11,13 +11,21 @@ import qualified Data.Map                     as M
 import           Data.Vector                  (Vector, (!))
 import qualified Data.Vector                  as V
 import qualified Data.Vector.Mutable          as VM
+import qualified Data.Vector.Unboxed.Mutable          as VUM
 import qualified Geometry.Algorithms.Clipping as Clipping
 import           Geometry.Core
 import           Util
+import           Numerics.Interpolation
 
 import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 
-
+import           Draw
+import           Geometry.Algorithms.Sampling
+import Debug.Trace
+import           Geometry.Core                as G
+import           Graphics.Rendering.Cairo     as C
+import qualified Data.Vector                  as V
+import qualified System.Random.MWC            as MWC
 
 -- $setup
 -- >>> import           Draw
@@ -29,7 +37,6 @@ import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 -- >>>
 -- >>> :{
 -- >>> numPoints = 2^7
--- >>> numFindPoints = 8
 -- >>> seed = [2]
 -- >>> (width, height) = (600::Int, 400::Int)
 -- >>> points = runST $ do
@@ -653,3 +660,89 @@ findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
                 if e' /= e0
                     then loopStep j c' dc' e0 e'
                     else c'
+
+stipple
+    :: Double -- ^ \(\omega\) convergence speed parameter, see 'lloydRelaxation'.
+    -> Int -- ^ Width of the input data. x values will be picked in the integer range \([0\ldots w)\).
+    -> Int -- ^ Height of the input data. x values will be picked in the integer range \([0\ldots h)\).
+    -> (Int -> Int -> Double) -- ^ How much weight does the input have at \(f(x,y)\)?
+    -> Vector Vec2 -- ^ Input points, chosen as last parameter for 'iterate' convenience.
+    -> Int -- ^ Number of generations
+    -> Vector Vec2
+stipple omega width height f points n = iterate (stippleStep omega width height f) points !! n
+
+-- | One step towards Voronoi stippling. See 'stipple' for argument docs.
+stippleStep
+    :: Double
+    -> Int
+    -> Int
+    -> (Int -> Int -> Double)
+    -> Vector Vec2
+    -> Vector Vec2
+stippleStep omega width height f points = runST $ do
+    let numPoints = V.length points
+        tri = delaunayTriangulation points
+
+    centroidsMut <- VM.replicate numPoints zero
+    weightsMut <- VM.replicate numPoints 0
+    let loopY _ y | y >= height = pure ()
+        loopY i y = loopX i 0 y
+
+        loopX i x y | x >= width = loopY i (y+1)
+        loopX i x y = do
+            let w = f x y
+                pixelTopLeft = Vec2 (fromIntegral x) (fromIntegral y)
+                pixelCenter = pixelTopLeft +. Vec2 0.5 0.5
+                i' = _findClosestInputPoint tri pixelTopLeft i
+            VM.modify weightsMut (+w) i'
+            VM.modify centroidsMut (+. (w *. pixelCenter)) i'
+            loopX i' (x+1) y
+    loopY 0 0
+
+    centroids <- V.unsafeFreeze centroidsMut
+    weights <- V.unsafeFreeze weightsMut
+
+    pure $ trace "tick" $ V.zipWith3
+        (\c w p ->
+            let p' | w > 0 = c /. w
+                   | otherwise = p
+            in lerp (0,1) (p,p') omega
+        )
+        centroids
+        weights
+        points
+
+
+
+testi :: a -> IO ()
+testi _ = haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/stipple.png" width height $ do
+    setLineWidth 1
+    let margin = 10
+        bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+        stippleSteps = 10
+        omega = 1.8
+        f x y = let center = boundingBoxCenter bb
+                    p = Vec2 (fromIntegral x) (fromIntegral y)
+                    r = norm (p -. center)
+                in (sin (r / 10) + 1)
+        points' = stipple omega width height f points stippleSteps
+    cairoScope $ do
+        setColor (mathematica97 0)
+        setDash [5,5] 0
+        sketch (boundingBoxPolygon bb)
+        stroke
+    for_ points' $ \p -> do
+        setColor black
+        sketch (Circle p 1)
+        fill
+
+  where
+    numPoints = 2^11
+    seed = [2]
+    (width, height) = (300::Int, 200::Int)
+    points = runST $ do
+        gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+        let margin = 20
+            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+        uniformlyDistributedPoints gen bb numPoints
+    delaunay = delaunayTriangulation points
