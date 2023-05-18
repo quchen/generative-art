@@ -621,7 +621,8 @@ findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
             then loopFind c
             else c
 
-    step j | M.notMember j inedges = error "TODO what is this case for"
+    -- The idea of one step is to look at outgoing edges of a point, and following
+    -- the one that leads us closer to the needle.
     step j =
         let c = j
             dc = normSquare (needle -. points!j)
@@ -631,7 +632,7 @@ findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
 
     loopStep
         :: Int
-        -> Int    -- c: Start of search (candidate)
+        -> Int    -- c:  Start of search (candidate)
         -> Double -- dc: Distance² from candidate to needle
         -> Int    -- e0: inedge the search has started
         -> Int    -- e:  inedge we’re currently searching
@@ -640,14 +641,14 @@ findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
         let t = D._triangles tri ! e
             dt = normSquare (needle -. points!t)
             (dc', c') | dt < dc   = (dt, t)
-                        | otherwise = (dc, c)
+                      | otherwise = (dc, c)
             e' = D._halfedges tri ! D.nextHalfedge e
         in if e' == D.tEMPTY
             then -- The next edge has no partner: we’re on the hull
                 let e'' = D._convexHull tri ! (((hullIndex!j) + 1) `mod` V.length (D._convexHull tri))
                 in if e'' /= t && normSquare (needle -. points!e'') < dc'
-                    then e'' -- JS: return e
-                    else c' -- JS: break
+                    then e''
+                    else c'
             else -- We’re not on the hull
                 if e' /= e0
                     then loopStep j c' dc' e0 e'
