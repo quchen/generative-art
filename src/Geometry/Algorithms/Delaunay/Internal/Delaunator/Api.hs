@@ -702,7 +702,7 @@ stippleStep omega width height f points = runST $ do
     centroids <- V.unsafeFreeze centroidsMut
     weights <- V.unsafeFreeze weightsMut
 
-    pure $ trace "tick" $ V.zipWith3
+    pure $ V.zipWith3
         (\c w p ->
             let p' | w > 0 = c /. w
                    | otherwise = p
@@ -724,7 +724,7 @@ testi _ = haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/st
         f x y = let center = boundingBoxCenter bb
                     p = Vec2 (fromIntegral x) (fromIntegral y)
                     r = norm (p -. center)
-                in (sin (r / 10) + 1)
+                in (sin (r / 10) + 1.1)
         points' = stipple omega width height f points stippleSteps
     cairoScope $ do
         setColor (mathematica97 0)

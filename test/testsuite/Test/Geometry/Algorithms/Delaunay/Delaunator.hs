@@ -43,6 +43,7 @@ tests = testGroup "Delaunator"
     , test_find_seed_triangle
     , test_triangulate
     , test_visual_delaunay_voronoi
+    , test_testi
     ]
 
 screenClockwiseTriangle, screenCounterclockwiseTriangle :: (Vec2, Vec2, Vec2)
@@ -379,17 +380,9 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             setColor (mathematica97 3)
             centeredText p (show i)
 
-        cairoScope $ do
-            setColor (mathematica97 1)
-            for_ (V.indexed (_extRays delaunay)) $ \(p, ray) -> case ray of
-                NoExtRays -> pure ()
-                ExtRays rayInDir rayOutDir -> for_ [rayInDir, rayOutDir] $ \dir -> do
-                    let line = resizeLine (const 50) (Line (points!p) (points!p +. dir))
-                        Line _ textPos = resizeLine (const 60) line
-                    sketch line
-                    stroke
-                    centeredText textPos (show p)
-
 centeredText v str = cairoScope $ do
     moveToVec v
     showTextAligned HCenter VCenter str
+
+test_testi :: TestTree
+test_testi = testCase "testi runner" (testi ())
