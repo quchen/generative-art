@@ -122,10 +122,12 @@ tEMPTY = -1
 -- triangle.
 nextHalfedge :: Int -> Int
 nextHalfedge i = if mod i 3 == 2 then i-2 else i+1
+{-# INLINE nextHalfedge #-}
 
 -- | Inverse of 'nextHalfedge'.
 prevHalfedge :: Int -> Int
 prevHalfedge i = if mod i 3 == 0 then i+2 else i-1
+{-# INLINE prevHalfedge #-}
 
 data TriangulationST s = TriangulationST
     { __triangles :: STVector s Int
