@@ -69,6 +69,7 @@ module Geometry.Core (
     , rad
     , getRad
     , normalizeAngle
+    , pseudoAngle
 
     -- ** Vector arithmetic
     , VectorSpace(..)
@@ -923,11 +924,12 @@ polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 -- | Newtype safety wrapper.
 --
 -- Angles are not 'Ord', since the cyclic structure is very error-prone when
--- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Write
--- your own comparators such as @'comparing' 'getDeg'@ paired with 'normalizeAngle'
--- if you /really/ want to compare them directly. Often times, using the
--- 'dotProduct' (measure same-direction-ness) or cross product via 'det' (measure
--- leftness/rightness) is a much better choice to express what you want.
+-- combined with comparisons and 'VectorSpace' arithmetic in practice :-( Often
+-- times, using the 'dotProduct' (measure same-direction-ness) or cross product via
+-- 'det' (measure leftness/rightness) is a much better choice to express what you
+-- want.
+--
+-- For sorting a number of points by angle, use the fast 'pseudoAngle' function.
 newtype Angle = Rad Double
     deriving (Eq)
 
@@ -971,6 +973,14 @@ normalizeAngle
     -> Angle -- ^ Angle normalized to the interval [start, start + deg 360)
 normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
   where x `rem'` m = (x `mod'` m + m) `mod'` m
+
+-- | Increases monotonically with angle. Useful pretty much only to sort points by
+-- angle, but this it does particularly fast (in particular, it’s much faster than
+-- 'atan2').
+pseudoAngle :: Vec2 -> Double
+pseudoAngle (Vec2 x y) =
+    let p = x / (abs x + abs y);
+    in (if y > 0 then 3-p else 1+p) / 4; -- // [0..1]
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end. The
 -- norm of the vector is the length of the line. Use 'direction' if you need a
