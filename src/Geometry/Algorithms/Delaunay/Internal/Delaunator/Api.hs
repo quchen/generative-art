@@ -17,11 +17,6 @@ import           Util
 
 import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 
-import           Debug.Trace
-import           Draw
-import           Geometry.Algorithms.Sampling
-import           Graphics.Rendering.Cairo
-import qualified System.Random.MWC            as MWC
 
 
 -- $setup
@@ -37,13 +32,11 @@ import qualified System.Random.MWC            as MWC
 -- >>> numFindPoints = 8
 -- >>> seed = [2]
 -- >>> (width, height) = (600::Int, 400::Int)
--- >>> (points, findThesePoints) = runST $ do
+-- >>> points = runST $ do
 -- >>>     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
 -- >>>     let margin = 100
 -- >>>         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
--- >>>     ps <- uniformlyDistributedPoints gen bb numPoints
--- >>>     findUs <- uniformlyDistributedPoints gen bb numFindPoints
--- >>>     pure (ps, findUs)
+-- >>>     uniformlyDistributedPoints gen bb numPoints
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :}
 
@@ -222,21 +215,38 @@ data Triangulation = Triangulation
     --     setLineWidth 1
     --     let margin = 10
     --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
+    --         findThesePoints = runST $ do
+    --             gen <- MWC.initialize (V.fromList (map (succ . fromIntegral) seed))
+    --             let margin' = 20
+    --                 bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
+    --             poissonDisc gen PoissonDiscParams
+    --                 { _poissonShape  = bb'
+    --                 , _poissonRadius = 50
+    --                 , _poissonK      = 4
+    --                 }
     --     cairoScope $ do
     --         setColor (mathematica97 0)
     --         setDash [5,5] 0
     --         sketch (boundingBoxPolygon bb)
     --         stroke
-    --     let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
-    --     for_ (zip [0..] foundTriangleIndices) $ \(i, (point, t)) -> do
-    --         let triangle = _triangles delaunay ! t
-    --         sketch triangle >> setColor (mathematica97 i) >> fill
-    --         sketch (Circle point 2) >> fill
-    --         sketch (Circle point 2) >> setColor black >> stroke
-    --     forM_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \edge -> do
-    --         setColor black
+    --     for_ (_edges delaunay) $ \edge -> do
+    --         setColor (black `withOpacity` 0.5)
     --         sketch edge
     --         stroke
+    --     let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
+    --     for_ (zip [0..] foundTriangleIndices) $ \(i, (needle, p)) -> do
+    --         let closest = points ! p
+    --         cairoScope $ do
+    --             setColor (mathematica97 i)
+    --             sketch (Circle closest 3) >> fill
+    --             sketch (Circle needle 3) >> fill
+    --         cairoScope $ do
+    --             setColor black
+    --             sketch (Circle closest 3) >> stroke
+    --             sketch (Circle needle 3) >> stroke
+    --         cairoScope $ do
+    --             setColor (mathematica97 i)
+    --             sketch (Line needle closest) >> stroke
     -- :}
     -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg
 
@@ -253,7 +263,8 @@ delaunayTriangulation points' =
         (triPolygons, triCircumcenters) = triangles points raw
         extRays = exteriorRays points raw
         inedges = bulidInedgesLookup raw
-        findTriangle needle i0 = findClosestInputPointIndex points inedges raw needle i0
+        hullIndex = createHullIndex points raw
+        findTriangle needle i0 = findClosestInputPointIndex points inedges hullIndex raw needle i0
     in Triangulation
         { _triangles = triPolygons
         , _edges = edges points raw
@@ -584,21 +595,31 @@ comicallyLengthen bb (Ray start dir) =
         end = start +. (max 1 boundingBoxDiagonalNormSquare / max 1 dirNormSquare) *. dir
     in Line start end
 
+-- | Reverse lookup table for the hull. @'D._convexHull'!i@ yields the i-th point’s
+-- ID on the hull, this index gives us the number i, given a point ID.
+createHullIndex :: Vector Vec2 -> D.TriangulationRaw -> Vector Int
+createHullIndex points raw = V.create $ do
+    let hull = D._convexHull raw
+    hullIndex <- VM.replicate (V.length points) (-1)
+    V.iforM_ hull $ \i hull_i -> VM.write hullIndex hull_i i
+    pure hullIndex
+
 -- | Find the input point closest to the needle. Search starts at specified point i.
 findClosestInputPointIndex
     :: Vector Vec2   -- ^ Input points
     -> M.Map Int Int -- ^ Incoming edges table
+    -> Vector Int    -- ^ Hull index, see 'createHullIndex'
     -> D.TriangulationRaw
     -> Vec2          -- ^ Needle: which input point is closest to this?
     -> Int           -- ^ Start the search at this index. 0 searches from the beginning.
     -> Int           -- ^ Index of the closest point
-findClosestInputPointIndex points inedges tri needle i0 = loopFind i0
+findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
   where
     loopFind i =
-        let c' = step i
-        in if c' >= 0 && c' /= i && c' /= i0
-            then loopFind c'
-            else c'
+        let c = step i
+        in if c >= 0 && c /= i && c /= i0
+            then loopFind c
+            else c
 
     step j | M.notMember j inedges = error "TODO what is this case for"
     step j =
@@ -606,73 +627,28 @@ findClosestInputPointIndex points inedges tri needle i0 = loopFind i0
             dc = normSquare (needle -. points!j)
             e0 = inedges M.! j
             e = e0
-        in loopStep c dc e0 e
+        in loopStep j c dc e0 e
 
     loopStep
-        :: Int    -- c: Start of search (candidate)
+        :: Int
+        -> Int    -- c: Start of search (candidate)
         -> Double -- dc: Distance² from candidate to needle
-        -> Int    -- e0: inedge at point i
-        -> Int    -- e:  ???
+        -> Int    -- e0: inedge the search has started
+        -> Int    -- e:  inedge we’re currently searching
         -> Int    -- Better candidate after the step
-    loopStep c dc e0 e = traceShow ("   ", "loopStep", "c", c, "dc", dc, "e0", e0, "e", e) $
+    loopStep j c dc e0 e =
         let t = D._triangles tri ! e
             dt = normSquare (needle -. points!t)
             (dc', c') | dt < dc   = (dt, t)
                         | otherwise = (dc, c)
             e' = D._halfedges tri ! D.nextHalfedge e
-            -- !_ = traceShow ("   ", "Sanity check: ", D._triangles tri ! D.nextHalfedge e == i) () -- TODO CLEANUP
         in if e' == D.tEMPTY
             then -- The next edge has no partner: we’re on the hull
-                let e'' = error "TODO hull handling" -- JS: e = hull[(_hullIndex[i] + 1) % hull.length];
-                in if e'' /= t && normSquare (needle -. points!e) < dc'
+                let e'' = D._convexHull tri ! (((hullIndex!j) + 1) `mod` V.length (D._convexHull tri))
+                in if e'' /= t && normSquare (needle -. points!e'') < dc'
                     then e'' -- JS: return e
                     else c' -- JS: break
             else -- We’re not on the hull
                 if e' /= e0
-                    then loopStep c' dc' e0 e'
+                    then loopStep j c' dc' e0 e'
                     else c'
-
-testi :: t -> IO ()
-testi _ = go
-  where
-    numPoints = 2^6
-    numFindPoints = 10
-    seed = [3]
-    (width, height) = (600::Int, 400::Int)
-    (points, findThesePoints) = runST $ do
-        gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-        let margin = 100
-            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-        ps <- uniformlyDistributedPoints gen bb numPoints
-        let margin' = 150
-            bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
-        findUs <- uniformlyDistributedPoints gen bb' numFindPoints
-        pure (ps, findUs)
-    delaunay = delaunayTriangulation points
-    go = haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg" width height $ do
-        setLineWidth 1
-        let margin = 10
-            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-        cairoScope $ do
-            setColor (mathematica97 0)
-            setDash [5,5] 0
-            sketch (boundingBoxPolygon bb)
-            stroke
-        for_ (_edges delaunay) $ \edge -> do
-            setColor (black `withOpacity` 0.5)
-            sketch edge
-            stroke
-        let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
-        for_ (zip [0..] foundTriangleIndices) $ \(i, (needle, p)) -> do
-            let closest = points ! p
-            cairoScope $ do
-                setColor (mathematica97 i)
-                sketch (Circle closest 3) >> fill
-                sketch (Circle needle 3) >> fill
-            cairoScope $ do
-                setColor black
-                sketch (Circle closest 3) >> stroke
-                sketch (Circle needle 3) >> stroke
-            cairoScope $ do
-                setColor (mathematica97 i)
-                sketch (Line needle closest) >> stroke
