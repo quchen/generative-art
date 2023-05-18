@@ -871,7 +871,9 @@ transformBoundingBox source target (TransformBBSettings fitDimension fitAspect f
 
 instance VectorSpace Vec2 where
     Vec2 x1 y1 +. Vec2 x2 y2 = Vec2 (x1+x2) (y1+y2)
+    Vec2 x1 y1 -. Vec2 x2 y2 = Vec2 (x1-x2) (y1-y2)
     a *. Vec2 x y = Vec2 (a*x) (a*y)
+    Vec2 x y /. a = Vec2 (x/a) (y/a)
     negateV (Vec2 x y) = Vec2 (-x) (-y)
     zero = Vec2 0 0
 
