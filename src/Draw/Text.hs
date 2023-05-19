@@ -1,20 +1,27 @@
 module Draw.Text (
       showTextAligned
     , plotText
-    , PlotTextOptions (..)
-    , HAlign (..)
-    , VAlign (..)
+    , PlotTextOptions(..)
+    , HAlign(..)
+    , VAlign(..)
 
     , module Data.Default.Class
 ) where
 
 
 
-import Data.Default.Class
-import qualified Graphics.PlotFont as PF
+import           Data.Default.Class
+import           Geometry
+import qualified Graphics.PlotFont        as PF
 import qualified Graphics.Rendering.Cairo as C
 
-import Geometry
+
+
+-- $setup
+-- >>> import Draw
+-- >>> import Geometry.Algorithms.Sampling
+-- >>> import Geometry.Core                as G
+-- >>> import Graphics.Rendering.Cairo     as C
 
 
 
@@ -27,6 +34,19 @@ data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
 -- | Like Cairo’s 'showText', but with alignment parameters. Since Cairo’s text API
 -- is pretty wonky, you may have to sprinkle this with 'moveTo'/'moveToVec' or
 -- 'newPath'.
+--
+-- <<docs/haddock/Draw/Text/show_text_aligned.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Draw/Text/show_text_aligned.svg" 200 30 $ do
+--     setLineWidth 1
+--     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
+--     C.moveTo (200/2) (30/2)
+--     C.scale 3 3
+--     showTextAligned HCenter VCenter "Hello world!"
+-- :}
+-- docs/haddock/Draw/Text/show_text_aligned.svg
 showTextAligned
     :: C.CairoString string
     => HAlign -- ^ Horizontal alignment
@@ -49,18 +69,16 @@ showTextAligned hAlign vAlign str = do
     C.newPath -- The text API is wonky, it kinda-sorta moves the pointer but not really.
               -- newPath clears the path, so we get no leaks from the text.
 
-
-
 data PlotTextOptions = PlotTextOptions
     { _textStartingPoint :: Vec2
         -- ^ Starting point
     , _textHeight :: Double
-        -- ^ X height (i.e. target height of the letter "X")
+        -- ^ Height of the letter /X/'. 'def'ault: 12
     , _textHAlign :: HAlign
-        -- Horizontal alignment of text relative to the starting point
+        -- Horizontal alignment of text relative to the starting point. 'def'ault: 'HLeft'
     , _textVAlign :: VAlign
         -- Vertical alignment of the text relative to the X height
-        -- (i.e. not including undercut letters like "g")
+        -- (i.e. not including undercut letters like "g"). 'def'ault: 'HBottom'
     }
 
 instance Default PlotTextOptions where
@@ -71,6 +89,23 @@ instance Default PlotTextOptions where
         , _textVAlign = VBottom
         }
 
+-- | Some text as pure geometry.
+--
+-- <<docs/haddock/Draw/Text/plot_text.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Draw/Text/plot_text.svg" 200 30 $ do
+--     setLineWidth 1
+--     let opts = PlotTextOptions
+--             { _textStartingPoint = Vec2 (200/2) (30/2)
+--             , _textHeight = 20
+--             , _textHAlign = HCenter
+--             , _textVAlign = VCenter }
+--         glyphs = plotText opts "Hello world!"
+--     for_ glyphs $ \glyph -> sketch glyph >> stroke
+-- :}
+-- docs/haddock/Draw/Text/plot_text.svg
 plotText :: PlotTextOptions -> String -> [Polyline []]
 plotText options text = transform (translate (_textStartingPoint options) <> scaleToHeight <> halign <> valign) glyphs
   where
@@ -87,10 +122,10 @@ plotText options text = transform (translate (_textStartingPoint options) <> sca
     scaleToHeight = scale (_textHeight options / pfXHeight)
 
 pfXHeight :: Double
-pfXHeight = yMax - yMin
+pfXHeight = y
   where
-    BoundingBox (Vec2 _ yMin) (Vec2 _ yMax) = boundingBox (pfPolyline <$> PF.render' PF.canvastextFont "X")
-
+    (_, y) = boundingBoxSize (letter "X")
+    letter l = pfPolyline <$> PF.render' PF.canvastextFont l
 
 pfPolyline :: PF.PFStroke -> Polyline []
 pfPolyline = Polyline . fmap (uncurry Vec2)
