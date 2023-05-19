@@ -8,7 +8,6 @@ import qualified Graphics.Rendering.Cairo as C
 import Test.TastyAll
 
 import Draw
-import Draw.Text
 import Geometry as G
 
 
