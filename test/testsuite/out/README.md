@@ -273,6 +273,10 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Draw/Color.hs/set_color.svg)
 
+![Missing image!](../../../docs/haddock/Draw/Text/plot_text.svg)
+
+![Missing image!](../../../docs/haddock/Draw/Text/show_text_aligned.svg)
+
 ![Missing image!](../../../docs/haddock/Draw.hs/cartesianCoordinateSystem.svg)
 
 ![Missing image!](../../../docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg)
@@ -306,6 +310,8 @@ over quickly.
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/intersection.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/union.svg)
+
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman.hs/sutherland_hodgman.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg)
 
