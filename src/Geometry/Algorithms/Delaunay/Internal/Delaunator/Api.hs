@@ -543,13 +543,16 @@ lloydRelaxation bb omega = relax . _voronoiCells . delaunayTriangulation
         cells
         (clipCellsToBox (boundingBox bb) cells)
 
--- ^ A ray is a line that extends to infinity on one side. Note that the direction
+-- | A ray is a line that extends to infinity on one side. Note that the direction
 -- is a *direction* and not another point.
 data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction
     deriving (Eq, Ord, Show)
 
 instance NFData Ray where
     rnf _ = () -- Already strict
+
+instance Sketch Ray where
+    sketch (Ray start dir) = sketch (resizeLine (const 100000) (Line start (start +. dir)))
 
 -- | Convert a 'Ray' to a 'Line', cutting it off when it hits the 'BoundingBox'.
 clipRay
