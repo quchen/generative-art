@@ -11,21 +11,15 @@ import qualified Data.Map                     as M
 import           Data.Vector                  (Vector, (!))
 import qualified Data.Vector                  as V
 import qualified Data.Vector.Mutable          as VM
-import qualified Data.Vector.Unboxed.Mutable          as VUM
 import qualified Geometry.Algorithms.Clipping as Clipping
 import           Geometry.Core
-import           Util
 import           Numerics.Interpolation
+import           Util
 
 import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 
-import           Draw
-import           Geometry.Algorithms.Sampling
-import Debug.Trace
-import           Geometry.Core                as G
-import           Graphics.Rendering.Cairo     as C
-import qualified Data.Vector                  as V
-import qualified System.Random.MWC            as MWC
+import Draw
+import Graphics.Rendering.Cairo as C
 
 -- $setup
 -- >>> import           Draw
@@ -716,38 +710,3 @@ stippleStep omega width height f points = runST $ do
         centroids
         weights
         points
-
-
-
-testi :: a -> IO ()
-testi _ = haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/stipple.png" width height $ do
-    setLineWidth 1
-    let margin = 10
-        bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-        stippleSteps = 10
-        omega = 1.8
-        f x y = let center = boundingBoxCenter bb
-                    p = Vec2 (fromIntegral x) (fromIntegral y)
-                    r = norm (p -. center)
-                in (sin (r / 10) + 1.1)
-        points' = stipple omega width height f points stippleSteps
-    cairoScope $ do
-        setColor (mathematica97 0)
-        setDash [5,5] 0
-        sketch (boundingBoxPolygon bb)
-        stroke
-    for_ points' $ \p -> do
-        setColor black
-        sketch (Circle p 1)
-        fill
-
-  where
-    numPoints = 2^11
-    seed = [2]
-    (width, height) = (300::Int, 200::Int)
-    points = runST $ do
-        gen <- MWC.initialize (V.fromList (map fromIntegral seed))
-        let margin = 20
-            bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-        uniformlyDistributedPoints gen bb numPoints
-    delaunay = delaunayTriangulation points

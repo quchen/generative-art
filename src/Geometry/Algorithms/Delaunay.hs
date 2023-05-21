@@ -66,9 +66,10 @@ module Geometry.Algorithms.Delaunay (
     , clipEdgesToBox
     , clipCellsToBox
     , VoronoiPolygon(..)
+    , stipple
 ) where
 
 
 
-import Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
+import           Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
 import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
