@@ -90,7 +90,7 @@ data Triangulation = Triangulation
     --         setDash [5,5] 0
     --         sketch (boundingBoxPolygon bb)
     --         stroke
-    --     for_ (zip [0..] (_edges delaunay)) $ \(i, edge) -> do
+    --     V.iforM_ (_edges delaunay) $ \i edge -> do
     --         setColor (mathematica97 i)
     --         sketch edge
     --         stroke
@@ -147,7 +147,7 @@ data Triangulation = Triangulation
     --         setDash [5,5] 0
     --         sketch (boundingBoxPolygon bb)
     --         stroke
-    --     for_ (zip [1..] (clipEdgesToBox bb (_voronoiEdges delaunay))) $ \(i, edge) -> do
+    --     V.iforM_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \i edge -> do
     --         setColor (mathematica97 i)
     --         sketch edge
     --         stroke

@@ -27,6 +27,7 @@ import           Geometry.Core
 
 
 
+-- ^ Squared distance between two points
 distSquare :: Vec2 -> Vec2 -> Double
 distSquare x y = normSquare (x -. y)
 
@@ -87,8 +88,12 @@ circumcenter a b c = a +. circumdelta a b c
 -- | Check whether a point is inside the circumcircle of a triangle. The triangle
 -- must be oriented in counter-clockwise orientation in screen coordinates.
 --
--- >>> abc = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
--- >>> inCircle abc (Vec2 100 100)
+-- >>> abc@(a,b,c) = (Vec2 0 0, Vec2 0 100, Vec2 100 0)
+--
+-- >>> orientation a b c
+-- Counterclockwise
+--
+-- >>> inCircle abc (Vec2 25 25)
 -- True
 --
 -- >>> inCircle abc (Vec2 150 150)
