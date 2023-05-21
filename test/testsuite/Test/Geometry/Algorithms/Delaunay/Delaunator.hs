@@ -275,7 +275,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
                 let edges = _edges delaunay
                     numEdges = length edges
                 setLineWidth 1
-                cairoScope $ for_ (zip [0..] edges) $ \(i, edge) -> do
+                cairoScope $ V.iforM_ edges $ \i edge -> do
                     setColor (mako (lerpID (0, numEdges) (0,1) i))
                     sketch edge
                     stroke
@@ -296,7 +296,7 @@ test_visual_delaunay_voronoi = testGroup ("Delaunay+Voronoi for " ++ show n ++ "
             setDash [5,5] 0
             sketch (boundingBoxPolygon clipBB)
             stroke
-        cairoScope $ for_ (zip [0..] voronoiEdges) $ \(i, edge) -> do
+        cairoScope $ V.iforM_ voronoiEdges $ \i edge -> do
             cairoScope $ do
                 setColor (mathematica97 i)
                 sketch edge

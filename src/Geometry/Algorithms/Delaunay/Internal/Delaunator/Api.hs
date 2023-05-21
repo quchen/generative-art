@@ -74,7 +74,7 @@ data Triangulation = Triangulation
     -- :}
     -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/triangles.svg
 
-    , _edges :: [Line]
+    , _edges :: Vector Line
     -- ^ Each (undirected) edge of the Delaunay triangulation.
     --
     -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/edges.svg>>
@@ -127,7 +127,7 @@ data Triangulation = Triangulation
     -- :}
     -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_corners.svg
 
-    , _voronoiEdges :: [Either Line Ray]
+    , _voronoiEdges :: Vector (Either Line Ray)
     -- ^ Each edge of the Voronoi diagram. The boundary edges extend to
     -- infinity, and are provided as 'Ray's.
     --
@@ -314,12 +314,12 @@ mapChunksOf3 f vec = V.create $ do
         VM.write result i (f x y z)
     pure result
 
-edges :: Vector Vec2 -> D.TriangulationRaw -> [Line]
+edges :: Vector Vec2 -> D.TriangulationRaw -> Vector Line
 edges points triangulation = do
     let triangleIxs = D._triangles triangulation
         halfedges = D._halfedges triangulation
         numHalfedges = V.length halfedges
-    e <- [0..numHalfedges - 1]
+    e <- V.enumFromN 0 numHalfedges
 
     -- We arbitrarily select the larger of the two edges here. Note that this also
     -- covers the pair-less case, in which the opposite halfedge has index -1.
@@ -337,15 +337,12 @@ convexHullViaDelaunay points triangulation =
 triangleOfEdge :: Int -> Int
 triangleOfEdge e = div e 3
 
-voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> Vector ExtRays -> [Either Line Ray]
+voronoiEdges :: Vector Vec2 -> D.TriangulationRaw -> Vector ExtRays -> Vector (Either Line Ray)
 voronoiEdges circumcenters triangulation extRays = do
     let halfedges = D._halfedges triangulation
         numHalfedges = V.length halfedges
 
-    -- guard (e < e')
-    --     -- Note: halfedges!e can be -1 (if there is no partner edge).
-    --     -- This is implicitly handled by the inequality here as well.
-    e <- [0..numHalfedges-1]
+    e <- V.enumFromN 0 numHalfedges
     let e' = halfedges!e
         pStart = circumcenters ! triangleOfEdge e
     if
@@ -354,11 +351,11 @@ voronoiEdges circumcenters triangulation extRays = do
                 -- I don’t know why it’s outDir and not inDir, but I’m quite happy
                 -- it’s consistent in my tests. I would have expected more random
                 -- behavior. Lucky me!
-            in [Right (Ray pStart outDir)]
+            in pure (Right (Ray pStart outDir))
         | e < e' ->
             let pEnd = circumcenters ! triangleOfEdge e'
-            in [Left (Line pStart pEnd)]
-        | otherwise -> []
+            in pure (Left (Line pStart pEnd))
+        | otherwise -> mempty
 
 -- | All edges around a point. The point is specified by an incoming edge.
 edgesAroundPoint
@@ -566,18 +563,14 @@ clipRay bb ray = Clipping.cohenSutherland bb (comicallyLengthen bb ray)
 clipEdgesToBox
     :: HasBoundingBox boundingBox
     => boundingBox
-    -> [Either Line Ray]
-    -> [Line]
+    -> Vector (Either Line Ray)
+    -> Vector Line
 clipEdgesToBox bb' segments = do
     let bb = boundingBox bb'
     segment <- segments
-    case segment of
-        Left line -> case Clipping.cohenSutherland bb line of
-            Just line' -> [line']
-            Nothing -> []
-        Right ray -> case clipRay bb ray of
-            Just line -> [line]
-            Nothing -> []
+    maybe mempty pure $ case segment of
+        Left line -> Clipping.cohenSutherland bb line
+        Right ray -> clipRay bb ray
 
 -- | Cut off all infinite 'VoronoiCell's with the provided 'BoundingBox'. Convenient to take
 -- the result of '_voronoiCells' and clip it to a rectangular viewport.
