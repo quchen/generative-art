@@ -7,5 +7,8 @@ haddock : doctest
 doctest :
 	stack test generative-art:doctest --fast
 
+testall :
+	stack test generative-art:testsuite generative-art:doctest --fast
+
 watchtest :
 	ghcid --command='stack ghci generative-art:lib generative-art:testsuite --main-is generative-art:testsuite' --test='test "/$(TEST)/"' --warnings --no-title
