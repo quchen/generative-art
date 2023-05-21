@@ -6,11 +6,13 @@ module Geometry.Algorithms.Sampling (
     -- * Other distributions
     , uniformlyDistributedPoints
     , gaussianDistributedPoints
+    , rejection
 ) where
 
 
 
 import           Control.Applicative
+import           Data.Function
 import           Control.Monad.Primitive
 import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
@@ -21,19 +23,33 @@ import Geometry
 import Geometry.Algorithms.Sampling.PoissonDisc
 
 
+-- $setup
+-- >>> import qualified System.Random.MWC         as MWC
+-- >>> import           Graphics.Rendering.Cairo
+-- >>> import           Draw
+-- >>> import           Numerics.Functions
+-- >>> import           Control.Monad.ST
 
--- | @'uniformlyDistributedPoints' gen width height count@ generates @count@
--- random points within a rectangle of @width@ x @height@.
+
+
+-- | Generate uniformly distributed points.
 --
--- Create 100 points in a 64*64 square:
+-- <<docs/haddock/Geometry/Algorithms/Sampling/uniform.svg>>
 --
--- @
--- points :: 'Vector' 'Vec2'
--- points = 'Control.Monad.ST.runST' $ do
---     gen <- 'create'
---     let region = boundingBox [zero, Vec2 64 64]
---     'uniformlyDistributedPoints' gen region 100
--- @
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ do
+--     let numPoints = 1000
+--         bb = boundingBox [zero, Vec2 300 300]
+--         points = runST $ do
+--             gen <- MWC.create
+--             uniformlyDistributedPoints gen bb numPoints
+--     V.iforM_ points $ \i p -> do
+--         setColor (mathematica97 i)
+--         sketch (Circle p 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/uniform.svg
 uniformlyDistributedPoints
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
@@ -45,22 +61,28 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
     BoundingBox (Vec2 xMin yMin) (Vec2 xMax yMax) = boundingBox bb
     randomPoint = liftA2 Vec2 (uniformR (xMin, xMax) gen) (uniformR (yMin, yMax) gen)
 
--- | @'gaussianDistributedPoints' gen mu sigma (width,height) count@
--- generates @count@ normal distributed random points within a rectangle of
--- @width@ \(\times\) @height@, with the given standard deviations.
+-- | Generate Gaussian/normal distributed points.
 --
--- Note: This is a rejection algorithm. If you choose the standard deviation much
--- higher than the height or width, performance will deteriorate as more and more
--- points are rejected.
+-- Note: This is a rejection algorithm which discards samples outside of the
+-- 'BoundingBox'. If you choose the covariance much larger than the height or
+-- width, performance will deteriorate as more and more points are rejected.
 --
--- Create 100 Gaussian points in a 64*64 square with standard deviation \(\sigma=10\):
+-- <<docs/haddock/Geometry/Algorithms/Sampling/gaussian.svg>>
 --
--- @
--- points :: 'Vector' 'Vec2'
--- points = 'Control.Monad.ST.runST' $ do
---     gen <- 'create'
---     'uniformlyDistributedPoints' gen ('Vec2' 0 0, 'Vec2' 64 64) ('Mat2' 10 0 0 10) 100
--- @
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ do
+--     let numPoints = 1000
+--         bb = boundingBox [zero, Vec2 300 300]
+--         points = runST $ do
+--             gen <- MWC.create
+--             gaussianDistributedPoints gen bb (30 *. mempty) numPoints
+--     V.iforM_ points $ \i p -> do
+--         setColor (mathematica97 i)
+--         sketch (Circle p 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/gaussian.svg
 gaussianDistributedPoints
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
@@ -79,3 +101,47 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
         if vec `insideBoundingBox` bb
             then pure vec
             else randomPoint
+
+-- | Sample a distribution via rejection sampling: pick a random coordinate, check
+-- whether the distribution’s value exceeds that value (accept the sample) or
+-- retry.
+--
+-- The distribution does not need to be normalized, but its values should be
+-- reasonably close to 1 for part of the domain, or the algorithm will take a long
+-- time to sample the points.
+--
+-- <<docs/haddock/Geometry/Algorithms/Sampling/rejection.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ do
+--     let numPoints = 1000
+--         bb = boundingBox [zero, Vec2 300 300]
+--         distribution p = let r = norm (p -. Vec2 150 150) in gaussianFalloff 75 20 r
+--         points = runST $ do
+--             gen <- MWC.create
+--             rejection gen bb distribution numPoints
+--     V.iforM_ points $ \i p -> do
+--         setColor (mathematica97 i)
+--         sketch (Circle p 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/rejection.svg
+rejection
+    :: (PrimMonad m, HasBoundingBox boundingBox)
+    => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -> boundingBox       -- ^ Area to sample in
+    -> (Vec2 -> Double)  -- ^ Distribution \(w(\mathbf p) \in [0\ldots 1]\).
+    -> Int               -- ^ Number of points
+    -> m (Vector Vec2)
+rejection gen bb distribution numPoints = V.generateM numPoints $ \_ -> sampleSinglePoint
+  where
+    sampleSinglePoint = fix $ \loop -> do
+        p <- uniformRM (bbMin, bbMax) gen
+        let pVal = distribution p
+        threshold <- uniformRM (0,1) gen
+        if threshold < pVal
+            then pure p
+            else loop
+
+    BoundingBox bbMin bbMax = boundingBox bb
