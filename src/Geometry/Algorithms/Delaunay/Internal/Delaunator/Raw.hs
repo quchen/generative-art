@@ -563,84 +563,91 @@ triangulateMut points = do
             -- // skip seed triangle points
             if isNearDuplicate || isInSeedTriangle
                 then pure () -- continue
-                else do {
+                else do
 
-            -- // find a visible edge on the convex hull using edge hash
-            ; (e0, walk_back) <- hull_find_visible_edge hull p points
+                    -- // find a visible edge on the convex hull using edge hash
+                    (e0, walk_back) <- hull_find_visible_edge hull p points
 
-            ; if e0 == tEMPTY
-                then pure () -- // likely a near-duplicate point; skip it
-                else do {
-
-            ; eRef <- newSTRef e0
-            -- // add the first triangle from the point
-            ; do
-                e <- readSTRef eRef
-                t <- do
-                    hull_next_e <- VM.read (_next hull) e
-                    hull_tri_e <- VM.read (_tri hull) e
-                    triangulation_add_triangle tgl e i hull_next_e tEMPTY tEMPTY hull_tri_e
-
-                -- // recursively flip triangles from the point until they satisfy the Delaunay condition
-                VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
-                VM.write (_tri hull) e t -- // keep track of boundary triangles on the hull
-
-            -- // walk forward through the hull, adding more triangles and flipping recursively
-            ; nRef <- do
-                e <- readSTRef eRef
-                hull_next_e <- VM.read (_next hull) e
-                newSTRef hull_next_e
-            ; do
-                fix $ \loop -> do
-                    n <- readSTRef nRef
-                    q <- VM.read (_next hull) n
-                    if orientation p (points!n) (points!q) /= Clockwise -- Rust source: <=0, equivalent to degenerate or counterclockwise
-                        then pure () -- break
-                        else do
-                            hull_tri_i <- VM.read (_tri hull) i
-                            hull_tri_n <- VM.read (_tri hull) n
-                            t <- triangulation_add_triangle tgl n i q hull_tri_i tEMPTY hull_tri_n
-                            VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
-                            VM.write (_next hull) n tEMPTY -- // mark as removed
-                            writeSTRef nRef q
-                            loop
-
-            -- // walk backward from the other side, adding more triangles and flipping
-            ; when walk_back $ do
-                fix $ \loop -> do
-                    e <- readSTRef eRef
-                    q <- VM.read (_prev hull) e
-                    if orientation p (points!q) (points!e) /= Clockwise -- Rust source: <=0, equivalent to degenerate or counterclockwise
-                        then pure () -- break
-                        else do
-                            hull_tri_e <- VM.read (_tri hull) e
-                            hull_tri_q <- VM.read (_tri hull) q
-                            t <- triangulation_add_triangle tgl q i e tEMPTY hull_tri_e hull_tri_q
-                            _ <- triangulation_legalize tgl (t+2) points hull
-                            VM.write (_tri hull) q t
-                            VM.write (_next hull) e tEMPTY -- // mark as removed
-                            writeSTRef eRef q
-                            loop
-
-            ; do
-                -- // update the hull indices
-                e <- readSTRef eRef
-                n <- readSTRef nRef
-                VM.write (_prev hull) i e
-                VM.write (_next hull) i n
-                VM.write (_prev hull) n i
-                VM.write (_next hull) e i
-                writeSTRef (_start hull) e
-
-                -- // save the two new edges in the hash table
-                hull_hash_edge hull p i
-                hull_hash_edge hull (points!e) e
-            }}
-
-        -- // expose hull as a vector of point indices
-        -- This is done in 'freezeHull' outside of this function.
+                    if e0 == tEMPTY
+                        then pure () -- // likely a near-duplicate point; skip it
+                        else addPoint hull tgl e0 walk_back i p
 
         pure (tgl, hull)
+
+    addPoint
+        :: HullST s
+        -> TriangulationST s
+        -> Int  -- ^ Visible edge from p
+        -> Bool -- ^ walk_back
+        -> Int  -- ^ Index of p
+        -> Vec2 -- ^ Coordinates of p
+        -> ST s ()
+    addPoint hull tgl e0 walk_back i p = do
+
+        eRef <- newSTRef e0
+        -- // add the first triangle from the point
+        do
+            e <- readSTRef eRef
+            t <- do
+                hull_next_e <- VM.read (_next hull) e
+                hull_tri_e <- VM.read (_tri hull) e
+                triangulation_add_triangle tgl e i hull_next_e tEMPTY tEMPTY hull_tri_e
+
+            -- // recursively flip triangles from the point until they satisfy the Delaunay condition
+            VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
+            VM.write (_tri hull) e t -- // keep track of boundary triangles on the hull
+
+        -- // walk forward through the hull, adding more triangles and flipping recursively
+        nRef <- do
+            e <- readSTRef eRef
+            hull_next_e <- VM.read (_next hull) e
+            newSTRef hull_next_e
+        fix $ \loop -> do
+            n <- readSTRef nRef
+            q <- VM.read (_next hull) n
+            if orientation p (points!n) (points!q) /= Clockwise -- Rust source: <=0, equivalent to degenerate-or-counterclockwise
+                then pure () -- break
+                else do
+                    hull_tri_i <- VM.read (_tri hull) i
+                    hull_tri_n <- VM.read (_tri hull) n
+                    t <- triangulation_add_triangle tgl n i q hull_tri_i tEMPTY hull_tri_n
+                    VM.write (_tri hull) i =<< triangulation_legalize tgl (t+2) points hull
+                    VM.write (_next hull) n tEMPTY -- // mark as removed
+                    writeSTRef nRef q
+                    loop
+
+        -- // walk backward from the other side, adding more triangles and flipping
+        when walk_back $ do
+            fix $ \loop -> do
+                e <- readSTRef eRef
+                q <- VM.read (_prev hull) e
+                if orientation p (points!q) (points!e) /= Clockwise -- Rust source: <=0, equivalent to degenerate-or-counterclockwise
+                    then pure () -- break
+                    else do
+                        hull_tri_e <- VM.read (_tri hull) e
+                        hull_tri_q <- VM.read (_tri hull) q
+                        t <- triangulation_add_triangle tgl q i e tEMPTY hull_tri_e hull_tri_q
+                        _ <- triangulation_legalize tgl (t+2) points hull
+                        VM.write (_tri hull) q t
+                        VM.write (_next hull) e tEMPTY -- // mark as removed
+                        writeSTRef eRef q
+                        loop
+
+        -- // update the hull indices
+        e <- readSTRef eRef
+        n <- readSTRef nRef
+        VM.write (_prev hull) i e
+        VM.write (_next hull) i n
+        VM.write (_prev hull) n i
+        VM.write (_next hull) e i
+        writeSTRef (_start hull) e
+
+        -- // expose hull as a vector of point indices
+        -- ==> This is done in 'freezeHull' outside of this function.
+
+        -- // save the two new edges in the hash table
+        hull_hash_edge hull p i
+        hull_hash_edge hull (points!e) e
 
 -- | Create the list of hull points based on the previously calculated hull data.
 freezeHull :: HullST s -> ST s (Vector Int)
