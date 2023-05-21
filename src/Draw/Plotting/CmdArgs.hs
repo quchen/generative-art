@@ -12,6 +12,7 @@ import Control.Monad
 import Data.Foldable
 import Geometry.Core
 import Options.Applicative
+import Draw.Plotting.PaperSize
 import Options.Applicative.Types
 
 
@@ -41,23 +42,23 @@ canvasP = f <$> paperSizeP <*> orientationP <*> marginP
 
 paperSizeP :: Parser (Double, Double)
 paperSizeP = asum
-    [ flag' (paper_a1_long, paper_a1_short) $ mconcat
+    [ flag' (paper_a1_long_mm, paper_a1_short_mm) $ mconcat
         [ long "a1"
         , help "DIN A1 (841 mm × 594 mm)"
         ]
-    , flag' (paper_a2_long, paper_a2_short) $ mconcat
+    , flag' (paper_a2_long_mm, paper_a2_short_mm) $ mconcat
         [ long "a2"
         , help "DIN A2 (594 mm × 420 mm)"
         ]
-    , flag' (paper_a3_long, paper_a3_short) $ mconcat
+    , flag' (paper_a3_long_mm, paper_a3_short_mm) $ mconcat
         [ long "a3"
         , help "DIN A3 (420 mm × 271 mm)"
         ]
-    , flag' (paper_a4_long, paper_a4_short) $ mconcat
+    , flag' (paper_a4_long_mm, paper_a4_short_mm) $ mconcat
         [ long "a4"
         , help "DIN A4 (271 mm × 210 mm)"
         ]
-    , flag' (paper_a5_long, paper_a5_short) $ mconcat
+    , flag' (paper_a5_long_mm, paper_a5_short_mm) $ mconcat
         [ long "a5"
         , help "DIN A5 (210 mm × 148 mm)"
         ]
@@ -87,27 +88,6 @@ marginP = option auto (mconcat
     , showDefaultWith (\x -> show x <> " mm")
     , help "Ensure this much blank space to the edge"
     ])
-
-paper_a5_short, paper_a5_long :: Double
-paper_a4_short, paper_a4_long :: Double
-paper_a3_short, paper_a3_long :: Double
-paper_a2_short, paper_a2_long :: Double
-paper_a1_short, paper_a1_long :: Double
-
-paper_a5_short = 148
-paper_a5_long = 210
-
-paper_a4_short = paper_a5_long
-paper_a4_long = 297
-
-paper_a3_short = paper_a4_long
-paper_a3_long = 420
-
-paper_a2_short = paper_a3_long
-paper_a2_long = 594
-
-paper_a1_short = paper_a2_long
-paper_a1_long = 841
 
 customSizeReader :: ReadM (Double, Double)
 customSizeReader = do
