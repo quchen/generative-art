@@ -3,17 +3,24 @@ module Test.Geometry.Core (tests) where
 
 
 import Geometry.Core
+import Data.Ord
 
 import Test.TastyAll
 
 
 tests :: TestTree
 tests = testGroup "Core.hs"
-    [ testGroup "Subdividing lines"
+    [ test_pseudoAngle
+    , testGroup "Subdividing lines"
         [ test_subdivideLine
         , test_subdivideLineByLength
         ]
     ]
+
+test_pseudoAngle :: TestTree
+test_pseudoAngle = testProperty "pseudoAngle" $ \(NonZeroVec2 p) (NonZeroVec2 q) ->
+    let atan2Vec (Vec2 x y) = atan2 y x
+    in comparing pseudoAngle p q === comparing atan2Vec p q
 
 test_subdivideLine :: TestTree
 test_subdivideLine = testGroup "subdivideLine"
