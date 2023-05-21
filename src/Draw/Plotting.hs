@@ -93,7 +93,7 @@ instance Semigroup PlottingWriterLog where
 instance Monoid PlottingWriterLog where
     mempty = PlottingWriterLog mempty 0 0 (pure ())
 
-{-# DEPRECATED modify "Use modify'. There’s no reason to lazily update the state." #-}
+{-# WARNING modify "Use modify'. There’s no reason to lazily update the state." #-}
 modify, _don'tReportModifyAsUnused :: a
 modify = error "Use modify'. There’s no reason to lazily update the state."
 _don'tReportModifyAsUnused = modify
@@ -697,7 +697,7 @@ instance Plotting BoundingBox where
 instance Plotting Line where
     plot (Line a b) = commented "Line" $ do
         current <- gets _penXY
-        let (start, end) = if norm (current -. a) <= norm (current -. b)
+        let (start, end) = if normSquare (current -. a) <= normSquare (current -. b)
                 then (a,b)
                 else (b,a)
         repositionTo start
@@ -712,8 +712,9 @@ instance Plotting Circle where
         -- to the pen position. We only fall back to the naive way if the
         -- circles are very small.
         current <- gets _penXY
-        let distanceCenterCurrent = norm (center -. current) -- Might be infinite if the current point isn’t defined yet!
-            radial = if 0.1 <= distanceCenterCurrent && not (isInfinite distanceCenterCurrent)
+        let distanceCenterCurrent2 = normSquare (center -. current) -- Might be infinite if the current point isn’t defined yet!
+            smartPaintThreshold = 0.1^2
+            radial = if smartPaintThreshold <= distanceCenterCurrent2 && not (isInfinite distanceCenterCurrent2)
                 then radius *. direction (Line center current)
                 else Vec2 radius 0
             start = center +. radial
@@ -737,7 +738,7 @@ instance Foldable f => Plotting (Polyline f) where
         go [] = pure ()
         go points = commented "Polyline" $ do
             current <- gets _penXY
-            let p:ointsToPlot = if norm (current -. head points) < norm (current -. last points)
+            let p:ointsToPlot = if normSquare (current -. head points) < normSquare (current -. last points)
                     then points
                     else reverse points
             repositionTo p
@@ -870,11 +871,11 @@ minimizePenHovering = mergeStep . sortStep (Vec2 0 0) . S.map toVector
     -- Sort by minimal travel between adjacent lines
     sortStep :: Vec2 -> S.Set (Vector Vec2) -> [Vector Vec2]
     sortStep penPos pool =
-        let closestNextLine = minimumOn (\candidate -> norm (V.head candidate -. penPos) `min` norm (V.last candidate -. penPos)) pool
+        let closestNextLine = minimumOn (\candidate -> normSquare (V.head candidate -. penPos) `min` normSquare (V.last candidate -. penPos)) pool
         in case closestNextLine of
             Nothing -> []
             Just l ->
-                let rightWayRound = if norm (V.head l -. penPos) > norm (V.last l -. penPos)
+                let rightWayRound = if normSquare (V.head l -. penPos) > normSquare (V.last l -. penPos)
                         then V.reverse l
                         else l
                     remainingPool = S.delete l pool

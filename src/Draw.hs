@@ -262,10 +262,6 @@ moveToVec (Vec2 x y) = moveTo x y
 lineToVec :: Vec2 -> Render ()
 lineToVec (Vec2 x y) = lineTo x y
 
-lineSketch :: Line -> Render ()
-lineSketch = sketch
-{-# DEPRECATED lineSketch "use `sketch` instead" #-}
-
 -- |
 -- >>> :{
 -- haddockRender "Draw.hs/instance_Sketch_Bezier.svg" 150 100 $ do
@@ -611,14 +607,14 @@ radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = 
     setColor (hsv 0 0 0)
     sequence_ [ sketch (Circle center (fromIntegral r)) >> stroke
               | r <- [100, 200 .. ceiling maxR :: Int] ]
-    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
+    sequence_ [ sketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
               | angle <- init [0, 45 .. 360 :: Int] ]
 
     setColor (hsva 0 0 0 0.5)
     sequence_ [ sketch (Circle center (fromIntegral r)) >> stroke
               | r <- [25, 50 .. ceiling maxR :: Int]
               , mod r 100 /= 0 ]
-    sequence_ [ lineSketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
+    sequence_ [ sketch (angledLine center (deg (fromIntegral angle)) maxR) >> stroke
               | angle <- init [0, 15 .. 360 :: Int]
               , mod angle 45 /= 0 ]
 
