@@ -103,12 +103,12 @@ test_inCircle :: TestTree
 test_inCircle = testGroup "inCircle"
     [ testCase "Inside" $ do
         let p = Vec2 1 1
-            actual = Actual (Delaunator.inCircle screenClockwiseTriangle p)
+            actual = Actual (Delaunator.inCircle screenCounterclockwiseTriangle p)
             expected = Expected True
         assertEqual "Point should be inside" expected actual
     , testCase "Outside" $ do
         let p = Vec2 (-1) (-1)
-            actual = Actual (Delaunator.inCircle screenClockwiseTriangle p)
+            actual = Actual (Delaunator.inCircle screenCounterclockwiseTriangle p)
             expected = Expected False
         assertEqual "Point should be outside" expected actual
     , testVisual "Visual test" 150 150 "out/in_circle" $ \_ -> do
