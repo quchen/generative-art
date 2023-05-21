@@ -27,15 +27,6 @@ import           Geometry.Core
 
 
 
--- | Near-duplicate points (where both @x@ and @y@ only differ within this value)
--- will not be included in the triangulation for robustness.
-epsilon :: Double
-epsilon = 2*ieee_float64_epsilon
-  where
-    -- Got this by printing f64::EPSILON in a Rust repl.it.
-    -- Couldn’t find it in Haskell’s base.
-    ieee_float64_epsilon = 2.2204460492503131e-16
-
 distSquare :: Vec2 -> Vec2 -> Double
 distSquare x y = normSquare (x -. y)
 
@@ -60,6 +51,10 @@ orientation x q r =
         LT -> Counterclockwise
 
 -- | Offset of the circumcenter of the triangle (a,b,c) from a.
+--
+-- >>> (a,b,c) = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+-- >>> circumdelta a b c
+-- Vec2 50.0 50.0
 circumdelta :: Vec2 -> Vec2 -> Vec2 -> Vec2
 circumdelta a b c =
     let Vec2 dx dy = b -. a
@@ -74,23 +69,30 @@ circumdelta a b c =
     in Vec2 x y
 
 -- | Square of the circumradius’ norm of the triangle (a,b,c).
-circumradiusSquare
-    :: Vec2 -- ^ a
-    -> Vec2 -- ^ b
-    -> Vec2 -- ^ c
-    -> Double
+--
+-- >>> (a,b,c) = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+-- >>> circumradiusSquare a b c
+-- 5000.0
+circumradiusSquare :: Vec2 -> Vec2 -> Vec2 -> Double
 circumradiusSquare a b c = normSquare (circumdelta a b c)
 
 -- | Coordinate of the circumcenter of the triangle (a,b,c).
-circumcenter
-    :: Vec2 -- ^ a
-    -> Vec2 -- ^ b
-    -> Vec2 -- ^ c
-    -> Vec2
+--
+-- >>> (a,b,c) = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+-- >>> circumcenter a b c
+-- Vec2 50.0 50.0
+circumcenter :: Vec2 -> Vec2 -> Vec2 -> Vec2
 circumcenter a b c = a +. circumdelta a b c
 
 -- | Check whether a point is inside the circumcircle of a triangle. The triangle
 -- must be oriented in counter-clockwise orientation in screen coordinates.
+--
+-- >>> abc = (Vec2 0 0, Vec2 100 0, Vec2 0 100)
+-- >>> inCircle abc (Vec2 100 100)
+-- True
+--
+-- >>> inCircle abc (Vec2 150 150)
+-- False
 inCircle
     :: (Vec2, Vec2, Vec2) -- ^ Triangle’s corners
     -> Vec2 -- ^ Point
@@ -108,12 +110,21 @@ inCircle (a, b, c) p =
 
     in val < 0
 
+-- | Are both axes at most 'epsilon' apart?
 nearlyEquals :: Vec2 -> Vec2 -> Bool
 nearlyEquals a b =
     let Vec2 dx dy = a -. b
     in abs dx <= epsilon && abs dy <= epsilon
+  where
+    epsilon :: Double
+    epsilon = 2*ieee_float64_epsilon
 
--- Represents the area outside of the triangulation. Halfedges on the convex hull
+    ieee_float64_epsilon :: Double
+    -- Got this by printing f64::EPSILON in a Rust repl.it.
+    -- Couldn’t find it in Haskell’s Base.
+    ieee_float64_epsilon = 2.2204460492503131e-16
+
+-- | Represents the area outside of the triangulation. Halfedges on the convex hull
 -- (which don't have an adjacent halfedge) will have this value.
 tEMPTY :: Int
 tEMPTY = -1
@@ -160,6 +171,7 @@ newVectorWithGoodErrorMessages name n = case debugMode of
 
 data DebugMode = Chatty | NonsenseValue | DebuggedAndUnsafe
 
+-- | Initialize a new mutable triangulation struct.
 triangulation_new
     :: HasCallStack
     => Int -- ^ Number of points
@@ -221,7 +233,7 @@ triangulation_legalize tgl !a points hull = do
     --          /||\                  /  \
     --       al/ || \bl            al/    \a
     --        /  ||  \              /      \
-    --       /  a||b  \    flip    /__ar__\
+    --       /  a||b  \    flip    /___ar___\
     --     p0\   ||   /p1   =>   p0\---bl---/p1
     --        \  ||  /              \      /
     --       ar\ || /br             b\    /br
@@ -407,9 +419,6 @@ hull_find_visible_edge hull p points = do
                     else loop
             else pure (e, e == start)
 
-calc_bbox_center :: Vector Vec2 -> Vec2
-calc_bbox_center = boundingBoxCenter
-
 -- | Find the closest point to a reference in the vector that is unequal to the
 -- point itself.
 find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe Int
@@ -430,10 +439,12 @@ find_closest_point points p0 =
             then search d searchIx (searchIx+1)
             else search minDist minIx (searchIx+1)
 
+-- | The seed triangle is the first triangle, located at the center of the input
+-- points. Other triangles will be grown around the seed.
 find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (Int, Int, Int)
 find_seed_triangle points = do
     -- // pick a seed point close to the center
-    let bboxCenter = calc_bbox_center points
+    let bboxCenter = boundingBoxCenter points
     i0 <- find_closest_point points bboxCenter
     let p0 = points!i0
 
@@ -472,7 +483,10 @@ find_seed_triangle points = do
                                            --  counter-clockwise (in screen coordinates).
             | otherwise -> Just (i0, i1, i2)
 
-sortf :: STVector s (Int, Double) -> ST s ()
+-- | Inplace sort of the input by distance.
+--
+-- __Rust source:__ @sortf@
+sortf :: STVector s (a, Double) -> ST s ()
 sortf = VM.sortBy (comparing (\(_, d) -> d))
 
 -- /// Order collinear points by dx (or dy if all x are identical) and return the list as a hull
@@ -507,8 +521,10 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 -- | Triangulate a set of 2D points. Returns the triangulation for the input
 -- points. For the degenerated case when all points are collinear, returns an empty
 -- triangulation where all points are in the hull.
-triangulation_triangulate :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s, HullST s)
-triangulation_triangulate points = do
+--
+-- __Rust source:__ @triangulate@
+triangulateMut :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s, HullST s)
+triangulateMut points = do
     case find_seed_triangle points of
         Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented" -- TODO!
         Just seed_triangle -> triangulate_for_real seed_triangle
@@ -663,7 +679,9 @@ freezeTriangulation tglMut hullMut = do
         , _convexHull = hull
         }
 
+-- | Main result from the raw internal module: a frozen-but-raw triangulation, to
+-- be boxed nicely as vectors of polygons etc.
 triangulate :: HasCallStack => Vector Vec2 -> TriangulationRaw
 triangulate points = runST $ do
-    (tglMut, hullMut) <- triangulation_triangulate points
+    (tglMut, hullMut) <- triangulateMut points
     freezeTriangulation tglMut hullMut
