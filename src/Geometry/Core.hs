@@ -55,6 +55,7 @@ module Geometry.Core (
     , PolygonOrientation(..)
     , polygonOrientation
     , growPolygon
+    , shrinkPolygon
 
     -- ** Circles and ellipses
     , Circle(..)
@@ -107,6 +108,8 @@ module Geometry.Core (
     , boundingBoxCenter
     , boundingBoxIntersection
     , boundingBoxSize
+    , growBoundingBox
+    , shrinkBoundingBox
 
     -- * Matrices
     , Mat2(..)
@@ -718,6 +721,22 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
   where
     BoundingBox lo hi = boundingBox x
     Vec2 deltaX deltaY = hi -. lo
+
+-- | Grow the bounding box by moving all its bounds outwards by a specified amount.
+-- Useful to introduce margins. Negative values shrink instead; 'shrinkBoundingBox'
+-- is a convenience wrapper for this case.
+growBoundingBox
+    :: Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
+    -> BoundingBox
+    -> BoundingBox
+growBoundingBox delta stuff  =
+    let margin = Vec2 delta delta
+        BoundingBox lo hi = boundingBox stuff
+    in boundingBox [lo -. margin, hi +. margin]
+
+-- | Convenience function for 'growBoundingBox' with a negative amount.
+shrinkBoundingBox :: Double -> BoundingBox -> BoundingBox
+shrinkBoundingBox delta = growBoundingBox (-delta)
 
 -- | Anything we can paint has a bounding box. Knowing it is useful to e.g. rescale
 -- the geometry to fit into the canvas or for collision detection.
@@ -1603,6 +1622,10 @@ growPolygon offset polygon =
         earsClippedCorners = adjacentIntersections earsClipped
 
     in Polygon earsClippedCorners
+
+-- | Convenience version of 'growPolygon' for negative deltas.
+shrinkPolygon :: Double -> Polygon -> Polygon
+shrinkPolygon delta = growPolygon (-delta)
 
 rotateListRight1 :: [a] -> [a]
 rotateListRight1 [] = []
