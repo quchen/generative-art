@@ -192,10 +192,9 @@ normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) c
 
 instance Eq Polygon where
     p1 == p2
-      = let Polygon p1Edges@(edge1:_) = p1
-            Polygon p2Edges = p2
-            p2Edges' = rotateUntil (== edge1) p2Edges
-        in p1Edges == p2Edges'
+      = let Polygon p1_normalized = normalizePolygon p1
+            Polygon p2_normalized = normalizePolygon p2
+        in p1_normalized == p2_normalized
 
 -- | Rotate a list until the predicate holds. If it never holds, return the
 -- input list.

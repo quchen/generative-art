@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Test.Arbitrary (
-    Gaussian(..)
+      Gaussian(..)
+    , NonZeroVec2(..)
 ) where
 
 
@@ -18,6 +19,11 @@ import Test.Tasty.QuickCheck
 instance Arbitrary Vec2 where
     arbitrary = Vec2 <$> arbitrary <*> arbitrary
     shrink (Vec2 x y) = [ Vec2 x' y' | (x', y') <- shrink (x, y) ]
+
+newtype NonZeroVec2 = NonZeroVec2 Vec2 deriving (Eq, Ord, Show)
+
+instance Arbitrary NonZeroVec2 where
+    arbitrary = fmap NonZeroVec2 (suchThat arbitrary (/= zero))
 
 instance Arbitrary Angle where
     arbitrary = fmap deg (choose (-360, 720))
