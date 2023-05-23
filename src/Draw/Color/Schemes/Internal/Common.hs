@@ -34,7 +34,7 @@ rgbFF r g b = RGB (fromIntegral r / 255) (fromIntegral g / 255) (fromIntegral b 
 -- query is out of bounds. When picking colors between the scheme’s values,
 -- interpolate between them.
 clamped :: Vector RGB -> Double -> RGB
-clamped = linearColorInterpolation (\nColors ix -> clamp 0 (nColors-1) ix)
+clamped = linearColorInterpolation (\nColors ix -> clamp (0,nColors-1) ix)
 
 -- | Pick a color from a continuous set, starting from the beginning again once
 -- reaching the end. When picking colors between the scheme’s values, interpolate

@@ -59,8 +59,8 @@ createLookupTable2 grid f = LookupTable2 grid (valueTable grid f)
 lookupNearest :: LookupTable2 Double -> Vec2 -> Double
 lookupNearest (LookupTable2 grid@(Grid _ (iMax, jMax)) vec) xy =
     let CIVec2 iCont jCont = toGrid grid xy
-        i = clamp 0 iMax (round iCont)
-        j = clamp 0 jMax (round jCont)
+        i = clamp (0,iMax) (round iCont)
+        j = clamp (0,jMax) (round jCont)
     in vec!i!j
 
 -- | Bilinear lookup in a two-dimensional lookup table. Lookup outside of the
@@ -84,10 +84,10 @@ lookupBilinear (LookupTable2 grid vec) xy =
         lut_iCeil = vec!iCeil
 
         iFloorValue
-            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor!jFloor, lut_iFloor!jCeil) jCont
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iFloor ! jFloor, lut_iFloor ! jCeil) jCont
             | otherwise = lut_iFloor!jFloor
         iCeilValue
-            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil !jFloor, lut_iCeil !jCeil) jCont
+            | jFloor /= jCeil = lerp (fromIntegral jFloor, fromIntegral jCeil) (lut_iCeil ! jFloor, lut_iCeil ! jCeil) jCont
             | otherwise = lut_iCeil!jFloor
 
         result
@@ -167,8 +167,8 @@ toGrid
             -- ^ Continuous coordinate, scaled and clamped to grid dimensions.
             --   Suitable to be rounded to an 'IVec' with 'roundCIVec2'.
 toGrid (Grid (Vec2 xMin yMin, Vec2 xMax yMax) (iMax, jMax)) (Vec2 x y) =
-    let iContinuous = clamp 0 (fromIntegral iMax) (lerp (xMin, xMax) (0, fromIntegral iMax) x)
-        jContinuous = clamp 0 (fromIntegral jMax) (lerp (yMin, yMax) (0, fromIntegral jMax) y)
+    let iContinuous = clamp (0,fromIntegral iMax) (lerp (xMin, xMax) (0, fromIntegral iMax) x)
+        jContinuous = clamp (0,fromIntegral jMax) (lerp (yMin, yMax) (0, fromIntegral jMax) y)
     in CIVec2 iContinuous jContinuous
 
 -- | A raw value table, filled (lazily) by a function applied to the underlying

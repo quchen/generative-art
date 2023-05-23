@@ -22,7 +22,6 @@ dependencies:
     - colour
     - containers
     - data-default-class
-    - data-r-tree
     - deepseq
     - dlist
     - filepath

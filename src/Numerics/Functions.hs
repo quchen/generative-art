@@ -49,7 +49,7 @@ smoothstep
     -> Double
 smoothstep lo hi =
     let smoothstep01 x = x*x*x*(x*(x*6-15)+10)
-    in smoothstep01 . lerp (lo, hi) (0, 1) . clamp lo hi
+    in smoothstep01 . lerp (lo, hi) (0, 1) . clamp (lo,hi)
 
 -- | Smooth bump function: nonzero between -1 and 1, smooth over all of \(\mathbb R\).
 --

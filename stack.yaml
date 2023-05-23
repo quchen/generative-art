@@ -34,9 +34,8 @@ packages:
 
 extra-deps:
     - cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
-    - gtk2hs-buildtools-0.13.8.2@sha256:01c4a6cc3679008bd4caec32b49843acb27a5f48ee2b22484218f097835548f6,5238
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
-    - data-r-tree-0.6.0@sha256:10a25ef70e6779c3bf5128cd45d033482a370ea07e92ab1c82678675de01d870,3668
     - plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
-    - alfred-margaret-1.1.1.0@sha256:aeb2f14726e1ee70e542ecfb2a71eb14abda8303d17932bca149401edd76135b,3095
-resolver: lts-18.19
+    - alfred-margaret-2.1.0.0
+resolver: nightly-2023-05-23
+allow-newer: true
