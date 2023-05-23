@@ -31,7 +31,6 @@ main :: IO ()
 main = do
     let width = 228
         height = 150
-        numPoints = 100
 
         outfileG = "out/postcard-delaunay.g"
         outfilePreview = "out/postcard.svg"
@@ -42,10 +41,9 @@ main = do
 
     points <- do
         gen <- MWC.initialize (V.fromList [])
-        -- ps <- gaussianDistributedPoints gen drawBB (min width height / 8 *. mempty) numPoints
         ps <- poissonDisc gen PoissonDiscParams
             { _poissonShape = drawBB
-            , _poissonRadius = 6
+            , _poissonRadius = 5
             , _poissonK = 10
             }
         let ps' = filter (\p -> norm (boundingBoxCenter drawBB -. p) < 59) ps
