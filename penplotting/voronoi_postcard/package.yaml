@@ -1,0 +1,27 @@
+name:       voronoi-postcard
+version:    0.1.0.0
+github:     quchen/generative-art
+license:    BSD3
+author:
+    - David Luposchainsky
+copyright:
+    - 2023 David Luposchainsky
+
+default-extensions:
+    - LambdaCase
+
+dependencies:
+    - generative-art
+    - base
+    - cairo
+    - containers
+    - mwc-random
+    - optparse-applicative
+    - text
+    - vector
+
+executables:
+    voronoi-postcard:
+        main: Main.hs
+        source-dirs: .
+        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -O]
