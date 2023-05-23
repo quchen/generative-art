@@ -26,15 +26,15 @@ packages:
   original:
     hackage: plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
 - completed:
-    hackage: alfred-margaret-2.1.0.0@sha256:ab229d1785a11e6bc4a28f62a12eb9ea717182b4205a1ebdbec15e946b093715,4821
+    hackage: alfred-margaret-1.1.2.0@sha256:f820b7361df3b208945404c027108ca378c01e8fe78ca8f966270315864343f1,4542
     pantry-tree:
-      sha256: 34f6660cb32aa115dd7197485b3a4fa9373a3a458f549d06bb3299667d436a03
-      size: 1938
+      sha256: b9b9fd6dce6323985f75d296bd20f2a2d0ec4090e5cda6015d59476831fca38e
+      size: 2241
   original:
-    hackage: alfred-margaret-2.1.0.0
+    hackage: alfred-margaret-1.1.2.0
 snapshots:
 - completed:
-    sha256: 9660cccc0fe738ef9e3abd5162d6a31aa4e4763796dbf77c7fdffd57deb7d316
-    size: 632119
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2023/5/23.yaml
-  original: nightly-2023-05-23
+    sha256: dcf4fc28f12d805480ddbe8eb8c370e11db12f0461d0110a4240af27ac88d725
+    size: 650255
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/22.yaml
+  original: lts-20.22
