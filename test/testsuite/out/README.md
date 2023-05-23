@@ -315,23 +315,21 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/convex_hull.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/convex_hull.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/edges.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/edges.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/find_triangle.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/lloyd_relaxation.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/stipple.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/triangles.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/triangles.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/voronoi_cells.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_cells.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/voronoi_corners.svg)
 
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_corners.svg)
-
-![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_edges.svg)
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay/voronoi_edges.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg)
 

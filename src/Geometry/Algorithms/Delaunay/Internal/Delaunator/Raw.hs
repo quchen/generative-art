@@ -13,7 +13,6 @@ module Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw where
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Foldable
 import           Data.Function
 import           Data.Ord
 import           Data.STRef
@@ -424,69 +423,30 @@ hull_find_visible_edge hull p points = do
                     else loop
             else pure (e, e == start)
 
--- | Find the closest point to a reference in the vector that is unequal to the
--- point itself.
-find_closest_point :: HasCallStack => Vector Vec2 -> Vec2 -> Maybe Int
-find_closest_point points p0 =
-    let (minDist, minIx) = search (1/0) 0 0
-    in if isInfinite minDist
-        then Nothing
-        else Just minIx
-  where
-    -- Explicit recursion makes excluding zero-distance points easier than going
-    -- the map/filter/minInxedBy route.
-    search !minDist !minIx !searchIx
-        | searchIx >= V.length points = (minDist, minIx)
-    search !minDist !minIx !searchIx =
-        let p = points!searchIx
-            d = distSquare p p0
-        in if d > 0 && d < minDist
-            then search d searchIx (searchIx+1)
-            else search minDist minIx (searchIx+1)
-
 -- | The seed triangle is the first triangle, located at the center of the input
 -- points. Other triangles will be grown around the seed.
-find_seed_triangle :: HasCallStack => Vector Vec2 -> Maybe (Int, Int, Int)
-find_seed_triangle points = do
-    -- // pick a seed point close to the center
+findSeedTriangle :: HasCallStack => Vector Vec2 -> Maybe (Int, Int, Int)
+findSeedTriangle points
+    -- Make sure there is some initial triangle at all. Fails when the input starts
+    -- with two identical points even though the rest might be legal, too bad for that user.
+    | V.length points < 3 = Nothing
+    | isInfinite (circumradiusSquare (points!0) (points!1) (points!2)) = Nothing
+findSeedTriangle points = Just $
+
+        -- Pick the first point close to the center
     let bboxCenter = boundingBoxCenter points
-    i0 <- find_closest_point points bboxCenter
-    let p0 = points!i0
+        i0 = V.minIndexBy (\p q -> comparing (distSquare bboxCenter) p q) points
+        p0 = points!i0
 
-    -- // find the point closest to the seed
-    i1 <- find_closest_point points p0
-    let p1 = points!i1
+        -- Find a second point close to the first
+        (i1,p1) = V.minimumBy (\(_,p) (_,q) -> comparing (distSquare p0) p q) . V.filter (\(i,_) -> i /= i0) $ V.indexed points
 
-    -- // find the third point which forms the smallest circumcircle with the first two
-    let maybe_i2 = runST $ do
-            ref <- newSTRef Nothing
-            for_ (V.indexed points) $ \(i, p) -> do
-                case i == i0 || i == i1 of
-                    True -> pure () -- continue
-                    False -> do
-                        let r = circumradiusSquare p0 p1 p
-                        m'min <- readSTRef ref
-                        case m'min of
-                            Nothing -> do
-                                writeSTRef ref (Just (i, r))
-                            Just (_i, minRadius') | r < minRadius' -> do
-                                writeSTRef ref (Just (i, r))
-                            _else -> pure ()
-                readSTRef ref
-            result <- readSTRef ref
-            pure $ case result of
-                Just (i, _r) -> Just i
-                Nothing -> Nothing
+        -- Find the third point which forms the smallest circumcircle with the first two
+        (i2,p2) = V.minimumBy (\(_,p) (_,q) -> comparing (circumradiusSquare p0 p1) p q) . V.filter (\(i,_) -> i `notElem` [i0,i1]) . V.indexed $ points
 
-    case maybe_i2 of
-        Nothing -> Nothing
-        Just i2
-            | orientation p0 p1 (points!i2) == Clockwise -> Just (i0, i2, i1)
-                                           --  ^^^^^^^^^
-                                           --  Rust source: > 0, equivalent to clockwise.
-                                           --  In other words: all triangles will be oriented
-                                           --  counter-clockwise (in screen coordinates).
-            | otherwise -> Just (i0, i1, i2)
+    in if orientation p0 p1 p2 == Clockwise
+        then (i0, i2, i1) -- Flip two points to ensure counterclockwise orientation
+        else (i0, i1, i2)
 
 -- | Inplace sort of the input by distance.
 --
@@ -530,7 +490,7 @@ sortf = VM.sortBy (comparing (\(_, d) -> d))
 -- __Rust source:__ @triangulate@
 triangulateMut :: HasCallStack => Vector Vec2 -> ST s (TriangulationST s, HullST s)
 triangulateMut points = do
-    case find_seed_triangle points of
+    case findSeedTriangle points of
         Nothing -> error "Can’t find a seed triangle, and handle_collinear_points is not implemented" -- TODO!
         Just seed_triangle -> triangulate_for_real seed_triangle
   where
