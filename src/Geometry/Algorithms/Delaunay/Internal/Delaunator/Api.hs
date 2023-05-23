@@ -28,7 +28,7 @@ data DelaunayTriangulation = Triangulation
     , _edges                 :: Vector Line
     , _voronoiCorners        :: Vector Vec2
     , _voronoiEdges          :: Vector (Either Line Ray)
-    , _voronoiCells          :: Vector VoronoiCell
+    , _voronoiCells          :: Vector VoronoiPolygon
     , _convexHull            :: Vector Vec2
     , _findClosestInputPoint :: Vec2 -> Int -> Int
     , _raw                   :: D.TriangulationRaw
@@ -195,22 +195,12 @@ bulidInedgesLookup delaunay = V.ifoldl' addToIndex M.empty (D._triangles delauna
             then M.insert endpoint e acc
             else acc
 
--- | A Voronoi cell, consisting of a point and its Voronoi neighbourhood region.
-data VoronoiCell = VoronoiCell
-    { _voronoiCenter :: !Vec2
-    , _voronoiPolygon :: !VoronoiPolygon
-    } deriving (Eq, Ord, Show)
-
-instance NFData VoronoiCell where
-    rnf (VoronoiCell a b) = rnf (a,b)
-
-voronoiCells :: Vector Vec2 -> Vector Vec2 -> M.Map Int Int -> D.TriangulationRaw -> Vector VoronoiCell
+voronoiCells :: Vector Vec2 -> Vector Vec2 -> M.Map Int Int -> D.TriangulationRaw -> Vector VoronoiPolygon
 voronoiCells points circumcenters inedges delaunay =
     let extRays = exteriorRays points delaunay
     in flip V.imap points $ \pIx pCoord ->
         let incoming = inedges M.! pIx
-            polygon = voronoiPolygon circumcenters delaunay extRays pIx incoming
-        in VoronoiCell pCoord polygon
+        in voronoiPolygon circumcenters delaunay extRays pIx incoming
 
 data ExtRays = NoExtRays | ExtRays !Vec2 !Vec2
     deriving (Eq, Ord, Show)

@@ -68,7 +68,6 @@ module Geometry.Algorithms.Delaunay (
     , Api.Ray(..)
     , voronoiEdges
     , Api.VoronoiPolygon(..)
-    , Api.VoronoiCell(..)
     , voronoiCells
     , delaunayHull
     , findClosestInputPoint
@@ -260,7 +259,7 @@ voronoiEdges = Api._voronoiEdges
 --         fill
 -- :}
 -- docs/haddock/Geometry/Algorithms/Delaunay/voronoi_cells.svg
-voronoiCells :: Api.DelaunayTriangulation -> Vector Api.VoronoiCell
+voronoiCells :: Api.DelaunayTriangulation -> Vector Api.VoronoiPolygon
 voronoiCells = Api._voronoiCells
 
 
@@ -395,14 +394,15 @@ lloydRelaxation
     -> Double -- ^ Convergence factor \(\omega\).
     -> vector Vec2
     -> Vector Vec2
-lloydRelaxation bb omega = relax . voronoiCells . delaunayTriangulation
+lloydRelaxation bb omega points = relax . voronoiCells . delaunayTriangulation $ pointsVec
   where
+    pointsVec = toVector points
     newCenter old cell = old +. omega*.(polygonCentroid cell-.old)
 
-    relax :: Vector Api.VoronoiCell -> Vector Vec2
+    relax :: Vector Api.VoronoiPolygon -> Vector Vec2
     relax cells = V.zipWith
-        (\(Api.VoronoiCell center _) polygon -> newCenter center polygon)
-        cells
+        (\center polygon -> newCenter center polygon)
+        pointsVec
         (clipCellsToBox (boundingBox bb) cells)
 
 
@@ -449,9 +449,9 @@ clipEdgesToBox bb' segments = do
 clipCellsToBox
     :: HasBoundingBox boundingBox
     => boundingBox
-    -> Vector Api.VoronoiCell
+    -> Vector Api.VoronoiPolygon
     -> Vector Polygon
-clipCellsToBox bb' = V.map $ \(Api.VoronoiCell _center vPoly) -> case vPoly of
+clipCellsToBox bb' = V.map $ \vPoly -> case vPoly of
     Api.VoronoiFinite polygon -> Clipping.sutherlandHodgman polygon  viewport
     Api.VoronoiInfinite dirIn vertices dirOut ->
         let comicallyLargePolygon = Polygon ([looongIn] ++ vertices ++ [looongOut])
