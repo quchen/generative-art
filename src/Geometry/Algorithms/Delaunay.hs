@@ -114,6 +114,11 @@ import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Api as Api
 
 -- | Create an (abstract) 'Api.DelaunayTriangulation' from a set of points. The
 -- resulting data structure can be queried using various functions in this module.
+--
+-- Some of the accessor results are aligned, e.g. 'delaunayTriangles' and
+-- 'voronoiCorners' have related \(i\)-th entries. Similarly it is possible to
+-- annotate accessor results with arbitrary data by simply mapping over or zipping
+-- them with the data source.
 delaunayTriangulation :: Sequential vector => vector Vec2 -> Api.DelaunayTriangulation
 delaunayTriangulation = Api.delaunayTriangulation . toVector
 
@@ -121,6 +126,9 @@ delaunayTriangulation = Api.delaunayTriangulation . toVector
 
 -- | All Delaunay triangles, ordered roughly from the center of the input points’
 -- bounding box.
+--
+-- __Note:__ The circumcenter of the \(i\)-th triangle is the \(i\)-th entry of
+-- 'voronoiCorners'. This can be used to 'V.zip' them.
 --
 -- <<docs/haddock/Geometry/Algorithms/Delaunay/triangles.svg>>
 --
@@ -173,9 +181,8 @@ delaunayEdges = Api._edges
 
 -- | Corners of the Voronoi cells, useful for painting them in isolation.
 --
--- The entries are aligned with 'delaunayTriangles', since the Voronoi corners are
--- the circumcenters of the Delaunay triangles. You can group them correctly with
--- 'V.zip' to paint the triangles along with their circumcenters.
+-- __Note:__ The \(i\)-th corner is the circumcenter of the \(i\)-th entry of
+-- 'delaunayTriangles'. This can be used to 'V.zip' them.
 --
 -- <<docs/haddock/Geometry/Algorithms/Delaunay/voronoi_corners.svg>>
 --
@@ -239,6 +246,9 @@ voronoiEdges = Api._voronoiEdges
 --
 -- 'clipCellsToBox' conveniently handles the case of constraining
 -- this to a rectangular viewport.
+--
+-- __Note:__ The cell of the \(i\)-th input point is the \(i\)-th entry of
+-- 'voronoiCells'. This can be used to 'V.zip' them.
 --
 -- <<docs/haddock/Geometry/Algorithms/Delaunay/voronoi_cells.svg>>
 --
@@ -345,12 +355,12 @@ delaunayHull = Api._convexHull
 findClosestInputPoint
     :: Api.DelaunayTriangulation
     -> Vec2 -- ^ Needle
-    -> Int
-        -- ^ Start searching at the \(i\)-th input point. When doing many lookups
-        -- for 'Vec2's close together, starting at the index of the previous find
-        -- yields a significant speedup, because most of the time we’re already
-        -- there.
-    -> Int -- ^ Input
+    -> Int  -- ^ Start searching at the \(i\)-th input point of
+            --   'delaunayTriangulate'. When doing many lookups for 'Vec2's close
+            --   together, starting at the index of the previous find yields a
+            --   significant speedup, because most of the time we’re already
+            --   there.
+    -> Int  -- ^ Input
 findClosestInputPoint = Api._findClosestInputPoint
 
 
@@ -416,12 +426,16 @@ comicallyLengthen bb (Api.Ray start dir) =
         end = start +. (max 1 boundingBoxDiagonalNormSquare / max 1 dirNormSquare) *. dir
     in Line start end
 
+
+
 -- | Convert a 'Ray' to a 'Line', cutting it off when it hits the 'BoundingBox'.
 clipRay
     :: BoundingBox
     -> Api.Ray
     -> Maybe Line -- ^ Nothing if the ray does not hit the bounding box.
 clipRay bb ray = Clipping.cohenSutherland bb (comicallyLengthen bb ray)
+
+
 
 -- | Cut off all 'Ray's to end at the provided 'BoundingBox'. Convenient to take
 -- the result of '_voronoiEdges' and clip it to a rectangular viewport.
@@ -436,6 +450,8 @@ clipEdgesToBox bb' segments = do
     maybe mempty pure $ case segment of
         Left line -> Clipping.cohenSutherland bb line
         Right ray -> clipRay bb ray
+
+
 
 -- | Cut off all infinite 'VoronoiCell's with the provided 'BoundingBox'. Convenient to take
 -- the result of '_voronoiCells' and clip it to a rectangular viewport.
