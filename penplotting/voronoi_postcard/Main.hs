@@ -61,9 +61,9 @@ main = do
         plottingSettings = def { _zTravelHeight = 5 }
         plotResult = runPlot plottingSettings $ do
             -- let polylines = optimize ()
-            let hullPoints = let Polygon ps = _convexHull delaunay in S.fromList ps
+            let hullPoints = S.fromList . toList . delaunayHull $ delaunay
                 paintUs = do
-                    line@(Line start end) <- _edges delaunay
+                    line@(Line start end) <- delaunayEdges delaunay
                     guard (all (\p -> S.notMember p hullPoints) [start, end] || True)
                     pure line
             for_ (optimize paintUs) plot
