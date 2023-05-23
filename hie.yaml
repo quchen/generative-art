@@ -7,5 +7,5 @@ cradle:
     - path: ./test/doctest
       component: generative-art:test:doctest
 
-    # - path: ./path/to/main/hs
-    #   component: name-of-the-package
+    - path: ./penplotting/voronoi_postcard
+      component: voronoi-postcard
