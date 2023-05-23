@@ -12,3 +12,6 @@ testall :
 
 watchtest :
 	ghcid --command='stack ghci generative-art:lib generative-art:testsuite --main-is generative-art:testsuite' --test='test "/$(TEST)/"' --warnings --no-title
+
+artwork-watch :
+	ghcid --command='stack ghci generative-art:lib voronoi-postcard:exe:voronoi-postcard --main-is=voronoi-postcard:exe:voronoi-postcard' --test=main --no-title --warnings
