@@ -616,14 +616,20 @@ data TinkeringInternals = TinkeringInternals
 writeGCodeFile :: FilePath -> RunPlotResult -> IO ()
 writeGCodeFile file = TL.writeFile file . renderGCode . _plotGCode
 
-renderPreview :: FilePath -> RunPlotResult -> IO ()
-renderPreview file result = do
+renderPreview
+    :: FilePath
+    -> Double -- ^ Output resolution in px/mm
+    -> RunPlotResult
+    -> IO ()
+renderPreview file pxPerMm result = do
     let bb = _totalBoundingBox result
-        (w, h) = boundingBoxSize bb
+        (w, h) = let (w',h') = boundingBoxSize bb
+                 in (pxPerMm*w', pxPerMm*h')
         trafo = transformBoundingBox bb (boundingBox [zero, Vec2 w h]) def
     D.render file (round w) (round h) $ do
         D.coordinateSystem (D.MathStandard_ZeroBottomLeft_XRight_YUp h)
         C.transform (D.toCairoMatrix trafo)
+        C.setLineWidth 1
         _plotPreview result
 
 -- | Run the 'Plot' to easily generate the resulting GCode file. For convenience, this also generates a Cairo-based preview of the geometry.
@@ -865,7 +871,10 @@ minimizePenHoveringBy settings = sortStep zero . mergeStep
 -- | Sort a collection of polylines so that between each line pair, we only do the shortest move.
 -- This is a local solution to what would be TSP if solved globally. Better than nothing I guess,
 -- although this algorithm here is \(\mathcal O(n^2)\).
-minimizePenHovering :: Sequential vector => S.Set (vector Vec2) -> [Vector Vec2]
+minimizePenHovering
+    :: Sequential vector
+    => S.Set (vector Vec2) -- ^ Elements of this set will be sorted in optimized order. The elements themselves remain untouched.
+    -> [Vector Vec2]
 minimizePenHovering = mergeStep . sortStep (Vec2 0 0) . S.map toVector
   where
     -- Sort by minimal travel between adjacent lines
