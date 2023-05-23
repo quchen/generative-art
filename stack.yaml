@@ -1,37 +1,6 @@
 flags: {}
 packages:
     - .
-
-    - app/voronoi_interactive
-
-    - penplotting/ApollonianGasket
-    - penplotting/Bezier
-    - penplotting/circuits
-    - penplotting/DelaunayVoronoi
-    - penplotting/dendrites
-    - penplotting/FlowLines
-    - penplotting/Hatched
-    - penplotting/Kilometer
-    - penplotting/PenChangeCalibration
-    - penplotting/PoissonDisc
-    - penplotting/Pressure
-    - penplotting/SvgSource
-    - penplotting/Truchet
-    - penplotting/Typography
-    - penplotting/Voronoi
-
-    - showcases/circuits
-    - showcases/haskell_logo_billard
-    - showcases/haskell_logo_shattered
-    - showcases/haskell_logo_voronoi
-    - showcases/munihac_2022_logo
-    - showcases/particle_shooter
-    - showcases/pulsar
-    - showcases/truchet
-    - showcases/truchetti
-    - showcases/vector_fields
-    - showcases/voronoi_3d
-
 extra-deps:
     - cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
