@@ -22,9 +22,8 @@ tests = testGroup "Delaunator"
     [ test_orientation
     , test_circum_x
     , test_inCircle
-    , test_find_closest_point
     , test_triangulation_new
-    , test_find_seed_triangle
+    , test_findSeedTriangle
     , test_triangulate
     ]
 
@@ -112,37 +111,19 @@ test_inCircle = testGroup "inCircle"
                     else sketch (Cross point 3) >>  setColor (mathematica97 3) >> stroke
     ]
 
-test_find_closest_point :: TestTree
-test_find_closest_point = testGroup "Find closest point"
-    [ testCase "Points on x axis" $ do
-        let index = 10
-            points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
-            p0 = points V.! index +. Vec2 0 10
-            actual = Actual (Delaunator.find_closest_point points p0)
-            expected = Expected (Just index)
-        assertEqual "" expected actual
-    , testCase "Needle’s index is not returned if points match exactly" $ do
-        let index = 10
-            points = V.fromList [Vec2 (fromIntegral x) 0 | x <- [-10, -9 .. 10 :: Int]]
-            p0 = points V.! index
-
-            actual = Delaunator.find_closest_point points p0
-        assertBool "Expecting index not equal to the needle’s" (actual /= Just index)
-    ]
-
 test_triangulation_new :: TestTree
 test_triangulation_new = testCase
     "triangulation_new does not crash"
     (Delaunator.triangulation_new 10 `seq` pure ())
 
-test_find_seed_triangle :: TestTree
-test_find_seed_triangle = testGroup "Find seed triangle"
+test_findSeedTriangle :: TestTree
+test_findSeedTriangle = testGroup "Find seed triangle"
     [ testCase "Smoke test" $ do
-        let actual = Delaunator.find_seed_triangle points
+        let actual = Delaunator.findSeedTriangle points
             points = V.fromList niceTestTriangle
         actual `deepseq` pure ()
     , testCase "All points are distinct" $ do
-        let firstTriangle = Delaunator.find_seed_triangle points
+        let firstTriangle = Delaunator.findSeedTriangle points
             points = V.fromList niceTestTriangle
         assertValidTriangle firstTriangle
     , testCase "Seed triangle of a point cloud" $ do
@@ -150,7 +131,7 @@ test_find_seed_triangle = testGroup "Find seed triangle"
                 gen <- MWC.initialize (V.fromList [152])
                 ps <- replicateM 100 (MWC.uniformRM (Vec2 0 0, Vec2 1000 1000) gen)
                 pure (V.fromList ps)
-            firstTriangle = Delaunator.find_seed_triangle points
+            firstTriangle = Delaunator.findSeedTriangle points
         assertValidTriangle firstTriangle
     ]
   where

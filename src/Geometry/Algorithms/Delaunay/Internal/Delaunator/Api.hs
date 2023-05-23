@@ -6,12 +6,10 @@ module Geometry.Algorithms.Delaunay.Internal.Delaunator.Api where
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Foldable
 import qualified Data.Map                     as M
 import           Data.Vector                  (Vector, (!))
 import qualified Data.Vector                  as V
 import qualified Data.Vector.Mutable          as VM
-import qualified Geometry.Algorithms.Clipping as Clipping
 import           Geometry.Core
 import           Numerics.Interpolation
 import           Util
@@ -21,243 +19,23 @@ import qualified Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw as D
 import Draw
 import Graphics.Rendering.Cairo as C
 
--- $setup
--- >>> import           Draw
--- >>> import           Geometry.Algorithms.Sampling
--- >>> import           Geometry.Core                as G
--- >>> import           Graphics.Rendering.Cairo     as C
--- >>> import qualified Data.Vector                  as V
--- >>> import qualified System.Random.MWC            as MWC
--- >>>
--- >>> :{
--- >>> numPoints = 2^7
--- >>> seed = [2]
--- >>> (width, height) = (600::Int, 400::Int)
--- >>> points = runST $ do
--- >>>     gen <- MWC.initialize (V.fromList (map fromIntegral seed))
--- >>>     let margin = 100
--- >>>         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
--- >>>     uniformlyDistributedPoints gen bb numPoints
--- >>> delaunay = delaunayTriangulation points
--- >>> :}
 
 
-data Triangulation = Triangulation
-    { _triangles :: Vector Polygon
-    -- ^ All Delaunay triangles. Note that plotting these will have one line going
-    -- back and one going forth between points not on the convex hull of the input.
-    -- Use '_edges' if this is undesirable.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/triangles.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/triangles.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     V.iforM_ (_triangles delaunay) $ \i triangle -> do
-    --         setColor (mathematica97 i)
-    --         sketch (growPolygon (-2) triangle)
-    --         fill
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/triangles.svg
 
-    , _edges :: Vector Line
-    -- ^ Each (undirected) edge of the Delaunay triangulation.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/edges.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/edges.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     V.iforM_ (_edges delaunay) $ \i edge -> do
-    --         setColor (mathematica97 i)
-    --         sketch edge
-    --         stroke
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/edges.svg
-
-    , _voronoiCorners :: Vector Vec2
-    -- ^ Corners of the Voronoi cells, useful for painting them in isolation. The
-    -- entries are aligned with '_triangles', since the Voronoi corners are the
-    -- circumcenters of the Delaunay triangles. You can group them correctly with
-    -- 'V.zip'.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_corners.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_corners.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     for_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \edge -> do
-    --         setColor (mathematica97 0 `withOpacity` 0.2)
-    --         sketch edge
-    --         stroke
-    --     V.iforM_ (_voronoiCorners delaunay) $ \i corner -> do
-    --         setColor (mathematica97 i)
-    --         sketch (Circle corner 2)
-    --         fill
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_corners.svg
-
-    , _voronoiEdges :: Vector (Either Line Ray)
-    -- ^ Each edge of the Voronoi diagram. The boundary edges extend to
-    -- infinity, and are provided as 'Ray's.
-    --
-    -- 'clipEdgesToBox' conveniently handles the case of constraining
-    -- this to a rectangular viewport.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_edges.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_edges.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     V.iforM_ (clipEdgesToBox bb (_voronoiEdges delaunay)) $ \i edge -> do
-    --         setColor (mathematica97 i)
-    --         sketch edge
-    --         stroke
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_edges.svg
-
-    , _voronoiCells :: Vector VoronoiCell
-    -- ^ All Voronoi polygons. The polygons at the hull can be infinite.
-    --
-    -- 'clipCellsToBox' conveniently handles the case of constraining
-    -- this to a rectangular viewport.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_cells.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_cells.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     V.iforM_ (clipCellsToBox bb (_voronoiCells delaunay)) $ \i polygon -> do
-    --         setColor (mathematica97 i)
-    --         sketch (growPolygon (-2) polygon)
-    --         fill
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/voronoi_cells.svg
-
-    , _convexHull :: Polygon
-    -- ^ We get the convex hull for free out of the calculation. Equivalent to
-    -- calling 'convexHull' on the input points.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/convex_hull.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/convex_hull.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     sketch (_convexHull delaunay)
-    --     setColor (mathematica97 1)
-    --     stroke
-    --     for_ points $ \p -> do
-    --         sketch (Circle p 2)
-    --         setColor (mathematica97 3)
-    --         fill
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/convex_hull.svg
-
+-- | Abstract data type supporting many efficient Delaunay and Voronoi properties.
+data DelaunayTriangulation = Triangulation
+    { _triangles             :: Vector Polygon
+    , _edges                 :: Vector Line
+    , _voronoiCorners        :: Vector Vec2
+    , _voronoiEdges          :: Vector (Either Line Ray)
+    , _voronoiCells          :: Vector VoronoiCell
+    , _convexHull            :: Vector Vec2
     , _findClosestInputPoint :: Vec2 -> Int -> Int
-    -- ^ Find the index of the closest input point.
-    --
-    -- @'_findClosestInputPoint' needle start@ returns the index @i@ of the closest input
-    -- point to @needle@, starting the search at @start@. @start=0@ searches the
-    -- entire input. @points!i@ is the closest point’s position.
-    --
-    -- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg>>
-    --
-    -- === __(image code)__
-    -- >>> :{
-    -- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg" width height $ do
-    --     setLineWidth 1
-    --     let margin = 10
-    --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
-    --         findThesePoints = runST $ do
-    --             gen <- MWC.initialize (V.fromList (map (succ . fromIntegral) seed))
-    --             let margin' = 20
-    --                 bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
-    --             poissonDisc gen PoissonDiscParams
-    --                 { _poissonShape  = bb'
-    --                 , _poissonRadius = 50
-    --                 , _poissonK      = 4
-    --                 }
-    --     cairoScope $ do
-    --         setColor (mathematica97 0)
-    --         setDash [5,5] 0
-    --         sketch (boundingBoxPolygon bb)
-    --         stroke
-    --     for_ (_edges delaunay) $ \edge -> do
-    --         setColor (black `withOpacity` 0.5)
-    --         sketch edge
-    --         stroke
-    --     let foundTriangleIndices = [(p, _findClosestInputPoint delaunay p 0) | p <- toList findThesePoints]
-    --     for_ (zip [0..] foundTriangleIndices) $ \(i, (needle, p)) -> do
-    --         let closest = points ! p
-    --         cairoScope $ do
-    --             setColor (mathematica97 i)
-    --             sketch (Circle closest 3) >> fill
-    --             sketch (Circle needle 3) >> fill
-    --         cairoScope $ do
-    --             setColor black
-    --             sketch (Circle closest 3) >> stroke
-    --             sketch (Circle needle 3) >> stroke
-    --         cairoScope $ do
-    --             setColor (mathematica97 i)
-    --             sketch (Line needle closest) >> stroke
-    -- :}
-    -- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/find_triangle.svg
-
-    , _raw :: D.TriangulationRaw
-    -- ^ Raw triangulation data. Import the internal module to access its constructors.
+    , _raw                   :: D.TriangulationRaw
     }
 
--- | Create a 'Triangulation' from a set of points. See 'Triangulation' for further
--- details.
-delaunayTriangulation :: Sequential vector => vector Vec2 -> Triangulation
+-- | Create a 'DelaunayTriangulation' from a set of points.
+delaunayTriangulation :: Sequential vector => vector Vec2 -> DelaunayTriangulation
 delaunayTriangulation points' =
     let points = toVector points'
         raw = D.triangulate points
@@ -277,7 +55,7 @@ delaunayTriangulation points' =
         , _raw = raw
         }
 
-instance NFData Triangulation where
+instance NFData DelaunayTriangulation where
     rnf Triangulation
         { _triangles = x1
         , _edges = x2
@@ -322,10 +100,8 @@ edges points triangulation = do
         q = points!(triangleIxs!D.nextHalfedge e)
     pure (Line p q)
 
-convexHullViaDelaunay :: Vector Vec2 -> D.TriangulationRaw -> Polygon
-convexHullViaDelaunay points triangulation =
-    let hull = V.backpermute points (D._convexHull triangulation)
-    in Polygon (toList hull)
+convexHullViaDelaunay :: Vector Vec2 -> D.TriangulationRaw -> Vector Vec2
+convexHullViaDelaunay points triangulation = V.backpermute points (D._convexHull triangulation)
 
 -- ^ Given a single edge, what’s the index of the start of the triangle?
 triangleOfEdge :: Int -> Int
@@ -373,7 +149,7 @@ data VoronoiPolygon
         -- ^ The polygon consists of a list of finite points, and extends to
         -- infinity at the beginning\/end in the direction of the first\/last
         -- argument. For example, the bottom\/right quadrant (in screen coordinates)
-        -- would be @'VornoiInfinite' ('Vec2' 0 1) ['Vec2' 0 0] ('Vec2' 1 0)@.
+        -- would be @'VoronoiInfinite' ('Vec2' 0 1) ['Vec2' 0 0] ('Vec2' 1 0)@.
     deriving (Eq, Ord, Show)
 
 instance Sketch VoronoiPolygon where
@@ -485,58 +261,8 @@ exteriorRays points delaunay = runST $ do
 rotate90 :: Vec2 -> Vec2
 rotate90 (Vec2 x y) = Vec2 (-y) x
 
--- | Relax the input points by moving them to(wards) their cell’s centroid, leading
--- to a uniform distribution of points. Works well when applied multiple times.
---
--- The parameter \(\omega\) controls how far the Voronoi cell center moves towards
--- the centroid.
--- [See here for a cool live visualization.](https://observablehq.com/@mbostock/lloyds-algorithm)
---
---   * \(0\) does not move the points at all.
---   * \(1\) moves the cell’s centers to the cell’s centroid (standard Lloyd).
---   * \(\sim 2\) overshoots the move towards the cell’s center, leading to faster convergence.
---   * \(<0\) values yield wonky-but-interesting behavior! \(\ddot\smile\)
---
--- <<docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg>>
---
--- === __(image code)__
--- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg" width height $ do
---     setLineWidth 1
---     let margin = 10
---         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
---     cairoScope $ do
---         setColor (mathematica97 0)
---         setDash [5,5] 0
---         sketch (boundingBoxPolygon bb)
---         stroke
---     let points' = iterate (lloydRelaxation bb 1) points !! 5
---         delaunay' = delaunayTriangulation points'
---     V.iforM_ (clipCellsToBox bb (_voronoiCells delaunay')) $ \i polygon -> do
---         setColor (mathematica97 i)
---         sketch (growPolygon (-2) polygon)
---         fill
--- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/Internal/Delaunator/Api/lloyd_relaxation.svg
-lloydRelaxation
-    :: (HasBoundingBox boundingBox, Sequential vector)
-    => boundingBox
-    -> Double -- ^ Convergence factor \(\omega\).
-    -> vector Vec2
-    -> Vector Vec2
-lloydRelaxation bb omega = relax . _voronoiCells . delaunayTriangulation
-  where
-    newCenter old cell = old +. omega*.(polygonCentroid cell-.old)
-
-    relax :: Vector VoronoiCell -> Vector Vec2
-    relax cells = V.zipWith
-        (\(VoronoiCell center _) polygon -> newCenter center polygon)
-        cells
-        (clipCellsToBox (boundingBox bb) cells)
-
--- | A ray is a line that extends to infinity on one side. Note that the direction
--- is a *direction* and not another point.
-data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction
+-- | A ray is a line that extends to infinity on one side.
+data Ray = Ray !Vec2 !Vec2 -- ^ Starting point and direction (!)
     deriving (Eq, Ord, Show)
 
 instance NFData Ray where
@@ -544,62 +270,6 @@ instance NFData Ray where
 
 instance Sketch Ray where
     sketch (Ray start dir) = sketch (resizeLine (const 100000) (Line start (start +. dir)))
-
--- | Convert a 'Ray' to a 'Line', cutting it off when it hits the 'BoundingBox'.
-clipRay
-    :: BoundingBox
-    -> Ray
-    -> Maybe Line -- ^ Nothing if the ray does not hit the bounding box.
-clipRay bb ray = Clipping.cohenSutherland bb (comicallyLengthen bb ray)
-
--- | Cut off all 'Ray's to end at the provided 'BoundingBox'. Convenient to take
--- the result of '_voronoiEdges' and clip it to a rectangular viewport.
-clipEdgesToBox
-    :: HasBoundingBox boundingBox
-    => boundingBox
-    -> Vector (Either Line Ray)
-    -> Vector Line
-clipEdgesToBox bb' segments = do
-    let bb = boundingBox bb'
-    segment <- segments
-    maybe mempty pure $ case segment of
-        Left line -> Clipping.cohenSutherland bb line
-        Right ray -> clipRay bb ray
-
--- | Cut off all infinite 'VoronoiCell's with the provided 'BoundingBox'. Convenient to take
--- the result of '_voronoiCells' and clip it to a rectangular viewport.
---
--- This function yields incorrect results when the angle between the directions is
--- too large, because it simply comically enlarges the »infinite« directions to
--- finite size, closes the then finite polygon, and clips the resulting polygon.
--- Since Voronoi cells don’t produce such wide angels for even small point sizes,
--- this is a worthwhile tradeoff. The issue can probably be hacked around by adding
--- another point for all corners enclosed by the direction vectors.
-clipCellsToBox
-    :: HasBoundingBox boundingBox
-    => boundingBox
-    -> Vector VoronoiCell
-    -> Vector Polygon
-clipCellsToBox bb' = V.map $ \(VoronoiCell _center vPoly) -> case vPoly of
-    VoronoiFinite polygon -> Clipping.sutherlandHodgman polygon  viewport
-    VoronoiInfinite dirIn vertices dirOut ->
-        let comicallyLargePolygon = Polygon ([looongIn] ++ vertices ++ [looongOut])
-            Line _ looongIn = comicallyLengthen bb (Ray (head vertices) dirIn)
-            Line _ looongOut = comicallyLengthen bb (Ray (last vertices) dirOut)
-        in Clipping.sutherlandHodgman comicallyLargePolygon viewport
-  where
-    bb = boundingBox bb'
-    viewport = boundingBoxPolygon bb
-
--- | Create a stupidly long line out of a 'Ray' so that it definitely spans well
--- over the bounding box.
-comicallyLengthen :: BoundingBox -> Ray -> Line
-comicallyLengthen bb (Ray start dir) =
-    let BoundingBox bbMin bbMax = bb
-        boundingBoxDiagonalNormSquare = normSquare (bbMin -. bbMax)
-        dirNormSquare = normSquare dir
-        end = start +. (max 1 boundingBoxDiagonalNormSquare / max 1 dirNormSquare) *. dir
-    in Line start end
 
 -- | Reverse lookup table for the hull. @'D._convexHull'!i@ yields the i-th point’s
 -- ID on the hull, this index gives us the number i, given a point ID.
@@ -660,6 +330,8 @@ findClosestInputPointIndex points inedges hullIndex tri needle i0 = loopFind i0
                     then loopStep j c' dc' e0 e'
                     else c'
 
+-- | Voronoi stippling. Unfortunately not fast enough for stippling images
+-- pixel-wise, hence not exposed from the user-facing module.
 stipple
     :: Double -- ^ \(\omega\) convergence speed parameter, see 'lloydRelaxation'.
     -> Int -- ^ Width of the input data. x values will be picked in the integer range \([0\ldots w)\).

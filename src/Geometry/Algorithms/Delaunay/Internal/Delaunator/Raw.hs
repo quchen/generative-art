@@ -13,7 +13,6 @@ module Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw where
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
-import           Data.Foldable
 import           Data.Function
 import           Data.Ord
 import           Data.STRef
