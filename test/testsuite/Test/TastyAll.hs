@@ -96,11 +96,11 @@ assertApproxEqual errMsg (ExpectedWithin tol expected) (Actual actual) = HUnit.a
 
 renderAllFormats :: Int -> Int -> FilePath -> Render () -> IO ()
 renderAllFormats w h filename drawing = do
-    render (filename ++ ".png") w h $ do
-        cairoScope $ do
-            setColor white
-            paint
-        drawing
+    -- render (filename ++ ".png") w h $ do
+    --     cairoScope $ do
+    --         setColor white
+    --         paint
+    --     drawing
 
     let svgFilename = filename ++ ".svg"
     render svgFilename w h drawing

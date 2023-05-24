@@ -75,7 +75,11 @@ extra-doc-files:
 
     - docs/haddock/**/*.svg
 
-ghc-options: [-Wall, -Wno-type-defaults, -j]
+ghc-options:
+    - -Wall
+    - -Wno-type-defaults
+    - -j
+    - -Wno-incomplete-uni-patterns
 
 library:
     source-dirs: src
@@ -97,7 +101,14 @@ tests:
     testsuite:
         main:        Main.hs
         source-dirs: test/testsuite
-        ghc-options: [-threaded, -rtsopts, -with-rtsopts=-N, -Wall, -Wno-type-defaults, -j]
+        ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+            - -Wall
+            - -Wno-type-defaults
+            - -j
+            - -Wno-incomplete-uni-patterns
         dependencies:
             - generative-art
 
