@@ -726,8 +726,9 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 -- Useful to introduce margins. Negative values shrink instead; 'shrinkBoundingBox'
 -- is a convenience wrapper for this case.
 growBoundingBox
-    :: Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
-    -> BoundingBox
+    :: HasBoundingBox boundingBox
+    => Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
+    -> boundingBox
     -> BoundingBox
 growBoundingBox delta stuff  =
     let margin = Vec2 delta delta
@@ -735,7 +736,7 @@ growBoundingBox delta stuff  =
     in boundingBox [lo -. margin, hi +. margin]
 
 -- | Convenience function for 'growBoundingBox' with a negative amount.
-shrinkBoundingBox :: Double -> BoundingBox -> BoundingBox
+shrinkBoundingBox :: HasBoundingBox boundingBox => Double -> boundingBox -> BoundingBox
 shrinkBoundingBox delta = growBoundingBox (-delta)
 
 -- | Anything we can paint has a bounding box. Knowing it is useful to e.g. rescale
