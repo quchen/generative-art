@@ -373,6 +373,14 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Shapes.hs/spiral_polygon.svg)
 
+![Missing image!](../../../docs/haddock/Numerics/Optimization/TSP/2-opt.svg)
+
+![Missing image!](../../../docs/haddock/Numerics/Optimization/TSP/3-opt.svg)
+
+![Missing image!](../../../docs/haddock/Numerics/Optimization/TSP/input_path.svg)
+
+![Missing image!](../../../docs/haddock/Numerics/Optimization/TSP/nearest_neighbour_path.svg)
+
 ![Missing image!](../../../docs/hexagonal/1_line_and_circle.svg)
 
 ![Missing image!](../../../docs/hexagonal/gaussian_hexagons.svg)
