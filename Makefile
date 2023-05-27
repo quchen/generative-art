@@ -1,6 +1,6 @@
 # A collection of handy commands as a makefile.
 
-haddock : doctest
+haddock :
 	stack haddock generative-art --fast
 	@echo "Documentation location: $$(stack path --local-doc-root)/index.html"
 
