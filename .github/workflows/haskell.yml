@@ -35,16 +35,15 @@ jobs:
         uses: freckle/stack-action@v4
         with:
           pedantic: false
-          test: false # fast fast TODO delete once CI is set up
+          test: true
 
       - name: "Haddock: build"
-        # TODO enable Haddock deps, disabled to speed up CI setup
         # Not sure why it’s not $(stack path --local-doc-root) but the generated
         # directory isn’t right, reproducible locally. Haddock reports
         # a different one at the end of its run, and *that* is where the
         # documentation is.
         run: |
-          stack haddock --fast --no-haddock-deps
+          stack haddock --fast
           echo "haddock_files=$(stack path --local-install-root)/doc/" >> "$GITHUB_ENV"
           echo "stack path --local-install-root: $(stack path --local-install-root)"
 
