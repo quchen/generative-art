@@ -1,6 +1,5 @@
 module Geometry.Algorithms.Sampling.PoissonDisc (
-      PoissonDiscParams(..)
-    , poissonDisc
+    poissonDisc
 ) where
 
 
@@ -19,6 +18,14 @@ import qualified Data.Set                   as S
 import           System.Random.MWC
 
 import Geometry
+
+
+
+-- $setup
+-- >>> import           Draw
+-- >>> import           Control.Monad.ST
+-- >>> import           Graphics.Rendering.Cairo as C
+-- >>> import qualified System.Random.MWC        as MWC
 
 
 
@@ -76,29 +83,31 @@ modify' = PoissonT . lift . S.modify'
 -- uniform distribution. This is opposed to uniformly distributed points yield
 -- clumps and empty areas, which is often undesirable for generative art.
 --
--- <<docs/sampling/poisson-disc.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg>>
 --
--- === Example code
---
--- The \(r=8\) picture is based on the following code:
---
--- @
--- points :: ['Vec2']
--- points = 'Control.Monad.ST.runST' $ do
---     gen <- 'create'
---     'poissonDisc' gen 'PoissonDiscParams'
---         { _poissonShape = boundingBox [zero, Vec2 80 80]
---         , '_poissonRadius' = 8
---         , '_poissonK'      = 4
---         }
--- @
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg" 300 300 $ do
+--     let points = runST $ do
+--             gen <- MWC.create
+--             poissonDisc gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 10 4
+--     for_ (zip [0..] points) $ \(i,p) -> do
+--         setColor (mathematica97 i)
+--         sketch (Circle p 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg
 poissonDisc
-    :: PrimMonad m
+    :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    -> PoissonDiscParams
+    -> boundingBox -- ^ Region to generate points in
+    -> Double      -- ^ Radius around each point no other points are genereted. Smaller values yield more points.
+    -> Int         -- ^ Per point, how many attempts should be made to find an empty spot?
+                   --   Typical value: 3. Higher values are slower, but increase result quality.
     -> m [Vec2]
-poissonDisc gen params = do
-    let PoissonDiscParams{_poissonShape = BoundingBox minV maxV} = params
+poissonDisc gen bb' radius k = do
+    let bb@(BoundingBox minV maxV) = boundingBox bb'
+
     initialSample <- uniformRM (minV, maxV) gen
     let initialState = PoissonDiscState
             { _gen           = gen
@@ -108,7 +117,7 @@ poissonDisc gen params = do
             , _initialPoint  = initialSample
             }
 
-    _result <$> execPoissonT (addSample initialSample >> sampleLoop) params initialState
+    _result <$> execPoissonT (addSample initialSample >> sampleLoop) (PoissonDiscParams bb radius k) initialState
 
 data PoissonDiscState s = PoissonDiscState
     { _gen           :: !(Gen s)

@@ -1,7 +1,6 @@
 module Geometry.Algorithms.Sampling (
     -- * Poisson-Disc sampling
-    PoissonDiscParams(..)
-    , poissonDisc
+      poissonDisc
 
     -- * Other distributions
     , uniformlyDistributedPoints
@@ -40,7 +39,7 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ do
 --     let numPoints = 1000
---         bb = boundingBox [zero, Vec2 300 300]
+--         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
 --             gen <- MWC.create
 --             uniformlyDistributedPoints gen bb numPoints
@@ -73,7 +72,7 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ do
 --     let numPoints = 1000
---         bb = boundingBox [zero, Vec2 300 300]
+--         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
 --             gen <- MWC.create
 --             gaussianDistributedPoints gen bb (30 *. mempty) numPoints
@@ -116,7 +115,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ do
 --     let numPoints = 1000
---         bb = boundingBox [zero, Vec2 300 300]
+--         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         distribution p = let r = norm (p -. Vec2 150 150) in gaussianFalloff 75 20 r
 --         points = runST $ do
 --             gen <- MWC.create

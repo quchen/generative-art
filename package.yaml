@@ -71,7 +71,6 @@ extra-doc-files:
     - docs/interpolation/3_simplify_path_rdp.svg
     - docs/interpolation/3_simplify_path_vw.svg
     - docs/iso_lines/potentials.svg
-    - docs/sampling/poisson-disc.svg
     - docs/triangulation/3_haskell_logo.svg
 
     - docs/haddock/**/*.svg
