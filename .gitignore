@@ -2,3 +2,4 @@
 *.png
 !showcases/*.png
 *.cabal
+.vscode
