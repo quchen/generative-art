@@ -198,7 +198,7 @@ bulidInedgesLookup delaunay = V.ifoldl' addToIndex M.empty (D._triangles delauna
 voronoiCells :: Vector Vec2 -> Vector Vec2 -> M.Map Int Int -> D.TriangulationRaw -> Vector VoronoiPolygon
 voronoiCells points circumcenters inedges delaunay =
     let extRays = exteriorRays points delaunay
-    in flip V.imap points $ \pIx pCoord ->
+    in flip V.imap points $ \pIx _pCoord ->
         let incoming = inedges M.! pIx
         in voronoiPolygon circumcenters delaunay extRays pIx incoming
 
