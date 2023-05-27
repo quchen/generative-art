@@ -65,6 +65,8 @@ import Data.Default.Class
 import Data.Foldable
 import Data.List
 import Graphics.Rendering.Cairo        as C hiding (x, y)
+import System.Directory
+import System.FilePath
 import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 
 import Draw.Color
@@ -107,7 +109,8 @@ render
     -> Int -- ^ Width (px for PNG, pt for SVG)
     -> Render ()
     -> IO ()
-render filepath w h actions =
+render filepath w h actions = do
+    createDirectoryIfMissing True (takeDirectory filepath ++ "/")
     withSurface (fromExtension filepath) filepath w h (\surface -> renderWith surface actions)
 
 -- | Argument to 'coordinateSystem' to pick zero location and axis direction.

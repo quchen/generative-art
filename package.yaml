@@ -23,6 +23,7 @@ dependencies:
     - containers
     - data-default-class
     - deepseq
+    - directory
     - dlist
     - filepath
     - formatting
