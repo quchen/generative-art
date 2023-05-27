@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: freckle/stack-action@v4
-
       - name: Cache
         uses: actions/cache@v3
         env:
@@ -27,13 +25,17 @@ jobs:
             ${{ runner.os }}-build-${{ env.cache-name }}-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
-      - name: Build
-        run: stack build --test --no-run-tests --fast
-      - name: Test
-        run: stack test --fast
+
+      - name: Stack
+        uses: freckle/stack-action@v4
+        with:
+          pedantic: false
+
       - name: Build Haddock
         run: stack haddock --fast
+
       - name: Copy Haddock to site folder
         run: cp $(stack path --local-doc-root) /_site/
+
       - name: Upload Haddock
         uses: actions/upload-pages-artifact@v1 # This will automatically upload an artifact from the '/_site' directory
