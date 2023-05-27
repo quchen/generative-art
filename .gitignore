@@ -1,6 +1,6 @@
 .stack-work/
-*.png
+**/*.svg
+**/*.png
 !showcases/*.png
 *.cabal
 .vscode
-docs/haddock/

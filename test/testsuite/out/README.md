@@ -333,6 +333,8 @@ over quickly.
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg)
 
+![Missing image!](../../../docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg)
+
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Sampling/gaussian.svg)
 
 ![Missing image!](../../../docs/haddock/Geometry/Algorithms/Sampling/rejection.svg)
@@ -430,8 +432,6 @@ over quickly.
 ![Missing image!](../../../docs/plotting/penTravel_noFlip_merge.svg)
 
 ![Missing image!](../../../docs/plotting/penTravel_noFlip_noMerge.svg)
-
-![Missing image!](../../../docs/sampling/poisson-disc.svg)
 
 ![Missing image!](../../../docs/triangulation/1_square.svg)
 
