@@ -27,11 +27,7 @@ tests = testVisual "Poisson disc sampling" 400 132 "docs/sampling/poisson-disc" 
             rectangle 0 0 width height
             setColor (mathematica97 1)
             stroke
-            points <- liftIO $ poissonDisc gen PoissonDiscParams
-                { _poissonK      = 4
-                , _poissonShape = boundingBox [zero, Vec2 width height]
-                , _poissonRadius = radius
-                }
+            points <- liftIO $ poissonDisc gen [zero, Vec2 width height] radius 4
             drawPoints points
             C.translate 0 82 >> drawExplanation "Poisson disc"
             C.translate 0 10 >> drawExplanation (printf "r = %.f" radius)

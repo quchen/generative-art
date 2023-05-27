@@ -98,11 +98,7 @@ testBrownianMotion :: TestTree
 testBrownianMotion = testVisual "Brownian motion" 200 200 "docs/physics/brownian" $ \_ -> do
     let particles = runST $ do
             gen <- create
-            qs <- poissonDisc gen def
-                { _poissonShape = BoundingBox zero (Vec2 200 200)
-                , _poissonRadius = 20
-                , _poissonK = 4
-                }
+            qs <- poissonDisc gen [zero, Vec2 200 200] 20 4
             ps <- replicateM (length qs) $ gaussianVec2 zero 4 gen
             pure (NBody $ zipWith PhaseSpace ps qs)
         masses = pure 1

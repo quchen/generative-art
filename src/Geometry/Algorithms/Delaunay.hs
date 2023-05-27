@@ -18,11 +18,7 @@
 -- >>> points = runST $ do
 -- >>>    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
 -- >>>    let bb = boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]
--- >>>    points <- poissonDisc gen PoissonDiscParams
--- >>>       { _poissonShape  = bb
--- >>>       , _poissonRadius = 16
--- >>>       , _poissonK      = 5
--- >>>       }
+-- >>>    points <- poissonDisc gen bb 16 5
 -- >>>    let radius = fromIntegral (min width height) / 2.5
 -- >>>    pure (filter (\p -> normSquare (p -. boundingBoxCenter bb) <= radius^2) points)
 -- >>> :}
@@ -322,11 +318,7 @@ delaunayHull = Api._convexHull
 --             gen <- MWC.initialize (V.fromList (map (succ . fromIntegral) seed))
 --             let margin' = 20
 --                 bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
---             poissonDisc gen PoissonDiscParams
---                 { _poissonShape  = bb'
---                 , _poissonRadius = 50
---                 , _poissonK      = 4
---                 }
+--             poissonDisc gen bb' 50 4
 --     cairoScope $ do
 --         setColor (mathematica97 0)
 --         setDash [5,5] 0

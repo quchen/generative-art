@@ -1,6 +1,5 @@
 module Geometry.Algorithms.Sampling.PoissonDisc (
-      PoissonDiscParams(..)
-    , poissonDisc
+    poissonDisc
 ) where
 
 
@@ -93,12 +92,16 @@ modify' = PoissonT . lift . S.modify'
 --         }
 -- @
 poissonDisc
-    :: PrimMonad m
+    :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    -> PoissonDiscParams
+    -> boundingBox -- ^ Region to generate points in
+    -> Double      -- ^ Radius around each point no other points are genereted. Smaller values yield more points.
+    -> Int         -- ^ Per point, how many attempts should be made to find an empty spot?
+                   --   Typical value: 3. Higher values are slower, but increase result quality.
     -> m [Vec2]
-poissonDisc gen params = do
-    let PoissonDiscParams{_poissonShape = BoundingBox minV maxV} = params
+poissonDisc gen bb' radius k = do
+    let bb@(BoundingBox minV maxV) = boundingBox bb'
+
     initialSample <- uniformRM (minV, maxV) gen
     let initialState = PoissonDiscState
             { _gen           = gen
@@ -108,7 +111,7 @@ poissonDisc gen params = do
             , _initialPoint  = initialSample
             }
 
-    _result <$> execPoissonT (addSample initialSample >> sampleLoop) params initialState
+    _result <$> execPoissonT (addSample initialSample >> sampleLoop) (PoissonDiscParams bb radius k) initialState
 
 data PoissonDiscState s = PoissonDiscState
     { _gen           :: !(Gen s)
