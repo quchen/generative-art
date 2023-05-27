@@ -43,7 +43,7 @@ jobs:
         # a different one at the end of its run, and *that* is where the
         # documentation is.
         run: |
-          stack haddock --fast
+          stack haddock --fast --no-haddock-deps
           echo "haddock_files=$(stack path --local-install-root)/doc/" >> "$GITHUB_ENV"
           echo "stack path --local-install-root: $(stack path --local-install-root)"
 
