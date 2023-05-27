@@ -164,17 +164,6 @@ data TriangulationST s = TriangulationST
     -- in an adjacent triangle (or `tEMPTY` for outer halfedges on the convex hull).
     }
 
-{-# DEPRECATED newVectorWithGoodErrorMessages "Use VM.unsafeNew instead once the code works" #-}
-newVectorWithGoodErrorMessages :: HasCallStack => String -> Int -> ST s (STVector s Int)
-newVectorWithGoodErrorMessages name n = case debugMode of
-    Chatty -> VM.generate n (\i -> error ("Uninitialized element " ++ show i ++ " in vector " ++ name))
-    NonsenseValue -> VM.generate n (\i -> 200000+i)
-    DebuggedAndUnsafe -> VM.unsafeNew n
-  where
-    debugMode = Chatty
-
-data DebugMode = Chatty | NonsenseValue | DebuggedAndUnsafe
-
 -- | Initialize a new mutable triangulation struct.
 triangulation_new
     :: HasCallStack
@@ -182,9 +171,9 @@ triangulation_new
     -> ST s (TriangulationST s)
 triangulation_new n = do
     let maxTriangles = if n > 2 then 2*n-5 else 0
-    triangles <- newVectorWithGoodErrorMessages "triangulation.triangles" (maxTriangles*3)
+    triangles <- VM.new (maxTriangles*3)
     trianglesLen <- newSTRef 0
-    halfedges <- newVectorWithGoodErrorMessages "triangulation.halfedges" (maxTriangles*3)
+    halfedges <- VM.new (maxTriangles*3)
     pure TriangulationST
         { __triangles = triangles
         , __trianglesLen = trianglesLen
