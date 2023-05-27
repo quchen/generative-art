@@ -43,12 +43,11 @@ jobs:
         # a different one at the end of its run, and *that* is where the
         # documentation is.
         run: |
-          stack haddock --fast
+          stack haddock --fast --no-haddock-deps
           echo "haddock_files=$(stack path --local-install-root)/doc/" >> "$GITHUB_ENV"
           echo "stack path --local-install-root: $(stack path --local-install-root)"
 
       - name: "Haddock: package"
-        if: github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v1 # This will automatically upload an artifact from the '/_site' directory
         with:
           path: ${{ env.haddock_files }}
