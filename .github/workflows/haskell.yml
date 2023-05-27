@@ -49,9 +49,11 @@ jobs:
           echo "stack path --local-install-root: $(stack path --local-install-root)"
 
       - name: "Haddock: package"
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-pages-artifact@v1 # This will automatically upload an artifact from the '/_site' directory
         with:
           path: ${{ env.haddock_files }}
 
       - name: "Haddock: deploy"
+        if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@main
