@@ -79,6 +79,7 @@ ghc-options:
     - -Wall
     - -Wno-type-defaults
     - -j
+    - -Wno-incomplete-uni-patterns
 
 library:
     source-dirs: src
@@ -105,8 +106,9 @@ tests:
             - -rtsopts
             - -with-rtsopts=-N
             - -Wall
-            - -Wno-type-defaults
             - -j
+            - -Wno-type-defaults
+            - -Wno-incomplete-uni-patterns
         dependencies:
             - generative-art
 
