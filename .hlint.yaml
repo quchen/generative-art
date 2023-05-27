@@ -36,6 +36,7 @@
 - ignore: {name: "Fuse mapMaybe/map"}
 - ignore: {name: "Use concatMap"}
 - ignore: {name: "Use map once"}
+- ignore: {name: "Use forM_"}
 
 # AMP fallout
 - error:
