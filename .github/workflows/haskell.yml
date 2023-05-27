@@ -39,6 +39,7 @@ jobs:
         run: |
           stack haddock --fast --no-haddock-deps
           echo "haddock_files=$(stack path --local-doc-root)/" >> "$GITHUB_ENV"
+          echo "stack path --local-doc-root: $(stack path --local-doc-root)"
 
       - name: "Haddock: package"
         uses: actions/upload-pages-artifact@v1 # This will automatically upload an artifact from the '/_site' directory
