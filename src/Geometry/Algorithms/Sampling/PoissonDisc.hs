@@ -21,6 +21,14 @@ import Geometry
 
 
 
+-- $setup
+-- >>> import           Draw
+-- >>> import           Control.Monad.ST
+-- >>> import           Graphics.Rendering.Cairo as C
+-- >>> import qualified System.Random.MWC        as MWC
+
+
+
 -- | Configuration for 'poissonDisc' sampling.
 data PoissonDiscParams = PoissonDiscParams
     { _poissonShape  :: !BoundingBox -- ^ 'def'ault @boundingBox [zero, Vec2 256 256]@.
@@ -75,22 +83,20 @@ modify' = PoissonT . lift . S.modify'
 -- uniform distribution. This is opposed to uniformly distributed points yield
 -- clumps and empty areas, which is often undesirable for generative art.
 --
--- <<docs/sampling/poisson-disc.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg>>
 --
--- === Example code
---
--- The \(r=8\) picture is based on the following code:
---
--- @
--- points :: ['Vec2']
--- points = 'Control.Monad.ST.runST' $ do
---     gen <- 'create'
---     'poissonDisc' gen 'PoissonDiscParams'
---         { _poissonShape = boundingBox [zero, Vec2 80 80]
---         , '_poissonRadius' = 8
---         , '_poissonK'      = 4
---         }
--- @
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg" 300 300 $ do
+--     let points = runST $ do
+--             gen <- MWC.create
+--             poissonDisc gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 10 4
+--     for_ (zip [0..] points) $ \(i,p) -> do
+--         setColor (mathematica97 i)
+--         sketch (Circle p 2)
+--         fill
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg
 poissonDisc
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.

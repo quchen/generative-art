@@ -17,7 +17,6 @@ import qualified Test.Draw.Text
 import qualified Test.Geometry.Algorithms.Clipping
 import qualified Test.Geometry.Algorithms.Contour
 import qualified Test.Geometry.Algorithms.Delaunay.Delaunator
-import qualified Test.Geometry.Algorithms.Sampling
 import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Core
@@ -66,7 +65,6 @@ tests = testGroup "Test suite"
     , Test.Geometry.Algorithms.Clipping.tests
     , Test.Geometry.Algorithms.Contour.tests
     , Test.Geometry.Algorithms.Delaunay.Delaunator.tests
-    , Test.Geometry.Algorithms.Sampling.tests
     , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Coordinates.Hexagonal.tests
     , Test.Geometry.Core.tests

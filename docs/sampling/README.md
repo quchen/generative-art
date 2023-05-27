@@ -7,7 +7,7 @@ distributed, they don't _look_ that uniform.
 Poisson disc sampling yields much better-looking results compared to random
 points:
 
-![](poisson-disc.svg)
+![](../haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg)
 
 Poisson discs are random points that are no closer to each other than a certain
 distance `r`. Effectively, they correspond to little discs around each point
