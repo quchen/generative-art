@@ -46,11 +46,11 @@ fareyApproximate maxD exact = go 0 (ceilRatio exact)
 -- >>> divideOnIndex 0 (V.fromList [0..10])
 -- ([],0,[1,2,3,4,5,6,7,8,9,10])
 --
--- divideOnIndex 3 (V.fromList [0..10])
+-- >>> divideOnIndex 3 (V.fromList [0..10])
 -- ([0,1,2],3,[4,5,6,7,8,9,10])
 --
--- divideOnIndex 10 (V.fromList [0..10])
--- ([0,1,2,3,4,5,6,7,8,9],10, [])
+-- >>> divideOnIndex 10 (V.fromList [0..10])
+-- ([0,1,2,3,4,5,6,7,8,9],10,[])
 divideOnIndex :: Int -> V.Vector a -> (V.Vector a, a, V.Vector a)
 divideOnIndex ix vec
     | ix >= V.length vec = error ("divideOnIndex: index out of bounds. " ++ "i = " ++ show ix ++ ", length = " ++ show (V.length vec))
