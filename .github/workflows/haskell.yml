@@ -13,7 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Cache
         uses: actions/cache@v3
         env:
@@ -31,11 +34,12 @@ jobs:
         with:
           pedantic: false
 
-      - name: Build Haddock
-        run: stack haddock --fast
+      - name: Haddock: build
+        run: |
+          stack haddock --fast
+          echo "haddock_files=$(stack path --local-doc-root)/" >> "$GITHUB_ENV"
 
-      - name: Copy Haddock to site folder
-        run: cp $(stack path --local-doc-root) /_site/
-
-      - name: Upload Haddock
+      - name: Haddock: upload to Github pages
         uses: actions/upload-pages-artifact@v1 # This will automatically upload an artifact from the '/_site' directory
+        with:
+          path: ${{ env.haddock_files }}
