@@ -8,7 +8,6 @@ module Geometry.SvgParser.PathParser (parse) where
 
 import           Control.Applicative
 import           Control.Monad.Trans.State
-import           Data.Foldable
 import           Data.Maybe
 import           Data.Text                 (Text)
 import           Data.Traversable
