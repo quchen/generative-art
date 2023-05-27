@@ -38,10 +38,13 @@ module Numerics.Optimization.TSP (
 
 import           Control.Monad.Primitive
 import           Data.Coerce
+import           Data.Ord
 import           Data.Vector             (Vector, (!))
 import qualified Data.Vector.Extended    as V
 import qualified Data.Vector.Mutable     as VM
 import           Geometry.Core
+import           System.Random.MWC       as MWC
+import           System.Random.Stateful
 import           Text.Printf
 
 
@@ -507,3 +510,65 @@ tsp2optPath dm = V.modify (tsp2optInplace dm)
 -- docs/haddock/Numerics/Optimization/TSP/3-opt.svg
 tsp3optPath :: Distances -> Vector TspPoint -> Vector TspPoint
 tsp3optPath dm = V.modify (tsp3optInplace dm)
+
+anneal2optStep
+    :: (StatefulGen gen m, PrimMonad m)
+    => gen
+    -> Distances
+    -> Int
+    -> VM.MVector (PrimState m) TspPoint
+    -> Double
+    -> m ()
+anneal2optStep _ _ searchGas _ _ | searchGas <= 0 = pure ()
+anneal2optStep gen dm searchGas state t = do
+    let n = size dm
+    i <- uniformRM (0, n-1) gen
+    j <- do
+        -- pick j so it’s at least 2 further than i so the segments don’t overlap
+        dj <- uniformRM (2, n-2) gen
+        pure (i+dj % n)
+    let commit = tspReverseInplace (i+1 % n) j state
+        reject = anneal2optStep gen dm (searchGas-1) state t
+
+    delta <- unsafePlan2optSwap dm i j state
+    if delta < 0
+        then commit
+        else do
+            let p = clamp (0,1) (exp (- delta / t))
+            accept <- trueWithProbability gen p
+            if accept
+                then commit
+                else reject
+
+trueWithProbability :: (StatefulGen gen m) => gen -> Double -> m Bool
+trueWithProbability gen p = do
+    acceptThreshold <- uniformRM (0,1) gen
+    pure (p >= acceptThreshold)
+
+anneal2opt
+    :: (StatefulGen gen m, PrimMonad m)
+    => gen
+    -> Distances
+    -> Double
+    -> Int
+    -> Vector TspPoint
+    -> m (Vector TspPoint)
+anneal2opt gen dm t0 numSteps points = do
+    state <- V.thaw points
+
+    let
+        tLin    alpha k = t0 / (1 + alpha*fromIntegral k)
+        tSquare alpha k = t0 / (1 + alpha*fromIntegral k^2)
+        tLog    alpha k = t0 / (1 + alpha * log (1 + fromIntegral k))
+        tExp    alpha k = t0 * alpha^k -- alpha 0.8-0.9
+
+        t = tLin 0.5
+
+        loop k | k >= numSteps = pure ()
+        loop k = do
+            -- for_ [0..100] $ \_ -> do
+            anneal2optStep gen dm 100 state (t k)
+            loop (k+1)
+    loop 0
+
+    V.unsafeFreeze state
