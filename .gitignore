@@ -3,3 +3,4 @@
 !showcases/*.png
 *.cabal
 .vscode
+docs/haddock/
