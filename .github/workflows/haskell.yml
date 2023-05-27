@@ -34,8 +34,14 @@ jobs:
       - name: Stack
         uses: freckle/stack-action@v4
         with:
-          pedantic: false
           test: true
+
+          # Too pedantic: enables -Werror and warnings that we don’t want (e.g.
+          # incomplete uni patterns)
+          pedantic: false
+
+          # Instead, add only -Werror
+          stack-arguments: --ghc-options -Werror
 
       - name: "Haddock: build"
         # Not sure why it’s not $(stack path --local-doc-root) but the generated
