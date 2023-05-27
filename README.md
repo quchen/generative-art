@@ -4,6 +4,14 @@
 playing around with 2-dimensional geometry and generative art using Haskell and
 Cairo.
 
+## Documentation
+
+[Haddock of current master](https://quchen.github.io/generative-art/)
+
+Some more documentation is also available in the [docs/](docs/README.md) folder.
+
+## Showcases
+
 ![](showcases/circuits.svg)
 
 ![](showcases/truchet.svg)
@@ -13,5 +21,3 @@ Cairo.
 ![](showcases/voronoi_3d.svg)
 
 ![](showcases/vector_fields.svg)
-
-More examples are shown in the [docs/](docs/README.md) folder.
