@@ -87,6 +87,7 @@ library:
         - Draw.Color.Schemes.Internal.Seaborn
         - Geometry.Algorithms.Clipping.Internal
         - Geometry.Algorithms.Clipping.MargalitKnott
+        - Geometry.Algorithms.Contour.Internal
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw
         - Geometry.Algorithms.Sampling.PoissonDisc

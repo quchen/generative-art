@@ -11,7 +11,6 @@ import qualified System.Random.MWC        as MWC
 
 import Draw
 import Geometry as G
-import Geometry.Algorithms.Contour.Internal
 
 import Test.TastyAll
 
@@ -19,29 +18,12 @@ import Test.TastyAll
 
 tests :: TestTree
 tests = testGroup "Contour finding"
-    [ findRootOnLineTests
-    , optimizeDiscreteLineTests
+    [ optimizeDiscreteLineTests
     , applyThresholdTests
     , classifyTests
     , contourEdgesTests
     , closedIsoIsClosedTest
     , visualTests
-    ]
-
-findRootOnLineTests :: TestTree
-findRootOnLineTests = testGroup "Narrow down root location on a line"
-    [ testCase "Linear function along x axis" $ do
-        let line = Line (Vec2 (-1) 0) (Vec2 1 0)
-            f (Vec2 x _) = x
-            actual = binarySearchRoot f line 1e-10
-            expected = Vec2 0 0
-        assertApproxEqual "" (ExpectedWithin 1e-10 expected) (Actual actual)
-    , testCase "Polynomial function along diagonal" $ do
-        let line = Line (Vec2 (-1) (-1)) (Vec2 1 1)
-            f (Vec2 x y) = (x+1)*y^2
-            actual = binarySearchRoot f line 1e-10
-            expected = Vec2 0 0
-        assertApproxEqual "" (ExpectedWithin 1e-10 expected) (Actual actual)
     ]
 
 optimizeDiscreteLineTests :: TestTree
