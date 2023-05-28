@@ -51,24 +51,7 @@ default-extensions:
     - RecordWildCards
 
 extra-doc-files:
-    - docs/bezier/1_single_curve.svg
-    - docs/billard/3_lambda.svg
     - docs/colors/schemes/continuous/**/*.png
-    - docs/colors/schemes/discrete/**/*.svg
-    - docs/differential_equations/1_two_body_problem.svg
-    - docs/differential_equations/2_double_pendulum.svg
-    - docs/differential_equations/geodesic_hill_and_valley.svg
-    - docs/geometry/convex_hull.svg
-    - docs/geometry/clipping/3_complicated.svg
-    - docs/geometry/ellipses.svg
-    - docs/hexagonal/gaussian_hexagons.svg
-    - docs/interpolation/1_bezier_open.svg
-    - docs/interpolation/3_simplify_path_radial.svg
-    - docs/interpolation/3_simplify_path_rdp.svg
-    - docs/interpolation/3_simplify_path_vw.svg
-    - docs/iso_lines/potentials.svg
-    - docs/triangulation/3_haskell_logo.svg
-
     - docs/haddock/**/*.svg
 
 ghc-options:
