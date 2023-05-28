@@ -30,7 +30,10 @@ import Geometry.Core
 --     sketch scissors >> setColor (mathematica97 3) >> setDash [3,3] 0 >> stroke
 -- :}
 -- docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman.hs/sutherland_hodgman.svg
-sutherlandHodgman :: Polygon -> Polygon -> Polygon
+sutherlandHodgman
+    :: Polygon -- ^ Subject
+    -> Polygon -- ^ Scissors
+    -> Polygon
 sutherlandHodgman subject scissors = foldl (cutOffEdge (polygonOrientation scissors)) subject (polygonEdges scissors)
 
 cutOffEdge :: PolygonOrientation -> Polygon -> Line -> Polygon

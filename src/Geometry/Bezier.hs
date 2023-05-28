@@ -238,9 +238,6 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 -- If the first and last point are identical, assume the trajectory is closed, and
 -- smoothly interpolate between beginning and end as well.
 --
--- For an input of \(n\) points, this will yield \(n-1\) Bezier curves if the input
--- is open, and \(n\) if it is closed.
---
 -- <<docs/interpolation/1_bezier_open.svg>>
 bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier
 bezierSmoothen vecSequence

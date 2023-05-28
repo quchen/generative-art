@@ -65,9 +65,9 @@ import Data.Default.Class
 import Data.Foldable
 import Data.List
 import Graphics.Rendering.Cairo        as C hiding (x, y)
+import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 import System.Directory
 import System.FilePath
-import Graphics.Rendering.Cairo.Matrix (Matrix (..))
 
 import Draw.Color
 import Draw.Color.Schemes.Continuous
