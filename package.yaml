@@ -52,7 +52,7 @@ default-extensions:
 
 extra-doc-files:
     - docs/apollonian_gasket/classical_gasket.svg
-    - docs/apollonian_gasket/forgetting_gen0.svg
+    # - docs/apollonian_gasket/forgetting_gen0.svg
     - docs/apollonian_gasket/missing_the_minus.svg
     - docs/apollonian_gasket/spaced_gasket.svg
     - docs/bezier/1_single_curve.svg
