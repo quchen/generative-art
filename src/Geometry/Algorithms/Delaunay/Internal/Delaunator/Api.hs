@@ -6,10 +6,10 @@ module Geometry.Algorithms.Delaunay.Internal.Delaunator.Api where
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.ST
-import qualified Data.Map                     as M
-import           Data.Vector                  (Vector, (!))
-import qualified Data.Vector                  as V
-import qualified Data.Vector.Mutable          as VM
+import qualified Data.Map               as M
+import           Data.Vector            (Vector, (!))
+import qualified Data.Vector            as V
+import qualified Data.Vector.Mutable    as VM
 import           Geometry.Core
 import           Numerics.Interpolation
 import           Util
@@ -31,7 +31,6 @@ data DelaunayTriangulation = Triangulation
     , _voronoiCells          :: Vector VoronoiPolygon
     , _convexHull            :: Vector Vec2
     , _findClosestInputPoint :: Vec2 -> Int -> Int
-    , _raw                   :: D.TriangulationRaw
     }
 
 -- | Create a 'DelaunayTriangulation' from a set of points.
@@ -52,7 +51,6 @@ delaunayTriangulation points' =
         , _voronoiEdges = voronoiEdges triCircumcenters raw extRays
         , _voronoiCells = voronoiCells points triCircumcenters inedges raw
         , _convexHull = convexHullViaDelaunay points raw
-        , _raw = raw
         }
 
 instance NFData DelaunayTriangulation where
@@ -64,8 +62,7 @@ instance NFData DelaunayTriangulation where
         , _voronoiEdges = x4
         , _voronoiCells = x5
         , _convexHull = x6
-        , _raw = x7
-        } = rnf (x1, x2, x3, x4, x5, x6, x7)
+        } = rnf (x1, x2, x3, x4, x5, x6)
 
 triangles :: Vector Vec2 -> D.TriangulationRaw -> (Vector Polygon, Vector Vec2)
 triangles points triangulation =
