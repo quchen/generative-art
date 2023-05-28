@@ -12,9 +12,34 @@ import Util
 
 
 
+-- $setup
+-- >>> import Draw
+-- >>> import qualified Graphics.Rendering.Cairo as C
+
+
 -- | Split a polygon into a number of triangles.
 --
--- <<docs/triangulation/3_haskell_logo.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Triangulate/triangulate.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Triangulate/triangulate.svg" 240 210 $ do
+--     let polygon = Polygon [Vec2 10 74, Vec2 130 10, Vec2 140 143, Vec2 199 94, Vec2 232 175, Vec2 188 203, Vec2 35 133, Vec2 103 68]
+--         triangles = triangulate polygon
+--     C.setLineWidth 1
+--     C.setLineJoin C.LineJoinRound
+--     for_ (zip [0..] triangles) $ \(i, triangle) -> cairoScope $ do
+--         sketch triangle
+--         setColor (mathematica97 i)
+--         C.fillPreserve
+--         C.stroke
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         setColor black
+--         sketch polygon
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Algorithms/Triangulate/triangulate.svg
 triangulate :: Polygon -> [Polygon]
 triangulate polygon = case clipEar polygon of
     (ear, Nothing) -> [ear]

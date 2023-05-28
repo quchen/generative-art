@@ -11,12 +11,10 @@ import qualified Test.Draw.Plotting
 import qualified Test.Draw.Text
 import qualified Test.Geometry.Algorithms.Clipping
 import qualified Test.Geometry.Algorithms.Contour
-import qualified Test.Geometry.Algorithms.Delaunay.Delaunator
 import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Core
 import qualified Test.Geometry.LookupTable.Lookup2
-import qualified Test.Geometry.Processes.ApollonianGasket
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
 import qualified Test.Geometry.SvgParser.PathParser
@@ -56,12 +54,10 @@ tests = testGroup "Test suite"
     , Test.Draw.Text.tests
     , Test.Geometry.Algorithms.Clipping.tests
     , Test.Geometry.Algorithms.Contour.tests
-    , Test.Geometry.Algorithms.Delaunay.Delaunator.tests
     , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Coordinates.Hexagonal.tests
     , Test.Geometry.Core.tests
     , Test.Geometry.LookupTable.Lookup2.tests
-    , Test.Geometry.Processes.ApollonianGasket.tests
     , Test.Geometry.Processes.Billard.tests
     , Test.Geometry.Processes.Penrose.tests
     , Test.Geometry.SvgParser.PathParser.tests

@@ -998,10 +998,47 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 -- | Increases monotonically with angle. Useful pretty much only to sort points by
 -- angle, but this it does particularly fast (in particular, it’s much faster than
 -- 'atan2').
+--
+-- Here is a comparison between 'atan2'-based (blue) and
+-- pseudoAtan2/'pseudoAngle'-based angle of \([0\ldots 360\deg)\). Both are
+-- increasing monotonically over the entire interval, hence yield the same
+-- properties when it comes to 'Ord' and sorting in particular.
+--
+-- <<docs/haddock/Geometry/Core.hs/pseudo_angle.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core.hs/pseudo_angle.svg" 200 100 $ do
+--     let anglesDeg = takeWhile (< 180) [-180, -175 ..]
+--         atan2Plot = Polyline $ do
+--             angleDeg <- anglesDeg
+--             let Vec2 x y = polar (deg angleDeg) 1
+--             pure (Vec2 angleDeg (atan2 y x))
+--         pseudoAtan2Plot = Polyline $ do
+--             angleDeg <- anglesDeg
+--             let vec = polar (deg angleDeg) 1
+--             pure (Vec2 angleDeg (pseudoAngle vec))
+--         trafo = transformBoundingBox
+--             [atan2Plot, pseudoAtan2Plot]
+--             (shrinkBoundingBox 10 [zero, Vec2 200 100])
+--             def {_bbFitAspect = IgnoreAspect}
+--     cairoScope $ do
+--         sketch (transform trafo atan2Plot)
+--         setColor (mathematica97 0)
+--         C.stroke
+--     cairoScope $ do
+--         sketch (transform trafo pseudoAtan2Plot)
+--         setColor (mathematica97 1)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/pseudo_angle.svg
 pseudoAngle :: Vec2 -> Double
-pseudoAngle (Vec2 x y) =
-    let p = x / (abs x + abs y);
-    in (if y > 0 then 3-p else 1+p) / 4; -- // [0..1]
+pseudoAngle (Vec2 x y) = pseudoAtan2 y x
+
+-- | Source of this nice alg:
+-- https://vegard.wiki/w/Pseudoangles
+pseudoAtan2 :: Double -> Double -> Double
+pseudoAtan2 y x =  signum y * (1 - x / (abs x + abs y))
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end. The
 -- norm of the vector is the length of the line. Use 'direction' if you need a
@@ -1025,6 +1062,8 @@ moveAlongLine line@(Line start _end) d
     in start +. (d/len) *. vectorOf line
 
 -- | Angle of a single line, relative to the x axis.
+--
+-- For sorting by angle, use the faster 'pseudoAngle'!
 angleOfLine :: Line -> Angle
 angleOfLine (Line (Vec2 x1 y1) (Vec2 x2 y2)) = rad (atan2 (y2-y1) (x2-x1))
 

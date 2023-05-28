@@ -53,9 +53,9 @@ module Draw.Plotting (
 
 
 import           Control.Monad.RWS        hiding (modify)
+import           Data.Default.Class
 import           Data.DList               (DList)
 import qualified Data.DList               as DL
-import           Data.Default.Class
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S
@@ -738,15 +738,16 @@ instance Plotting Ellipse where
     plot (Ellipse trafo) = commented "Ellipse" $ do
         plot (transform trafo (regularPolygon 64))
 
-instance Foldable f => Plotting (Polyline f) where
-    plot (Polyline xs) = go (toList xs)
+instance Sequential f => Plotting (Polyline f) where
+    plot (Polyline xs) = go (toVector xs)
       where
-        go [] = pure ()
+        go points | V.length points <= 1 = pure ()
         go points = commented "Polyline" $ do
             current <- gets _penXY
-            let p:ointsToPlot = if normSquare (current -. head points) < normSquare (current -. last points)
+            let pointsToPlot = if normSquare (current -. V.head points) < normSquare (current -. V.last points)
                     then points
-                    else reverse points
+                    else V.reverse points
+                Just (p,ointsToPlot) = V.uncons pointsToPlot
             repositionTo p
             traverse_ lineTo ointsToPlot
 

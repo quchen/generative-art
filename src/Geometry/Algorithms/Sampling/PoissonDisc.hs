@@ -140,7 +140,7 @@ sampleLoop = do
 
         let validPoint candidate = do
                 neighbours <- neighbouringSamples candidate
-                pure (not (any (\p -> norm (candidate -. p) <= r) neighbours))
+                pure (not (any (\p -> normSquare (candidate -. p) <= r^2) neighbours))
 
         newSample <- findM validPoint candidates
 

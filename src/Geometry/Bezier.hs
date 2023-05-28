@@ -37,6 +37,12 @@ import Numerics.LinearEquationSystem
 
 
 
+-- $setup
+-- >>> import Draw
+-- >>> import qualified Graphics.Rendering.Cairo as C
+
+
+
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
 data Bezier = Bezier !Vec2 !Vec2 !Vec2 !Vec2 deriving (Eq, Ord, Show)
 
@@ -155,7 +161,37 @@ bezierSubdivideT n bz = map (bezierT bz) points
 --
 -- Here it is alongside 'bezierSubdivideT':
 --
--- <<docs/bezier/1_single_curve.svg>>
+-- <<docs/haddock/Geometry/Bezier/subdivide_s_t_comparison.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Bezier/subdivide_s_t_comparison.svg" 300 150 $ do
+--     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
+--                     fitToBox = transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
+--                 in fitToBox curveRaw
+--         evenlySpaced = bezierSubdivideS 16 curve
+--         unevenlySpaced = bezierSubdivideT 16 curve
+--         offsetBelow :: Transform geo => geo -> geo
+--         offsetBelow = transform (translate (Vec2 0 50))
+--     C.setLineWidth 1
+--     cairoScope $ do
+--         setColor $ mathematica97 1
+--         sketch curve
+--         C.stroke
+--         sketch (offsetBelow curve)
+--         C.stroke
+--     for_ (zip evenlySpaced unevenlySpaced) $ \(e, u') -> do
+--         let u = offsetBelow u'
+--         let circle p = sketch (Circle p 3) >> C.stroke
+--             connect p q = do
+--                 let line = resizeLineSymmetric (*0.8) (Line p q)
+--                 sketch line
+--                 C.stroke
+--         cairoScope (setColor (mathematica97 0) >> circle e)
+--         cairoScope (setColor (mathematica97 3) >> circle u)
+--         cairoScope (setColor (black `withOpacity` 0.2) >> connect e u)
+-- :}
+-- docs/haddock/Geometry/Bezier/subdivide_s_t_comparison.svg
 bezierSubdivideS :: Int -> Bezier -> [Vec2]
 bezierSubdivideS n bz = map bezier distances
   where
@@ -237,9 +273,6 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 --
 -- If the first and last point are identical, assume the trajectory is closed, and
 -- smoothly interpolate between beginning and end as well.
---
--- For an input of \(n\) points, this will yield \(n-1\) Bezier curves if the input
--- is open, and \(n\) if it is closed.
 --
 -- <<docs/interpolation/1_bezier_open.svg>>
 bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier

@@ -16,10 +16,7 @@ import Test.TastyAll
 
 tests :: TestTree
 tests = testGroup "Bezier curves"
-    [ testGroup "Arc length parameterization"
-        [ interpolateSingleCurveTest
-        ]
-    , testGroup "Interpolation"
+    [ testGroup "Interpolation"
         [ smoothenOpenCurveCountTest
         , smoothenClosedCurveCountTest
         , testGroup "Visual"
@@ -250,38 +247,6 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
         stroke
         moveTo 200 270
         showText (show (length interpolated) ++ " curves")
-
-interpolateSingleCurveTest :: TestTree
-interpolateSingleCurveTest = testVisual "Single curve" 300 150 "docs/bezier/1_single_curve" $ \_ -> do
-    let curve = let curveRaw = G.transform (G.rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
-                    fitToBox = G.transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
-                in fitToBox curveRaw
-        evenlySpaced = bezierSubdivideS 16 curve
-        unevenlySpaced = bezierSubdivideT 16 curve
-
-        offsetBelow :: Transform geo => geo -> geo
-        offsetBelow = G.transform (G.translate (Vec2 0 50))
-
-    setLineWidth 1
-
-    cairoScope $ do
-        setColor $ mathematica97 1
-        sketch [curve]
-        stroke
-        sketch [offsetBelow curve]
-        stroke
-
-    for_ (zip evenlySpaced unevenlySpaced) $ \(e, u') -> do
-        let u = offsetBelow u'
-        let circle p = newPath >> sketch (Circle p 3) >> stroke
-            connect p q = do
-                let line = resizeLineSymmetric (*0.8) (Line p q)
-                sketch line
-                setDash [1,1] 0
-                stroke
-        cairoScope (setColor (mathematica97 0) >> circle e)
-        cairoScope (setColor (mathematica97 3) >> circle u)
-        cairoScope (setSourceRGBA 0 0 0 0.1 >> connect e u)
 
 bezierLoop :: TestTree
 bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_loop_interpolation" $ \(w,h) -> do

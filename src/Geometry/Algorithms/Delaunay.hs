@@ -430,7 +430,7 @@ clipRay bb ray = Clipping.cohenSutherland bb (comicallyLengthen bb ray)
 
 
 -- | Cut off all 'Ray's to end at the provided 'BoundingBox'. Convenient to take
--- the result of '_voronoiEdges' and clip it to a rectangular viewport.
+-- the result of 'voronoiEdges' and clip it to a rectangular viewport.
 clipEdgesToBox
     :: HasBoundingBox boundingBox
     => boundingBox
@@ -446,7 +446,7 @@ clipEdgesToBox bb' segments = do
 
 
 -- | Cut off all infinite 'VoronoiCell's with the provided 'BoundingBox'. Convenient to take
--- the result of '_voronoiCells' and clip it to a rectangular viewport.
+-- the result of 'voronoiCells' and clip it to a rectangular viewport.
 --
 -- This function yields incorrect results when the angle between the directions is
 -- too large, because it simply comically enlarges the »infinite« directions to
