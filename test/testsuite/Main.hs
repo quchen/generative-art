@@ -4,11 +4,6 @@ module Main (main, test) where
 
 
 
-import Control.Concurrent.Async
-import Control.Exception
-import System.FilePath
-import System.FilePath.Glob
-
 import qualified Test.Data.Tree.Extended
 import qualified Test.Draw
 import qualified Test.Draw.Color
@@ -38,16 +33,13 @@ import qualified Test.Uncategorized.Reflection
 import qualified Test.Uncategorized.SimpleOperations
 import qualified Test.Uncategorized.Trajectory
 
-import           Test.Tasty
-import           Test.Tasty.Runners
-import qualified VisualOutput.FileSystem         as FileSystem
-import qualified VisualOutput.TestsuiteGenerator as Visual
+import Test.Tasty
+import Test.Tasty.Runners
 
 
 
 main :: IO ()
-main = finally (defaultMain (localOption (Timeout (10^7) "10s") tests))
-               runPostTestScripts
+main = defaultMain (localOption (Timeout (10^7) "10s") tests)
 
 -- Useful in GHCi: no timeout
 test :: String -> IO ()
@@ -86,23 +78,3 @@ tests = testGroup "Test suite"
     , Test.Uncategorized.SimpleOperations.tests
     , Test.Uncategorized.Trajectory.tests
     ]
-
-runPostTestScripts :: IO ()
-runPostTestScripts = do
-    files <- do
-        paths <- FileSystem.listAllFiles "docs"
-        let p path
-                | match "**/colors/schemes/continuous/**/*" path = takeExtension path == ".png"
-                | otherwise = takeExtension path == ".svg"
-        pure (filter p paths)
-
-    mdAsync <- do
-        putStrLn "Generate visual testsuite file (Markdown)"
-        async (Visual.generateMarkdown "test/testsuite/out/README.md" files)
-
-    htmlAsync <- do
-        putStrLn "Generate visual testsuite file (HTML)"
-        async (Visual.generateHtml "test/testsuite/out/README.html" files)
-
-    wait mdAsync
-    wait htmlAsync
