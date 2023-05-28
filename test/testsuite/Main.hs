@@ -16,7 +16,6 @@ import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Core
 import qualified Test.Geometry.LookupTable.Lookup2
-import qualified Test.Geometry.Processes.ApollonianGasket
 import qualified Test.Geometry.Processes.Billard
 import qualified Test.Geometry.Processes.Penrose
 import qualified Test.Geometry.SvgParser.PathParser
@@ -61,7 +60,6 @@ tests = testGroup "Test suite"
     , Test.Geometry.Coordinates.Hexagonal.tests
     , Test.Geometry.Core.tests
     , Test.Geometry.LookupTable.Lookup2.tests
-    , Test.Geometry.Processes.ApollonianGasket.tests
     , Test.Geometry.Processes.Billard.tests
     , Test.Geometry.Processes.Penrose.tests
     , Test.Geometry.SvgParser.PathParser.tests
