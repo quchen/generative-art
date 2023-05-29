@@ -4,14 +4,13 @@
 
 -- | Functions to generate GCode, suitable for being run on a penplotter.
 --
---
 -- <<docs/haddock/Draw/Plotting/example.svg>>
 --
 -- === __(image code)__
 -- >>> :{
 -- D.haddockRender "Draw/Plotting/example.svg" 300 200 $ do
---     D.coordinateSystem D.CairoStandard_ZeroTopLeft_XRight_YDown
---     let geometry = transform (transformBoundingBox haskellLogo (shrinkBoundingBox 10 [zero, Vec2 300 200]) def) haskellLogo
+--     let haskellLogo' = transform mirrorYCoords haskellLogo
+--         geometry = transform (transformBoundingBox haskellLogo' (shrinkBoundingBox 10 [zero, Vec2 300 200]) def) haskellLogo'
 --         plotSettings = def { _canvasBoundingBox = Just (boundingBox [zero, Vec2 300 200]) }
 --         plotResult = runPlot def $ do
 --             for_ geometry $ \logoPart -> plot logoPart
@@ -150,6 +149,16 @@ data PlottingSettings = PlottingSettings
     , _canvasBoundingBox :: Maybe BoundingBox
     -- ^ The canvas we’re painting on. Useful to check whether the pen leaves
     -- the drawing area. ('def'ault: 'Nothing')
+    --
+    -- <<docs/haddock/Draw/Plotting/leaving_the_canvas.svg>>
+    --
+    -- === __(image code)__
+    -- >>> paper = boundingBox [zero, Vec2 300 200]
+    -- >>> haskellLogo' = transform mirrorYCoords haskellLogo
+    -- >>> geometry = transform (rotateAround (boundingBoxCenter paper) (deg 40) <> transformBoundingBox haskellLogo' (shrinkBoundingBox 10 paper) def) haskellLogo'
+    -- >>> plotSettings = def { _canvasBoundingBox = Just paper }
+    -- >>> plotResult = runPlot plotSettings (for_ geometry plot)
+    -- >>> renderPreview "docs/haddock/Draw/Plotting/leaving_the_canvas.svg" 1 plotResult
 
     , _previewPenWidth :: Double
     -- ^ Use this line width in the preview. To get a realistic preview, match
@@ -195,18 +204,10 @@ gCode instructions = for_ instructions $ \instruction -> do
     recordDrawingDistance instruction
     recordCairoPreview instruction
     recordBoundingBox instruction
-    checkPlotDoesNotLeaveCanvas
     recordPenXY instruction -- NB: this is last because the other recorders depend on the pen position!
 
 setPenXY :: Vec2 -> Plot ()
 setPenXY pos = modify' (\s -> s { _penXY = pos })
-
-checkPlotDoesNotLeaveCanvas :: Plot ()
-checkPlotDoesNotLeaveCanvas = asks _canvasBoundingBox >>= \case
-    Nothing -> pure ()
-    Just canvasBB -> do
-        drawnBB <- gets _drawnBoundingBox
-        unless (drawnBB `insideBoundingBox` canvasBB) (error "Tried to move pen outside the canvas!")
 
 recordPenXY :: GCode -> Plot ()
 recordPenXY instruction = do
@@ -573,20 +574,28 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
 
 decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
 decorateCairoPreview settings finalState = D.cairoScope $ when (_previewDecorate settings) $ do
-    let drawnBB = if _previewDrawnShapesBoundingBox settings
-            then Just (_drawnBoundingBox finalState)
-            else Nothing
-        zeroMarker = do
+    let colorGood = D.setColor (D.mathematica97 2)
+        colorBad = D.setColor (D.rgb 1 0 0)
+        drawZeroMarker = D.cairoScope $ do
+            colorGood
+            C.setLineWidth 3
             D.sketch (Line (Vec2 (-10) 0) (Vec2 10 0))
             D.sketch (Line (Vec2 0 (-10)) (Vec2 0 10))
             C.stroke
-    D.setColor (D.mathematica97 2)
-    zeroMarker
-    for_ [drawnBB, _canvasBoundingBox settings] $ \case
-        Nothing -> pure ()
-        Just bb -> do
-            D.sketch (boundingBoxPolygon bb)
+            D.sketch (Circle zero 10)
             C.stroke
+        drawDrawnShapeBB = D.cairoScope $ case _canvasBoundingBox settings of
+            _ | not (_previewDrawnShapesBoundingBox settings) -> pure ()
+            Just cbb | not (_drawnBoundingBox finalState `insideBoundingBox` cbb)
+                -> colorBad >> C.setLineWidth 5 >> D.sketch (boundingBoxPolygon (_drawnBoundingBox finalState)) >> C.stroke
+            Just bb -> colorGood >> D.sketch (boundingBoxPolygon bb) >> C.stroke
+            _otherwise -> pure ()
+        drawCanvasBB = D.cairoScope $ case _canvasBoundingBox settings of
+            Just cbb -> colorGood >> D.sketch (boundingBoxPolygon cbb) >> C.stroke
+            Nothing -> pure ()
+    drawZeroMarker
+    drawCanvasBB
+    drawDrawnShapeBB
 
 -- | Result of 'runPlot'; unifies convenience API and internals for tinkering.
 data RunPlotResult = RunPlotResult
@@ -639,7 +648,7 @@ renderPreview
     -> IO ()
 renderPreview file pxPerMm result = do
     let bb = _totalBoundingBox result
-        (w, h) = let (w',h') = boundingBoxSize bb
+        (w, h) = let (w',h') = boundingBoxSize (growBoundingBox 10 bb)
                  in (pxPerMm*w', pxPerMm*h')
         trafo = transformBoundingBox bb (boundingBox [zero, Vec2 w h]) def
     D.render file (round w) (round h) $ do
