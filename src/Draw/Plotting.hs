@@ -178,8 +178,11 @@ data PlottingSettings = PlottingSettings
     -- ('def'ault: 'True')
     } deriving (Eq, Show)
 
--- | Command to issue in the footer
-data FinishMove = FinishWithG28 | FinishWithG30
+-- | Command to issue after all drawing is finished
+data FinishMove
+    = FinishWithG28  -- ^ G28: go to predefined position
+    | FinishWithG30  -- ^ G30: go to predefined position
+    | FinishTopRight -- ^ Move to the top right of the union of drawn and canvas 'BoundingBox'.
     deriving (Eq, Ord, Show)
 
 instance Default PlottingSettings where
@@ -305,8 +308,8 @@ recordBoundingBox :: GCode -> Plot ()
 recordBoundingBox instruction = do
     current@(Vec2 xCurrent yCurrent) <- gets _penXY
     case instruction of
-        G00_LinearRapidMove x y _      -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
-        G01_LinearFeedrateMove _ x y _ -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+        G00_LinearRapidMove x y _         -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
+        G01_LinearFeedrateMove _ x y _    -> recordBB (Vec2 (fromMaybe xCurrent x) (fromMaybe yCurrent y))
         G02_ArcClockwise _ i j x y        -> recordBB (Arc        Clockwise current (current +. Vec2 i j) (Vec2 x y))
         G03_ArcCounterClockwise _ i j x y -> recordBB (Arc CounterClockwise current (current +. Vec2 i j) (Vec2 x y))
         _otherwise -> pure ()
@@ -571,6 +574,14 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
                 , G30_GotoPredefinedPosition Nothing Nothing Nothing
                 ]
             ]
+        Just FinishTopRight ->
+            let BoundingBox _ (Vec2 xTopRight yTopRight) = fromMaybe mempty (_canvasBoundingBox settings) <> _drawnBoundingBox finalState
+            in [ GComment "Move pen to top right"
+               , GBlock
+                   [ G00_LinearRapidMove Nothing Nothing (Just (_zTravelHeight settings))
+                   , G00_LinearRapidMove (Just xTopRight) (Just yTopRight) Nothing
+                   ]
+               ]
 
 decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
 decorateCairoPreview settings finalState = D.cairoScope $ when (_previewDecorate settings) $ do
