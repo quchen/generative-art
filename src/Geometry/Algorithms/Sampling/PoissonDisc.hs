@@ -15,6 +15,8 @@ import qualified Data.Map                as M
 import           Data.Maybe
 import           Data.Set                (Set)
 import qualified Data.Set                as S
+import           Data.Vector             (Vector)
+import qualified Data.Vector.Extended    as V
 import           System.Random.MWC
 
 import Geometry
@@ -175,21 +177,24 @@ randomSetElement gen set = do
     pure (S.elemAt i set)
 
 -- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
+--
+-- Enhanced by a random trial order so we don’t privilege clockwise selection
 candidatesAroundSample
     :: PrimMonad m
     => Gen (PrimState m)
     -> Int -- ^ Number of attempts
     -> BoundingBox -- ^ Sampling region
-    -> Double
-    -> Vec2
-    -> m [Vec2]
-candidatesAroundSample gen k shape r v = do
+    -> Double -- ^ Poisson radius
+    -> Vec2 -- ^ Point to generate candidates around
+    -> m (Vector Vec2)
+candidatesAroundSample gen k bb r v = do
     phi0 <- rad <$> uniformRM (0, 2*pi) gen
     let deltaPhi = rad (2*pi / fromIntegral k)
-        candidates = filter (`insideBoundingBox` shape)
-            [ v +. polar (phi0 +. fromIntegral i *. deltaPhi) (r + 1e-6)
-            | i <- [1..k] ]
-    pure candidates
+        circle = V.generate k (\i -> v +. polar (phi0 +. fromIntegral i *. deltaPhi) (r + 1e-6))
+        inside = V.filter (`insideBoundingBox` bb) circle
+    inside' <- V.thaw inside
+    V.fisherYatesShuffle gen inside'
+    V.freeze inside'
 
 -- A cell in the grid has a side length of r/sqrt(2). If we’re somewhere in the X
 -- square and can only move at most a square diagonal, we only need to consider the
