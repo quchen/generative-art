@@ -131,7 +131,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke
@@ -164,7 +163,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke
@@ -198,7 +196,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke

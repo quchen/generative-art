@@ -173,7 +173,6 @@ bezierSubdivideT n bz = map (bezierT bz) points
 --         unevenlySpaced = bezierSubdivideT 16 curve
 --         offsetBelow :: Transform geo => geo -> geo
 --         offsetBelow = transform (translate (Vec2 0 50))
---     C.setLineWidth 1
 --     cairoScope $ do
 --         setColor $ mathematica97 1
 --         sketch curve

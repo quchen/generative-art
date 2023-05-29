@@ -432,7 +432,6 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     let point = Vec2 10 10
 --         offset = Vec2 80 10
 --         point' = transform (translate offset) point
---     C.setLineWidth 1
 --     sketch (Circle point 5)
 --     sketch (Circle point' 5)
 --     C.fill
@@ -459,7 +458,6 @@ translate = Transformation mempty
 --     let point = Vec2 90 10
 --         angle = deg 30
 --         point' = transform (rotate angle) point
---     C.setLineWidth 1
 --     cairoScope $ do
 --         sketch (Circle point 5, Circle point' 5)
 --         C.fill
@@ -497,7 +495,6 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 -- haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
 --         square' = transform (scale 2) square
---     C.setLineWidth 1
 --     sketch square
 --     C.stroke
 --     setColor (mathematica97 1)
@@ -568,7 +565,6 @@ mirrorYCoords = scale' 1 (-1)
 -- haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
 --         square' = transform (shear 0.5 0.1) square
---     C.setLineWidth 1
 --     sketch square
 --     C.stroke
 --     setColor (mathematica97 1)
@@ -929,7 +925,6 @@ normSquare v = dotProduct v v
 --         p = polar angle 100
 --     cairoScope $ do
 --         setColor (mathematica97 1)
---         C.setLineWidth 1
 --         C.arc 0 0 40 0 (getRad angle)
 --         sketch (Line zero p)
 --         C.stroke
@@ -1335,7 +1330,6 @@ polygonAngles polygon@(Polygon corners)
 --     points <- C.liftIO $ do
 --         gen <- MWC.create
 --         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
---     C.setLineWidth 1
 --     for_ points $ \point -> do
 --         sketch (Circle point 2)
 --         C.fill
@@ -1503,7 +1497,6 @@ countEdgeTraversals subjectPoint edges'
 -- haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
 --     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
 --         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
---     C.setLineWidth 1
 --     sketch square
 --     C.stroke
 --     setColor (mathematica97 1)
