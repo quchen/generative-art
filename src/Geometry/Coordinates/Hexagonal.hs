@@ -2,7 +2,34 @@
 --
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
 --
--- <<docs/hexagonal/gaussian_hexagons.svg>>
+-- <<docs/haddock/Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg" 360 360 $ do
+--     let cellSize = 10
+--         hexagons = runST $ do
+--             gen <- MWC.create
+--             points <- gaussianDistributedPoints gen canvas (50*.mempty) (2^10)
+--             let hexs = fmap (fromVec2 cellSize) points
+--             pure $ foldl' (\weight hex -> M.insertWith (+) hex 1 weight) mempty hexs
+--         canvas = shrinkBoundingBox 10 [zero, Vec2 360 360]
+--     cairoScope $ sequence_ $ flip M.mapWithKey hexagons $ \hex weight -> do
+--         sketch (hexagonPoly cellSize hex)
+--         setColor (viridis (lerp (minimum hexagons, maximum hexagons) (0, 1) weight))
+--         C.setLineWidth 1
+--         C.fillPreserve
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg
+
+
+    -- => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -- -> boundingBox       -- ^ Determines width and height. The center of this is the mean \(\mathbf\mu\).
+    -- -> Mat2              -- ^ Covariance matrix \(\mathbf\Sigma\).
+    -- -> Int               -- ^ Number of points.
+    -- -> m (Vector Vec2)
+
 module Geometry.Coordinates.Hexagonal (
       Hex(..)
     , toVec2
@@ -49,23 +76,43 @@ import           Data.Foldable
 import           Data.Maybe
 import           Data.Set                 (Set)
 import qualified Data.Set                 as S
-import           Graphics.Rendering.Cairo as C hiding (x, y)
+import qualified Graphics.Rendering.Cairo as C hiding (x, y)
 
 import           Draw
-import           Geometry.Core as G hiding
+import           Geometry.Core          as G hiding
     (Polygon, pointInPolygon, rotateAround)
-import qualified Geometry.Core as G
+import qualified Geometry.Core          as G
+import           Numerics.Interpolation
 import           Util
+
+
+
+-- $setup
+-- >>> import qualified System.Random.MWC as MWC
+-- >>> import qualified System.Random.MWC.Distributions as MWC
+-- >>> import qualified Data.Map as M
+-- >>> import Control.Monad.ST
+-- >>> import Data.Foldable
+-- >>> import Draw
+-- >>> import Geometry.Algorithms.Sampling
 
 
 
 -- | Hexagonal coordinate.
 data Hex = Hex !Int !Int !Int
     -- ^ The choice of values is called »cubal«.
+    --
+    -- *Invariant:* @let Hex q r s in q+r+s == 0@
 
     -- This is really just a ℝ^3 with rounding occurring in every calculation,
     -- but alas, ℤ is not a field, so it isn’t a vector space.
-    deriving (Eq, Ord, Show)
+    deriving (Show)
+
+instance Eq Hex where
+    Hex q r _ == Hex q' r' _ = q == q' && r == r'
+
+instance Ord Hex where
+    Hex q r _ `compare` Hex q' r' _ = compare q q' <> compare r r'
 
 instance NFData Hex where
     rnf _ = () -- Constructors are already strict
@@ -212,18 +259,18 @@ hexagonPoly sideLength hex =
 hexagonalCoordinateSystem
     :: Double -- ^ Side length of a hexagon (equivalent to its radius)
     -> Int    -- ^ How many hexagons to draw in each direction
-    -> Render ()
+    -> C.Render ()
 hexagonalCoordinateSystem sideLength range = do
     let hexagons = hexagonsInRange range hexZero
 
-    cairoScope $ grouped (paintWithAlpha 0.2) $ do
+    cairoScope $ grouped (C.paintWithAlpha 0.2) $ do
         -- Variable names use Cairo coordinates, i.e. inverted y axis compared to math.
 
         -- First, we draw the happy path: the left-hand side of all hexagons.
         -- This will leave the ones at the top, bottom and right partially open,
         -- which we fix later.
-        setLineWidth 1
-        setSourceRGB 0 0 0
+        C.setLineWidth 1
+        C.setSourceRGB 0 0 0
         for_ hexagons $ \hexCoord@(Hex q r s) -> do
             let center = toVec2 sideLength hexCoord
                 bottomCorner = center +. Vec2 0 sideLength
@@ -245,9 +292,9 @@ hexagonalCoordinateSystem sideLength range = do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 sketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
                 sketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
-            stroke
+            C.stroke
 
-    cairoScope $ grouped (paintWithAlpha 0.5) $
+    cairoScope $ grouped (C.paintWithAlpha 0.5) $
         for_ hexagons $ \hexCoord@(Hex q r s) ->
             for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
@@ -255,7 +302,7 @@ hexagonalCoordinateSystem sideLength range = do
                 moveToVec coord
                 setColor (hsva angle 1 0.7 1)
                 if Hex 0 0 0 == Hex q r s
-                    then cairoScope (setFontSize 14 >> showTextAligned HCenter VCenter name)
+                    then cairoScope (C.setFontSize 14 >> showTextAligned HCenter VCenter name)
                     else showTextAligned HCenter VCenter (show val)
 
 -- | Hexagons reachable within a number of steps from the origin. The boundary of
@@ -269,10 +316,6 @@ hexagonsInRange range center = do
     let s = -q-r
     pure (Hex q r s `hexAdd` center)
 
--- | Linear interpolation.
-lerp :: Double -> Double -> Double -> Double
-lerp a b t = t*a + (1-t)*b
-
 -- | Linearly interpolate between two 'Hex'.
 cubeLerp
     :: Hex    -- ^ Start
@@ -280,13 +323,10 @@ cubeLerp
     -> Double -- [0..1] yields [start..end]
     -> Hex
 cubeLerp (Hex q1 r1 s1) (Hex q2 r2 s2) t =
-    let q1' = fromIntegral q1
-        q2' = fromIntegral q2
-        r1' = fromIntegral r1
-        r2' = fromIntegral r2
-        s1' = fromIntegral s1
-        s2' = fromIntegral s2
-    in cubeRound (lerp q1' q2' t) (lerp r1' r2' t) (lerp s1' s2' t)
+    cubeRound
+        (lerp (fromIntegral q1, fromIntegral q2) (0,1) t)
+        (lerp (fromIntegral r1, fromIntegral r2) (0,1) t)
+        (lerp (fromIntegral s1, fromIntegral s2) (0,1) t)
 
 -- | Line between two 'Hex'
 line :: Hex -> Hex -> [Hex]
@@ -332,7 +372,7 @@ edgePoints (Polygon corners) = S.fromList (concat (zipWith line corners (tail (c
 polygonSketch
     :: Double -- ^ Cell size
     -> Polygon
-    -> Render ()
+    -> C.Render ()
 polygonSketch cellSize polygon =
     for_ (edgePoints polygon) $ \hex ->
         sketch (hexagonPoly cellSize hex)

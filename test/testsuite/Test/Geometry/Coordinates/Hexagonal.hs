@@ -2,17 +2,17 @@ module Test.Geometry.Coordinates.Hexagonal (tests) where
 
 
 
-import Data.Foldable
-import qualified Data.Vector as V
-import Graphics.Rendering.Cairo as C hiding (x, y)
-import Control.Monad
-import Control.Monad.ST
-import System.Random.MWC
-import System.Random.MWC.Distributions
-import qualified Data.Map as M
+import           Control.Monad
+import           Control.Monad.ST
+import           Data.Foldable
+import qualified Data.Map                        as M
+import qualified Data.Vector                     as V
+import           Graphics.Rendering.Cairo        as C hiding (x, y)
+import           System.Random.MWC
+import           System.Random.MWC.Distributions
 
 import Draw
-import Geometry as G
+import Geometry                       as G
 import Geometry.Coordinates.Hexagonal as Hex
 import Numerics.Interpolation
 
@@ -27,10 +27,6 @@ tests = testGroup "Hexagonal coordinate system"
         , rotatingIsCyclicTest
         , rotatingBackAndForthTest
         , rotatingAddsUpTest
-        ]
-    , testGroup "Visual"
-        [ lineAndCircle
-        , gaussianHexagons
         ]
     ]
 
@@ -48,12 +44,12 @@ rotationDirectionTest = testCase "Rotation direction is correct" $ do
 rotatingIsCyclicTest :: TestTree
 rotatingIsCyclicTest = testProperty "rotate (6*x) == id" $
     \center point angle ->
-        (point == Hex.rotateAround center (6*angle) point)
+        point == Hex.rotateAround center (6*angle) point
 
 rotatingBackAndForthTest :: TestTree
 rotatingBackAndForthTest = testProperty "Rotating back and forth does nothing" $
     \center point angle ->
-        (point == Hex.rotateAround center angle (Hex.rotateAround center (-angle) point))
+        point == Hex.rotateAround center angle (Hex.rotateAround center (-angle) point)
 
 rotatingAddsUpTest :: TestTree
 rotatingAddsUpTest = testProperty "rotate x . rotate y == rotate (x+y)" $
@@ -88,28 +84,4 @@ lineAndCircle = testVisual "Line and circle" 380 350 "docs/hexagonal/1_line_and_
         setColor (mathematica97 1 `withOpacity` 0.3)
         fillPreserve
         setColor (mathematica97 1 `withOpacity` 0.5)
-        stroke
-
-gaussianHexagons :: TestTree
-gaussianHexagons = testVisual "Gaussian hexagons" 360 360 "docs/hexagonal/gaussian_hexagons" $ \(width, height) -> do
-    let cellSize = 10
-    let hexagons = runST $ do
-            gen <- initialize (V.fromList [])
-            hexs <- replicateM (2^12) $ do
-                x <- normal 0 50 gen
-                y <- normal 0 50 gen
-                pure (Hex.fromVec2 cellSize (Vec2 x y))
-            pure $ foldl' (\acc hex -> M.insertWith (+) hex (1::Int) acc) mempty hexs
-    let _ = hexagons :: M.Map Hex Int
-
-
-    let polys = M.mapKeys (hexagonPoly cellSize) hexagons
-        fitToCanvas :: Transform geo => geo -> geo
-        fitToCanvas = G.transform (G.transformBoundingBox (M.keysSet polys) (Vec2 1 1, Vec2 (width-1) (height-1)) def)
-
-    sequence_ $ flip M.mapWithKey polys $ \poly value -> cairoScope $ do
-        Draw.sketch (fitToCanvas poly)
-        setColor (viridis (lerp (fromIntegral (minimum polys), fromIntegral (maximum polys)) (0, 1) (fromIntegral value)))
-        setLineWidth 1
-        fillPreserve
         stroke
