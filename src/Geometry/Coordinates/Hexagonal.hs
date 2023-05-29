@@ -92,23 +92,27 @@ import           Util
 
 
 -- | Hexagonal coordinate.
-data Hex = Hex !Int !Int !Int
+data Hex = Hex !Int !Int
     -- ^ The choice of values is called »cubal«.
-    --
-    -- *Invariant:* @let Hex q r s in q+r+s == 0@
+    -- Use 's' to get the omitted coordinate’s value.
 
     -- This is really just a ℝ^3 with rounding occurring in every calculation,
     -- but alas, ℤ is not a field, so it isn’t a vector space.
     deriving (Show)
 
 instance Eq Hex where
-    Hex q r _ == Hex q' r' _ = q == q' && r == r'
+    Hex q r == Hex q' r' = q == q' && r == r'
 
 instance Ord Hex where
-    Hex q r _ `compare` Hex q' r' _ = compare q q' <> compare r r'
+    Hex q r `compare` Hex q' r' = compare q q' <> compare r r'
 
 instance NFData Hex where
     rnf _ = () -- Constructors are already strict
+
+-- | Since \(q+r+s=0\) in cubical hexagonal coordinates, we can infer the third
+-- from the other two.
+s :: Int -> Int -> Int
+s q r = -q-r
 
 -- | Hexagonal direction, used by 'move'.
 data Direction
@@ -122,45 +126,48 @@ data Direction
 
 -- | Move x steps in a direction
 move :: Direction -> Int -> Hex -> Hex
-move dir x (Hex q r s) = case dir of
-    R  -> Hex (q+x)  r     (s-x)
-    UR -> Hex (q+x) (r-x)   s
-    UL -> Hex  q    (r-x)  (s+x)
-    L  -> Hex (q-x)  r     (s+x)
-    DL -> Hex (q-x) (r+x)   s
-    DR -> Hex  q    (r+x)  (s-x)
+move dir x (Hex q r) = case dir of
+    R  -> Hex (q+x)  r
+    UR -> Hex (q+x) (r-x)
+    UL -> Hex  q    (r-x)
+    L  -> Hex (q-x)  r
+    DL -> Hex (q-x) (r+x)
+    DR -> Hex  q    (r+x)
 
 -- | Add two 'Hex' coordinates.
 hexAdd :: Hex -> Hex -> Hex
-Hex q1 r1 s1 `hexAdd` Hex q2 r2 s2 = Hex (q1+q2) (r1+r2) (s1+s2)
+Hex q1 r1 `hexAdd` Hex q2 r2 = Hex (q1+q2) (r1+r2)
 
 -- | Subtract two 'Hex' coordinates.
 hexSubtract :: Hex -> Hex -> Hex
-Hex q1 r1 s1 `hexSubtract` Hex q2 r2 s2 = Hex (q1-q2) (r1-r2) (s1-s2)
+Hex q1 r1 `hexSubtract` Hex q2 r2 = Hex (q1-q2) (r1-r2)
 
 -- | Multiply a 'Hex' coordinate with a whole number.
 hexTimes :: Int -> Hex -> Hex
-n `hexTimes` Hex q r s = Hex (n*q) (n*r) (n*s)
+n `hexTimes` Hex q r = Hex (n*q) (n*r)
 
 -- | The origin of the hexagonal coordinate system.
 hexZero :: Hex
-hexZero = Hex 0 0 0
+hexZero = Hex 0 0
 
 -- | How many steps are between two coordinates?
 distance :: Hex -> Hex -> Int
-distance (Hex q1 r1 s1) (Hex q2 r2 s2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
+distance (Hex q1 r1) (Hex q2 r2) = (abs (q1-q2) + abs (r1-r2) + abs (s1-s2)) `div` 2
+  where
+    s1 = s q1 r1
+    s2 = s q2 r2
 
 -- | Rotate clockwise by 60°
 rotateCw :: Hex -> Hex
-rotateCw (Hex q r s) = Hex (-r) (-s) (-q)
+rotateCw (Hex q r) = Hex (-r) (-s q r)
 
 -- | Rotate counterclockwise by 60°
 rotateCcw :: Hex -> Hex
-rotateCcw (Hex q r s) = Hex (-s) (-q) (-r)
+rotateCcw (Hex q r) = Hex (-s q r) (-q)
 
 -- | Mirror on the origin.
 mirror0 :: Hex -> Hex
-mirror0 (Hex q r s) = Hex (-q) (-r) (-s)
+mirror0 (Hex q r) = Hex (-q) (-r)
 
 -- | Rotate around a center by a number of 60° angles.
 rotateAround
@@ -188,7 +195,7 @@ toVec2
     :: Double -- ^ Size of a hex cell (radius, side length)
     -> Hex
     -> Vec2
-toVec2 size (Hex q r _) =
+toVec2 size (Hex q r) =
     let q' = fromIntegral q
         r' = fromIntegral r
         x = size * (sqrt 3*q' + sqrt 3/2*r')
@@ -201,11 +208,10 @@ fromVec2
     -> Vec2
     -> Hex
 fromVec2 size (Vec2 x y) =
-    let q', r', s' :: Double
+    let q', r' :: Double
         q' = (sqrt 3/3 * x - 1/3 * y) / size
         r' = (               2/3 * y) / size
-        s' = -q'-r'
-    in cubeRound q' r' s'
+    in cubeRound q' r'
 
 -- | 'hexAdd'
 instance Semigroup Hex where
@@ -216,27 +222,28 @@ instance Monoid Hex where
     mempty = hexZero
 
 -- | Given fractional cubical coordinates, yield the hexagon the coordinate is in.
-cubeRound :: Double -> Double -> Double -> Hex
-cubeRound q' r' s' =
-    let q,r,s :: Int
-        q = round q'
-        r = round r'
-        s = round s'
+cubeRound :: Double -> Double -> Hex
+cubeRound q' r'  =
+    let s' = -q'-r'
+        qq,rr,ss :: Int
+        qq = round q'
+        rr = round r'
+        ss = round s'
 
         -- Rounding all three might violate the invariant that
         -- q+r+s=0, so we calculate the discrepancy and discard
         -- the value that was rounded the most.
         qDiff, rDiff, sDiff :: Double
-        qDiff = abs (fromIntegral q - q')
-        rDiff = abs (fromIntegral r - r')
-        sDiff = abs (fromIntegral s - s')
+        qDiff = abs (fromIntegral qq - q')
+        rDiff = abs (fromIntegral rr - r')
+        sDiff = abs (fromIntegral ss - s')
     in if
         -- q had highest diff
-        | qDiff > rDiff && qDiff > sDiff -> Hex (-r-s) r s
+        | qDiff > rDiff && qDiff > sDiff -> Hex (-rr-ss) rr
         -- r had highest diff
-        | rDiff > sDiff                  -> Hex q (-q-s) s
+        | rDiff > sDiff                  -> Hex qq (-qq-ss)
         -- s is the only one left
-        | otherwise                      -> Hex q r (-q-r)
+        | otherwise                      -> Hex qq rr
 
 -- | 'Polygon' to match a 'HexagonalCoordinate'. Useful e.g. for collision
 -- checking, and of course also for painting. :-)
@@ -264,37 +271,37 @@ hexagonalCoordinateSystem sideLength range = do
         -- which we fix later.
         C.setLineWidth 1
         C.setSourceRGB 0 0 0
-        for_ hexagons $ \hexCoord@(Hex q r s) -> do
+        for_ hexagons $ \hexCoord@(Hex q r) -> do
             let center = toVec2 sideLength hexCoord
                 bottomCorner = center +. Vec2 0 sideLength
                 rotateCW degrees = G.rotateAround center (deg degrees)
                 corner i = G.transform (rotateCW (i*60)) bottomCorner
             if
                 -- Rightmost corner: the only full hexagon, woo!
-                | q == range && s == -range -> sketch $ G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
+                | q == range && s q r == -range -> sketch $ G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Upper right boundary
                 | q == range                -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 -- Lower right boundary
-                | s == -range               -> sketch $ Polyline [corner i | i <- [-2, -1, 0, 1, 2, 3]]
+                | s q r == -range           -> sketch $ Polyline [corner i | i <- [-2, -1, 0, 1, 2, 3]]
                 -- Upper boundary
                 | r == -range               -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3, 4]]
                 -- Lower boundary
                 | r == range                -> sketch $ Polyline [corner i | i <- [-1, 0, 1, 2, 3]]
                 | otherwise                 -> sketch $ Polyline [corner i | i <- [0, 1, 2, 3]]
-            when (hexCoord == Hex 0 0 0) $ do
+            when (hexCoord == hexZero) $ do
                 let centerHexagon = G.Polygon [corner i | i <- [0, 1, 2, 3, 4, 5]]
                 sketch (G.transform (G.scaleAround zero 0.9) centerHexagon)
                 sketch (G.transform (G.scaleAround zero 1.1) centerHexagon)
             C.stroke
 
     cairoScope $ grouped (C.paintWithAlpha 0.5) $
-        for_ hexagons $ \hexCoord@(Hex q r s) ->
-            for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s, 0)] $ \(name, val, angle) -> cairoScope $ do
+        for_ hexagons $ \hexCoord@(Hex q r) ->
+            for_ [("q" :: String, q, 120), ("r", r, 240), ("s", s q r, 0)] $ \(name, val, angle) -> cairoScope $ do
                 let center = toVec2 sideLength hexCoord
                     coord = G.transform (scaleAround center 0.2 <> G.rotateAround center (deg angle)) (center +. Vec2 0 sideLength)
                 moveToVec coord
                 setColor (hsva angle 1 0.7 1)
-                if Hex 0 0 0 == Hex q r s
+                if Hex q r == hexZero
                     then cairoScope (C.setFontSize 14 >> showTextAligned HCenter VCenter name)
                     else showTextAligned HCenter VCenter (show val)
 
@@ -306,8 +313,7 @@ hexagonsInRange range center = do
     let rMin = max (-range) (-q-range)
         rMax = min range (-q+range)
     r <- [rMin, rMin+1 .. rMax]
-    let s = -q-r
-    pure (Hex q r s `hexAdd` center)
+    pure (Hex q r `hexAdd` center)
 
 -- | Linearly interpolate between two 'Hex'.
 cubeLerp
@@ -315,11 +321,10 @@ cubeLerp
     -> Hex    -- ^ End
     -> Double -- [0..1] yields [start..end]
     -> Hex
-cubeLerp (Hex q1 r1 s1) (Hex q2 r2 s2) t =
+cubeLerp (Hex q1 r1) (Hex q2 r2) t =
     cubeRound
         (lerp (0,1) (fromIntegral q1, fromIntegral q2) t)
         (lerp (0,1) (fromIntegral r1, fromIntegral r2) t)
-        (lerp (0,1) (fromIntegral s1, fromIntegral s2) t)
 
 -- | Line between two 'Hex'.
 --
