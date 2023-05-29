@@ -1,3 +1,6 @@
+-- | Fast, high-quality Poisson disc sampling, based on [Bridson’s algorithm](https://dl.acm.org/doi/10.1145/1278780.1278807),
+-- then [improved by Martin Robers](https://observablehq.com/@techsparx/an-improvement-on-bridsons-algorithm-for-poisson-disc-samp/2),
+-- then improved an \(\varepsilon\) bit more here (4 cells in 'neighbouringPoints' can be skipped).
 module Geometry.Algorithms.Sampling.PoissonDisc (
       poissonDisc
     , poissonDiscForest
