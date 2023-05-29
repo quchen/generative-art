@@ -2,19 +2,8 @@ module Test.Geometry.Coordinates.Hexagonal (tests) where
 
 
 
-import           Control.Monad
-import           Control.Monad.ST
-import           Data.Foldable
-import qualified Data.Map                        as M
-import qualified Data.Vector                     as V
-import           Graphics.Rendering.Cairo        as C hiding (x, y)
-import           System.Random.MWC
-import           System.Random.MWC.Distributions
-
-import Draw
 import Geometry                       as G
 import Geometry.Coordinates.Hexagonal as Hex
-import Numerics.Interpolation
 
 import Test.TastyAll
 
