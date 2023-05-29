@@ -63,25 +63,3 @@ rotatingAddsUpTest = testProperty "rotate x . rotate y == rotate (x+y)" $
             ((Hex.rotateAround center angle1 . Hex.rotateAround center angle2) point
             ==
             Hex.rotateAround center (angle1+angle2) point)
-
-lineAndCircle :: TestTree
-lineAndCircle = testVisual "Line and circle" 380 350 "docs/hexagonal/1_line_and_circle" $ \(w, h) -> do
-    let sideLength = 30
-    C.translate (fromIntegral w/2) (fromIntegral h/2)
-    cairoScope $ do
-        setFontSize 8
-        hexagonalCoordinateSystem sideLength 3
-
-    for_ (Hex.line (Hex (-1) 0 1) (Hex 3 (-2) (-1))) $ \hexLineSegment -> cairoScope $ do
-        Draw.sketch (hexagonPoly sideLength hexLineSegment)
-        setColor (mathematica97 0 `withOpacity` 0.3)
-        fillPreserve
-        setColor (mathematica97 0 `withOpacity` 0.5)
-        stroke
-
-    for_ (ring 2 (Hex (-1) 1 0)) $ \hex -> cairoScope $ do
-        Draw.sketch (hexagonPoly sideLength hex)
-        setColor (mathematica97 1 `withOpacity` 0.3)
-        fillPreserve
-        setColor (mathematica97 1 `withOpacity` 0.5)
-        stroke

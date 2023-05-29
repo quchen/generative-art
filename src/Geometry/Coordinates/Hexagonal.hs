@@ -10,7 +10,7 @@
 --     let cellSize = 10
 --         hexagons = runST $ do
 --             gen <- MWC.create
---             points <- gaussianDistributedPoints gen canvas (50*.mempty) (2^10)
+--             points <- gaussianDistributedPoints gen canvas (50*.mempty) (2^3)
 --             let hexs = fmap (fromVec2 cellSize) points
 --             pure $ foldl' (\weight hex -> M.insertWith (+) hex 1 weight) mempty hexs
 --         canvas = shrinkBoundingBox 10 [zero, Vec2 360 360]
@@ -20,16 +20,9 @@
 --         C.setLineWidth 1
 --         C.fillPreserve
 --         C.stroke
+--         C.liftIO $ print (weight, hex)
 -- :}
 -- docs/haddock/Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg
-
-
-    -- => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
-    -- -> boundingBox       -- ^ Determines width and height. The center of this is the mean \(\mathbf\mu\).
-    -- -> Mat2              -- ^ Covariance matrix \(\mathbf\Sigma\).
-    -- -> Int               -- ^ Number of points.
-    -- -> m (Vector Vec2)
-
 module Geometry.Coordinates.Hexagonal (
       Hex(..)
     , toVec2
@@ -324,18 +317,56 @@ cubeLerp
     -> Hex
 cubeLerp (Hex q1 r1 s1) (Hex q2 r2 s2) t =
     cubeRound
-        (lerp (fromIntegral q1, fromIntegral q2) (0,1) t)
-        (lerp (fromIntegral r1, fromIntegral r2) (0,1) t)
-        (lerp (fromIntegral s1, fromIntegral s2) (0,1) t)
+        (lerp (0,1) (fromIntegral q1, fromIntegral q2) t)
+        (lerp (0,1) (fromIntegral r1, fromIntegral r2) t)
+        (lerp (0,1) (fromIntegral s1, fromIntegral s2) t)
 
--- | Line between two 'Hex'
+-- | Line between two 'Hex'.
+--
+-- <<docs/haddock/Geometry/Coordinates/Hexagonal/line.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Coordinates/Hexagonal/line.svg" 300 200 $ do
+--     let cellSize = 20
+--         canvas = shrinkBoundingBox 10 [zero, Vec2 300 200]
+--         hexes = line hexZero (move R 5 (move UR 3 hexZero))
+--         polygons = map (shrinkPolygon 1 . hexagonPoly cellSize) hexes
+--         fitToCanvas = transform (transformBoundingBox polygons canvas def)
+--     for_ polygons $ \polygon -> cairoScope $ do
+--         sketch (fitToCanvas polygon)
+--         setColor (mathematica97 0 `withOpacity` 0.3)
+--         C.fillPreserve
+--         setColor (mathematica97 0 `withOpacity` 0.5)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Coordinates/Hexagonal/line.svg
 line :: Hex -> Hex -> [Hex]
 line start end =
     let d = distance start end
     in [ cubeLerp start end (1/fromIntegral d*fromIntegral i) | i <- [0..d] ]
 
 -- | All 'Hex' reachable only with one exact number of steps. 'floodFill'ing it
--- will yield 'hexagonsInRange'
+-- will yield 'hexagonsInRange'.
+--
+-- <<docs/haddock/Geometry/Coordinates/Hexagonal/ring.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Coordinates/Hexagonal/ring.svg" 200 200 $ do
+--     let cellSize = 20
+--         canvas = shrinkBoundingBox 10 [zero, Vec2 200 200]
+--         hexes = ring 2 hexZero
+--         polygons = map (shrinkPolygon 1 . hexagonPoly cellSize) hexes
+--         fitToCanvas = transform (transformBoundingBox polygons canvas def)
+--     for_ polygons $ \polygon -> cairoScope $ do
+--         sketch (fitToCanvas polygon)
+--         setColor (mathematica97 1 `withOpacity` 0.3)
+--         C.fillPreserve
+--         setColor (mathematica97 1 `withOpacity` 0.5)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Coordinates/Hexagonal/ring.svg
 ring
     :: Int -- ^ Radius
     -> Hex -- ^ Center
