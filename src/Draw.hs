@@ -252,6 +252,7 @@ haddockRender filename w h actions = do
             , _renderAxisLabels=False
             , _renderHundreds=False
             }
+        C.setLineWidth 1
         setColor (mathematica97 0)
         actions
     normalizeSvgFile filepath
