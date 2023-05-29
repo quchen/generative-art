@@ -81,8 +81,7 @@ poissonDisc gen bb' radius k = do
                     (M.insert (gridCell cellSize sample) sample grid)
                     (S.insert sample active)
 
-    -- TODO remove after refactoring! Old alg was backwards :-)
-    fmap reverse $ sampleLoop initialGrid initialActive
+    sampleLoop initialGrid initialActive
 
 -- | 'poissonDisc', but keeps track of which parent spawned which children. While
 -- this algorithm does a bit more processing to reassemble the trees, it allows
