@@ -636,8 +636,8 @@ renderPreview file pxPerMm result = do
 --
 -- @
 -- let plotResult = 'runPlot' settings body
--- '_writeGCodeFile' plotResult "output.g"
--- '_writePreviewFile' plotResult "output.png"
+-- 'writeGCodeFile' "output.g" plotResult
+-- 'renderPreview' "output.png" 3 plotResult
 -- @
 runPlot
     :: PlottingSettings

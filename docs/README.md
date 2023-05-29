@@ -1,9 +1,7 @@
 # Generative Art
 
+A lot of documentation is found inside Haddock nowadays, see the repo’s top-level readme.
 
-
-
-* [Apollonian gasket](apollonian_gasket/README.md): recursively pack circles
 * [Bezier curves](bezier/README.md): a simple way to draw curves
 * [Billard](billard/README.md): repeatedly reflecting a line on geometry
 * [Colors](colors/README.md): Nice color schemes
