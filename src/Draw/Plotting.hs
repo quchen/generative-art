@@ -2,6 +2,22 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
+-- | Functions to generate GCode, suitable for being run on a penplotter.
+--
+--
+-- <<docs/haddock/Draw/Plotting/example.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- D.haddockRender "Draw/Plotting/example.svg" 300 200 $ do
+--     D.coordinateSystem D.CairoStandard_ZeroTopLeft_XRight_YDown
+--     let geometry = transform (transformBoundingBox haskellLogo (shrinkBoundingBox 10 [zero, Vec2 300 200]) def) haskellLogo
+--         plotSettings = def { _canvasBoundingBox = Just (boundingBox [zero, Vec2 300 200]) }
+--         plotResult = runPlot def $ do
+--             for_ geometry $ \logoPart -> plot logoPart
+--     _plotPreview plotResult
+-- :}
+-- docs/haddock/Draw/Plotting/example.svg
 module Draw.Plotting (
     -- * 'Plot' type
       Plot()
