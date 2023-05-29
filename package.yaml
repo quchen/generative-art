@@ -51,8 +51,22 @@ default-extensions:
     - RecordWildCards
 
 extra-doc-files:
+    - docs/bezier/**/*.svg
+    - docs/billard/**/*.svg
     - docs/colors/schemes/continuous/**/*.png
+    - docs/colors/schemes/discrete/**/*.svg
+    - docs/differential_equations/**/*.svg
+    - docs/font/**/*.svg
+    - docs/geometry/**/*.svg
     - docs/haddock/**/*.svg
+    - docs/hexagonal/**/*.svg
+    - docs/interpolation/**/*.svg
+    - docs/iso_lines/**/*.svg
+    - docs/penrose/**/*.svg
+    - docs/physics/**/*.svg
+    - docs/plotting/**/*.svg
+    - docs/sampling/**/*.svg
+    - docs/triangulation/**/*.svg
 
 ghc-options:
     - -Wall
