@@ -2,27 +2,32 @@
 --
 -- Nice article about the topic: https://www.redblobgames.com/grids/hexagons/
 --
--- <<docs/haddock/Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg>>
+-- <<docs/haddock/Geometry/Coordinates/Hexagonal/cubes.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg" 360 360 $ do
+-- haddockRender "Geometry/Coordinates/Hexagonal/cubes.svg" 360 360 $ do
 --     let cellSize = 10
 --         hexagons = runST $ do
 --             gen <- MWC.create
---             points <- gaussianDistributedPoints gen canvas (50*.mempty) (2^3)
+--             points <- gaussianDistributedPoints gen canvas (40*.mempty) (2^14)
 --             let hexs = fmap (fromVec2 cellSize) points
---             pure $ foldl' (\weight hex -> M.insertWith (+) hex 1 weight) mempty hexs
---         canvas = shrinkBoundingBox 10 [zero, Vec2 360 360]
---     cairoScope $ sequence_ $ flip M.mapWithKey hexagons $ \hex weight -> do
---         sketch (hexagonPoly cellSize hex)
---         setColor (viridis (lerp (minimum hexagons, maximum hexagons) (0, 1) weight))
---         C.setLineWidth 1
+--             pure $ foldl' (\weight hex -> M.insertWith (+) hex (1::Int) weight) mempty hexs
+--         canvas = shrinkBoundingBox (cellSize*2) [zero, Vec2 360 360]
+--         MinMax minW maxW = foldMap (\x -> MinMax x x) hexagons
+--     for_ (sortOn (\(_,weight) -> weight) (M.toList hexagons)) $ \(hex, weight) -> do
+--         let value = lerp ((sqrt (fromIntegral minW)), (sqrt (fromIntegral maxW))) (0,1) (sqrt (fromIntegral weight))
+--             growth = lerp (0,1) (3,6) value
+--         sketch (growPolygon growth (hexagonPoly cellSize hex))
+--         let color = twilight value
+--         setColor color
 --         C.fillPreserve
+--         let hexCenter = toVec2 cellSize hex
+--         sketch [Line hexCenter (hexCenter +. polar (deg (d+30)) (cellSize + 2/sqrt 3*growth)) | d <- [0,120,240]]
+--         setColor black
 --         C.stroke
---         C.liftIO $ print (weight, hex)
 -- :}
--- docs/haddock/Geometry/Coordinates/Hexagonal/gaussian_hexagons.svg
+-- docs/haddock/Geometry/Coordinates/Hexagonal/cubes.svg
 module Geometry.Coordinates.Hexagonal (
       Hex(..)
     , toVec2
@@ -81,20 +86,22 @@ import           Util
 
 
 -- $setup
--- >>> import qualified System.Random.MWC as MWC
+-- >>> import           Control.Monad.ST
+-- >>> import           Data.Foldable
+-- >>> import qualified Data.Map                        as M
+-- >>> import           Data.Ord.Extended
+-- >>> import           Draw
+-- >>> import           Data.List
+-- >>> import           Geometry.Algorithms.Sampling
+-- >>> import qualified System.Random.MWC               as MWC
 -- >>> import qualified System.Random.MWC.Distributions as MWC
--- >>> import qualified Data.Map as M
--- >>> import Control.Monad.ST
--- >>> import Data.Foldable
--- >>> import Draw
--- >>> import Geometry.Algorithms.Sampling
 
 
 
 -- | Hexagonal coordinate.
 data Hex = Hex !Int !Int
     -- ^ The choice of values is called »cubal«.
-    -- Use 's' to get the omitted coordinate’s value.
+    -- Use 's' (= -q-r) to get the omitted coordinate’s value.
 
     -- This is really just a ℝ^3 with rounding occurring in every calculation,
     -- but alas, ℤ is not a field, so it isn’t a vector space.
@@ -250,9 +257,11 @@ cubeRound q' r'  =
 hexagonPoly :: Double -> Hex -> G.Polygon
 hexagonPoly sideLength hex =
     let center = toVec2 sideLength hex
-        oneCorner = center +. Vec2 0 sideLength
-        corner n = G.transform (G.rotateAround center (deg (60*n))) oneCorner
-    in G.Polygon [corner n | n <- [0..5]]
+    in G.transform (G.translate center <> G.scale sideLength) unitHexagon
+
+-- | Hexagon of side length 1, centered around (0,0).
+unitHexagon :: G.Polygon
+unitHexagon = G.Polygon [polar (deg (30+60*n)) 1 | n <- [0..5]]
 
 -- | Draw a hexagonal coordinate system as a helper grid, similar to
 -- 'Draw.cartesianCoordinateSystem'.
