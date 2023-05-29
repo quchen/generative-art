@@ -1,20 +1,17 @@
 module Geometry.Algorithms.Sampling.PoissonDisc (
-    poissonDisc
+      poissonDisc
+    , poissonDiscForest
 ) where
 
 
 
-import           Control.Monad
 import           Control.Monad.Primitive
-import           Control.Monad.Trans.Class
-import qualified Control.Monad.Trans.Reader as R
-import qualified Control.Monad.Trans.State  as S
-import           Data.Default.Class
-import           Data.Map                   (Map)
-import qualified Data.Map                   as M
+import           Data.List
+import           Data.Map                (Map)
+import qualified Data.Map                as M
 import           Data.Maybe
-import           Data.Set                   (Set)
-import qualified Data.Set                   as S
+import           Data.Set                (Set)
+import qualified Data.Set                as S
 import           System.Random.MWC
 
 import Geometry
@@ -24,60 +21,13 @@ import Geometry
 -- $setup
 -- >>> import           Draw
 -- >>> import           Control.Monad.ST
+-- >>> import           Numerics.Interpolation
 -- >>> import           Graphics.Rendering.Cairo as C
 -- >>> import qualified System.Random.MWC        as MWC
 
-
-
--- | Configuration for 'poissonDisc' sampling.
-data PoissonDiscParams = PoissonDiscParams
-    { _poissonShape  :: !BoundingBox -- ^ 'def'ault @boundingBox [zero, Vec2 256 256]@.
-    , _poissonRadius :: !Double -- ^ Minimum distance between points. 'def'ault 100.
-    , _poissonK      :: !Int    -- ^ How many attempts to find a neighbouring point should be made?
-                                --   The higher this is, the denser the resulting point set will be.
-    } deriving (Eq, Ord, Show)
-
-instance Default PoissonDiscParams where
-    def = PoissonDiscParams
-        { _poissonShape  = boundingBox [zero, Vec2 256 256]
-        , _poissonRadius = 100
-        , _poissonK      = 32
-        }
-
-newtype PoissonT m a = PoissonT {runPoissonT :: R.ReaderT PoissonDiscParams (S.StateT (PoissonDiscState (PrimState m)) m) a}
-
-instance Monad m => Functor (PoissonT m) where
-    fmap f (PoissonT a) = PoissonT (fmap f a)
-
-instance Monad m => Applicative (PoissonT m) where
-    pure x = PoissonT (pure x)
-    PoissonT mf <*> PoissonT mx = PoissonT (mf <*> mx)
-
-instance Monad m => Monad (PoissonT m) where
-    PoissonT a >>= g = PoissonT (a >>= runPoissonT . g)
-
-instance MonadTrans PoissonT where
-    lift = PoissonT . lift . lift
-
-execPoissonT
-    :: Monad m
-    => PoissonT m a                   -- ^ Action
-    -> PoissonDiscParams              -- ^ Config
-    -> PoissonDiscState (PrimState m) -- ^ Initial state
-    -> m (PoissonDiscState (PrimState m))
-execPoissonT (PoissonT action) params initialState = S.execStateT (R.runReaderT action params) initialState
-
-asks :: Monad m => (PoissonDiscParams -> a) -> PoissonT m a
-asks = PoissonT . R.asks
-
-gets :: Monad m => (PoissonDiscState (PrimState m) -> a) -> PoissonT m a
-gets = PoissonT . lift . S.gets
-
-modify'
-    :: Monad m
-    => (PoissonDiscState (PrimState m) -> PoissonDiscState (PrimState m))
-    -> PoissonT m ()
-modify' = PoissonT . lift . S.modify'
+-- | Newtype safety wrapper
+newtype CellSize = CellSize Double
+    deriving (Eq, Ord, Show)
 
 -- | Sample points using the Poisson Disc algorithm, which yields a visually
 -- uniform distribution. This is opposed to uniformly distributed points yield
@@ -102,96 +52,167 @@ poissonDisc
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
     -> boundingBox -- ^ Region to generate points in
     -> Double      -- ^ Radius around each point no other points are genereted. Smaller values yield more points.
-    -> Int         -- ^ Per point, how many attempts should be made to find an empty spot?
+    -> Int         -- ^ \(k\) parameter: per point, how many attempts should be made to find an empty spot?
                    --   Typical value: 3. Higher values are slower, but increase result quality.
     -> m [Vec2]
 poissonDisc gen bb' radius k = do
     let bb@(BoundingBox minV maxV) = boundingBox bb'
+        cellSize = CellSize (radius/sqrt 2)
+    initialPoint <- uniformRM (minV, maxV) gen
+    let initialGrid = M.singleton (gridCell cellSize initialPoint) initialPoint
+        initialActive = S.singleton initialPoint
 
-    initialSample <- uniformRM (minV, maxV) gen
-    let initialState = PoissonDiscState
-            { _gen           = gen
-            , _grid          = mempty
-            , _activeSamples = mempty
-            , _result        = mempty
-            , _initialPoint  = initialSample
-            }
+        sampleLoop _grid active
+            | S.null active = pure []
+        sampleLoop grid active = do
+            activeSample <- randomSetElement gen active
+            candidates <- candidatesAroundSample gen k bb radius activeSample
 
-    _result <$> execPoissonT (addSample initialSample >> sampleLoop) (PoissonDiscParams bb radius k) initialState
+            let validPoint candidate =
+                    let neighbours = neighbouringPoints cellSize grid candidate
+                        tooClose neighbour = normSquare (candidate -. neighbour) <= radius^2
+                    in not (any tooClose neighbours)
 
-data PoissonDiscState s = PoissonDiscState
-    { _gen           :: !(Gen s)
-    , _grid          :: !(Map (Int, Int) Vec2)
-    , _activeSamples :: !(Set Vec2)
-    , _result        :: ![Vec2]
-    , _initialPoint  :: !Vec2
-    }
+            case find validPoint candidates of
+                Nothing -> do
+                    rest <- sampleLoop grid (S.delete activeSample active)
+                    pure (activeSample : rest)
+                Just sample -> sampleLoop
+                    (M.insert (gridCell cellSize sample) sample grid)
+                    (S.insert sample active)
 
-sampleLoop :: PrimMonad m => PoissonT m ()
-sampleLoop = do
-    numActiveSamples <- gets (S.size . _activeSamples)
-    when (numActiveSamples > 0) $ do
-        randomSampleIndex <- gets _gen >>= lift . uniformRM (0, numActiveSamples - 1)
-        randomActiveSample <- gets (S.elemAt randomSampleIndex . _activeSamples)
+    sampleLoop initialGrid initialActive
 
-        r <- asks _poissonRadius
+-- | 'poissonDisc', but keeps track of which parent spawned which children. While
+-- this algorithm does a bit more processing to reassemble the trees, it allows
+-- specifying the starting points explicitly. ('poissonDisc' would also allow this,
+-- but since it’s mostly used for simply sampling, this additional config option
+-- would just clutter the API.)
+--
+-- <<docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg" 300 300 $ do
+--     let initialPoints = [Vec2 50 50, Vec2 150 150, Vec2 250 250]
+--         forest = runST $ do
+--             gen <- MWC.create
+--             poissonDiscForest gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 7 10 initialPoints
+--     C.setLineWidth 1
+--     let paint color i parent = do
+--             let parentRadius = 2.5
+--             cairoScope $ do
+--                 setColor (color (sin (lerpID (0,20) (0,pi) i)^2))
+--                 sketch (Circle parent parentRadius)
+--                 fill
+--             case M.lookup parent forest of
+--                 Nothing -> pure () -- Should never happen: only the roots have no parents
+--                 Just children -> for_ children $ \child -> do
+--                     cairoScope $ do
+--                         setColor black
+--                         sketch (resizeLineSymmetric (\l -> l-2*parentRadius) (Line parent child))
+--                         stroke
+--                     paint color (i+1) child
+--     for_ (zip [flare, crest, flare] initialPoints) $ \(color, p0) -> paint color 0 p0
+-- :}
+-- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg
+poissonDiscForest
+    :: (PrimMonad m, HasBoundingBox boundingBox)
+    => Gen (PrimState m)
+    -> boundingBox
+    -> Double
+    -> Int
+    -> [Vec2] -- ^ Initial points to start sampling from.
+    -> m (Map Vec2 (Set Vec2)) -- ^ Map of parent to children.
+poissonDiscForest gen bb' radius k initialPoints = do
+    let bb = boundingBox bb'
+        cellSize = CellSize (radius/sqrt 2)
+    let initialGrid = M.fromList [(gridCell cellSize initialPoint, initialPoint) | initialPoint <- initialPoints]
+        initialActive = S.fromList [ChildParent initialPoint Nothing | initialPoint <- initialPoints]
 
-        candidates <- nextCandidates randomActiveSample
+        sampleLoop _grid active
+            | S.null active = pure []
+        sampleLoop grid active = do
+            ChildParent activeSample parent <- randomSetElement gen active
+            candidates <- candidatesAroundSample gen k bb radius activeSample
 
-        let validPoint candidate = do
-                neighbours <- neighbouringSamples candidate
-                pure (not (any (\p -> normSquare (candidate -. p) <= r^2) neighbours))
+            let validPoint candidate =
+                    let neighbours = neighbouringPoints cellSize grid candidate
+                        tooClose neighbour = normSquare (candidate -. neighbour) <= radius^2
+                    in not (any tooClose neighbours)
 
-        newSample <- findM validPoint candidates
+            case find validPoint candidates of
+                Nothing -> do
+                    rest <- sampleLoop grid (S.delete (ChildParent activeSample parent) active)
+                    pure (ChildParent activeSample parent : rest)
+                Just sample -> sampleLoop
+                    (M.insert (gridCell cellSize sample) sample grid)
+                    (S.insert (ChildParent sample (Just activeSample)) active)
 
-        case newSample of
-            Nothing -> modify' (\s -> s
-                { _activeSamples = S.delete randomActiveSample (_activeSamples s)
-                , _result = randomActiveSample : _result s })
-            Just sample -> addSample sample
+    edges <- sampleLoop initialGrid initialActive
+    let families = mapMaybe
+            (\(ChildParent child maybeParent) -> case maybeParent of
+                Nothing -> Nothing
+                Just parent -> Just (parent, S.singleton child))
+            edges
+    pure (M.fromListWith S.union families)
 
-        sampleLoop
+data ChildParent = ChildParent Vec2 (Maybe Vec2)
 
-findM :: (Foldable t, Monad m) => (a -> m Bool) -> t a -> m (Maybe a)
-findM p = foldr (\x xs -> p x >>= \u -> if u then pure (Just x) else xs) (pure Nothing)
+instance Eq ChildParent where
+    ChildParent child1 _parent1 == ChildParent child2 _parent2 = child1 == child2
+
+instance Ord ChildParent where
+    ChildParent child1 _parent1 `compare` ChildParent child2 _parent2 = child1 `compare` child2
+
+randomSetElement :: PrimMonad m => Gen (PrimState m) -> Set a -> m a
+randomSetElement gen set = do
+    i <- uniformRM (0, S.size set-1) gen
+    pure (S.elemAt i set)
 
 -- | http://extremelearning.com.au/an-improved-version-of-bridsons-algorithm-n-for-poisson-disc-sampling/
-nextCandidates :: PrimMonad m => Vec2 -> PoissonT m [Vec2]
-nextCandidates v = do
-    PoissonDiscState{..} <- gets id
-    PoissonDiscParams{..} <- asks id
-    phi0 <- lift (rad <$> uniformRM (0, 2*pi) _gen)
-    let deltaPhi = rad (2*pi / fromIntegral _poissonK)
-        candidates = filter (`insideBoundingBox` _poissonShape)
-            [ v +. polar (phi0 +. i *. deltaPhi) r
-            | let r = _poissonRadius + 0.000001
-            , i <- [1..fromIntegral _poissonK] ]
+candidatesAroundSample
+    :: PrimMonad m
+    => Gen (PrimState m)
+    -> Int -- ^ Number of attempts
+    -> BoundingBox -- ^ Sampling region
+    -> Double
+    -> Vec2
+    -> m [Vec2]
+candidatesAroundSample gen k shape r v = do
+    phi0 <- rad <$> uniformRM (0, 2*pi) gen
+    let deltaPhi = rad (2*pi / fromIntegral k)
+        candidates = filter (`insideBoundingBox` shape)
+            [ v +. polar (phi0 +. fromIntegral i *. deltaPhi) (r + 1e-6)
+            | i <- [1..k] ]
     pure candidates
 
-addSample :: Monad m => Vec2 -> PoissonT m ()
-addSample sample = do
-    cell <- gridCell sample
-    modify' (\s -> s
-        { _grid = M.insert cell sample (_grid s)
-        , _activeSamples = S.insert sample (_activeSamples s) })
+-- A cell in the grid has a side length of r/sqrt(2). If we’re somewhere in the X
+-- square and can only move at most a square diagonal, we only need to consider the
+-- 21 cells marked with `?`, and X itself.
+--
+-- +---+---+---+---+---+
+-- |   | ? | ? | ? |   |
+-- +---+---+---+---+---+
+-- | ? | ? | ? | ? | ? |
+-- +---+---+---+---+---+
+-- | ? | ? | X | ? | ? |
+-- +---+---+---+---+---+
+-- | ? | ? | ? | ? | ? |
+-- +---+---+---+---+---+
+-- |   | ? | ? | ? |   |
+-- +---+---+---+---+---+
+neighbouringPoints :: CellSize -> Map (Int, Int) Vec2 -> Vec2 -> [Vec2]
+neighbouringPoints cellSize grid v =
+    let (x, y) = gridCell cellSize v
+    in mapMaybe (\cell -> M.lookup cell grid)
+        [             (x-1, y+2), (x  , y+2), (x+1, y+2)
+        , (x-2, y+1), (x-1, y+1), (x  , y+1), (x+1, y+1), (x+2, y+1)
+        , (x-2, y  ), (x-1, y  ), (x  , y  ), (x+1, y  ), (x+2, y  )
+        , (x-2, y-1), (x-1, y-1), (x  , y-1), (x+1, y-1), (x+2, y-1)
+        ,             (x-1, y-2), (x  , y-2), (x+1, y-2)
+        ]
 
--- A cell in the grid has a side length of r/sqrt(2). Therefore, to detect
--- collisions, we need to search a space of 5x5 cells at max.
-neighbouringSamples :: Monad m => Vec2 -> PoissonT m [Vec2]
-neighbouringSamples v = do
-    (x, y) <- gridCell v
-    let minX = x - 2
-        maxX = x + 2
-        minY = y - 2
-        maxY = y + 2
-    neighbours <- sequence $ do
-        cellX <- [minX..maxX]
-        cellY <- [minY..maxY]
-        pure (maybeToList . M.lookup (cellX, cellY) <$> gets _grid)
-    pure (concat neighbours)
-
-gridCell :: Monad m => Vec2 -> PoissonT m (Int, Int)
-gridCell (Vec2 x y) = do
-    r <- asks _poissonRadius
-    let gridSize = r / sqrt 2
-    pure (floor (x/gridSize), floor (y/gridSize))
+gridCell :: CellSize -> Vec2 -> (Int, Int)
+gridCell (CellSize cellSize) (Vec2 x y) = (floor (x/cellSize), floor (y/cellSize))
+{-# INLINE gridCell #-}
