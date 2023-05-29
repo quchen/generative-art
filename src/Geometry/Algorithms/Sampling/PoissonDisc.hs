@@ -53,7 +53,7 @@ poissonDisc
     -> boundingBox -- ^ Region to generate points in
     -> Double      -- ^ Radius around each point no other points are genereted. Smaller values yield more points.
     -> Int         -- ^ \(k\) parameter: per point, how many attempts should be made to find an empty spot?
-                   --   Typical value: 3. Higher values are slower, but increase result quality.
+                   --   Typical values: 3-10. Higher values are slower, but increase result quality.
     -> m [Vec2]
 poissonDisc gen bb' radius k = do
     let bb@(BoundingBox minV maxV) = boundingBox bb'
@@ -118,11 +118,12 @@ poissonDisc gen bb' radius k = do
 -- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg
 poissonDiscForest
     :: (PrimMonad m, HasBoundingBox boundingBox)
-    => Gen (PrimState m)
-    -> boundingBox
-    -> Double
-    -> Int
-    -> [Vec2] -- ^ Initial points to start sampling from.
+    => Gen (PrimState m)       -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
+    -> boundingBox             -- ^ Region to generate points in
+    -> Double                  -- ^ Radius around each point no other points are genereted. Smaller values yield more points.
+    -> Int                     -- ^ \(k\) parameter: per point, how many attempts should be made to find an empty spot?
+                               --   Typical values: 3-10. Higher values are slower, but increase result quality.
+    -> [Vec2]                  -- ^ Initial points to start sampling from.
     -> m (Map Vec2 (Set Vec2)) -- ^ Map of parent to children.
 poissonDiscForest gen bb' radius k initialPoints = do
     let bb = boundingBox bb'
