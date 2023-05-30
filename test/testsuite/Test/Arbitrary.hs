@@ -61,8 +61,8 @@ instance Arbitrary Hex where
     arbitrary = do
         q <- arbitrary
         r <- arbitrary
-        pure (Hex q r (-q-r))
-    shrink (Hex q r s) = [ Hex q' r' s' | (q', r', s') <- shrink (q, r, s) ]
+        pure (Hex q r)
+    shrink (Hex q r) = [ Hex q' r' | (q', r') <- shrink (q, r) ]
 
 -- | Modifier for 'Vec2' whose 'Arbitrary' instance is Gaussian (normal).
 newtype Gaussian = Gaussian Vec2
