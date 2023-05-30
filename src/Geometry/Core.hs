@@ -1892,6 +1892,49 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 -- reversed direction like light rays would. The second result element is the
 -- point of intersection with the mirror, which is not necessarily on the line,
 -- and thus returned separately.
+--
+-- <<docs/haddock/Geometry/Core.hs/reflection.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core.hs/reflection.svg" 520 300 $ do
+-- >>>    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
+-- >>>    cairoScope $ do
+-- >>>        C.setLineWidth 2
+-- >>>        setColor (black `withOpacity` 0.5)
+-- >>>        sketch mirrorSurface
+-- >>>        C.stroke
+-- >>>    let angles = [-135,-120.. -10]
+-- >>>    cairoScope $ do
+-- >>>        let rayOrigin = Vec2 180 250
+-- >>>        setColor (hsv 0 1 0.7)
+-- >>>        sketch (Circle rayOrigin 5)
+-- >>>        C.stroke
+-- >>>        for_ angles $ \angleDeg -> do
+-- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+-- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+-- >>>                ray = Line rayOrigin iPoint
+-- >>>                ray' = Line iPoint reflectedRayEnd
+-- >>>            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
+-- >>>            sketch ray
+-- >>>            sketch ray'
+-- >>>            C.stroke
+-- >>>    cairoScope $ do
+-- >>>        let rayOrigin = Vec2 350 30
+-- >>>        setColor (hsva 180 1 0.7 1)
+-- >>>        sketch (Circle rayOrigin 5)
+-- >>>        C.stroke
+-- >>>        for_ angles $ \angleDeg -> do
+-- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+-- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+-- >>>                ray = Line rayOrigin iPoint
+-- >>>                ray' = Line iPoint reflectedRayEnd
+-- >>>            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
+-- >>>            sketch ray
+-- >>>            sketch ray'
+-- >>>            C.stroke
+-- :}
+-- docs/haddock/Geometry/Core.hs/reflection.svg
 reflection
     :: Line -- ^ Light ray
     -> Line -- ^ Mirror

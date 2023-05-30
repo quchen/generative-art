@@ -26,7 +26,6 @@ import qualified Test.Uncategorized.GrowPolygon
 import qualified Test.Uncategorized.IntersectionLL
 import qualified Test.Uncategorized.Mirror
 import qualified Test.Uncategorized.Properties
-import qualified Test.Uncategorized.Reflection
 import qualified Test.Uncategorized.SimpleOperations
 import qualified Test.Uncategorized.Trajectory
 
@@ -68,7 +67,6 @@ tests = testGroup "Test suite"
     , Test.Uncategorized.IntersectionLL.tests
     , Test.Uncategorized.Mirror.tests
     , Test.Uncategorized.Properties.tests
-    , Test.Uncategorized.Reflection.tests
     , Test.Uncategorized.SimpleOperations.tests
     , Test.Uncategorized.Trajectory.tests
     ]
