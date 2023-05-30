@@ -131,7 +131,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke
@@ -164,7 +163,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke
@@ -198,7 +196,6 @@ data CoordinateSystem
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
-        --         setLineWidth 1
         --         rectangle 0 0 80 60
         --         setDash [2,2] 0
         --         stroke
@@ -252,6 +249,7 @@ haddockRender filename w h actions = do
             , _renderAxisLabels=False
             , _renderHundreds=False
             }
+        C.setLineWidth 1
         setColor (mathematica97 0)
         actions
     normalizeSvgFile filepath
@@ -646,20 +644,31 @@ withOperator op actions = do
 --   * Pattern (includes colors\/'setColor', gradients\/'withLinearPattern' etc.)
 --   * Tranformation matrix ('C.translate' etc.)
 --
--- For example, the following sets the line width to 2 temporarily; after the
--- inner block, it is reset to 1.
+-- For example, we can paint the first block with a wide style, the second one
+-- dashed, and afterwards fall back to the implicit defaults:
 --
--- @
--- 'setLineWidth' 1
+-- >>> :{
+-- haddockRender "Draw.hs/cairoScope.svg" 200 40 $ do
+--     let line = Line (Vec2 10 0) (Vec2 190 0)
+--     cairoScope $ do
+--         C.translate 0 30
+--         setLineWidth 3
+--         setColor (mathematica97 1)
+--         sketch line
+--         stroke
+--     cairoScope $ do
+--         C.translate 0 20
+--         setDash [5,3] 0
+--         setColor (mathematica97 2)
+--         sketch line
+--         stroke
+--     C.translate 0 10
+--     sketch line
+--     stroke
+-- :}
+-- docs/haddock/Draw.hs/cairoScope.svg
 --
--- 'cairoScope' $ do
---     'setLineWidth' 2
---     'sketch' ('Line' ('Vec2' 0 0) ('Vec2' 100 0)) -- drawn with line width 2
---     'stroke'
---
--- 'sketch' ('Line' ('Vec2' 0 10) ('Vec2' 100 10))   -- drawn with line width 1
--- 'stroke'
--- @
+-- <<docs/haddock/Draw.hs/cairoScope.svg>>
 cairoScope :: Render a -> Render a
 cairoScope actions = save *> actions <* restore
 

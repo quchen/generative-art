@@ -51,7 +51,6 @@ default-extensions:
     - RecordWildCards
 
 extra-doc-files:
-    - docs/bezier/**/*.svg
     - docs/billard/**/*.svg
     - docs/colors/schemes/continuous/**/*.png
     - docs/colors/schemes/discrete/**/*.svg
@@ -65,7 +64,6 @@ extra-doc-files:
     - docs/penrose/**/*.svg
     - docs/physics/**/*.svg
     - docs/plotting/**/*.svg
-    - docs/sampling/**/*.svg
     - docs/triangulation/**/*.svg
 
 ghc-options:
@@ -82,8 +80,10 @@ library:
         - Draw.Color.Schemes.Internal.Haskell
         - Draw.Color.Schemes.Internal.MatPlotLib
         - Draw.Color.Schemes.Internal.Seaborn
+        - Geometry.Algorithms.Clipping.CohenSutherland
         - Geometry.Algorithms.Clipping.Internal
         - Geometry.Algorithms.Clipping.MargalitKnott
+        - Geometry.Algorithms.Clipping.SutherlandHodgman
         - Geometry.Algorithms.Contour.Internal
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw

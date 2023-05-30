@@ -103,7 +103,6 @@ poissonDisc gen bb' radius k = do
 --         forest = runST $ do
 --             gen <- MWC.create
 --             poissonDiscForest gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 7 10 initialPoints
---     C.setLineWidth 1
 --     let paint color i parent = do
 --             let parentRadius = 2.5
 --             cairoScope $ do

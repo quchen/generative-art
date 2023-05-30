@@ -26,7 +26,6 @@
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -131,7 +130,6 @@ delaunayTriangulation = Api.delaunayTriangulation . toVector
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/triangles.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -157,7 +155,6 @@ delaunayTriangles = Api._triangles
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/edges.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -185,7 +182,6 @@ delaunayEdges = Api._edges
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/voronoi_corners.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -219,7 +215,6 @@ voronoiCorners = Api._voronoiCorners
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/voronoi_edges.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -251,7 +246,6 @@ voronoiEdges = Api._voronoiEdges
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/voronoi_cells.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -278,7 +272,6 @@ voronoiCells = Api._voronoiCells
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/convex_hull.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -311,7 +304,6 @@ delaunayHull = Api._convexHull
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/find_triangle.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --         findThesePoints = runST $ do
@@ -374,7 +366,6 @@ findClosestInputPoint = Api._findClosestInputPoint
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Delaunay/lloyd_relaxation.svg" width height $ do
---     setLineWidth 1
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
