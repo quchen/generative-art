@@ -1270,7 +1270,7 @@ subdivideLine numSegments line@(Line start end) = do
 --
 -- <<docs/haddock/Geometry/Core/subdivide_line_by_length.svg>>
 --
--- === __(Expand to see the code for the picture)__
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ do
 --     let line = Line (Vec2 10 10) (Vec2 190 140)

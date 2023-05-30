@@ -125,7 +125,7 @@ data CoordinateSystem
         --
         -- <<docs/haddock/Draw/coordinate_system_cairo_standard.svg>>
         --
-        -- === __(Expand to see the code for the picture)__
+        -- === __(image code)__
         -- >>> :{
         -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 100 80 $ do
         --     cairoScope $ do
@@ -157,7 +157,7 @@ data CoordinateSystem
         --
         -- <<docs/haddock/Draw/coordinate_system_math_standard.svg>>
         --
-        -- === __(Expand to see the code for the picture)__
+        -- === __(image code)__
         -- >>> :{
         -- haddockRender "Draw/coordinate_system_math_standard.svg" 100 80 $ do
         --     cairoScope $ do
@@ -190,7 +190,7 @@ data CoordinateSystem
         --
         -- <<docs/haddock/Draw/coordinate_system_math_standard_centered.svg>>
         --
-        -- === __(Expand to see the code for the picture)__
+        -- === __(image code)__
         -- >>> :{
         -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 100 80 $ do
         --     cairoScope $ do
