@@ -6,7 +6,7 @@
 -- >>> import Draw
 -- >>> import qualified Graphics.Rendering.Cairo as C
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/complicated_intersection.svg" 100 30 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/complicated_intersection.svg" 200 160 $ do
 --     let p1 = Polygon
 --             [ Vec2 40 30, Vec2 140 30, Vec2 140 140, Vec2 120 140, Vec2 120 80, Vec2 100 80
 --             , Vec2 100 140, Vec2 80 140, Vec2 80 60, Vec2 60 60, Vec2 60 140, Vec2 40 140 ]
