@@ -152,6 +152,7 @@ import Data.Sequential
 -- >>> import qualified Graphics.Rendering.Cairo as C
 -- >>> import qualified System.Random.MWC as MWC
 -- >>> import Control.Monad
+-- >>> import Numerics.Interpolation
 
 
 
@@ -424,11 +425,11 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- This effectively adds the 'Vec2' to all contained 'Vec2's in the target.
 --
--- <<docs/haddock/Geometry/Core.hs/translate.svg>>
+-- <<docs/haddock/Geometry/Core/translate.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/translate.svg" 100 30 $ do
+-- haddockRender "Geometry/Core/translate.svg" 100 30 $ do
 --     let point = Vec2 10 10
 --         offset = Vec2 80 10
 --         point' = transform (translate offset) point
@@ -438,7 +439,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     setColor (mathematica97 1)
 --     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/translate.svg
+-- docs/haddock/Geometry/Core/translate.svg
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
@@ -450,11 +451,11 @@ translate = Transformation mempty
 --
 -- To rotate around a different point, use 'rotateAround'.
 --
--- <<docs/haddock/Geometry/Core.hs/rotate.svg>>
+-- <<docs/haddock/Geometry/Core/rotate.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/rotate.svg" 100 70 $ do
+-- haddockRender "Geometry/Core/rotate.svg" 100 70 $ do
 --     let point = Vec2 90 10
 --         angle = deg 30
 --         point' = transform (rotate angle) point
@@ -475,7 +476,7 @@ translate = Transformation mempty
 --         sketch (Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{_arrowDrawBody=False})
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/rotate.svg
+-- docs/haddock/Geometry/Core/rotate.svg
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
   where
@@ -488,11 +489,11 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 
 -- | Scale the geometry relative to zero, maintaining aspect ratio.
 --
--- <<docs/haddock/Geometry/Core.hs/scale.svg>>
+-- <<docs/haddock/Geometry/Core/scale.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/scale.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/scale.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
 --         square' = transform (scale 2) square
 --     sketch square
@@ -501,7 +502,7 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --     sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/scale.svg
+-- docs/haddock/Geometry/Core/scale.svg
 scale :: Double -> Transformation
 scale x = scale' x x
 
@@ -558,11 +559,11 @@ mirrorYCoords = scale' 1 (-1)
 --     = \left(\begin{array}{cc|c} 1 & p & 0 \\ q & 1 & 0 \\ \hline 0 & 0 & 1\end{array}\right)
 -- \]
 --
--- <<docs/haddock/Geometry/Core.hs/shear.svg>>
+-- <<docs/haddock/Geometry/Core/shear.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/shear.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/shear.svg" 100 100 $ do
 --     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
 --         square' = transform (shear 0.5 0.1) square
 --     sketch square
@@ -571,7 +572,7 @@ mirrorYCoords = scale' 1 (-1)
 --     sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/shear.svg
+-- docs/haddock/Geometry/Core/shear.svg
 shear
     :: Double
     -> Double
@@ -916,11 +917,11 @@ normSquare v = dotProduct v v
 
 -- | Construct a 'Vec2' from polar coordinates.
 --
--- <<docs/haddock/Geometry/Core.hs/polar.svg>>
+-- <<docs/haddock/Geometry/Core/polar.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/polar.svg" 100 60 $ do
+-- haddockRender "Geometry/Core/polar.svg" 100 60 $ do
 --     let angle = deg 30
 --         p = polar angle 100
 --     cairoScope $ do
@@ -933,7 +934,7 @@ normSquare v = dotProduct v v
 --         sketch (Circle p 3)
 --         C.fill
 -- :}
--- docs/haddock/Geometry/Core.hs/polar.svg
+-- docs/haddock/Geometry/Core/polar.svg
 polar :: Angle -> Double -> Vec2
 polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
@@ -999,11 +1000,11 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 -- increasing monotonically over the entire interval, hence yield the same
 -- properties when it comes to 'Ord' and sorting in particular.
 --
--- <<docs/haddock/Geometry/Core.hs/pseudo_angle.svg>>
+-- <<docs/haddock/Geometry/Core/pseudo_angle.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/pseudo_angle.svg" 200 100 $ do
+-- haddockRender "Geometry/Core/pseudo_angle.svg" 200 100 $ do
 --     let anglesDeg = takeWhile (< 180) [-180, -175 ..]
 --         atan2Plot = Polyline $ do
 --             angleDeg <- anglesDeg
@@ -1026,7 +1027,7 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 --         setColor (mathematica97 1)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/pseudo_angle.svg
+-- docs/haddock/Geometry/Core/pseudo_angle.svg
 pseudoAngle :: Vec2 -> Double
 pseudoAngle (Vec2 x y) = pseudoAtan2 y x
 
@@ -1124,11 +1125,11 @@ direction = vectorOf . normalizeLine
 
 -- | Switch defining points of a line.
 --
--- <<docs/haddock/Geometry/Core.hs/line_reverse.svg>>
+-- <<docs/haddock/Geometry/Core/line_reverse.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/line_reverse.svg" 100 60 $ do
+-- haddockRender "Geometry/Core/line_reverse.svg" 100 60 $ do
 --     let line = Line (Vec2 10 10) (Vec2 70 50)
 --         line' = lineReverse line
 --     cairoScope $ do
@@ -1140,7 +1141,7 @@ direction = vectorOf . normalizeLine
 --         sketch (Arrow line' def)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/line_reverse.svg
+-- docs/haddock/Geometry/Core/line_reverse.svg
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
@@ -1267,11 +1268,11 @@ subdivideLine numSegments line@(Line start end) = do
 --
 -- See also 'subdivideLine.'.
 --
--- <<docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg>>
+-- <<docs/haddock/Geometry/Core/subdivide_line_by_length.svg>>
 --
--- === __(Expand to see the code for the picture)__
+-- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/subdivide_line_by_length.svg" 200 150 $ do
+-- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ do
 --     let line = Line (Vec2 10 10) (Vec2 190 140)
 --         subdivisions = subdivideLineByLength 30 line
 --     cairoScope $ do
@@ -1283,7 +1284,7 @@ subdivideLine numSegments line@(Line start end) = do
 --         setColor (mathematica97 1)
 --         C.fill
 -- :}
--- docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg
+-- docs/haddock/Geometry/Core/subdivide_line_by_length.svg
 subdivideLineByLength
     :: Double -- ^ Maximum segment length
     -> Line
@@ -1294,11 +1295,11 @@ subdivideLineByLength segmentLength line =
 
 -- | All the polygon’s edges, in order, starting at an arbitrary corner.
 --
--- <<docs/haddock/Geometry/Core.hs/polygon_edges.svg>>
+-- <<docs/haddock/Geometry/Core/polygon_edges.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/polygon_edges.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_edges.svg" 100 100 $ do
 --     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
 --     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
 --         C.setLineCap C.LineCapRound
@@ -1306,7 +1307,7 @@ subdivideLineByLength segmentLength line =
 --         sketch edge
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/polygon_edges.svg
+-- docs/haddock/Geometry/Core/polygon_edges.svg
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
@@ -1322,11 +1323,11 @@ polygonAngles polygon@(Polygon corners)
 
 -- | The smallest convex polygon that contains all points.
 --
--- <<docs/haddock/Geometry/Core.hs/convex_hull.svg>>
+-- <<docs/haddock/Geometry/Core/convex_hull.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/convex_hull.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/convex_hull.svg" 100 100 $ do
 --     points <- C.liftIO $ do
 --         gen <- MWC.create
 --         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
@@ -1338,7 +1339,7 @@ polygonAngles polygon@(Polygon corners)
 --         sketch (Arrow edge def{_arrowheadRelPos=0.5, _arrowheadSize=5})
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/convex_hull.svg
+-- docs/haddock/Geometry/Core/convex_hull.svg
 convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
@@ -1417,7 +1418,83 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 -- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'. Create them
 -- using 'toEllipse' and by then applying 'Transformation's to it.
 --
--- <<docs/geometry/ellipses.svg>>
+-- <<docs/haddock/Geometry/Core/ellipses.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core/ellipses.svg" 300 300 $ do
+-- >>>    let (w,h) = (300,300)
+-- >>>        center = zero
+-- >>>        radius = w/6*0.9
+-- >>>        ellipse = toEllipse (Circle center radius)
+-- >>>        grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+-- >>>    let actions =
+-- >>>            [ cairoScope $ do
+-- >>>                grid 0 0
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
+-- >>>                    sketch (transform (scaleAround center scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 0
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
+-- >>>                    sketch (transform (scaleAround' center scaleFactor 1) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 0
+-- >>>                for_ [0..9] $ \i -> do
+-- >>>                    let scaleFactor1 = lerp (0, 9) (1, 0.1) (fromIntegral i)
+-- >>>                        scaleFactor2 = lerp (0, 9) (0.1, 1) (fromIntegral i)
+-- >>>                    sketch (transform (scaleAround' center scaleFactor1 scaleFactor2) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 0 1
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleX = scaleAround' center (lerpID (0,9) (0.5,1) (fromIntegral i)) 1
+-- >>>                        scaleY = scaleAround' center 1 (lerpID (0,9) (0.1,1) (fromIntegral i))
+-- >>>                    sketch (transform (scaleX <> scaleY) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 1
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let angle = deg (lerpID (0,9) (0, 90) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 1
+-- >>>                for_ (take 19 [0..]) $ \i -> do
+-- >>>                    let angle = deg (lerpID (0,19) (0, 180) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 0 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (90,0) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (0,90) i)
+-- >>>                    sketch (transform (scaleAround center scaleFactor <> rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let BoundingBox topLeft _ = boundingBox ellipse
+-- >>>                        scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (0,90) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround (0.5 *. (topLeft -. center)) scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            ]
+-- >>>    for_ (zip [0..] actions) $ \(i, action) -> do
+-- >>>        setColor (mathematica97 i)
+-- >>>        action
+-- :}
+-- docs/haddock/Geometry/Core/ellipses.svg
 newtype Ellipse = Ellipse Transformation
     deriving (Show)
 
@@ -1426,6 +1503,33 @@ instance NFData Ellipse where rnf _ = ()
 -- | Unit circle
 instance Default Ellipse where def = Ellipse mempty
 
+
+
+-- | <<docs/haddock/Geometry/Core/bounding_box_ellipse.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ do
+-- >>>     let (w,h) = (300,300)
+-- >>>         radius = w/6*0.9
+-- >>>         ellipse = toEllipse (Circle zero radius)
+-- >>>         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+-- >>>     let paintWithBB i j geo = cairoScope $ do
+-- >>>             grid i j
+-- >>>             setColor (mathematica97 (i*3+j))
+-- >>>             cairoScope $ sketch geo >> C.stroke
+-- >>>             cairoScope $ C.setDash [1,1.5] 0 >> sketch (boundingBox geo) >> C.stroke
+-- >>>     paintWithBB 0 0 ellipse
+-- >>>     paintWithBB 1 0 (transform (scale 0.75) ellipse)
+-- >>>     paintWithBB 2 0 (transform (scale 0.5) ellipse)
+-- >>>     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 1 1 (transform (scale' 1 0.5) ellipse)
+-- >>>     paintWithBB 2 1 (transform (rotate (deg 30) <> scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 0 2 (transform (shear 0.3 0 <> scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 1 2 (transform (shear 0 0.3 <> scale' 1 0.5) ellipse)
+-- >>>     paintWithBB 2 2 (transform (scale' 1 0.5 <> rotate (deg 45) <> shear 0 1 <> scale' 1 0.5) ellipse)
+-- :}
+-- docs/haddock/Geometry/Core/bounding_box_ellipse.svg
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
@@ -1490,11 +1594,11 @@ countEdgeTraversals subjectPoint edges'
 
 -- | Is the point inside the polygon?
 --
--- <<docs/haddock/Geometry/Core.hs/point_in_polygon.svg>>
+-- <<docs/haddock/Geometry/Core/point_in_polygon.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/point_in_polygon.svg" 90 70 $ do
+-- haddockRender "Geometry/Core/point_in_polygon.svg" 90 70 $ do
 --     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
 --         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
 --     sketch square
@@ -1504,7 +1608,7 @@ countEdgeTraversals subjectPoint edges'
 --         sketch (Circle point 3)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/point_in_polygon.svg
+-- docs/haddock/Geometry/Core/point_in_polygon.svg
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
@@ -1556,11 +1660,11 @@ validatePolygon = \polygon -> do
 -- | Average of polygon vertices. Note that this is not the same as
 -- 'polygonCentroid', which is much less influenced by clustered corners.
 --
--- <<docs/haddock/Geometry/Core.hs/polygon_average.svg>>
+-- <<docs/haddock/Geometry/Core/polygon_average.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/polygon_average.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_average.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         averate = polygonAverage polygon
 --     sketch polygon
@@ -1570,7 +1674,7 @@ validatePolygon = \polygon -> do
 --     sketch (Cross averate 5)
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/polygon_average.svg
+-- docs/haddock/Geometry/Core/polygon_average.svg
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
@@ -1578,11 +1682,11 @@ polygonAverage (Polygon corners)
 
 -- | The centroid or geometric center of mass of a polygon.
 --
--- <<docs/haddock/Geometry/Core.hs/polygon_centroid.svg>>
+-- <<docs/haddock/Geometry/Core/polygon_centroid.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/polygon_centroid.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_centroid.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         centroid = polygonCentroid polygon
 --     sketch polygon
@@ -1592,7 +1696,7 @@ polygonAverage (Polygon corners)
 --     sketch (Cross centroid 5)
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/polygon_centroid.svg
+-- docs/haddock/Geometry/Core/polygon_centroid.svg
 polygonCentroid :: Polygon -> Vec2
 polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
@@ -1605,18 +1709,18 @@ polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEd
 
 -- | Move all edges of a polygon outwards by the specified amount. Negative values shrink instead.
 --
--- <<docs/haddock/Geometry/Core.hs/grow_polygon.svg>>
+-- <<docs/haddock/Geometry/Core/grow_polygon.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/grow_polygon.svg" 80 110 $ do
+-- haddockRender "Geometry/Core/grow_polygon.svg" 80 110 $ do
 --     let polygon = Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
 --     for_ [-9, -6 .. 9] $ \offset -> do
 --         setColor (icefire (Numerics.Interpolation.lerp (-9,9) (0, 1) (fromIntegral offset)))
 --         sketch (growPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/grow_polygon.svg
+-- docs/haddock/Geometry/Core/grow_polygon.svg
 growPolygon :: Double -> Polygon -> Polygon
 growPolygon offset polygon =
     let oldEdges = polygonEdges polygon
@@ -1725,11 +1829,11 @@ signedPolygonArea (Polygon ps)
 
 -- | Check whether the polygon is convex.
 --
--- <<docs/haddock/Geometry/Core.hs/is_convex.svg>>
+-- <<docs/haddock/Geometry/Core/is_convex.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core.hs/is_convex.svg" 200 100 $ do
+-- haddockRender "Geometry/Core/is_convex.svg" 200 100 $ do
 --     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
@@ -1739,7 +1843,7 @@ signedPolygonArea (Polygon ps)
 --         sketch polygon
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core.hs/is_convex.svg
+-- docs/haddock/Geometry/Core/is_convex.svg
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps)
     -- The idea is that a polygon is convex iff all internal angles are in the
@@ -1788,6 +1892,49 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 -- reversed direction like light rays would. The second result element is the
 -- point of intersection with the mirror, which is not necessarily on the line,
 -- and thus returned separately.
+--
+-- <<docs/haddock/Geometry/Core/reflection.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
+-- >>>    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
+-- >>>    cairoScope $ do
+-- >>>        C.setLineWidth 2
+-- >>>        setColor (black `withOpacity` 0.5)
+-- >>>        sketch mirrorSurface
+-- >>>        C.stroke
+-- >>>    let angles = [-135,-120.. -10]
+-- >>>    cairoScope $ do
+-- >>>        let rayOrigin = Vec2 180 250
+-- >>>        setColor (hsv 0 1 0.7)
+-- >>>        sketch (Circle rayOrigin 5)
+-- >>>        C.stroke
+-- >>>        for_ angles $ \angleDeg -> do
+-- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+-- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+-- >>>                ray = Line rayOrigin iPoint
+-- >>>                ray' = Line iPoint reflectedRayEnd
+-- >>>            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
+-- >>>            sketch ray
+-- >>>            sketch ray'
+-- >>>            C.stroke
+-- >>>    cairoScope $ do
+-- >>>        let rayOrigin = Vec2 350 30
+-- >>>        setColor (hsva 180 1 0.7 1)
+-- >>>        sketch (Circle rayOrigin 5)
+-- >>>        C.stroke
+-- >>>        for_ angles $ \angleDeg -> do
+-- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+-- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+-- >>>                ray = Line rayOrigin iPoint
+-- >>>                ray' = Line iPoint reflectedRayEnd
+-- >>>            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
+-- >>>            sketch ray
+-- >>>            sketch ray'
+-- >>>            C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/reflection.svg
 reflection
     :: Line -- ^ Light ray
     -> Line -- ^ Mirror

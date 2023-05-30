@@ -71,8 +71,11 @@ import Geometry.Core
 -- | Add shading lines to a polygon. This is especially useful for a pen plotter to
 -- do shading, hence the name.
 --
+-- <<docs/haddock/Geometry/Algorithms/Clipping/hatched_polygon.svg>>
+--
+-- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping.hs/hatched_polygon.svg" 100 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/hatched_polygon.svg" 100 100 $ do
 --     let polygon = Polygon [Vec2 10 10, Vec2 90 10, Vec2 90 90, Vec2 10 90]
 --     let shading = hatch polygon (deg 30) 10
 --     sketch polygon
@@ -81,9 +84,7 @@ import Geometry.Core
 --     setColor (mathematica97 1)
 --     stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg
---
--- <<docs/haddock/Geometry/Algorithms/Clipping.hs/hatched_polygon.svg>>
+-- docs/haddock/Geometry/Algorithms/Clipping/hatched_polygon.svg
 hatch
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.

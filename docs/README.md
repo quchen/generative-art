@@ -12,4 +12,3 @@ A lot of documentation is found inside Haddock nowadays, see the repo’s top-le
 * [Iso lines](iso_lines/README.md), also known as height lines from mapping
 * [Penrose tiling](penrose/README.md): tiling the floor, but interesting
 * [Point sampling](sampling/README.md): random, but not too random
-* [Polygon triangulation](triangulation/README.md): subdividing polygons using triangles
