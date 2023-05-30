@@ -55,7 +55,7 @@ module Geometry.Coordinates.Hexagonal (
     , line
     , ring
     , hexagonsInRange
-    , Polygon(..)
+    , HexPolygon(..)
     , isOnEdge
     , pointInPolygon
     , edgePoints
@@ -390,18 +390,18 @@ ring n center = do
     let start = move startDir n center
     [ move walkDir i start | i <- [0..n-1]]
 
-newtype Polygon = Polygon [Hex]
+newtype HexPolygon = HexPolygon [Hex]
     deriving (Eq, Ord, Show)
 
 -- | Given a hexagonal polygon, is the 'Hex' on its edge?
-isOnEdge :: Hex -> Polygon -> Bool
-isOnEdge hex (Polygon corners) =
+isOnEdge :: Hex -> HexPolygon -> Bool
+isOnEdge hex (HexPolygon corners) =
     let edges = concat (zipWith line corners (tail (cycle corners)))
     in isJust (find (== hex) edges)
 
 -- | Is the 'Hex' inside the polygon (including its edge)?
-pointInPolygon :: Hex -> Polygon -> Bool
-pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
+pointInPolygon :: Hex -> HexPolygon -> Bool
+pointInPolygon hex polygon@(HexPolygon corners) = onEdge || inside
   where
     -- | This elimintes numerical instabilities
     onEdge = isOnEdge hex polygon
@@ -410,13 +410,13 @@ pointInPolygon hex polygon@(Polygon corners) = onEdge || inside
     inside = G.pointInPolygon (toVec2 1 hex) (G.Polygon (map (toVec2 1) corners))
 
 -- | All points on a polygon’s edge.
-edgePoints :: Polygon -> S.Set Hex
-edgePoints (Polygon corners) = S.fromList (concat (zipWith line corners (tail (cycle corners))))
+edgePoints :: HexPolygon -> S.Set Hex
+edgePoints (HexPolygon corners) = S.fromList (concat (zipWith line corners (tail (cycle corners))))
 
 -- | Sketch a hexagonal polygon.
 polygonSketch
     :: Double -- ^ Cell size
-    -> Polygon
+    -> HexPolygon
     -> C.Render ()
 polygonSketch cellSize polygon =
     for_ (edgePoints polygon) $ \hex ->
