@@ -63,7 +63,6 @@ extra-doc-files:
     - docs/penrose/**/*.svg
     - docs/physics/**/*.svg
     - docs/plotting/**/*.svg
-    - docs/triangulation/**/*.svg
 
 ghc-options:
     - -Wall

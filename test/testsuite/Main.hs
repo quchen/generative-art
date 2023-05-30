@@ -11,7 +11,6 @@ import qualified Test.Draw.Plotting
 import qualified Test.Draw.Text
 import qualified Test.Geometry.Algorithms.Clipping
 import qualified Test.Geometry.Algorithms.Contour
-import qualified Test.Geometry.Algorithms.Triangulate
 import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Core
 import qualified Test.Geometry.LookupTable.Lookup2
@@ -54,7 +53,6 @@ tests = testGroup "Test suite"
     , Test.Draw.Text.tests
     , Test.Geometry.Algorithms.Clipping.tests
     , Test.Geometry.Algorithms.Contour.tests
-    , Test.Geometry.Algorithms.Triangulate.tests
     , Test.Geometry.Coordinates.Hexagonal.tests
     , Test.Geometry.Core.tests
     , Test.Geometry.LookupTable.Lookup2.tests
