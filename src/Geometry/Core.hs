@@ -152,6 +152,7 @@ import Data.Sequential
 -- >>> import qualified Graphics.Rendering.Cairo as C
 -- >>> import qualified System.Random.MWC as MWC
 -- >>> import Control.Monad
+-- >>> import Numerics.Interpolation
 
 
 
@@ -1417,7 +1418,83 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 -- | An 'Ellipse' is a 'Transformation' applied to the unit 'Circle'. Create them
 -- using 'toEllipse' and by then applying 'Transformation's to it.
 --
--- <<docs/geometry/ellipses.svg>>
+-- <<docs/haddock/Geometry/Core.hs/ellipses.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core.hs/ellipses.svg" 300 300 $ do
+-- >>>    let (w,h) = (300,300)
+-- >>>        center = zero
+-- >>>        radius = w/6*0.9
+-- >>>        ellipse = toEllipse (Circle center radius)
+-- >>>        grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+-- >>>    let actions =
+-- >>>            [ cairoScope $ do
+-- >>>                grid 0 0
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
+-- >>>                    sketch (transform (scaleAround center scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 0
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
+-- >>>                    sketch (transform (scaleAround' center scaleFactor 1) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 0
+-- >>>                for_ [0..9] $ \i -> do
+-- >>>                    let scaleFactor1 = lerp (0, 9) (1, 0.1) (fromIntegral i)
+-- >>>                        scaleFactor2 = lerp (0, 9) (0.1, 1) (fromIntegral i)
+-- >>>                    sketch (transform (scaleAround' center scaleFactor1 scaleFactor2) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 0 1
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let scaleX = scaleAround' center (lerpID (0,9) (0.5,1) (fromIntegral i)) 1
+-- >>>                        scaleY = scaleAround' center 1 (lerpID (0,9) (0.1,1) (fromIntegral i))
+-- >>>                    sketch (transform (scaleX <> scaleY) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 1
+-- >>>                for_ (take 10 [0..]) $ \i -> do
+-- >>>                    let angle = deg (lerpID (0,9) (0, 90) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 1
+-- >>>                for_ (take 19 [0..]) $ \i -> do
+-- >>>                    let angle = deg (lerpID (0,19) (0, 180) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 0 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (90,0) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 1 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (0,90) i)
+-- >>>                    sketch (transform (scaleAround center scaleFactor <> rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            , cairoScope $ do
+-- >>>                grid 2 2
+-- >>>                for_ (take 9 [0..]) $ \i -> do
+-- >>>                    let BoundingBox topLeft _ = boundingBox ellipse
+-- >>>                        scaleFactor = lerpID (0,9) (1,0.1) i
+-- >>>                        angle = deg (lerpID (0,9) (0,90) i)
+-- >>>                    sketch (transform (rotateAround center angle <> scaleAround (0.5 *. (topLeft -. center)) scaleFactor) ellipse)
+-- >>>                    C.stroke
+-- >>>            ]
+-- >>>    for_ (zip [0..] actions) $ \(i, action) -> do
+-- >>>        setColor (mathematica97 i)
+-- >>>        action
+-- :}
+-- docs/haddock/Geometry/Core.hs/ellipses.svg
 newtype Ellipse = Ellipse Transformation
     deriving (Show)
 
