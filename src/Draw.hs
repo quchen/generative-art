@@ -244,16 +244,23 @@ haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
-        cartesianCoordinateSystem def
-            { _cartesianAlpha = 0.5
-            , _renderAxisLabels=False
-            , _renderHundreds=False
-            }
+        haddockGrid w h
         C.setLineWidth 1
         setColor (mathematica97 0)
         actions
     normalizeSvgFile filepath
     putStrLn filepath
+
+haddockGrid :: Int -> Int -> Render ()
+haddockGrid w h = grouped (paintWithAlpha 0.1) $ do
+    let i = fromIntegral
+        xLine y = sketch (Line (Vec2 0 (i y)) (Vec2 (i w) (i y)))
+        yLine x = sketch (Line (Vec2 (i x) 0) (Vec2 (i x) (i h)))
+    setDash [5,5] 2.5
+    for_ [0, 10 .. h] xLine
+    for_ [0, 10 .. w] yLine
+    setLineWidth 0.7
+    stroke
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
 moveToVec :: Vec2 -> Render ()
