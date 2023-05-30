@@ -1,6 +1,6 @@
 -- | Delaunay triangulation and Voronoi diagrams.
 --
--- <<docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Delaunay/delaunay_voronoi.svg>>
 --
 -- === __(image code)__
 -- >>> import           Draw
@@ -25,7 +25,7 @@
 --
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/delaunay_voronoi.svg" width height $ do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
@@ -50,7 +50,7 @@
 --         sketch edge
 --         stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay.hs/delaunay_voronoi.svg
+-- docs/haddock/Geometry/Algorithms/Delaunay/delaunay_voronoi.svg
 module Geometry.Algorithms.Delaunay (
     -- * Core
       delaunayTriangulation

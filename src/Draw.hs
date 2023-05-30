@@ -123,11 +123,11 @@ data CoordinateSystem
         -- with a left-handed coordinate system can be a bit awkward and
         -- surprising.
         --
-        -- <<docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg>>
+        -- <<docs/haddock/Draw/coordinate_system_cairo_standard.svg>>
         --
         -- === __(Expand to see the code for the picture)__
         -- >>> :{
-        -- haddockRender "Draw.hs/coordinate_system_cairo_standard.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 100 80 $ do
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
@@ -148,18 +148,18 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False, _arrowheadSize=7})
         --         stroke
         -- :}
-        -- docs/haddock/Draw.hs/coordinate_system_cairo_standard.svg
+        -- docs/haddock/Draw/coordinate_system_cairo_standard.svg
 
     | MathStandard_ZeroBottomLeft_XRight_YUp Double
         -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
         -- zero on the bottom left. Needs the image’s height as arguments for
         -- technical reasons.
         --
-        -- <<docs/haddock/Draw.hs/coordinate_system_math_standard.svg>>
+        -- <<docs/haddock/Draw/coordinate_system_math_standard.svg>>
         --
         -- === __(Expand to see the code for the picture)__
         -- >>> :{
-        -- haddockRender "Draw.hs/coordinate_system_math_standard.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard.svg" 100 80 $ do
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
@@ -180,7 +180,7 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False, _arrowheadSize=7})
         --         stroke
         -- :}
-        -- docs/haddock/Draw.hs/coordinate_system_math_standard.svg
+        -- docs/haddock/Draw/coordinate_system_math_standard.svg
 
 
     | MathStandard_ZeroCenter_XRight_YUp Double Double
@@ -188,11 +188,11 @@ data CoordinateSystem
         -- zero in the center. Needs the image’s width and height as arguments for
         -- technical reasons.
         --
-        -- <<docs/haddock/Draw.hs/coordinate_system_math_standard_centered.svg>>
+        -- <<docs/haddock/Draw/coordinate_system_math_standard_centered.svg>>
         --
         -- === __(Expand to see the code for the picture)__
         -- >>> :{
-        -- haddockRender "Draw.hs/coordinate_system_math_standard_centered.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 100 80 $ do
         --     cairoScope $ do
         --         C.translate 10 10
         --         setColor black
@@ -216,7 +216,7 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False, _arrowheadSize=7})
         --         stroke
         -- :}
-        -- docs/haddock/Draw.hs/coordinate_system_math_standard_centered.svg
+        -- docs/haddock/Draw/coordinate_system_math_standard_centered.svg
 
     deriving (Eq, Ord, Show)
 
@@ -265,13 +265,13 @@ lineToVec (Vec2 x y) = lineTo x y
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Bezier.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ do
 --     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Bezier.svg
+-- docs/haddock/Draw/instance_Sketch_Bezier.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Bezier.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Bezier.svg>>
 instance Sketch Bezier where
     sketch (Bezier start (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) = do
         moveToVec start
@@ -314,13 +314,13 @@ data Arrow = Arrow !Line !ArrowSpec
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Arrow.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ do
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Arrow.svg
+-- docs/haddock/Draw/instance_Sketch_Arrow.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Arrow.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Arrow.svg>>
 instance Sketch Arrow where
     sketch (Arrow line ArrowSpec{..}) = do
         when _arrowDrawBody (sketch line)
@@ -370,13 +370,13 @@ instance Sketch a => Sketch [a] where
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Line.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ do
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Line.svg
+-- docs/haddock/Draw/instance_Sketch_Line.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Line.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Line.svg>>
 instance Sketch Line where
     sketch (Line start end) = do
         moveToVec start
@@ -385,13 +385,13 @@ instance Sketch Line where
 -- | Polyline, i.e. a sequence of lines given by their joints.
 --
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg
+-- docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Sequential_Vec2.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg>>
 instance Sequential f => Sketch (Polyline f) where
     sketch (Polyline xs) = go (toList xs)
       where
@@ -402,39 +402,39 @@ instance Sequential f => Sketch (Polyline f) where
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Polygon.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ do
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Polygon.svg
+-- docs/haddock/Draw/instance_Sketch_Polygon.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Polygon.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Polygon.svg>>
 instance Sketch Polygon where
     sketch (Polygon []) = pure ()
     sketch (Polygon xs) = sketch (Polyline xs) >> closePath
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Circle.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_Circle.svg" 100 100 $ do
 --     sketch (Circle (Vec2 50 50) 45)
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Circle.svg
+-- docs/haddock/Draw/instance_Sketch_Circle.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Circle.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Circle.svg>>
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Ellipse.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ do
 --     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
 --                         (toEllipse (Circle zero 45)))
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Ellipse.svg
+-- docs/haddock/Draw/instance_Sketch_Ellipse.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Ellipse.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Ellipse.svg>>
 instance Sketch Ellipse where
     sketch (Ellipse t) = cairoScope $ do
         C.transform (toCairoMatrix t)
@@ -451,14 +451,14 @@ data Cross = Cross
 
 -- |
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_Cross.svg" 90 40 $ do
+-- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ do
 --     sketch (Cross  (Vec2 20 20) 15) >> stroke
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
 --     sketch (Circle (Vec2 60 20) 15) >> stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_Cross.svg
+-- docs/haddock/Draw/instance_Sketch_Cross.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_Cross.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_Cross.svg>>
 instance Sketch Cross where
     sketch (Cross center r) = do
         let lowerRight = G.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
@@ -490,15 +490,15 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 -- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
 --
 -- >>> :{
--- haddockRender "Draw.hs/instance_Sketch_BoundingBox.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
 --     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mathematica97 1) >> setDash [4,6] 0 >> stroke)
 --     sketch (boundingBox geometry)
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg
+-- docs/haddock/Draw/instance_Sketch_BoundingBox.svg
 --
--- <<docs/haddock/Draw.hs/instance_Sketch_BoundingBox.svg>>
+-- <<docs/haddock/Draw/instance_Sketch_BoundingBox.svg>>
 instance Sketch BoundingBox where
     sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
         let w = xhi - xlo
@@ -536,11 +536,11 @@ instance Default CartesianParams where
 -- prototyping.
 --
 -- >>> :{
--- haddockRender "Draw.hs/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
+-- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
 -- :}
--- docs/haddock/Draw.hs/cartesianCoordinateSystem.svg
+-- docs/haddock/Draw/cartesianCoordinateSystem.svg
 --
--- <<docs/haddock/Draw.hs/cartesianCoordinateSystem.svg>>
+-- <<docs/haddock/Draw/cartesianCoordinateSystem.svg>>
 cartesianCoordinateSystem :: CartesianParams -> Render ()
 cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha _cartesianAlpha) $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
@@ -595,13 +595,13 @@ instance Default PolarParams where
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 --
 -- >>> :{
--- haddockRender "Draw.hs/radialCoordinateSystem.svg" 250 250 $ do
+-- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ do
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
--- docs/haddock/Draw.hs/radialCoordinateSystem.svg
+-- docs/haddock/Draw/radialCoordinateSystem.svg
 --
--- <<docs/haddock/Draw.hs/radialCoordinateSystem.svg>>
+-- <<docs/haddock/Draw/radialCoordinateSystem.svg>>
 radialCoordinateSystem :: PolarParams -> Render ()
 radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1
@@ -648,7 +648,7 @@ withOperator op actions = do
 -- dashed, and afterwards fall back to the implicit defaults:
 --
 -- >>> :{
--- haddockRender "Draw.hs/cairoScope.svg" 200 40 $ do
+-- haddockRender "Draw/cairoScope.svg" 200 40 $ do
 --     let line = Line (Vec2 10 0) (Vec2 190 0)
 --     cairoScope $ do
 --         C.translate 0 30
@@ -666,9 +666,9 @@ withOperator op actions = do
 --     sketch line
 --     stroke
 -- :}
--- docs/haddock/Draw.hs/cairoScope.svg
+-- docs/haddock/Draw/cairoScope.svg
 --
--- <<docs/haddock/Draw.hs/cairoScope.svg>>
+-- <<docs/haddock/Draw/cairoScope.svg>>
 cairoScope :: Render a -> Render a
 cairoScope actions = save *> actions <* restore
 

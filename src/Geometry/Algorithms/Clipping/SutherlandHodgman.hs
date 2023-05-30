@@ -16,11 +16,11 @@ import Geometry.Core
 --
 -- https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
 --
--- <<docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman.hs/sutherland_hodgman.svg>>
+-- <<docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman.hs/sutherland_hodgman.svg" 110 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg" 110 100 $ do
 --     let subject = Polygon [Vec2 10 10, Vec2 10 90, Vec2 50 50, Vec2 90 90, Vec2 90 10]
 --         Polygon scissors' = boundingBoxPolygon [Vec2 40 30, Vec2 100 80]
 --         scissors = Polygon ( scissors')
@@ -29,7 +29,7 @@ import Geometry.Core
 --     sketch subject >> setColor (mathematica97 1) >> stroke
 --     sketch scissors >> setColor (mathematica97 3) >> setDash [3,3] 0 >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman.hs/sutherland_hodgman.svg
+-- docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg
 sutherlandHodgman
     :: Polygon -- ^ Subject
     -> Polygon -- ^ Scissors

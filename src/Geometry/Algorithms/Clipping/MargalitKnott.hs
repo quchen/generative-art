@@ -307,8 +307,11 @@ margalitKnott op Regular (polygonA, polygonA_Type) (polygonB', polygonB_Type) =
 
 -- | Union of two polygons.
 --
+-- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/union.svg>>
+--
+-- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott.hs/union.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/union.svg" 150 150 $ do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (unionPP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
@@ -317,9 +320,7 @@ margalitKnott op Regular (polygonA, polygonA_Type) (polygonB', polygonB_Type) =
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/union.svg
---
--- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/union.svg>>
+-- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/union.svg
 unionPP :: Polygon -> Polygon -> [(Polygon, IslandOrHole)]
 unionPP = ppBinop Union
 
@@ -328,8 +329,11 @@ unionPP = ppBinop Union
 -- The union will always be 'Island's, but for homogenity of types with
 -- 'intersectionPP' etc. the type is included anyway.
 --
+-- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg>>
+--
+-- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott.hs/intersection.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg" 150 150 $ do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (intersectionPP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
@@ -338,16 +342,17 @@ unionPP = ppBinop Union
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/intersection.svg
---
--- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/intersection.svg>>
+-- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg
 intersectionPP :: Polygon -> Polygon -> [(Polygon, IslandOrHole)]
 intersectionPP = ppBinop Intersection
 
 -- | Difference of two polygons: anything that is in the first argument, but not in the second.
 --
+-- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/difference.svg>>
+--
+-- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott.hs/difference.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/difference.svg" 150 150 $ do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (differencePP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
@@ -356,9 +361,7 @@ intersectionPP = ppBinop Intersection
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/difference.svg
---
--- <<docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott.hs/difference.svg>>
+-- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/difference.svg
 differencePP
     :: Polygon -- ^ A
     -> Polygon -- ^ B
