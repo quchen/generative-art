@@ -1265,7 +1265,7 @@ subdivideLine numSegments line@(Line start end) = do
 -- distorting straight lines. The first and last points are (exactly) equal to the
 -- start and end of the input line.
 --
--- See also 'subdivideLineByLength'.
+-- See also 'subdivideLine.'.
 --
 -- <<docs/haddock/Geometry/Core.hs/subdivide_line_by_length.svg>>
 --
@@ -1554,7 +1554,7 @@ validatePolygon = \polygon -> do
                          ]
 
 -- | Average of polygon vertices. Note that this is not the same as
--- 'polygonAverage', which is much less influenced by clustered corners.
+-- 'polygonCentroid', which is much less influenced by clustered corners.
 --
 -- <<docs/haddock/Geometry/Core.hs/polygon_average.svg>>
 --
@@ -1576,7 +1576,7 @@ polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
     in (1/num) *. total
 
--- | The centroid or center of mass of a polygon. Note that this is not the same as 'polygonAverage'!
+-- | The centroid or geometric center of mass of a polygon.
 --
 -- <<docs/haddock/Geometry/Core.hs/polygon_centroid.svg>>
 --

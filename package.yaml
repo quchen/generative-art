@@ -58,7 +58,6 @@ extra-doc-files:
     - docs/font/**/*.svg
     - docs/geometry/**/*.svg
     - docs/haddock/**/*.svg
-    - docs/hexagonal/**/*.svg
     - docs/interpolation/**/*.svg
     - docs/iso_lines/**/*.svg
     - docs/penrose/**/*.svg
