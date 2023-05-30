@@ -51,7 +51,6 @@ default-extensions:
     - RecordWildCards
 
 extra-doc-files:
-    - docs/billard/**/*.svg
     - docs/colors/schemes/continuous/**/*.png
     - docs/colors/schemes/discrete/**/*.svg
     - docs/differential_equations/**/*.svg

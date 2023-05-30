@@ -13,10 +13,49 @@ import Geometry.Core
 
 
 
+
+-- $setup
+-- >>> import Draw
+-- >>> import qualified Graphics.Rendering.Cairo as C
+
+
 -- | Shoot a billard ball, and record its trajectory as it is reflected off the
 -- edges of a provided geometry.
 --
--- <<docs/billard/3_lambda.svg>>
+-- <<docs/haddock/Geometry/Processes/Billard/billard.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Processes/Billard/billard.svg" 330 360 $ do
+-- >>>     let lambda = transform (translate (Vec2 10 350) <> mirrorYCoords) . Polygon $
+-- >>>             [ Vec2 0.387   340.156
+-- >>>             , Vec2 113.773 170.078
+-- >>>             , Vec2 0.387   0
+-- >>>             , Vec2 85.426  0
+-- >>>             , Vec2 312.195 340.156
+-- >>>             , Vec2 227.156 340.156
+-- >>>             , Vec2 156.293 233.859
+-- >>>             , Vec2 85.426  340.156
+-- >>>             , Vec2 0.387   340.156 ]
+-- >>>         startPoint = Vec2 100 100
+-- >>>         startAngle = deg (-25)
+-- >>>         numReflections = 128
+-- >>>         startVec = angledLine startPoint startAngle 100
+-- >>>         billardPoints = startPoint : take numReflections (billard (polygonEdges lambda) startVec)
+-- >>>     cairoScope $ do
+-- >>>         setColor (mathematica97 0)
+-- >>>         C.setDash [2,4] 0
+-- >>>         sketch lambda
+-- >>>         C.stroke
+-- >>>     cairoScope $ do
+-- >>>         setColor (mathematica97 0)
+-- >>>         for_ billardPoints $ \point -> sketch (Circle point 3) >> C.stroke
+-- >>>     cairoScope $ do
+-- >>>         setColor (mathematica97 1)
+-- >>>         let billardArrows = zipWith Line billardPoints (tail billardPoints)
+-- >>>         for_ billardArrows $ \arr -> sketch arr >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Processes/Billard/billard.svg
 billard
     :: [Line] -- ^ Geometry; typically involves the edges of a bounding polygon.
     -> Line   -- ^ Initial velocity vector of the ball. Only start and direction,
