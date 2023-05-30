@@ -19,7 +19,6 @@ tests = testGroup "Draw"
         (fromCairoMatrix . toCairoMatrix) trafo ~=== trafo
     , testGroup "Ellipses"
         [ scaleEllipseTest
-        , boundingBoxEllipseTest
         ]
     ]
 
@@ -106,33 +105,3 @@ scaleEllipseTest = testVisual "Scale" 300 300 "docs/geometry/ellipses" $ \(w,h) 
     for_ (zip [0..] actions) $ \(i, action) -> do
         setColor (mathematica97 i)
         cairoScope action
-
-boundingBoxEllipseTest :: TestTree
-boundingBoxEllipseTest = testVisual "Bounding box" 300 300 "docs/geometry/ellipse_bounding_boxes" $ \(w,h) -> do
-    let center = zero
-        radius = w/6*0.9
-        ellipse = toEllipse (Circle center radius)
-
-        grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
-
-    let paintWithBB i j geo = cairoScope $ do
-            setLineWidth 1
-            grid i j
-            setColor (mathematica97 (i*3+j))
-            cairoScope $ do
-                sketch geo
-                stroke
-            cairoScope $ do
-                setDash [1,2] 0
-                sketch (boundingBox geo)
-                stroke
-
-    paintWithBB 0 0 ellipse
-    paintWithBB 1 0 (G.transform (G.scale 0.75) ellipse)
-    paintWithBB 2 0 (G.transform (G.scale 0.5) ellipse)
-    paintWithBB 0 1 (G.transform (G.scale' 0.5 1) ellipse)
-    paintWithBB 1 1 (G.transform (G.scale' 1 0.5) ellipse)
-    paintWithBB 2 1 (G.transform (G.rotate (deg 30) <> G.scale' 0.5 1) ellipse)
-    paintWithBB 0 2 (G.transform (G.shear 0.3 0 <> G.scale' 0.5 1) ellipse)
-    paintWithBB 1 2 (G.transform (G.shear 0 0.3 <> G.scale' 1 0.5) ellipse)
-    paintWithBB 2 2 (G.transform (G.scale' 1 0.5 <> G.rotate (deg 45) <> G.shear 0 1 <> G.scale' 1 0.5) ellipse)

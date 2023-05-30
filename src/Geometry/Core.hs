@@ -1426,6 +1426,33 @@ instance NFData Ellipse where rnf _ = ()
 -- | Unit circle
 instance Default Ellipse where def = Ellipse mempty
 
+
+
+-- | <<docs/haddock/Geometry/Core.hs/bounding_box_ellipse.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- >>> haddockRender "Geometry/Core.hs/bounding_box_ellipse.svg" 300 300 $ do
+-- >>>     let (w,h) = (300,300)
+-- >>>         radius = w/6*0.9
+-- >>>         ellipse = toEllipse (Circle zero radius)
+-- >>>         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+-- >>>     let paintWithBB i j geo = cairoScope $ do
+-- >>>             grid i j
+-- >>>             setColor (mathematica97 (i*3+j))
+-- >>>             cairoScope $ sketch geo >> C.stroke
+-- >>>             cairoScope $ C.setDash [1,1.5] 0 >> sketch (boundingBox geo) >> C.stroke
+-- >>>     paintWithBB 0 0 ellipse
+-- >>>     paintWithBB 1 0 (transform (scale 0.75) ellipse)
+-- >>>     paintWithBB 2 0 (transform (scale 0.5) ellipse)
+-- >>>     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 1 1 (transform (scale' 1 0.5) ellipse)
+-- >>>     paintWithBB 2 1 (transform (rotate (deg 30) <> scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 0 2 (transform (shear 0.3 0 <> scale' 0.5 1) ellipse)
+-- >>>     paintWithBB 1 2 (transform (shear 0 0.3 <> scale' 1 0.5) ellipse)
+-- >>>     paintWithBB 2 2 (transform (scale' 1 0.5 <> rotate (deg 45) <> shear 0 1 <> scale' 1 0.5) ellipse)
+-- :}
+-- docs/haddock/Geometry/Core.hs/bounding_box_ellipse.svg
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
