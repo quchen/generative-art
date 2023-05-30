@@ -90,7 +90,7 @@ withSurface PNG file w h action = withImageSurface FormatARGB32 w h $ \surface -
     surfaceWriteToPNG surface file
     pure result
 withSurface SVG file w h draw = withSVGSurface file (fromIntegral w) (fromIntegral h) $ \surface -> do
-    svgSurfaceSetDocumentUnit surface SvgUnitPt
+    svgSurfaceSetDocumentUnit surface SvgUnitPx
     draw surface
 
 data OutputFormat = PNG | SVG
