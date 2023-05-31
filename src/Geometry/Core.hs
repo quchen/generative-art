@@ -1989,6 +1989,19 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.
+--
+-- <<docs/haddock/Geometry/Core/perpendicular_bisector.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/perpendicular_bisector.svg" 150 150 $ do
+--     let line = Line (Vec2 10 60) (Vec2 140 100)
+--         bisector = perpendicularBisector line
+--     C.setLineWidth 2
+--     sketch line >> C.stroke
+--     sketch bisector >> setColor (mathematica97 1) >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/perpendicular_bisector.svg
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
@@ -1998,6 +2011,22 @@ perpendicularBisector line@(Line start end) = perpendicularLineThrough middle li
 --
 -- The result has the same length as the input, point in its center, and points
 -- to the left (90° turned CCW) relative to the input.
+--
+-- <<docs/haddock/Geometry/Core/perpendicular_line_through.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/perpendicular_line_through.svg" 150 140 $ do
+--     let line = Line (Vec2 20 20) (Vec2 140 70)
+--         point = Vec2 70 70
+--         perpendicular = perpendicularLineThrough point line
+--     C.setLineWidth 2
+--     sketch line >> C.stroke
+--     setColor (mathematica97 1)
+--     sketch (Circle point 5) >> C.fill
+--     sketch perpendicular >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/perpendicular_line_through.svg
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
