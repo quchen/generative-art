@@ -244,16 +244,50 @@ haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
-        cartesianCoordinateSystem def
-            { _cartesianAlpha = 0.5
-            , _renderAxisLabels=False
-            , _renderHundreds=False
-            }
+        haddockGrid w h
+        haddockAxes (Vec2 4 4) 15
         C.setLineWidth 1
         setColor (mathematica97 0)
         actions
     normalizeSvgFile filepath
     putStrLn filepath
+
+haddockGrid :: Int -> Int -> Render ()
+haddockGrid w h = grouped (paintWithAlpha 0.1) $ do
+    let i = fromIntegral
+        xLine y = sketch (Line (Vec2 0 (i y)) (Vec2 (i w) (i y)))
+        yLine x = sketch (Line (Vec2 (i x) 0) (Vec2 (i x) (i h)))
+    setDash [5,5] 2.5
+    for_ [0, 10 .. h] xLine
+    for_ [0, 10 .. w] yLine
+    setLineWidth 0.7
+    stroke
+
+haddockAxes :: Vec2 -> Double -> Render ()
+haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
+    C.setLineWidth 0.5
+    sketch arrows
+    sketch x
+    sketch y
+    stroke
+  where
+    arrows =
+        let arrowSpec = def { _arrowheadSize = 3 }
+            xLine = Line zero (Vec2 len 0)
+            yLine = Line zero (Vec2 0 len)
+        in [Arrow (G.transform (G.translate start) line) arrowSpec | line <- [xLine, yLine]]
+    (x,y) =
+        let angle = deg 55
+            lx = 1.3
+            ly = 1.5
+            x' = [ resizeLine (const (2*lx)) (lineReverse (angledLine zero angle lx))
+                 , resizeLine (const (2*lx)) (lineReverse (angledLine zero (deg 180 -. angle) lx))
+                 ]
+            y' = [ resizeLine (const (2*ly)) (lineReverse (angledLine zero angle ly))
+                 , angledLine zero (deg 180 -. angle) ly
+                 ]
+        in ( G.transform (G.translate (start +. Vec2 (len+5) 0) <> G.scale 2) x'
+           , G.transform (G.translate (start +. Vec2 0 (len+5)) <> G.scale 2) y')
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
 moveToVec :: Vec2 -> Render ()
