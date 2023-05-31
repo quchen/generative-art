@@ -751,6 +751,24 @@ boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
 -- | Bounding box of the intersection of two bounding boxes. This is the
 -- intersection analogon to '<>' representing union.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxIntersection.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     (p1s, p2s) <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region1 = shrinkBoundingBox 20 [zero, Vec2 150 150]
+--         p1s <- poissonDisc gen region1 15 5
+--         let region2 = shrinkBoundingBox 20 [Vec2 50 50, Vec2 200 200]
+--         p2s <- poissonDisc gen region2 15 5
+--         pure (p1s, p2s)
+--     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 0) >> C.fill
+--     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 1) >> C.fill
+--     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mathematica97 3) >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxIntersection.svg
 boundingBoxIntersection
     :: (HasBoundingBox a, HasBoundingBox b)
     => a
