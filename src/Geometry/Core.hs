@@ -799,6 +799,21 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 -- | Grow the bounding box by moving all its bounds outwards by a specified amount.
 -- Useful to introduce margins. Negative values shrink instead; 'shrinkBoundingBox'
 -- is a convenience wrapper for this case.
+--
+-- <<docs/haddock/Geometry/Core/growBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
+--     for_ [0,5..25] $ \amount -> cairoScope $ do
+--         when (amount == 0) (C.setLineWidth 3)
+--         sketch (boundingBoxPolygon (growBoundingBox (fromIntegral amount) bb))
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 1) (fromIntegral amount)))
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/growBoundingBox.svg
 growBoundingBox
     :: HasBoundingBox boundingBox
     => Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
@@ -810,6 +825,21 @@ growBoundingBox delta stuff  =
     in boundingBox [lo -. margin, hi +. margin]
 
 -- | Convenience function for 'growBoundingBox' with a negative amount.
+--
+-- <<docs/haddock/Geometry/Core/shrinkBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
+--     for_ [0,5..25] $ \amount -> cairoScope $ do
+--         when (amount == 0) (C.setLineWidth 3)
+--         sketch (boundingBoxPolygon (shrinkBoundingBox (fromIntegral amount) bb))
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 0) (fromIntegral amount)))
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/shrinkBoundingBox.svg
 shrinkBoundingBox :: HasBoundingBox boundingBox => Double -> boundingBox -> BoundingBox
 shrinkBoundingBox delta = growBoundingBox (-delta)
 
