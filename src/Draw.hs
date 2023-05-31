@@ -409,6 +409,9 @@ instance (Sketch a, Sketch b, Sketch c, Sketch d, Sketch e) => Sketch (a,b,c,d,e
 instance Sketch a => Sketch [a] where
     sketch xs = for_ xs sketch
 
+instance Sketch a => Sketch (Maybe a) where
+    sketch xs = for_ xs sketch
+
 -- |
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ do
