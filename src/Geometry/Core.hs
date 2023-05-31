@@ -148,11 +148,12 @@ import Data.Sequential
 
 
 -- $setup
--- >>> import Draw
--- >>> import qualified Graphics.Rendering.Cairo as C
--- >>> import qualified System.Random.MWC as MWC
--- >>> import Control.Monad
--- >>> import Numerics.Interpolation
+-- >>> import           Control.Monad
+-- >>> import           Draw
+-- >>> import           Geometry.Algorithms.Sampling
+-- >>> import qualified Graphics.Rendering.Cairo     as C
+-- >>> import           Numerics.Interpolation
+-- >>> import qualified System.Random.MWC.Extended   as MWC
 
 
 
@@ -673,13 +674,28 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 
 -- | The rectangle representing a 'BoundingBox', with positive orientation.
 --
--- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
--- PolygonPositive
+-- <<docs/haddock/Geometry/Core/boundingBoxPolygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
+--         poissonDisc gen region 15 5
+--     for_ points $ \p -> sketch (Circle p 3) >> C.fill
+--     setColor (mathematica97 1)
+--     sketch (boundingBoxPolygon points) >> C.setLineWidth 3 >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxPolygon.svg
 boundingBoxPolygon :: HasBoundingBox object => object -> Polygon
 boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1 y2]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox object
 
--- | Is the argument fully contained in another’s bounding box?
+-- $
+-- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
+-- PolygonPositive
+
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
 insideBoundingBox thing bigObject =
     let thingBB = boundingBox thing
