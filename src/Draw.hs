@@ -511,6 +511,24 @@ instance Sketch Cross where
         sketch line1
         sketch line2
 
+-- | Draw a \(100\times 100\) square with its corner at 'zero' and transformed with
+-- the 'Transformation', sometimes useful for debugging.
+--
+-- >>> :{
+-- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ do
+--     setColor (mathematica97 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
+--     setColor (mathematica97 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
+--     setColor (mathematica97 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
+-- :}
+-- docs/haddock/Draw/instance_Sketch_Transformation.svg
+--
+-- <<docs/haddock/Draw/instance_Sketch_Transformation.svg>>
+instance Sketch Transformation where
+    sketch t = do
+        let grid = [Line (Vec2 0 y) (Vec2 100 y) | y <- map fromIntegral [0,20..100]]
+                ++ [Line (Vec2 x 0) (Vec2 x 100) | x <- map fromIntegral [0,20..100]]
+        sketch (G.transform t grid)
+
 -- | Sketch part of a circle.
 arcSketch
     :: Vec2   -- ^ Center
