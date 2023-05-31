@@ -1,5 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Geometry.Trajectory (
     -- * Various
       pointOnTrajectory

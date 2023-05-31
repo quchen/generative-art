@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Geometry.Core (
     -- * Primitives
     -- ** 2D Vectors
@@ -315,9 +313,9 @@ instance NFData Transformation where rnf _ = ()
 -- | The order transformations are applied in function order:
 --
 -- @
--- 'transform' ('scale' a b <> 'translate' p)
+-- 'transform' ('scale' s <> 'translate' p)
 -- ==
--- 'transform' ('scale' a b) . 'transform' ('translate' p)
+-- 'transform' ('scale' s) . 'transform' ('translate' p)
 -- @
 --
 -- In other words, this first translates its argument, and then scales.
@@ -1281,8 +1279,7 @@ intersectInfiniteLines (Line (Vec2 x1 y1) (Vec2 x2 y2)) (Line (Vec2 x3 y3) (Vec2
     x = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
     y = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
 
--- | The single point of intersection of two lines, or 'Nothing' for none (or
--- collinear).
+-- | The single point of intersection of two lines, or 'Nothing' for none (collinear).
 intersectionPoint :: LLIntersection -> Maybe Vec2
 intersectionPoint (IntersectionReal v)           = Just v
 intersectionPoint (IntersectionVirtualInsideL v) = Just v
@@ -1449,12 +1446,16 @@ polygonAngles polygon@(Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/convex_hull.svg" 100 100 $ do
---     points <- C.liftIO $ do
---         gen <- MWC.create
---         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
+-- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen ->
+--         gaussianDistributedPoints
+--             gen
+--             (shrinkBoundingBox 10 [zero, Vec2 w h])
+--             (30 *. mempty)
+--             100
 --     for_ points $ \point -> do
---         sketch (Circle point 2)
+--         sketch (Circle point 3)
 --         C.fill
 --     setColor (mathematica97 1)
 --     for_ (polygonEdges (convexHull points)) $ \edge ->
@@ -1495,7 +1496,7 @@ polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
     | otherwise                      = PolygonNegative
 
--- | Circles are not an instance of 'Transform', because 'scale\''ing a circle
+-- | Circles are not an instance of 'Transform', because e.g. 'shear'ing a circle
 -- yields an 'Ellipse'. To transform circles, convert them to an ellipse first with
 -- 'toEllipse'.
 data Circle = Circle
@@ -1641,7 +1642,7 @@ instance Default Ellipse where def = Ellipse mempty
 -- >>>             setColor (mathematica97 (i*3+j))
 -- >>>             cairoScope $ sketch geo >> C.stroke
 -- >>>             cairoScope $ C.setDash [1,1.5] 0 >> sketch (boundingBox geo) >> C.stroke
--- >>>     paintWithBB 0 0 ellipse
+-- >>>     paintWithBB 0 0 (transform (scale 0.9) ellipse)
 -- >>>     paintWithBB 1 0 (transform (scale 0.75) ellipse)
 -- >>>     paintWithBB 2 0 (transform (scale 0.5) ellipse)
 -- >>>     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
@@ -1718,14 +1719,15 @@ countEdgeTraversals subjectPoint edges'
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/point_in_polygon.svg" 90 70 $ do
---     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
---         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
+-- haddockRender "Geometry/Core/point_in_polygon.svg" 180 180 $ do
+--     let square = boundingBoxPolygon (shrinkBoundingBox 40 [zero, Vec2 180 180])
+--         points = subdivideLine 11 (Line (Vec2 20 120) (Vec2 160 60))
+--     C.setLineWidth 2
 --     sketch square
 --     C.stroke
 --     setColor (mathematica97 1)
 --     for_ points $ \point -> do
---         sketch (Circle point 3)
+--         sketch (Circle point 4)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
 -- docs/haddock/Geometry/Core/point_in_polygon.svg
@@ -1869,7 +1871,6 @@ growPolygon offset polygon =
             newCorners
             (tail (cycle newCorners))
 
-        guard p = if p then pure () else [] -- Local reinvention avoids an import
         sameDirection v w = dotProduct (vectorOf v) (vectorOf w) >= 0
 
         earsClipped = do
@@ -1974,8 +1975,8 @@ signedPolygonArea (Polygon ps)
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
 --         if isConvex polygon
---             then setColor (mathematica97 0)
---             else setColor (mathematica97 1)
+--             then setColor (mathematica97 2)
+--             else setColor (mathematica97 3)
 --         sketch polygon
 --         C.stroke
 -- :}
@@ -2058,42 +2059,42 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 --
 -- === __(image code)__
 -- >>> :{
--- >>> haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
--- >>>    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
--- >>>    cairoScope $ do
--- >>>        C.setLineWidth 2
--- >>>        setColor (black `withOpacity` 0.5)
--- >>>        sketch mirrorSurface
--- >>>        C.stroke
--- >>>    let angles = [-135,-120.. -10]
--- >>>    cairoScope $ do
--- >>>        let rayOrigin = Vec2 180 250
--- >>>        setColor (hsv 0 1 0.7)
--- >>>        sketch (Circle rayOrigin 5)
--- >>>        C.stroke
--- >>>        for_ angles $ \angleDeg -> do
--- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
--- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
--- >>>                ray = Line rayOrigin iPoint
--- >>>                ray' = Line iPoint reflectedRayEnd
--- >>>            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
--- >>>            sketch ray
--- >>>            sketch ray'
--- >>>            C.stroke
--- >>>    cairoScope $ do
--- >>>        let rayOrigin = Vec2 350 30
--- >>>        setColor (hsva 180 1 0.7 1)
--- >>>        sketch (Circle rayOrigin 5)
--- >>>        C.stroke
--- >>>        for_ angles $ \angleDeg -> do
--- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
--- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
--- >>>                ray = Line rayOrigin iPoint
--- >>>                ray' = Line iPoint reflectedRayEnd
--- >>>            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
--- >>>            sketch ray
--- >>>            sketch ray'
--- >>>            C.stroke
+-- haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
+--    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
+--    cairoScope $ do
+--        C.setLineWidth 2
+--        setColor (black `withOpacity` 0.5)
+--        sketch mirrorSurface
+--        C.stroke
+--    let angles = [-135,-120.. -10]
+--    cairoScope $ do
+--        let rayOrigin = Vec2 180 250
+--        setColor (hsv 0 1 0.7)
+--        sketch (Circle rayOrigin 5)
+--        C.stroke
+--        for_ angles $ \angleDeg -> do
+--            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+--                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+--                ray = Line rayOrigin iPoint
+--                ray' = Line iPoint reflectedRayEnd
+--            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
+--            sketch ray
+--            sketch ray'
+--            C.stroke
+--    cairoScope $ do
+--        let rayOrigin = Vec2 350 30
+--        setColor (hsva 180 1 0.7 1)
+--        sketch (Circle rayOrigin 5)
+--        C.stroke
+--        for_ angles $ \angleDeg -> do
+--            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+--                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+--                ray = Line rayOrigin iPoint
+--                ray' = Line iPoint reflectedRayEnd
+--            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
+--            sketch ray
+--            sketch ray'
+--            C.stroke
 -- :}
 -- docs/haddock/Geometry/Core/reflection.svg
 reflection

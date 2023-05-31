@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | Command line parsers for options often used for penplotting.
 module Draw.Plotting.CmdArgs (
       canvasP

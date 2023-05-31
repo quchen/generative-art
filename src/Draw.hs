@@ -305,14 +305,16 @@ lineToVec :: Vec2 -> Render ()
 lineToVec (Vec2 x y) = lineTo x y
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Bezier.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ do
+--     C.setLineWidth 2
 --     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Bezier.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Bezier.svg>>
 instance Sketch Bezier where
     sketch (Bezier start (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) = do
         moveToVec start
@@ -354,14 +356,16 @@ data Arrow = Arrow !Line !ArrowSpec
     deriving (Eq, Show)
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Arrow.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ do
+--     C.setLineWidth 2
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Arrow.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Arrow.svg>>
 instance Sketch Arrow where
     sketch (Arrow line ArrowSpec{..}) = do
         when _arrowDrawBody (sketch line)
@@ -413,14 +417,16 @@ instance Sketch a => Sketch (Maybe a) where
     sketch xs = for_ xs sketch
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Line.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ do
+--     C.setLineWidth 2
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Line.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Line.svg>>
 instance Sketch Line where
     sketch (Line start end) = do
         moveToVec start
@@ -433,12 +439,11 @@ instance Sketch Line where
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+--     C.setLineWidth 2
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg
-instance Sketch Polyline where
-    sketch (Polyline xs) = go (toList xs)
 instance Sketch Polyline where
     sketch (Polyline xs) = go xs
       where
@@ -448,40 +453,46 @@ instance Sketch Polyline where
             for_ vecs (\(Vec2 x y) -> lineTo x y)
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Polygon.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ do
+--     C.setLineWidth 2
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Polygon.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Polygon.svg>>
 instance Sketch Polygon where
     sketch (Polygon []) = pure ()
     sketch (Polygon xs) = sketch (Polyline xs) >> closePath
 
 -- |
+-- === __(image code)__
+--
+-- <<docs/haddock/Draw/instance_Sketch_Circle.svg>>
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Circle.svg" 100 100 $ do
 --     sketch (Circle (Vec2 50 50) 45)
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Circle.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Circle.svg>>
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Ellipse.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ do
+--     C.setLineWidth 2
 --     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
 --                         (toEllipse (Circle zero 45)))
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Ellipse.svg
 --
--- <<docs/haddock/Draw/instance_Sketch_Ellipse.svg>>
 instance Sketch Ellipse where
     sketch (Ellipse t) = cairoScope $ do
         C.transform (toCairoMatrix t)
@@ -497,15 +508,17 @@ data Cross = Cross
     } deriving (Eq, Ord, Show)
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Cross.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ do
+--     C.setLineWidth 2
 --     sketch (Cross  (Vec2 20 20) 15) >> stroke
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
 --     sketch (Circle (Vec2 60 20) 15) >> stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Cross.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Cross.svg>>
 instance Sketch Cross where
     sketch (Cross center r) = do
         let lowerRight = G.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
@@ -517,15 +530,17 @@ instance Sketch Cross where
 -- | Draw a \(100\times 100\) square with its corner at 'zero' and transformed with
 -- the 'Transformation', sometimes useful for debugging.
 --
+-- <<docs/haddock/Draw/instance_Sketch_Transformation.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ do
+--     C.setLineWidth 2
 --     setColor (mathematica97 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
 --     setColor (mathematica97 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
 --     setColor (mathematica97 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Transformation.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Transformation.svg>>
 instance Sketch Transformation where
     sketch t = do
         let grid = [Line (Vec2 0 y) (Vec2 100 y) | y <- map fromIntegral [0,20..100]]
@@ -554,6 +569,9 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 
 -- | Sketches a rectangle with a diagonal cross through it. Useful for debugging.
 --
+-- <<docs/haddock/Draw/instance_Sketch_BoundingBox.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
@@ -562,8 +580,6 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_BoundingBox.svg
---
--- <<docs/haddock/Draw/instance_Sketch_BoundingBox.svg>>
 instance Sketch BoundingBox where
     sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
         let w = xhi - xlo
@@ -600,12 +616,13 @@ instance Default CartesianParams where
 -- | Draw a caresian coordinate system in range (x,x') (y,y'). Very useful for
 -- prototyping.
 --
+-- === __(image code)__
+--
+-- <<docs/haddock/Draw/cartesianCoordinateSystem.svg>>
 -- >>> :{
 -- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
 -- :}
 -- docs/haddock/Draw/cartesianCoordinateSystem.svg
---
--- <<docs/haddock/Draw/cartesianCoordinateSystem.svg>>
 cartesianCoordinateSystem :: CartesianParams -> Render ()
 cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha _cartesianAlpha) $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
@@ -659,14 +676,15 @@ instance Default PolarParams where
 
 -- | Like 'cartesianCoordinateSystem', but with polar coordinates.
 --
+-- <<docs/haddock/Draw/radialCoordinateSystem.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ do
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
 -- docs/haddock/Draw/radialCoordinateSystem.svg
---
--- <<docs/haddock/Draw/radialCoordinateSystem.svg>>
 radialCoordinateSystem :: PolarParams -> Render ()
 radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1

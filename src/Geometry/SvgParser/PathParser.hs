@@ -10,8 +10,8 @@ import           Control.Applicative
 import           Control.Monad.Trans.State
 import           Data.Maybe
 import           Data.Text                 (Text)
-import           Data.Traversable
 import qualified Data.Text                 as T
+import           Data.Traversable
 import qualified Text.Megaparsec           as MP
 import qualified Text.Megaparsec.Char      as MPC
 
