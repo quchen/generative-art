@@ -105,8 +105,8 @@ fromExtension filePath
 -- | Renders the drawing as PNG or SVG, depending on the file extension.
 render
     :: FilePath
-    -> Int -- ^ Height (px for PNG, pt for SVG)
-    -> Int -- ^ Width (px for PNG, pt for SVG)
+    -> Int -- ^ Height (px)
+    -> Int -- ^ Width (px)
     -> Render ()
     -> IO ()
 render filepath w h actions = do
@@ -127,25 +127,19 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 200 160 $ do
+        --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
+        --     cairoScope $ do
+        --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
+        --         sketch (Arrow (angledLine (Vec2 10 10) (deg 90) 140) def)
+        --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor black
-        --         rectangle 0 0 80 60
-        --         setDash [2,2] 0
-        --         stroke
-        --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
-        --     C.translate 10 10
-        --     cairoScope $ do
-        --         sketch (Arrow (angledLine zero (deg 0) 80) def)
-        --         sketch (Arrow (angledLine zero (deg 90) 60) def)
-        --         stroke
-        --     cairoScope $ do
         --         setColor (mathematica97 1)
-        --         let radius = 20
+        --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
-        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
-        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
+        --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
         -- docs/haddock/Draw/coordinate_system_cairo_standard.svg
@@ -159,29 +153,22 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard.svg" 200 160 $ do
+        --     coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp 160)
+        --     cairoScope $ do
+        --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
+        --         sketch (Arrow (angledLine (Vec2 10 10) (deg 90) 140) def)
+        --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor black
-        --         rectangle 0 0 80 60
-        --         setDash [2,2] 0
-        --         stroke
-        --     coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp 80)
-        --     C.translate 10 10
-        --     cairoScope $ do
-        --         sketch (Arrow (angledLine zero (deg 0) 80) def)
-        --         sketch (Arrow (angledLine zero (deg 90) 60) def)
-        --         stroke
-        --     cairoScope $ do
         --         setColor (mathematica97 1)
-        --         let radius = 20
+        --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
-        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
-        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
+        --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
         -- docs/haddock/Draw/coordinate_system_math_standard.svg
-
 
     | MathStandard_ZeroCenter_XRight_YUp Double Double
         -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
@@ -192,28 +179,19 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 100 80 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ do
+        --     let (w,h) = (200,160)
+        --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
         --     cairoScope $ do
-        --         C.translate 10 10
-        --         setColor black
-        --         rectangle 0 0 80 60
-        --         setDash [2,2] 0
-        --         stroke
-        --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 100 80)
-        --     cairoScope $ do
-        --         sketch (Arrow (angledLine zero (deg 0) 40) def)
-        --         sketch (Arrow (angledLine zero (deg 90) 30) def)
-        --         stroke
-        --         setColor (mathematica97 0 `withOpacity` 0.3)
-        --         sketch (angledLine zero (deg 0) (-40))
-        --         sketch (angledLine zero (deg 90) (-30))
+        --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 (w-20) 0))) def)
+        --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 0 (h-20)))) def)
         --         stroke
         --     cairoScope $ do
         --         setColor (mathematica97 1)
-        --         let radius = 15
+        --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
-        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg 0) 10))
-        --                       def {_arrowDrawBody=False, _arrowheadSize=7})
+        --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-5)) 10))
+        --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
         -- docs/haddock/Draw/coordinate_system_math_standard_centered.svg
@@ -245,10 +223,26 @@ haddockRender filename w h actions = do
     render filepath w h $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
         haddockGrid w h
-        haddockAxes (Vec2 5 5) 15
-        C.setLineWidth 1
-        setColor (mathematica97 0)
-        actions
+
+        do -- Set defaults
+            C.setLineWidth 1.5
+            setColor (mathematica97 0)
+            C.setDash [] 0
+            C.setTolerance 0.1 -- 0.1 is Cairo’s default
+            C.setAntialias C.AntialiasDefault
+            C.setLineCap C.LineCapRound
+            C.setLineJoin C.LineJoinRound
+            C.setFillRule C.FillRuleWinding
+
+        -- We return the matrix so we can paint the 'haddockAxes' correctly below
+        matrix <- cairoScope $ do
+            actions
+            getMatrix
+
+        cairoScope $ do
+            setMatrix matrix
+            haddockAxes (Vec2 5 5) 15
+
     normalizeSvgFile filepath
     putStrLn filepath
 
@@ -271,6 +265,7 @@ haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
         Matrix _xx _yx _xy yy _x0 _y0 <- C.getMatrix
         pure yy
     C.setLineWidth 0.5
+    setColor black
     sketch arrows
     sketch xSymbol
     sketch (ySymbol yDirection)
@@ -283,9 +278,9 @@ haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
         in [Arrow (G.transform (G.translate start) line) arrowSpec | line <- [xLine, yLine]]
     xSymbol =
         let angle = deg 55
-            lx = 1.3
-            x' = [ resizeLine (const (2*lx)) (lineReverse (angledLine zero angle lx))
-                 , resizeLine (const (2*lx)) (lineReverse (angledLine zero (deg 180 -. angle) lx))
+            lx = 2.6
+            x' = [ centerLine (angledLine zero angle lx)
+                 , centerLine (angledLine zero (deg 180 -. angle) lx)
                  ]
         in G.transform (G.translate (start +. Vec2 (len+5) 0) <> G.scale 2) x'
 
@@ -293,9 +288,9 @@ haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
     -- need this for the x symbol because it’s symmetric.)
     ySymbol yDirection =
         let angle = deg 55
-            ly = 1.5
-            y' = [ resizeLine (const (2*ly)) (lineReverse (angledLine zero angle ly))
-                 , angledLine zero (deg 180 -. angle) ly
+            ly = 3
+            y' = [ centerLine (angledLine zero angle ly)
+                 , angledLine zero (deg 180 -. angle) (ly/2)
                  ]
             directionFlip | yDirection < 0 = mempty
                           | otherwise      = mirrorYCoords
