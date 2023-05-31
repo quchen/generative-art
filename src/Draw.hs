@@ -90,7 +90,7 @@ withSurface PNG file w h action = withImageSurface FormatARGB32 w h $ \surface -
     surfaceWriteToPNG surface file
     pure result
 withSurface SVG file w h draw = withSVGSurface file (fromIntegral w) (fromIntegral h) $ \surface -> do
-    svgSurfaceSetDocumentUnit surface SvgUnitPt
+    svgSurfaceSetDocumentUnit surface SvgUnitPx
     draw surface
 
 data OutputFormat = PNG | SVG
@@ -245,7 +245,7 @@ haddockRender filename w h actions = do
     render filepath w h $ do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (fromIntegral h))
         haddockGrid w h
-        haddockAxes (Vec2 4 4) 15
+        haddockAxes (Vec2 5 5) 15
         C.setLineWidth 1
         setColor (mathematica97 0)
         actions
@@ -265,10 +265,15 @@ haddockGrid w h = grouped (paintWithAlpha 0.1) $ do
 
 haddockAxes :: Vec2 -> Double -> Render ()
 haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
+    yDirection <- do
+        -- >0 ==> y down on screen
+        -- <0 ==> y up on screen
+        Matrix _xx _yx _xy yy _x0 _y0 <- C.getMatrix
+        pure yy
     C.setLineWidth 0.5
     sketch arrows
-    sketch x
-    sketch y
+    sketch xSymbol
+    sketch (ySymbol yDirection)
     stroke
   where
     arrows =
@@ -276,18 +281,25 @@ haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
             xLine = Line zero (Vec2 len 0)
             yLine = Line zero (Vec2 0 len)
         in [Arrow (G.transform (G.translate start) line) arrowSpec | line <- [xLine, yLine]]
-    (x,y) =
+    xSymbol =
         let angle = deg 55
             lx = 1.3
-            ly = 1.5
             x' = [ resizeLine (const (2*lx)) (lineReverse (angledLine zero angle lx))
                  , resizeLine (const (2*lx)) (lineReverse (angledLine zero (deg 180 -. angle) lx))
                  ]
+        in G.transform (G.translate (start +. Vec2 (len+5) 0) <> G.scale 2) x'
+
+    -- When the y axis is flipped, we need to flip the y symbol as well. (We don’t
+    -- need this for the x symbol because it’s symmetric.)
+    ySymbol yDirection =
+        let angle = deg 55
+            ly = 1.5
             y' = [ resizeLine (const (2*ly)) (lineReverse (angledLine zero angle ly))
                  , angledLine zero (deg 180 -. angle) ly
                  ]
-        in ( G.transform (G.translate (start +. Vec2 (len+5) 0) <> G.scale 2) x'
-           , G.transform (G.translate (start +. Vec2 0 (len+5)) <> G.scale 2) y')
+            directionFlip | yDirection < 0 = mempty
+                          | otherwise      = mirrorYCoords
+        in G.transform (G.translate (start +. Vec2 0 (len+5)) <> G.scale 2 <> directionFlip) y'
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
 moveToVec :: Vec2 -> Render ()

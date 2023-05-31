@@ -1845,24 +1845,20 @@ signedPolygonArea (Polygon ps)
 -- :}
 -- docs/haddock/Geometry/Core/is_convex.svg
 isConvex :: Polygon -> Bool
-isConvex (Polygon ps)
+isConvex (Polygon ps) = allSameSign angleDotProducts
     -- The idea is that a polygon is convex iff all internal angles are in the
     -- same direction. The direction of an angle defined by two vectors shares
     -- its sign with the signed area spanned by those vectors, and the latter is
     -- easy to calculate via a determinant.
-  = let angleDotProducts = zipWith3
-            (\p q r ->
-                let lineBeforeAngle = Line p q
-                    lineAfterAngle  = Line q r
-                in cross (vectorOf lineBeforeAngle) (vectorOf lineAfterAngle) )
-            ps
-            (tail (cycle ps))
-            (tail (tail (cycle ps)))
+  where
+    angleDotProducts = zipWith3
+        (\p q r -> cross (q -. p) (r -. q) )
+        ps
+        (tail (cycle ps))
+        (tail (tail (cycle ps)))
 
-        allSameSign :: [Double] -> Bool
-        -- NB: head is safe here, since all short-circuits for empty xs
-        allSameSign xs = all (\p -> signum p == signum (head xs)) xs
-    in allSameSign angleDotProducts
+    allSameSign [] = True
+    allSameSign (x:xs) = all (\p -> signum p == signum x) xs
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.

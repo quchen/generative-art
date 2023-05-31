@@ -76,12 +76,13 @@ import Geometry.Core
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Algorithms/Clipping/hatched_polygon.svg" 100 100 $ do
---     let polygon = Polygon [Vec2 10 10, Vec2 90 10, Vec2 90 90, Vec2 10 90]
---     let shading = hatch polygon (deg 30) 10
+--     let polygon = Polygon [Vec2 10 10, Vec2 70 45, Vec2 90 10, Vec2 90 90, Vec2 50 55, Vec2 10 90]
+--     let hatching = hatch polygon (deg 30) 10 0
+--     cairoScope $ do
+--         for_ hatching sketch
+--         setColor (mathematica97 1)
+--         stroke
 --     sketch polygon
---     stroke
---     for_ shading sketch
---     setColor (mathematica97 1)
 --     stroke
 -- :}
 -- docs/haddock/Geometry/Algorithms/Clipping/hatched_polygon.svg
@@ -89,12 +90,17 @@ hatch
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.
     -> Double -- ^ Distance between shading lines
+    -> Double -- ^ An offset of 0 means a line will go through the center of the polygon's 'BoundingBox'.
     -> [Line]
-hatch polygon angle hatchInterval = do
-    let polygonAligned = transform (rotate (negateV angle)) polygon
+hatch polygon angle interval offset = do
+    let transformation = rotate (negateV angle)
+        polygonAligned = transform transformation polygon
+        BoundingBox (Vec2 xLo yLo) (Vec2 xHi yHi) = boundingBox polygonAligned
+        yMid = (yLo + yHi) / 2 + offset
+        yUp = takeWhile (< yHi) (iterate (+ interval) yMid)
+        yDown = takeWhile (> yLo) (tail (iterate (subtract interval) yMid))
     horizontalScissors <- do
-        let BoundingBox (Vec2 xLo yLo) (Vec2 xHi yHi) = boundingBox polygonAligned
-        y <- takeWhile (< yHi) (tail (iterate (+ hatchInterval) yLo))
-        pure (Line (Vec2 xLo y) (Vec2 xHi y))
+            y <- yUp ++ yDown
+            pure (Line (Vec2 xLo y) (Vec2 xHi y))
     horizontalHatches <- [line | (line, LineInsidePolygon) <- clipPolygonWithLine polygonAligned horizontalScissors]
-    pure (transform (rotate angle) horizontalHatches)
+    pure (transform (inverse transformation) horizontalHatches)

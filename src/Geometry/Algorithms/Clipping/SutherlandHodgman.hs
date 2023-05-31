@@ -9,12 +9,11 @@ import Geometry.Core
 -- >>> import Draw
 -- >>> import Graphics.Rendering.Cairo
 
--- | Clip a polygon with a convex clipping mask using the Sutherland-Hodgman
+-- | Clip a polygon with a convex clipping mask using the
+-- [Sutherland-Hodgman](https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm)
 -- algorithm.
 --
 -- __Note:__ The precondition (convexity) is not checked!
---
--- https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
 --
 -- <<docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg>>
 --
@@ -32,7 +31,7 @@ import Geometry.Core
 -- docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg
 sutherlandHodgman
     :: Polygon -- ^ Subject
-    -> Polygon -- ^ Scissors
+    -> Polygon -- ^ __Convex__ scissors
     -> Polygon
 sutherlandHodgman subject scissors = foldl (cutOffEdge (polygonOrientation scissors)) subject (polygonEdges scissors)
 
