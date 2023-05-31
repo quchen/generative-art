@@ -727,6 +727,25 @@ insideBoundingBox thing bigObject =
     in bigObjectBB == bigObjectBB <> thingBB
 
 -- | Center/mean/centroid of a bounding box.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxCenter.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
+--         poissonDisc gen region 15 5
+--     let pointsBB = boundingBox points
+--     for_ points $ \p -> sketch (Circle p 3) >> C.fill
+--     setColor (mathematica97 1)
+--     sketch (boundingBoxPolygon pointsBB)
+--     sketch (Cross (boundingBoxCenter pointsBB) 10)
+--     sketch (Circle (boundingBoxCenter pointsBB) 10)
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxCenter.svg
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
