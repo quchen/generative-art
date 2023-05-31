@@ -696,6 +696,30 @@ boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1
 -- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
 -- PolygonPositive
 
+-- | Is the argument’s bounding box fully contained in another’s bounding box?
+--
+-- <<docs/haddock/Geometry/Core/insideBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--         parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
+--         paintCheck :: (HasBoundingBox object, Sketch object) => object -> C.Render ()
+--         paintCheck object = do
+--             when (not (object `insideBoundingBox` parentBB)) $ grouped (C.paintWithAlpha 0.2) $ do
+--                 setColor (mathematica97 3)
+--                 sketch (boundingBox object)
+--                 C.stroke
+--             sketch object
+--             C.stroke
+--     cairoScope $ C.setLineWidth 3 >> setColor (mathematica97 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
+--     setColor (mathematica97 0) >> paintCheck (Circle (Vec2 110 60) 20)
+--     setColor (mathematica97 1) >> paintCheck (Circle (Vec2 80 110) 15)
+--     setColor (mathematica97 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
+--     setColor (mathematica97 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
+-- :}
+-- docs/haddock/Geometry/Core/insideBoundingBox.svg
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
 insideBoundingBox thing bigObject =
     let thingBB = boundingBox thing
