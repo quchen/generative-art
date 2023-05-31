@@ -1358,7 +1358,26 @@ intersectionLL lineL lineR
 -- distorting straight lines. The first and last points are (exactly) equal to the
 -- start and end of the input line.
 --
--- See 'subdivideLineByLength' for a code example.
+-- See also 'subdivideLineByLength.'.
+--
+-- <<docs/haddock/Geometry/Core/subdivide_line.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/subdivide_line.svg" 200 150 $ do
+--     let line = Line (Vec2 20 20) (Vec2 190 140)
+--         subdivisions = subdivideLine 8 line
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         setColor (mathematica97 0)
+--         sketch line
+--         C.stroke
+--     cairoScope $ for_ subdivisions $ \point -> do
+--         sketch (Circle point 4)
+--         setColor (mathematica97 1)
+--         C.fill
+-- :}
+-- docs/haddock/Geometry/Core/subdivide_line.svg
 subdivideLine :: Int -> Line -> [Vec2]
 subdivideLine _ (Line start end) | start == end = [start, end]
 subdivideLine numSegments line@(Line start end) = do
@@ -1380,14 +1399,15 @@ subdivideLine numSegments line@(Line start end) = do
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ do
---     let line = Line (Vec2 10 10) (Vec2 190 140)
+--     let line = Line (Vec2 20 20) (Vec2 190 140)
 --         subdivisions = subdivideLineByLength 30 line
 --     cairoScope $ do
+--         C.setLineWidth 2
 --         setColor (mathematica97 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
---         sketch (Circle point 3)
+--         sketch (Circle point 4)
 --         setColor (mathematica97 1)
 --         C.fill
 -- :}
