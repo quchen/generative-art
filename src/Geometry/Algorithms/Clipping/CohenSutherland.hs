@@ -46,7 +46,7 @@ import Util
 --         sketch (boundingBoxPolygon mask)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/CohenSutherland/cohenSutherland.svg
+-- Generated file: size 22KB, crc32: 0xa5dc883f
 cohenSutherland :: BoundingBox -> Line -> Maybe Line
 cohenSutherland bb = \line -> let Line start end = line in loop line (outCode start) (outCode end)
   where

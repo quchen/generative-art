@@ -28,7 +28,7 @@ import Geometry.Core
 --     sketch subject >> setColor (mathematica97 1) >> stroke
 --     sketch scissors >> setColor (mathematica97 3) >> setDash [3,3] 0 >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg
+-- Generated file: size 2KB, crc32: 0x722cb97a
 sutherlandHodgman
     :: Polygon -- ^ Subject
     -> Polygon -- ^ __Convex__ scissors

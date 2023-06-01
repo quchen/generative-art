@@ -16,7 +16,7 @@
 --             for_ geometry $ \logoPart -> plot logoPart
 --     _plotPreview plotResult
 -- :}
--- docs/haddock/Draw/Plotting/example.svg
+-- Generated file: size 10KB, crc32: 0x1e175925
 module Draw.Plotting (
     -- * 'Plot' type
       Plot()

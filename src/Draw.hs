@@ -146,7 +146,7 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
-        -- docs/haddock/Draw/coordinate_system_cairo_standard.svg
+        -- Generated file: size 2KB, crc32: 0x22a87e3e
 
     | MathStandard_ZeroBottomLeft_XRight_YUp Double
         -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
@@ -172,7 +172,7 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
-        -- docs/haddock/Draw/coordinate_system_math_standard.svg
+        -- Generated file: size 3KB, crc32: 0xd33a20ee
 
     | MathStandard_ZeroCenter_XRight_YUp Double Double
         -- ^ __Right-handed coordinate system.__ Standard math coordinates, with
@@ -198,7 +198,7 @@ data CoordinateSystem
         --                       def {_arrowDrawBody=False})
         --         stroke
         -- :}
-        -- docs/haddock/Draw/coordinate_system_math_standard_centered.svg
+        -- Generated file: size 3KB, crc32: 0xe6e10f11
 
     deriving (Eq, Ord, Show)
 
@@ -336,7 +336,7 @@ lineToVec (Vec2 x y) = lineTo x y
 --     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Bezier.svg
+-- Generated file: size 2KB, crc32: 0xe17dab02
 instance Sketch Bezier where
     sketch (Bezier start (Vec2 x1 y1) (Vec2 x2 y2) (Vec2 x3 y3)) = do
         moveToVec start
@@ -387,7 +387,7 @@ data Arrow = Arrow !Line !ArrowSpec
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Arrow.svg
+-- Generated file: size 2KB, crc32: 0x2c724862
 instance Sketch Arrow where
     sketch (Arrow line ArrowSpec{..}) = do
         when _arrowDrawBody (sketch line)
@@ -448,7 +448,7 @@ instance Sketch a => Sketch (Maybe a) where
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Line.svg
+-- Generated file: size 2KB, crc32: 0x9287e4a8
 instance Sketch Line where
     sketch (Line start end) = do
         moveToVec start
@@ -465,7 +465,7 @@ instance Sketch Line where
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg
+-- Generated file: size 2KB, crc32: 0x5d5a0158
 instance Sketch Polyline where
     sketch (Polyline xs) = go xs
       where
@@ -484,7 +484,7 @@ instance Sketch Polyline where
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Polygon.svg
+-- Generated file: size 2KB, crc32: 0x7f620554
 instance Sketch Polygon where
     sketch (Polygon []) = pure ()
     sketch (Polygon xs) = sketch (Polyline xs) >> closePath
@@ -498,7 +498,7 @@ instance Sketch Polygon where
 --     sketch (Circle (Vec2 50 50) 45)
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Circle.svg
+-- Generated file: size 2KB, crc32: 0xebd35c6d
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 
@@ -513,7 +513,7 @@ instance Sketch Circle where
 --                         (toEllipse (Circle zero 45)))
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Ellipse.svg
+-- Generated file: size 2KB, crc32: 0x25bae2ef
 --
 instance Sketch Ellipse where
     sketch (Ellipse t) = cairoScope $ do
@@ -540,7 +540,7 @@ data Cross = Cross
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
 --     sketch (Circle (Vec2 60 20) 15) >> stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Cross.svg
+-- Generated file: size 2KB, crc32: 0xe2cb8567
 instance Sketch Cross where
     sketch (Cross center r) = do
         let lowerRight = G.transform (rotateAround center (deg 45)) (center +. Vec2 r 0)
@@ -562,7 +562,7 @@ instance Sketch Cross where
 --     setColor (mathematica97 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
 --     setColor (mathematica97 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_Transformation.svg
+-- Generated file: size 4KB, crc32: 0x1f4ae5da
 instance Sketch Transformation where
     sketch t = do
         let grid = [Line (Vec2 0 y) (Vec2 100 y) | y <- map fromIntegral [0,20..100]]
@@ -601,7 +601,7 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 --     sketch (boundingBox geometry)
 --     stroke
 -- :}
--- docs/haddock/Draw/instance_Sketch_BoundingBox.svg
+-- Generated file: size 3KB, crc32: 0xfed2c044
 instance Sketch BoundingBox where
     sketch (BoundingBox (Vec2 xlo ylo) (Vec2 xhi yhi)) = do
         let w = xhi - xlo
@@ -644,7 +644,7 @@ instance Default CartesianParams where
 -- >>> :{
 -- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
 -- :}
--- docs/haddock/Draw/cartesianCoordinateSystem.svg
+-- Generated file: size 21KB, crc32: 0xf43aac0c
 cartesianCoordinateSystem :: CartesianParams -> Render ()
 cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha _cartesianAlpha) $ do
     let vec2 x y = Vec2 (fromIntegral x) (fromIntegral y)
@@ -706,7 +706,7 @@ instance Default PolarParams where
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
--- docs/haddock/Draw/radialCoordinateSystem.svg
+-- Generated file: size 26KB, crc32: 0x9b68b36
 radialCoordinateSystem :: PolarParams -> Render ()
 radialCoordinateSystem PolarParams{_polarCenter=center, _polarMaxRadius=maxR} = cairoScope $ do
     setLineWidth 1
@@ -771,7 +771,7 @@ withOperator op actions = do
 --     sketch line
 --     stroke
 -- :}
--- docs/haddock/Draw/cairoScope.svg
+-- Generated file: size 2KB, crc32: 0x2d7bee90
 --
 -- <<docs/haddock/Draw/cairoScope.svg>>
 cairoScope :: Render a -> Render a

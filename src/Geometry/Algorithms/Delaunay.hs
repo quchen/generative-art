@@ -50,7 +50,7 @@
 --         sketch edge
 --         stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/delaunay_voronoi.svg
+-- Generated file: size 729KB, crc32: 0x640a6e45
 module Geometry.Algorithms.Delaunay (
     -- * Core
       delaunayTriangulation
@@ -142,7 +142,7 @@ delaunayTriangulation = Api.delaunayTriangulation . toVector
 --         sketch (growPolygon (-2) triangle)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/triangles.svg
+-- Generated file: size 48KB, crc32: 0x960a4150
 delaunayTriangles :: Api.DelaunayTriangulation -> Vector Polygon
 delaunayTriangles = Api._triangles
 
@@ -167,7 +167,7 @@ delaunayTriangles = Api._triangles
 --         sketch edge
 --         stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/edges.svg
+-- Generated file: size 97KB, crc32: 0xc283d1df
 delaunayEdges :: Api.DelaunayTriangulation -> Vector Line
 delaunayEdges = Api._edges
 
@@ -198,7 +198,7 @@ delaunayEdges = Api._edges
 --         sketch (Circle corner 2)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/voronoi_corners.svg
+-- Generated file: size 155KB, crc32: 0xfd606083
 voronoiCorners :: Api.DelaunayTriangulation -> Vector Vec2
 voronoiCorners = Api._voronoiCorners
 
@@ -227,7 +227,7 @@ voronoiCorners = Api._voronoiCorners
 --         sketch edge
 --         stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/voronoi_edges.svg
+-- Generated file: size 94KB, crc32: 0x8e95bd19
 voronoiEdges :: Api.DelaunayTriangulation -> Vector (Either Line Api.Ray)
 voronoiEdges = Api._voronoiEdges
 
@@ -258,7 +258,7 @@ voronoiEdges = Api._voronoiEdges
 --         sketch (growPolygon (-2) polygon)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/voronoi_cells.svg
+-- Generated file: size 37KB, crc32: 0x8587a040
 voronoiCells :: Api.DelaunayTriangulation -> Vector Api.VoronoiPolygon
 voronoiCells = Api._voronoiCells
 
@@ -287,7 +287,7 @@ voronoiCells = Api._voronoiCells
 --         setColor (mathematica97 3)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/convex_hull.svg
+-- Generated file: size 37KB, crc32: 0x461696a3
 delaunayHull :: Api.DelaunayTriangulation -> Vector Vec2
 delaunayHull = Api._convexHull
 
@@ -335,7 +335,7 @@ delaunayHull = Api._convexHull
 --             setColor (mathematica97 i)
 --             sketch (Line needle closest) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/find_triangle.svg
+-- Generated file: size 181KB, crc32: 0x6d8c142f
 findClosestInputPoint
     :: Api.DelaunayTriangulation
     -> Vec2 -- ^ Needle
@@ -380,7 +380,7 @@ findClosestInputPoint = Api._findClosestInputPoint
 --         sketch (growPolygon (-2) polygon)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Delaunay/lloyd_relaxation.svg
+-- Generated file: size 37KB, crc32: 0x7130f1e1
 lloydRelaxation
     :: (HasBoundingBox boundingBox, Sequential vector)
     => boundingBox

@@ -48,7 +48,7 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 --         sketch (Circle p 2)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Sampling/uniform.svg
+-- Generated file: size 263KB, crc32: 0x29e19f0e
 uniformlyDistributedPoints
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
@@ -81,7 +81,7 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
 --         sketch (Circle p 2)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Sampling/gaussian.svg
+-- Generated file: size 267KB, crc32: 0xdffc4138
 gaussianDistributedPoints
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
@@ -125,7 +125,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 --         sketch (Circle p 2)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Sampling/rejection.svg
+-- Generated file: size 263KB, crc32: 0x38511a1
 rejection
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.

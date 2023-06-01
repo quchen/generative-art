@@ -44,7 +44,7 @@ import Util
 --         sketch polygon
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Triangulate/triangulate.svg
+-- Generated file: size 4KB, crc32: 0xf8dda52c
 triangulate :: Polygon -> [Polygon]
 triangulate polygon = case clipEar polygon of
     (ear, Nothing) -> [ear]

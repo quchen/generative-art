@@ -55,7 +55,7 @@ import Geometry.Core
 -- >>>         let billardArrows = zipWith Line billardPoints (tail billardPoints)
 -- >>>         for_ billardArrows $ \arr -> sketch arr >> C.stroke
 -- :}
--- docs/haddock/Geometry/Processes/Billard/billard.svg
+-- Generated file: size 80KB, crc32: 0xd6e508bf
 billard
     :: [Line] -- ^ Geometry; typically involves the edges of a bounding polygon.
     -> Line   -- ^ Initial velocity vector of the ball. Only start and direction,

@@ -320,7 +320,7 @@ margalitKnott op Regular (polygonA, polygonA_Type) (polygonB', polygonB_Type) =
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/union.svg
+-- Generated file: size 2KB, crc32: 0xcc4c9f5e
 unionPP :: Polygon -> Polygon -> [(Polygon, IslandOrHole)]
 unionPP = ppBinop Union
 
@@ -342,7 +342,7 @@ unionPP = ppBinop Union
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg
+-- Generated file: size 2KB, crc32: 0xdaf13db5
 intersectionPP :: Polygon -> Polygon -> [(Polygon, IslandOrHole)]
 intersectionPP = ppBinop Intersection
 
@@ -361,7 +361,7 @@ intersectionPP = ppBinop Intersection
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/difference.svg
+-- Generated file: size 2KB, crc32: 0x9388b325
 differencePP
     :: Polygon -- ^ A
     -> Polygon -- ^ B
