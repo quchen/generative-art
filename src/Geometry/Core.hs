@@ -130,6 +130,7 @@ module Geometry.Core (
 import           Algebra.Group
 import           Algebra.VectorSpace
 import           Control.DeepSeq
+import           Control.Monad
 import           Data.Bifoldable
 import           Data.Bifunctor
 import           Data.Default.Class
@@ -1834,16 +1835,18 @@ polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *
 polygonCircumference :: Polygon -> Double
 polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEdges
 
--- | Move all edges of a polygon outwards by the specified amount. Negative values shrink instead.
+-- | Move all edges of a polygon outwards by the specified amount. Negative values
+-- shrink instead (or use 'shrinkPolygon').
 --
 -- <<docs/haddock/Geometry/Core/grow_polygon.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/grow_polygon.svg" 80 110 $ do
---     let polygon = Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
---     for_ [-9, -6 .. 9] $ \offset -> do
---         setColor (icefire (Numerics.Interpolation.lerp (-9,9) (0, 1) (fromIntegral offset)))
+-- haddockRender "Geometry/Core/grow_polygon.svg" 160 230 $ do
+--     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
+--     for_ [0,5..25] $ \offset -> cairoScope $ do
+--         when (offset == 0) (C.setLineWidth 3)
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 1) (fromIntegral offset)))
 --         sketch (growPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
@@ -1888,6 +1891,20 @@ growPolygon offset polygon =
     in Polygon earsClippedCorners
 
 -- | Convenience version of 'growPolygon' for negative deltas.
+--
+-- <<docs/haddock/Geometry/Core/shrink_polygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/shrink_polygon.svg" 160 230 $ do
+--     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
+--     for_ [0,5..25] $ \offset -> cairoScope $ do
+--         when (offset == 0) (C.setLineWidth 3)
+--         setColor (icefire (Numerics.Interpolation.lerp (0,15) (0.5, 0) (fromIntegral offset)))
+--         sketch (shrinkPolygon (fromIntegral offset) polygon)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/shrink_polygon.svg
 shrinkPolygon :: Double -> Polygon -> Polygon
 shrinkPolygon delta = growPolygon (-delta)
 
