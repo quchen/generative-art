@@ -44,10 +44,10 @@ import           Text.Read
 class CairoColor color where
     -- |
     -- >>> :{
-    -- haddockRender "Draw/Color/set_color.svg" 100 20 $ do
-    --     for_ (zip [0..] [10, 20 .. 90]) $ \(i, x) -> do
+    -- haddockRender "Draw/Color/set_color.svg" 140 40 $ do
+    --     for_ (zip [0..] [30, 40 .. 150-30]) $ \(i, x) -> do
     --         setColor (mathematica97 i)
-    --         sketch (Circle (Vec2 x 10) 7)
+    --         sketch (Circle (Vec2 x 20) 10)
     --         C.fill
     -- :}
     -- docs/haddock/Draw/Color/set_color.svg

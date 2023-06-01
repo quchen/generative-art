@@ -6,7 +6,7 @@ Interpolation can be used for giving crude shapes a smooth look. Here is an
 example in which only the red dots are given, and the algorithm smoothly joins
 them with Bezier curves. The control points are shown in yellow/blue.
 
-![](1_bezier_open.svg)
+![](../haddock/Geometry/Bezier/bezierSmoothen.svg)
 
 Or here is a version of Picasso’s squirrel approximated with a handful of
 points.

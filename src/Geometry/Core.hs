@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Geometry.Core (
     -- * Primitives
     -- ** 2D Vectors
@@ -130,6 +128,7 @@ module Geometry.Core (
 import           Algebra.Group
 import           Algebra.VectorSpace
 import           Control.DeepSeq
+import           Control.Monad
 import           Data.Bifoldable
 import           Data.Bifunctor
 import           Data.Default.Class
@@ -148,11 +147,12 @@ import Data.Sequential
 
 
 -- $setup
--- >>> import Draw
--- >>> import qualified Graphics.Rendering.Cairo as C
--- >>> import qualified System.Random.MWC as MWC
--- >>> import Control.Monad
--- >>> import Numerics.Interpolation
+-- >>> import           Control.Monad
+-- >>> import           Draw
+-- >>> import           Geometry.Algorithms.Sampling
+-- >>> import qualified Graphics.Rendering.Cairo     as C
+-- >>> import           Numerics.Interpolation
+-- >>> import qualified System.Random.MWC.Extended   as MWC
 
 
 
@@ -167,19 +167,15 @@ instance MWC.UniformRange Vec2 where
 -- | Explicit type for polylines. Useful in type signatures, beacuse [[[Vec2]]] is
 -- really hard to read. Also makes some typeclass instances clearer, such as
 -- 'sketch'.
-newtype Polyline container = Polyline (container Vec2)
+newtype Polyline = Polyline [Vec2]
 
-instance Eq (Polyline []) where Polyline a == Polyline b = a == b
-instance Eq (Polyline Vector) where Polyline a == Polyline b = a == b
+instance Eq Polyline where Polyline a == Polyline b = a == b
 
-instance Ord (Polyline []) where compare (Polyline a) (Polyline b) = compare a b
-instance Ord (Polyline Vector) where compare (Polyline a) (Polyline b) = compare a b
+instance Ord Polyline where compare (Polyline a) (Polyline b) = compare a b
 
-instance Show (Polyline []) where show (Polyline xs) = "Polyline " ++ show xs
-instance Show (Polyline Vector) where show (Polyline xs) = "Polyline (" ++ show xs ++ ")"
+instance Show Polyline where show (Polyline xs) = "Polyline " ++ show xs
 
-instance NFData (Polyline []) where rnf (Polyline xs) = rnf xs
-instance NFData (Polyline Vector) where rnf (Polyline xs) = rnf xs
+instance NFData Polyline where rnf (Polyline xs) = rnf xs
 
 -- | Polygon, defined by its corners.
 --
@@ -317,9 +313,9 @@ instance NFData Transformation where rnf _ = ()
 -- | The order transformations are applied in function order:
 --
 -- @
--- 'transform' ('scale' a b <> 'translate' p)
+-- 'transform' ('scale' s <> 'translate' p)
 -- ==
--- 'transform' ('scale' a b) . 'transform' ('translate' p)
+-- 'transform' ('scale' s) . 'transform' ('translate' p)
 -- @
 --
 -- In other words, this first translates its argument, and then scales.
@@ -382,8 +378,7 @@ instance Transform Line where
 instance Transform Polygon where
     transform t (Polygon ps) = Polygon (transform t ps)
 
-instance Transform (Polyline []) where transform t (Polyline xs) = Polyline (transform t xs)
-instance Transform (Polyline Vector) where transform t (Polyline xs) = Polyline (transform t xs)
+instance Transform Polyline where transform t (Polyline xs) = Polyline (transform t xs)
 
 instance Transform Transformation where
     transform = (<>)
@@ -673,13 +668,52 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 
 -- | The rectangle representing a 'BoundingBox', with positive orientation.
 --
--- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
--- PolygonPositive
+-- <<docs/haddock/Geometry/Core/boundingBoxPolygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
+--         poissonDisc gen region 15 5
+--     for_ points $ \p -> sketch (Circle p 3) >> C.fill
+--     setColor (mathematica97 1)
+--     sketch (boundingBoxPolygon points) >> C.setLineWidth 3 >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxPolygon.svg
 boundingBoxPolygon :: HasBoundingBox object => object -> Polygon
 boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1 y2]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox object
 
--- | Is the argument fully contained in another’s bounding box?
+-- $
+-- >>> polygonOrientation (boundingBoxPolygon [zero, Vec2 10 10])
+-- PolygonPositive
+
+-- | Is the argument’s bounding box fully contained in another’s bounding box?
+--
+-- <<docs/haddock/Geometry/Core/insideBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--         parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
+--         paintCheck :: (HasBoundingBox object, Sketch object) => object -> C.Render ()
+--         paintCheck object = do
+--             when (not (object `insideBoundingBox` parentBB)) $ grouped (C.paintWithAlpha 0.2) $ do
+--                 setColor (mathematica97 3)
+--                 sketch (boundingBox object)
+--                 C.stroke
+--             sketch object
+--             C.stroke
+--     cairoScope $ C.setLineWidth 3 >> setColor (mathematica97 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
+--     setColor (mathematica97 0) >> paintCheck (Circle (Vec2 110 60) 20)
+--     setColor (mathematica97 1) >> paintCheck (Circle (Vec2 80 110) 15)
+--     setColor (mathematica97 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
+--     setColor (mathematica97 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
+-- :}
+-- docs/haddock/Geometry/Core/insideBoundingBox.svg
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
 insideBoundingBox thing bigObject =
     let thingBB = boundingBox thing
@@ -687,11 +721,48 @@ insideBoundingBox thing bigObject =
     in bigObjectBB == bigObjectBB <> thingBB
 
 -- | Center/mean/centroid of a bounding box.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxCenter.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
+--         poissonDisc gen region 15 5
+--     let pointsBB = boundingBox points
+--     for_ points $ \p -> sketch (Circle p 3) >> C.fill
+--     setColor (mathematica97 1)
+--     sketch (boundingBoxPolygon pointsBB)
+--     sketch (Cross (boundingBoxCenter pointsBB) 10)
+--     sketch (Circle (boundingBoxCenter pointsBB) 10)
+--     C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxCenter.svg
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
 -- | Bounding box of the intersection of two bounding boxes. This is the
 -- intersection analogon to '<>' representing union.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxIntersection.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     (p1s, p2s) <- C.liftIO $ MWC.withRng [] $ \gen -> do
+--         let region1 = shrinkBoundingBox 20 [zero, Vec2 150 150]
+--         p1s <- poissonDisc gen region1 15 5
+--         let region2 = shrinkBoundingBox 20 [Vec2 50 50, Vec2 200 200]
+--         p2s <- poissonDisc gen region2 15 5
+--         pure (p1s, p2s)
+--     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 0) >> C.fill
+--     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 1) >> C.fill
+--     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mathematica97 3) >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/boundingBoxIntersection.svg
 boundingBoxIntersection
     :: (HasBoundingBox a, HasBoundingBox b)
     => a
@@ -722,6 +793,21 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 -- | Grow the bounding box by moving all its bounds outwards by a specified amount.
 -- Useful to introduce margins. Negative values shrink instead; 'shrinkBoundingBox'
 -- is a convenience wrapper for this case.
+--
+-- <<docs/haddock/Geometry/Core/growBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
+--     for_ [0,5..25] $ \amount -> cairoScope $ do
+--         when (amount == 0) (C.setLineWidth 3)
+--         sketch (boundingBoxPolygon (growBoundingBox (fromIntegral amount) bb))
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 1) (fromIntegral amount)))
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/growBoundingBox.svg
 growBoundingBox
     :: HasBoundingBox boundingBox
     => Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
@@ -733,6 +819,21 @@ growBoundingBox delta stuff  =
     in boundingBox [lo -. margin, hi +. margin]
 
 -- | Convenience function for 'growBoundingBox' with a negative amount.
+--
+-- <<docs/haddock/Geometry/Core/shrinkBoundingBox.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
+--     for_ [0,5..25] $ \amount -> cairoScope $ do
+--         when (amount == 0) (C.setLineWidth 3)
+--         sketch (boundingBoxPolygon (shrinkBoundingBox (fromIntegral amount) bb))
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 0) (fromIntegral amount)))
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/shrinkBoundingBox.svg
 shrinkBoundingBox :: HasBoundingBox boundingBox => Double -> boundingBox -> BoundingBox
 shrinkBoundingBox delta = growBoundingBox (-delta)
 
@@ -784,8 +885,7 @@ instance HasBoundingBox Line where
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
 
-instance HasBoundingBox (Polyline []) where boundingBox (Polyline xs) = boundingBox xs
-instance HasBoundingBox (Polyline Vector) where boundingBox (Polyline xs) = boundingBox xs
+instance HasBoundingBox Polyline where boundingBox (Polyline xs) = boundingBox xs
 
 -- | Do the bounding boxes of two objects overlap?
 overlappingBoundingBoxes :: (HasBoundingBox a, HasBoundingBox b) => a -> b -> Bool
@@ -1179,8 +1279,7 @@ intersectInfiniteLines (Line (Vec2 x1 y1) (Vec2 x2 y2)) (Line (Vec2 x3 y3) (Vec2
     x = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
     y = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
 
--- | The single point of intersection of two lines, or 'Nothing' for none (or
--- collinear).
+-- | The single point of intersection of two lines, or 'Nothing' for none (collinear).
 intersectionPoint :: LLIntersection -> Maybe Vec2
 intersectionPoint (IntersectionReal v)           = Just v
 intersectionPoint (IntersectionVirtualInsideL v) = Just v
@@ -1251,7 +1350,26 @@ intersectionLL lineL lineR
 -- distorting straight lines. The first and last points are (exactly) equal to the
 -- start and end of the input line.
 --
--- See 'subdivideLineByLength' for a code example.
+-- See also 'subdivideLineByLength.'.
+--
+-- <<docs/haddock/Geometry/Core/subdivide_line.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/subdivide_line.svg" 200 150 $ do
+--     let line = Line (Vec2 20 20) (Vec2 190 140)
+--         subdivisions = subdivideLine 8 line
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         setColor (mathematica97 0)
+--         sketch line
+--         C.stroke
+--     cairoScope $ for_ subdivisions $ \point -> do
+--         sketch (Circle point 4)
+--         setColor (mathematica97 1)
+--         C.fill
+-- :}
+-- docs/haddock/Geometry/Core/subdivide_line.svg
 subdivideLine :: Int -> Line -> [Vec2]
 subdivideLine _ (Line start end) | start == end = [start, end]
 subdivideLine numSegments line@(Line start end) = do
@@ -1273,14 +1391,15 @@ subdivideLine numSegments line@(Line start end) = do
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ do
---     let line = Line (Vec2 10 10) (Vec2 190 140)
+--     let line = Line (Vec2 20 20) (Vec2 190 140)
 --         subdivisions = subdivideLineByLength 30 line
 --     cairoScope $ do
+--         C.setLineWidth 2
 --         setColor (mathematica97 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
---         sketch (Circle point 3)
+--         sketch (Circle point 4)
 --         setColor (mathematica97 1)
 --         C.fill
 -- :}
@@ -1327,12 +1446,16 @@ polygonAngles polygon@(Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/convex_hull.svg" 100 100 $ do
---     points <- C.liftIO $ do
---         gen <- MWC.create
---         replicateM 32 (MWC.uniformRM (Vec2 10 10, Vec2 90 90) gen)
+-- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ do
+--     let (w,h) = (200,200)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen ->
+--         gaussianDistributedPoints
+--             gen
+--             (shrinkBoundingBox 10 [zero, Vec2 w h])
+--             (30 *. mempty)
+--             100
 --     for_ points $ \point -> do
---         sketch (Circle point 2)
+--         sketch (Circle point 3)
 --         C.fill
 --     setColor (mathematica97 1)
 --     for_ (polygonEdges (convexHull points)) $ \edge ->
@@ -1373,7 +1496,7 @@ polygonOrientation polygon
     | signedPolygonArea polygon >= 0 = PolygonPositive
     | otherwise                      = PolygonNegative
 
--- | Circles are not an instance of 'Transform', because 'scale\''ing a circle
+-- | Circles are not an instance of 'Transform', because e.g. 'shear'ing a circle
 -- yields an 'Ellipse'. To transform circles, convert them to an ellipse first with
 -- 'toEllipse'.
 data Circle = Circle
@@ -1519,7 +1642,7 @@ instance Default Ellipse where def = Ellipse mempty
 -- >>>             setColor (mathematica97 (i*3+j))
 -- >>>             cairoScope $ sketch geo >> C.stroke
 -- >>>             cairoScope $ C.setDash [1,1.5] 0 >> sketch (boundingBox geo) >> C.stroke
--- >>>     paintWithBB 0 0 ellipse
+-- >>>     paintWithBB 0 0 (transform (scale 0.9) ellipse)
 -- >>>     paintWithBB 1 0 (transform (scale 0.75) ellipse)
 -- >>>     paintWithBB 2 0 (transform (scale 0.5) ellipse)
 -- >>>     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
@@ -1546,17 +1669,15 @@ instance Transform Ellipse where
 --
 -- >>> polylineLength (Polyline [zero, Vec2 123.4 0])
 -- 123.4
-polylineLength :: Sequential f => Polyline f -> Double
+polylineLength :: Polyline -> Double
 polylineLength = foldl' (+) 0 . map lineLength . polylineEdges
 
 -- | All lines composing a 'Polyline' (in order).
 --
 -- >>> polylineEdges (Polyline [zero, Vec2 50 50, Vec2 100 0])
 -- [Line (Vec2 0.0 0.0) (Vec2 50.0 50.0),Line (Vec2 50.0 50.0) (Vec2 100.0 0.0)]
-polylineEdges :: Sequential f => Polyline f -> [Line]
-polylineEdges (Polyline points) =
-    let pointsList = toList points
-    in zipWith Line pointsList (tail pointsList)
+polylineEdges :: Polyline -> [Line]
+polylineEdges (Polyline points) = zipWith Line points (tail points)
 
 -- | Ray-casting algorithm. Counts how many times a ray coming from infinity
 -- intersects the edges of an object.
@@ -1598,14 +1719,15 @@ countEdgeTraversals subjectPoint edges'
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/point_in_polygon.svg" 90 70 $ do
---     let square = Polygon [Vec2 20 10, Vec2 70 10, Vec2 70 60, Vec2 20 60]
---         points = [Vec2 x (0.25*x + 20) | x <- [5, 15 .. 85] ]
+-- haddockRender "Geometry/Core/point_in_polygon.svg" 180 180 $ do
+--     let square = boundingBoxPolygon (shrinkBoundingBox 40 [zero, Vec2 180 180])
+--         points = subdivideLine 11 (Line (Vec2 20 120) (Vec2 160 60))
+--     C.setLineWidth 2
 --     sketch square
 --     C.stroke
 --     setColor (mathematica97 1)
 --     for_ points $ \point -> do
---         sketch (Circle point 3)
+--         sketch (Circle point 4)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
 -- docs/haddock/Geometry/Core/point_in_polygon.svg
@@ -1707,16 +1829,18 @@ polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *
 polygonCircumference :: Polygon -> Double
 polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEdges
 
--- | Move all edges of a polygon outwards by the specified amount. Negative values shrink instead.
+-- | Move all edges of a polygon outwards by the specified amount. Negative values
+-- shrink instead (or use 'shrinkPolygon').
 --
 -- <<docs/haddock/Geometry/Core/grow_polygon.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/grow_polygon.svg" 80 110 $ do
---     let polygon = Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
---     for_ [-9, -6 .. 9] $ \offset -> do
---         setColor (icefire (Numerics.Interpolation.lerp (-9,9) (0, 1) (fromIntegral offset)))
+-- haddockRender "Geometry/Core/grow_polygon.svg" 160 230 $ do
+--     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
+--     for_ [0,5..25] $ \offset -> cairoScope $ do
+--         when (offset == 0) (C.setLineWidth 3)
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 1) (fromIntegral offset)))
 --         sketch (growPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
@@ -1747,7 +1871,6 @@ growPolygon offset polygon =
             newCorners
             (tail (cycle newCorners))
 
-        guard p = if p then pure () else [] -- Local reinvention avoids an import
         sameDirection v w = dotProduct (vectorOf v) (vectorOf w) >= 0
 
         earsClipped = do
@@ -1761,6 +1884,20 @@ growPolygon offset polygon =
     in Polygon earsClippedCorners
 
 -- | Convenience version of 'growPolygon' for negative deltas.
+--
+-- <<docs/haddock/Geometry/Core/shrink_polygon.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/shrink_polygon.svg" 160 230 $ do
+--     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
+--     for_ [0,5..25] $ \offset -> cairoScope $ do
+--         when (offset == 0) (C.setLineWidth 3)
+--         setColor (icefire (Numerics.Interpolation.lerp (0,15) (0.5, 0) (fromIntegral offset)))
+--         sketch (shrinkPolygon (fromIntegral offset) polygon)
+--         C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/shrink_polygon.svg
 shrinkPolygon :: Double -> Polygon -> Polygon
 shrinkPolygon delta = growPolygon (-delta)
 
@@ -1838,8 +1975,8 @@ signedPolygonArea (Polygon ps)
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
 --         if isConvex polygon
---             then setColor (mathematica97 0)
---             else setColor (mathematica97 1)
+--             then setColor (mathematica97 2)
+--             else setColor (mathematica97 3)
 --         sketch polygon
 --         C.stroke
 -- :}
@@ -1862,6 +1999,19 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 
 -- | The result has the same length as the input, point in its center, and
 -- points to the left (90° turned CCW) relative to the input.
+--
+-- <<docs/haddock/Geometry/Core/perpendicular_bisector.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/perpendicular_bisector.svg" 150 150 $ do
+--     let line = Line (Vec2 10 60) (Vec2 140 100)
+--         bisector = perpendicularBisector line
+--     C.setLineWidth 2
+--     sketch line >> C.stroke
+--     sketch bisector >> setColor (mathematica97 1) >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/perpendicular_bisector.svg
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
@@ -1871,6 +2021,22 @@ perpendicularBisector line@(Line start end) = perpendicularLineThrough middle li
 --
 -- The result has the same length as the input, point in its center, and points
 -- to the left (90° turned CCW) relative to the input.
+--
+-- <<docs/haddock/Geometry/Core/perpendicular_line_through.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/perpendicular_line_through.svg" 150 140 $ do
+--     let line = Line (Vec2 20 20) (Vec2 140 70)
+--         point = Vec2 70 70
+--         perpendicular = perpendicularLineThrough point line
+--     C.setLineWidth 2
+--     sketch line >> C.stroke
+--     setColor (mathematica97 1)
+--     sketch (Circle point 5) >> C.fill
+--     sketch perpendicular >> C.stroke
+-- :}
+-- docs/haddock/Geometry/Core/perpendicular_line_through.svg
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
@@ -1893,42 +2059,42 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 --
 -- === __(image code)__
 -- >>> :{
--- >>> haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
--- >>>    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
--- >>>    cairoScope $ do
--- >>>        C.setLineWidth 2
--- >>>        setColor (black `withOpacity` 0.5)
--- >>>        sketch mirrorSurface
--- >>>        C.stroke
--- >>>    let angles = [-135,-120.. -10]
--- >>>    cairoScope $ do
--- >>>        let rayOrigin = Vec2 180 250
--- >>>        setColor (hsv 0 1 0.7)
--- >>>        sketch (Circle rayOrigin 5)
--- >>>        C.stroke
--- >>>        for_ angles $ \angleDeg -> do
--- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
--- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
--- >>>                ray = Line rayOrigin iPoint
--- >>>                ray' = Line iPoint reflectedRayEnd
--- >>>            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
--- >>>            sketch ray
--- >>>            sketch ray'
--- >>>            C.stroke
--- >>>    cairoScope $ do
--- >>>        let rayOrigin = Vec2 350 30
--- >>>        setColor (hsva 180 1 0.7 1)
--- >>>        sketch (Circle rayOrigin 5)
--- >>>        C.stroke
--- >>>        for_ angles $ \angleDeg -> do
--- >>>            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
--- >>>                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
--- >>>                ray = Line rayOrigin iPoint
--- >>>                ray' = Line iPoint reflectedRayEnd
--- >>>            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
--- >>>            sketch ray
--- >>>            sketch ray'
--- >>>            C.stroke
+-- haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
+--    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
+--    cairoScope $ do
+--        C.setLineWidth 2
+--        setColor (black `withOpacity` 0.5)
+--        sketch mirrorSurface
+--        C.stroke
+--    let angles = [-135,-120.. -10]
+--    cairoScope $ do
+--        let rayOrigin = Vec2 180 250
+--        setColor (hsv 0 1 0.7)
+--        sketch (Circle rayOrigin 5)
+--        C.stroke
+--        for_ angles $ \angleDeg -> do
+--            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+--                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+--                ray = Line rayOrigin iPoint
+--                ray' = Line iPoint reflectedRayEnd
+--            setColor (flare (lerp (minimum angles, maximum angles) (0.2,0.8) angleDeg))
+--            sketch ray
+--            sketch ray'
+--            C.stroke
+--    cairoScope $ do
+--        let rayOrigin = Vec2 350 30
+--        setColor (hsva 180 1 0.7 1)
+--        sketch (Circle rayOrigin 5)
+--        C.stroke
+--        for_ angles $ \angleDeg -> do
+--            let rayRaw = angledLine rayOrigin (deg angleDeg) 100
+--                Just (Line _ reflectedRayEnd, iPoint, _) = reflection rayRaw mirrorSurface
+--                ray = Line rayOrigin iPoint
+--                ray' = Line iPoint reflectedRayEnd
+--            setColor (crest (lerp (minimum angles, maximum angles) (0,1) angleDeg))
+--            sketch ray
+--            sketch ray'
+--            C.stroke
 -- :}
 -- docs/haddock/Geometry/Core/reflection.svg
 reflection
