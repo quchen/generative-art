@@ -330,7 +330,7 @@ bezierSmoothenLoop pointsSequence
         -- wrapping it onto itself. We then interpolate it as if it was open, and later
         -- forget the end parts again. In the overlap, we get a smooth transition.
         let opened = V.tail points
-            openedWithAppendix = opened <> V.take 3 opened
-        in V.slice 1 (V.length points-1) (bezierSmoothenOpen openedWithAppendix)
+            openedWithAppendix = opened <> V.take 4 opened
+        in V.slice 2 (V.length points-1) (bezierSmoothenOpen openedWithAppendix)
     where
       points = toVector pointsSequence
