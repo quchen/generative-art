@@ -14,8 +14,6 @@ module Geometry.Bezier
 
     -- * Interpolation
     , bezierSmoothen
-    , bezierSmoothenOpen
-    , bezierSmoothenLoop
 
     -- * References
     -- $references
