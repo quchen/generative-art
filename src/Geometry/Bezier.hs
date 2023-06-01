@@ -271,9 +271,39 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 -- solution to a differential equation.
 --
 -- If the first and last point are identical, assume the trajectory is closed, and
--- smoothly interpolate between beginning and end as well.
+-- smoothly interpolate between beginning and end as well, yielding a nice loop.
 --
--- <<docs/interpolation/1_bezier_open.svg>>
+-- <<docs/haddock/Geometry/Bezier/bezierSmoothen.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Bezier/bezierSmoothen.svg" 400 300 $ do
+--     let points = [ Vec2 100 275, Vec2 150 125, Vec2 300 275, Vec2 350 75
+--                  , Vec2 250 50, Vec2 75 75, Vec2 75 50, Vec2 225 100
+--                  , Vec2 100 275 ]
+--         prettyBezier bezier@(Bezier p0 p1 p2 p3) = do
+--             cairoScope $ do
+--                 setColor black
+--                 sketch bezier
+--                 C.stroke
+--             cairoScope $ do
+--                 setColor (mathematica97 0)
+--                 sketch (Circle p1 4) >> C.fill
+--                 sketch (Line p0 p1) >> C.stroke
+--             cairoScope $ do
+--                 setColor (mathematica97 1)
+--                 sketch (Circle p2 4) >> C.fill
+--                 sketch (Line p3 p2) >> C.stroke
+--             cairoScope $ do
+--                 sketch (Circle p0 5)
+--                 setColor (mathematica97 3)
+--                 C.fillPreserve
+--                 setColor black
+--                 C.stroke
+--     C.setLineWidth 2
+--     for_ (bezierSmoothenLoop points) prettyBezier
+-- :}
+-- docs/haddock/Geometry/Bezier/bezierSmoothen.svg
 bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier
 bezierSmoothen vecSequence
     | V.head vec == V.last vec = bezierSmoothenLoop vec
