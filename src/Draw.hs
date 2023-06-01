@@ -60,15 +60,19 @@ module Draw (
 
 
 
-import Control.Monad
-import Data.Default.Class
-import Data.Foldable
-import Data.List
-import Graphics.Rendering.Cairo        as C hiding (x, y)
-import Graphics.Rendering.Cairo.Matrix (Matrix (..))
-import System.Directory
-import System.FilePath
+import           Control.Monad
+import qualified Data.ByteString.Lazy            as BSL
+import           Data.Default.Class
+import           Data.Foldable
+import           Data.Int
+import           Data.List
+import           Graphics.Rendering.Cairo        as C hiding (x, y)
+import           Graphics.Rendering.Cairo.Matrix (Matrix (..))
+import           System.Directory
+import           System.FilePath
+import           Text.Printf
 
+import Data.Crc32
 import Draw.Color
 import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
@@ -217,6 +221,10 @@ coordinateSystem cosy = do
 
 -- | Render pictures for Haddock with doctests. Nomenclature: the 'FilePath' for
 -- /Foo.Bar.Baz/ is /Foo\/Bar\/Baz\/pic_name.svg/.
+--
+-- Prints status information about the generated file so that doctests fail when
+-- the file contents change. Inspect the new output and update the output if the
+-- result is OK.
 haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
@@ -244,7 +252,7 @@ haddockRender filename w h actions = do
             haddockAxes (Vec2 5 5) 15
 
     normalizeSvgFile filepath
-    putStrLn filepath
+    haddockPrintInfo filepath
 
 haddockGrid :: Int -> Int -> Render ()
 haddockGrid w h = grouped (paintWithAlpha 0.1) $ do
@@ -295,6 +303,20 @@ haddockAxes start len = grouped (paintWithAlpha 0.5) $ do
             directionFlip | yDirection < 0 = mempty
                           | otherwise      = mirrorYCoords
         in G.transform (G.translate (start +. Vec2 0 (len+5)) <> G.scale 2 <> directionFlip) y'
+
+haddockPrintInfo :: FilePath -> IO ()
+haddockPrintInfo filepath = do
+    contents <- BSL.readFile filepath
+    printf "Generated file: size %s, crc32: %s" (humanFilesize (BSL.length contents)) (show (crc32 contents))
+
+humanFilesize :: Int64 -> String
+humanFilesize = go suffixes
+  where
+    go [] size = printf "Oh wow this file is %d byte large I ran out of suffixes" size
+    go (suffix:rest) size
+        | size < 1000 = show size ++ suffix
+        | otherwise = go rest (size `div` 1000)
+    suffixes = ["B", "KB", "MB", "GB", "TB", "PB"] -- That should suffice.
 
 -- | 'Vec2'-friendly version of Cairo’s 'moveTo'.
 moveToVec :: Vec2 -> Render ()
