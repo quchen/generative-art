@@ -188,7 +188,7 @@ bezierSubdivideT n bz = map (bezierT bz) points
 --         cairoScope (setColor (mathematica97 3) >> circle u)
 --         cairoScope (setColor (black `withOpacity` 0.2) >> connect e u)
 -- :}
--- docs/haddock/Geometry/Bezier/subdivide_s_t_comparison.svg
+-- Generated file: size 17KB, crc32: 0x7c147951
 bezierSubdivideS :: Int -> Bezier -> [Vec2]
 bezierSubdivideS n bz = map bezier distances
   where
@@ -301,7 +301,7 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 --     C.setLineWidth 2
 --     for_ (bezierSmoothenLoop points) prettyBezier
 -- :}
--- docs/haddock/Geometry/Bezier/bezierSmoothen.svg
+-- Generated file: size 15KB, crc32: 0x9f26361e
 bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier
 bezierSmoothen vecSequence
     | V.head vec == V.last vec = bezierSmoothenLoop vec

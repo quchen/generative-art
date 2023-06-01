@@ -27,7 +27,7 @@
 --         setColor black
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Coordinates/Hexagonal/cubes.svg
+-- Generated file: size 194KB, crc32: 0xcde33b0b
 module Geometry.Coordinates.Hexagonal (
       Hex(..)
     , toVec2
@@ -354,7 +354,7 @@ cubeLerp (Hex q1 r1) (Hex q2 r2) t =
 --         setColor (mathematica97 0 `withOpacity` 0.5)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Coordinates/Hexagonal/line.svg
+-- Generated file: size 6KB, crc32: 0x5ec289a8
 line :: Hex -> Hex -> [Hex]
 line start end =
     let d = distance start end
@@ -380,7 +380,7 @@ line start end =
 --         setColor (mathematica97 1 `withOpacity` 0.5)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Coordinates/Hexagonal/ring.svg
+-- Generated file: size 7KB, crc32: 0xacce7f95
 ring
     :: Int -- ^ Radius
     -> Hex -- ^ Center

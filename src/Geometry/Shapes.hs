@@ -38,7 +38,7 @@ import Geometry.Core
 --         sketch (transform (translate (Vec2 10 10) <> scale 80) polygon)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Shapes/haskell_logo.svg
+-- Generated file: size 3KB, crc32: 0x98aab3be
 --
 -- >>> all (\polygon -> polygonOrientation polygon == PolygonPositive) haskellLogo
 -- True
@@ -74,7 +74,7 @@ haskellLogoRaw = [left, lambda, upper, lower]
 --     sketch polygon
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Shapes/spiral_polygon.svg
+-- Generated file: size 2KB, crc32: 0x7b879da5
 --
 -- >>> polygonOrientation (spiralPolygon 8 10) == PolygonPositive
 -- True
@@ -108,7 +108,7 @@ spiralPolygon n width = Polygon (reverse (scanl (+.) (Vec2 0 0) relativeSpiral))
 --     sketch polygon
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Shapes/regular_pentagon.svg
+-- Generated file: size 2KB, crc32: 0x43d94b0e
 --
 -- >>> polygonOrientation (regularPolygon 5) == PolygonPositive
 -- True

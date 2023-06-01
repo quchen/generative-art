@@ -35,7 +35,7 @@
 --         setColor (mathematica97 i)
 --         stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/complicated_intersection.svg
+-- Generated file: size 5KB, crc32: 0xd81cbd60
 module Geometry.Algorithms.Clipping (
       cutLineWithLine
     , CutLine(..)
@@ -85,7 +85,7 @@ import Geometry.Core
 --     sketch polygon
 --     stroke
 -- :}
--- docs/haddock/Geometry/Algorithms/Clipping/hatched_polygon.svg
+-- Generated file: size 2KB, crc32: 0x81dce6d7
 hatch
     :: Polygon
     -> Angle -- ^ Direction in which the lines will point. @'deg' 0@ is parallel to the x axis.

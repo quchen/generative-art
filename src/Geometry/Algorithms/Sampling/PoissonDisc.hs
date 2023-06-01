@@ -51,7 +51,7 @@ newtype CellSize = CellSize Double
 --         sketch (Circle p 2)
 --         fill
 -- :}
--- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg
+-- Generated file: size 115KB, crc32: 0x43236d3e
 poissonDisc
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m) -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.
@@ -119,7 +119,7 @@ poissonDisc gen bb' radius k = do
 --                     paint color (i+1) child
 --     for_ (zip [flare, crest, flare] initialPoints) $ \(color, p0) -> paint color 0 p0
 -- :}
--- docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg
+-- Generated file: size 474KB, crc32: 0x28fe4a90
 poissonDiscForest
     :: (PrimMonad m, HasBoundingBox boundingBox)
     => Gen (PrimState m)       -- ^ RNG from mwc-random. 'create' yields the default (static) RNG.

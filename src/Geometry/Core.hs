@@ -434,7 +434,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     setColor (mathematica97 1)
 --     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core/translate.svg
+-- Generated file: size 2KB, crc32: 0x93f965ed
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
@@ -471,7 +471,7 @@ translate = Transformation mempty
 --         sketch (Arrow (transform (rotateAround point' (deg 15)) (Line point point')) def{_arrowDrawBody=False})
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/rotate.svg
+-- Generated file: size 2KB, crc32: 0x980f5f
 rotate :: Angle -> Transformation
 rotate (Rad a) = Transformation m zero
   where
@@ -497,7 +497,7 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --     sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/scale.svg
+-- Generated file: size 2KB, crc32: 0x9126ef6
 scale :: Double -> Transformation
 scale x = scale' x x
 
@@ -567,7 +567,7 @@ mirrorYCoords = scale' 1 (-1)
 --     sketch square'
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/shear.svg
+-- Generated file: size 2KB, crc32: 0xfd1224e4
 shear
     :: Double
     -> Double
@@ -681,7 +681,7 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 --     setColor (mathematica97 1)
 --     sketch (boundingBoxPolygon points) >> C.setLineWidth 3 >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core/boundingBoxPolygon.svg
+-- Generated file: size 25KB, crc32: 0x40902165
 boundingBoxPolygon :: HasBoundingBox object => object -> Polygon
 boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1 y2]
   where BoundingBox (Vec2 x1 y1) (Vec2 x2 y2) = boundingBox object
@@ -713,7 +713,7 @@ boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1
 --     setColor (mathematica97 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
 --     setColor (mathematica97 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
 -- :}
--- docs/haddock/Geometry/Core/insideBoundingBox.svg
+-- Generated file: size 5KB, crc32: 0x8c351375
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
 insideBoundingBox thing bigObject =
     let thingBB = boundingBox thing
@@ -739,7 +739,7 @@ insideBoundingBox thing bigObject =
 --     sketch (Circle (boundingBoxCenter pointsBB) 10)
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/boundingBoxCenter.svg
+-- Generated file: size 25KB, crc32: 0x31972ee1
 boundingBoxCenter :: HasBoundingBox a => a -> Vec2
 boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 
@@ -762,7 +762,7 @@ boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 --     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 1) >> C.fill
 --     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mathematica97 3) >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core/boundingBoxIntersection.svg
+-- Generated file: size 25KB, crc32: 0x72cfba9f
 boundingBoxIntersection
     :: (HasBoundingBox a, HasBoundingBox b)
     => a
@@ -807,7 +807,7 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 --         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 1) (fromIntegral amount)))
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/growBoundingBox.svg
+-- Generated file: size 4KB, crc32: 0xedcda2c4
 growBoundingBox
     :: HasBoundingBox boundingBox
     => Double -- ^ Amount \(x\) to move each side. Note that e.g. the total width will increase by \(2\times x\).
@@ -833,7 +833,7 @@ growBoundingBox delta stuff  =
 --         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 0) (fromIntegral amount)))
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/shrinkBoundingBox.svg
+-- Generated file: size 4KB, crc32: 0xe0236688
 shrinkBoundingBox :: HasBoundingBox boundingBox => Double -> boundingBox -> BoundingBox
 shrinkBoundingBox delta = growBoundingBox (-delta)
 
@@ -1034,7 +1034,7 @@ normSquare v = dotProduct v v
 --         sketch (Circle p 3)
 --         C.fill
 -- :}
--- docs/haddock/Geometry/Core/polar.svg
+-- Generated file: size 2KB, crc32: 0x7a43a888
 polar :: Angle -> Double -> Vec2
 polar (Rad a) d = Vec2 (d * cos a) (d * sin a)
 
@@ -1127,7 +1127,7 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 --         setColor (mathematica97 1)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/pseudo_angle.svg
+-- Generated file: size 5KB, crc32: 0xda270ddb
 pseudoAngle :: Vec2 -> Double
 pseudoAngle (Vec2 x y) = pseudoAtan2 y x
 
@@ -1241,7 +1241,7 @@ direction = vectorOf . normalizeLine
 --         sketch (Arrow line' def)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/line_reverse.svg
+-- Generated file: size 2KB, crc32: 0xc8ad41ff
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
@@ -1369,7 +1369,7 @@ intersectionLL lineL lineR
 --         setColor (mathematica97 1)
 --         C.fill
 -- :}
--- docs/haddock/Geometry/Core/subdivide_line.svg
+-- Generated file: size 4KB, crc32: 0x527103e6
 subdivideLine :: Int -> Line -> [Vec2]
 subdivideLine _ (Line start end) | start == end = [start, end]
 subdivideLine numSegments line@(Line start end) = do
@@ -1403,7 +1403,7 @@ subdivideLine numSegments line@(Line start end) = do
 --         setColor (mathematica97 1)
 --         C.fill
 -- :}
--- docs/haddock/Geometry/Core/subdivide_line_by_length.svg
+-- Generated file: size 4KB, crc32: 0x6180122d
 subdivideLineByLength
     :: Double -- ^ Maximum segment length
     -> Line
@@ -1426,7 +1426,7 @@ subdivideLineByLength segmentLength line =
 --         sketch edge
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/polygon_edges.svg
+-- Generated file: size 3KB, crc32: 0x9c27134b
 polygonEdges :: Polygon -> [Line]
 polygonEdges (Polygon ps) = zipWith Line ps (tail (cycle ps))
 
@@ -1462,7 +1462,7 @@ polygonAngles polygon@(Polygon corners)
 --         sketch (Arrow edge def{_arrowheadRelPos=0.5, _arrowheadSize=5})
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/convex_hull.svg
+-- Generated file: size 29KB, crc32: 0xe4bf922
 convexHull :: Foldable list => list Vec2 -> Polygon
 -- Andrew’s algorithm
 convexHull points
@@ -1617,7 +1617,7 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 -- >>>        setColor (mathematica97 i)
 -- >>>        action
 -- :}
--- docs/haddock/Geometry/Core/ellipses.svg
+-- Generated file: size 42KB, crc32: 0xb3cabf7b
 newtype Ellipse = Ellipse Transformation
     deriving (Show)
 
@@ -1652,7 +1652,7 @@ instance Default Ellipse where def = Ellipse mempty
 -- >>>     paintWithBB 1 2 (transform (shear 0 0.3 <> scale' 1 0.5) ellipse)
 -- >>>     paintWithBB 2 2 (transform (scale' 1 0.5 <> rotate (deg 45) <> shear 0 1 <> scale' 1 0.5) ellipse)
 -- :}
--- docs/haddock/Geometry/Core/bounding_box_ellipse.svg
+-- Generated file: size 9KB, crc32: 0xac92bb50
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
@@ -1730,7 +1730,7 @@ countEdgeTraversals subjectPoint edges'
 --         sketch (Circle point 4)
 --         if pointInPolygon point square then C.fill else C.stroke
 -- :}
--- docs/haddock/Geometry/Core/point_in_polygon.svg
+-- Generated file: size 5KB, crc32: 0xabb5dfc
 pointInPolygon :: Vec2 -> Polygon -> Bool
 pointInPolygon p poly = odd (countEdgeTraversals p (polygonEdges poly))
 
@@ -1796,7 +1796,7 @@ validatePolygon = \polygon -> do
 --     sketch (Cross averate 5)
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/polygon_average.svg
+-- Generated file: size 2KB, crc32: 0xcf7a8233
 polygonAverage :: Polygon -> Vec2
 polygonAverage (Polygon corners)
   = let (num, total) = foldl' (\(!n, !vec) corner -> (n+1, vec +. corner)) (0, Vec2 0 0) corners
@@ -1818,7 +1818,7 @@ polygonAverage (Polygon corners)
 --     sketch (Cross centroid 5)
 --     C.stroke
 -- :}
--- docs/haddock/Geometry/Core/polygon_centroid.svg
+-- Generated file: size 2KB, crc32: 0x4453ccc1
 polygonCentroid :: Polygon -> Vec2
 polygonCentroid poly@(Polygon ps) = weight *. vsum (zipWith (\p q -> cross p q *. (p +. q)) ps (tail (cycle ps)))
   where
@@ -1844,7 +1844,7 @@ polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEd
 --         sketch (growPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/grow_polygon.svg
+-- Generated file: size 4KB, crc32: 0xd6cd58c1
 growPolygon :: Double -> Polygon -> Polygon
 growPolygon offset polygon =
     let oldEdges = polygonEdges polygon
@@ -1897,7 +1897,7 @@ growPolygon offset polygon =
 --         sketch (shrinkPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/shrink_polygon.svg
+-- Generated file: size 4KB, crc32: 0xc5085e44
 shrinkPolygon :: Double -> Polygon -> Polygon
 shrinkPolygon delta = growPolygon (-delta)
 
@@ -1980,7 +1980,7 @@ signedPolygonArea (Polygon ps)
 --         sketch polygon
 --         C.stroke
 -- :}
--- docs/haddock/Geometry/Core/is_convex.svg
+-- Generated file: size 2KB, crc32: 0x60a3e9a1
 isConvex :: Polygon -> Bool
 isConvex (Polygon ps) = allSameSign angleDotProducts
     -- The idea is that a polygon is convex iff all internal angles are in the
@@ -2011,7 +2011,7 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 --     sketch line >> C.stroke
 --     sketch bisector >> setColor (mathematica97 1) >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core/perpendicular_bisector.svg
+-- Generated file: size 2KB, crc32: 0x1f7d2821
 perpendicularBisector :: Line -> Line
 perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
   where
@@ -2036,7 +2036,7 @@ perpendicularBisector line@(Line start end) = perpendicularLineThrough middle li
 --     sketch (Circle point 5) >> C.fill
 --     sketch perpendicular >> C.stroke
 -- :}
--- docs/haddock/Geometry/Core/perpendicular_line_through.svg
+-- Generated file: size 2KB, crc32: 0xb8e5d1d9
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p line@(Line start _) = centerLine line'
   where
@@ -2096,7 +2096,7 @@ perpendicularLineThrough p line@(Line start _) = centerLine line'
 --            sketch ray'
 --            C.stroke
 -- :}
--- docs/haddock/Geometry/Core/reflection.svg
+-- Generated file: size 9KB, crc32: 0x76885f25
 reflection
     :: Line -- ^ Light ray
     -> Line -- ^ Mirror

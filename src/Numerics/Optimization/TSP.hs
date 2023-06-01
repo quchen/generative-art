@@ -131,7 +131,7 @@ pathToPoints coordinates indices = V.backpermute coordinates (coerce indices)
 --        sketch tour
 --        stroke
 -- :}
--- docs/haddock/Numerics/Optimization/TSP/input_path.svg
+-- Generated file: size 11KB, crc32: 0xde10a233
 inputPath :: Vector a -> Vector TspPoint
 inputPath = (coerce :: Vector Int -> Vector TspPoint) . V.enumFromN 0 . V.length
 
@@ -163,7 +163,7 @@ inputPath = (coerce :: Vector Int -> Vector TspPoint) . V.enumFromN 0 . V.length
 --        sketch tour
 --        stroke
 -- :}
--- docs/haddock/Numerics/Optimization/TSP/nearest_neighbour_path.svg
+-- Generated file: size 11KB, crc32: 0x1474da44
 tspNearestNeighbourPath :: Distances -> Vector TspPoint
 tspNearestNeighbourPath dm = V.create $ do
     let n = size dm
@@ -471,7 +471,7 @@ tsp3optInplace dm path = loop0
 --        sketch tour
 --        stroke
 -- :}
--- docs/haddock/Numerics/Optimization/TSP/2-opt.svg
+-- Generated file: size 11KB, crc32: 0x73c4af54
 tsp2optPath :: Distances -> Vector TspPoint -> Vector TspPoint
 tsp2optPath dm = V.modify (tsp2optInplace dm)
 
@@ -504,6 +504,6 @@ tsp2optPath dm = V.modify (tsp2optInplace dm)
 --        sketch tour
 --        stroke
 -- :}
--- docs/haddock/Numerics/Optimization/TSP/3-opt.svg
+-- Generated file: size 11KB, crc32: 0x6c4e9493
 tsp3optPath :: Distances -> Vector TspPoint -> Vector TspPoint
 tsp3optPath dm = V.modify (tsp3optInplace dm)

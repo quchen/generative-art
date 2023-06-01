@@ -50,7 +50,7 @@ class CairoColor color where
     --         sketch (Circle (Vec2 x 20) 10)
     --         C.fill
     -- :}
-    -- docs/haddock/Draw/Color/set_color.svg
+    -- Generated file: size 4KB, crc32: 0xe0e16234
     --
     -- <<docs/haddock/Draw/Color/set_color.svg>>
     setColor :: color -> C.Render ()

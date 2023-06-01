@@ -45,7 +45,7 @@ data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
 --     C.scale 3 3
 --     showTextAligned HCenter VCenter "Hello world!"
 -- :}
--- docs/haddock/Draw/Text/show_text_aligned.svg
+-- Generated file: size 8KB, crc32: 0xefcaecf4
 showTextAligned
     :: C.CairoString string
     => HAlign -- ^ Horizontal alignment
@@ -103,7 +103,7 @@ instance Default PlotTextOptions where
 --         glyphs = plotText opts "Hello world!"
 --     for_ glyphs $ \glyph -> sketch glyph >> stroke
 -- :}
--- docs/haddock/Draw/Text/plot_text.svg
+-- Generated file: size 7KB, crc32: 0xd253d9dd
 plotText :: PlotTextOptions -> String -> [Polyline]
 plotText options text = transform (translate (_textStartingPoint options) <> scaleToHeight <> halign <> valign) glyphs
   where
