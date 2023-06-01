@@ -428,16 +428,19 @@ instance Sketch Line where
 
 -- | Polyline, i.e. a sequence of lines given by their joints.
 --
+-- <<docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg>>
+--
+-- === __(image code)__
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
 -- :}
 -- docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg
---
--- <<docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg>>
-instance Sequential f => Sketch (Polyline f) where
+instance Sketch Polyline where
     sketch (Polyline xs) = go (toList xs)
+instance Sketch Polyline where
+    sketch (Polyline xs) = go xs
       where
         go [] = pure ()
         go (Vec2 x0 y0 : vecs) = do

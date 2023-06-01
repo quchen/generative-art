@@ -104,7 +104,7 @@ instance Default PlotTextOptions where
 --     for_ glyphs $ \glyph -> sketch glyph >> stroke
 -- :}
 -- docs/haddock/Draw/Text/plot_text.svg
-plotText :: PlotTextOptions -> String -> [Polyline []]
+plotText :: PlotTextOptions -> String -> [Polyline]
 plotText options text = transform (translate (_textStartingPoint options) <> scaleToHeight <> halign <> valign) glyphs
   where
     glyphs = pfPolyline <$> PF.render' PF.canvastextFont text
@@ -125,5 +125,5 @@ pfXHeight = y
     (_, y) = boundingBoxSize (letter "X")
     letter l = pfPolyline <$> PF.render' PF.canvastextFont l
 
-pfPolyline :: PF.PFStroke -> Polyline []
+pfPolyline :: PF.PFStroke -> Polyline
 pfPolyline = Polyline . fmap (uncurry Vec2)

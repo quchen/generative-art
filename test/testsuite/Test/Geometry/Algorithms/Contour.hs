@@ -99,6 +99,6 @@ visualTests = testGroup "Visual"
             cairoScope $ do
                 setLineWidth 1
                 setColor (mathematica97 colorIx `withOpacity` threshold)
-                for_ isos $ \path -> sketch (Polyline (simplifyTrajectoryRdp 0.4 (V.fromList path)))
+                for_ isos $ \path -> sketch (Polyline (toList (simplifyTrajectoryRdp 0.4 (V.fromList path))))
                 stroke
     ]

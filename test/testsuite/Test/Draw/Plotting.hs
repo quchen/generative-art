@@ -210,7 +210,7 @@ test_penTravelOptimization_flip_merge = testVisual "Pen travel optimization with
 testPenTravelOptimization :: MinimizePenHoveringSettings (V.Vector Vec2) -> (Double, Double) -> C.Render ()
 testPenTravelOptimization settings (w, h) = do
     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
-    let result = runPlot def { _previewDecorate = False } $ plot (Polyline <$> minimizePenHoveringBy settings penTravelOptimizationExample)
+    let result = runPlot def { _previewDecorate = False } $ plot (Polyline . toList<$> minimizePenHoveringBy settings penTravelOptimizationExample)
     _plotPreview result
 
 penTravelOptimizationExample :: S.Set (V.Vector Vec2)

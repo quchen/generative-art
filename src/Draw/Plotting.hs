@@ -774,7 +774,7 @@ instance Plotting Ellipse where
     plot (Ellipse trafo) = commented "Ellipse" $ do
         plot (transform trafo (regularPolygon 64))
 
-instance Sequential f => Plotting (Polyline f) where
+instance Plotting Polyline where
     plot (Polyline xs) = go (toVector xs)
       where
         go points | V.length points <= 1 = pure ()

@@ -273,7 +273,7 @@ geodesicsHillAndValley = testVisual "Family of geodesics though hill and valley"
                 pure (startingAngle, (simplify . V.fromList . justPosition . cutoff) trajectory)
             angles = (getDeg (head startingAngles), getDeg (last startingAngles))
         for_ trajectories $ \(startingAngle, trajectory) -> do
-            sketch (Polyline trajectory)
+            sketch (Polyline (toList trajectory))
             let colorValue = lerp angles (1,0) (getDeg startingAngle)
             setColor (icefire colorValue)
             stroke
