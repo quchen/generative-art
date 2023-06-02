@@ -37,8 +37,8 @@ import Graphics.Rendering.Cairo as C hiding (x, y)
 import Draw
 import Draw.NormalizeSvg
 import Geometry
+import Geometry.SvgParser
 
-import           Geometry.SvgParser.SimpleShapes
 import           Test.Arbitrary
 import           Test.Tasty
 import           Test.Tasty.HUnit                hiding (assertEqual)
@@ -123,6 +123,16 @@ x ~=== y = counterexample
     (approxEqual (Tolerance 1e-10) x y)
 infix 4 ~===
 
+instance EqApprox a => EqApprox [a] where
+    approxEqual _ [] [] = True
+    approxEqual tol (x:xs) (y:ys) = approxEqual tol x y && approxEqual tol xs ys
+    approxEqual _ _ _ = False
+
+instance (EqApprox a, EqApprox b) => EqApprox (Either a b) where
+    approxEqual tol (Right r1) (Right r2) = approxEqual tol r1 r2
+    approxEqual tol (Left l1) (Left l2) = approxEqual tol l1 l2
+    approxEqual _ _ _ = False
+
 instance (EqApprox a, EqApprox b) => EqApprox (a,b) where
     approxEqual (Tolerance tol) (a1, b1) (a2, b2) = and
         [ approxEqual (Tolerance tol) a1 a2
@@ -169,6 +179,9 @@ instance EqApprox Circle where
 instance EqApprox Ellipse where
     approxEqual tol (Ellipse e1) (Ellipse e2) = approxEqual tol e1 e2
 
+instance EqApprox Bezier where
+    approxEqual tol (Bezier a1 a2 a3 a4) (Bezier b1 b2 b3 b4) = approxEqual tol (a1, a2, a3, a4) (b1, b2, b3, b4)
+
 instance EqApprox Angle where
     approxEqual tol x y
       = let x' = getRad x
@@ -192,10 +205,11 @@ instance EqApprox Transformation where
             , (e1, e2)
             , (f1, f2) ]
 
-instance EqApprox SimpleShape  where
+instance EqApprox SvgElement where
     approxEqual tol (SvgLine a) (SvgLine b) = approxEqual tol a b
     approxEqual tol (SvgCircle a) (SvgCircle b) = approxEqual tol a b
     approxEqual tol (SvgEllipse a) (SvgEllipse b) = approxEqual tol a b
+    approxEqual tol (SvgPath a) (SvgPath b) = approxEqual tol a b
     approxEqual _ _ _ = False
 
 instance (Real a, EqApprox a) => EqApprox (Colour a) where
