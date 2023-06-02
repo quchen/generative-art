@@ -1292,6 +1292,8 @@ intersectionPoint _                              = Nothing
 --
 -- Returns the point of the intersection, and whether it is inside both, one, or
 -- none of the provided finite line segments.
+--
+-- See 'intersectInfiniteLines' for a more performant, but less nuanced result.
 intersectionLL :: Line -> Line -> LLIntersection
 intersectionLL lineL lineR
     = intersectionType
