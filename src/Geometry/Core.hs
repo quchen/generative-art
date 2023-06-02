@@ -156,7 +156,7 @@ import Data.Sequential
 
 
 
-data Vec2 = Vec2 !Double !Double deriving (Eq, Ord, Show)
+data Vec2 = Vec2 {-# UNPACK #-} !Double {-# UNPACK #-} !Double deriving (Eq, Ord, Show)
 
 instance NFData Vec2 where rnf _ = ()
 
@@ -215,7 +215,7 @@ instance Show Polygon where
                 in "Polygon " ++ show corners
 
 -- | Line, defined by beginning and end.
-data Line = Line !Vec2 !Vec2 deriving (Eq, Ord, Show)
+data Line = Line {-# UNPACK #-} !Vec2 {-# UNPACK #-} !Vec2 deriving (Eq, Ord, Show)
 
 instance NFData Line where rnf _ = ()
 

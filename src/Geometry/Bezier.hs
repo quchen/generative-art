@@ -63,7 +63,12 @@ import Numerics.LinearEquationSystem
 
 
 -- | Cubic Bezier curve, defined by start, first/second control points, and end.
-data Bezier = Bezier !Vec2 !Vec2 !Vec2 !Vec2 deriving (Eq, Ord, Show)
+data Bezier = Bezier
+    {-# UNPACK #-} !Vec2
+    {-# UNPACK #-} !Vec2
+    {-# UNPACK #-} !Vec2
+    {-# UNPACK #-} !Vec2
+    deriving (Eq, Ord, Show)
 
 instance NFData Bezier where rnf _ = ()
 
