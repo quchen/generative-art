@@ -1204,10 +1204,11 @@ resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . trans
 --
 -- Useful for painting lines going through a point symmetrically.
 centerLine :: Line -> Line
-centerLine line@(Line start end) = transform (translate delta) line
-  where
-    middle = 0.5 *. (start +. end)
-    delta = start -. middle
+centerLine (Line start end) =
+    let middle = 0.5 *. (start +. end)
+        end' = middle
+        start' = start -. end +. middle
+    in Line start' end'
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
