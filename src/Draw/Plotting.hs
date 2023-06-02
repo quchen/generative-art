@@ -821,11 +821,11 @@ instance Plotting Polygon where
         lineTo r
 
 -- | FluidNC doesn’t support G05, so we approximate Bezier curves with line pieces.
--- We use the naive Bezier interpolation 'bezierSubdivideT', because it just so
+-- We use the naive Bezier interpolation 'bezierSubdivideEquiparametric', because it just so
 -- happens to put more points in places with more curvature.
 instance Plotting Bezier where
     plot bezier = commented "Bezier (cubic)" $ do
-        let points = bezierSubdivideT 32 bezier
+        let points = bezierSubdivideEquiparametric 32 bezier
         let p:ointsToPlot = points
         repositionTo p
         traverse_ lineTo ointsToPlot
