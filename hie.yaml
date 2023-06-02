@@ -11,6 +11,11 @@ cradle:
             - path: ./test/doctest
               component: generative-art:test:doctest
     
+    - path: ./penplotting/DelaunayVoronoi
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/DelaunayVoronoi/stack.yaml
     - path: ./showcases/truchetti
       config:
         cradle:
