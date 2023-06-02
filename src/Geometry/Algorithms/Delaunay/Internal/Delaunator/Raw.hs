@@ -21,8 +21,8 @@ import qualified Data.Vector                as V
 import qualified Data.Vector.Algorithms.Tim as VM
 import           Data.Vector.Mutable        (STVector)
 import qualified Data.Vector.Mutable        as VM
-import           GHC.Stack                  (HasCallStack)
 import           Geometry.Core
+import           GHC.Stack                  (HasCallStack)
 
 
 
@@ -275,9 +275,7 @@ triangulation_legalize tgl !a points hull = do
                         let e' = hull_prev_e
                         writeSTRef eRef e'
                         hull_start <- readSTRef (_start hull)
-                        if e' /= hull_start
-                            then loop
-                            else pure () -- break
+                        when (e' /= hull_start) loop
 
         VM.write (__halfedges tgl) a hbl
         VM.write (__halfedges tgl) b har
