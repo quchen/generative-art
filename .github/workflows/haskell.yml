@@ -43,6 +43,8 @@ jobs:
           # Instead, add only -Werror
           stack-arguments: --ghc-options -Werror
 
+          cache-prefix: "2023-06-03"
+
       - name: "Haddock: build"
         run: |
           stack haddock --fast --test --no-run-tests --only-dependencies
