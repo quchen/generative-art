@@ -1,11 +1,22 @@
 cradle:
-  stack:
-    - path: ./src
-      component: generative-art:lib
-    - path: ./test/testsuite
-      component: generative-art:test:testsuite
-    - path: ./test/doctest
-      component: generative-art:test:doctest
+  multi:
+    - path: ./
+      config:
+        cradle:
+          stack:
+            - path: ./src
+              component: generative-art:lib
+            - path: ./test/testsuite
+              component: generative-art:test:testsuite
+            - path: ./test/doctest
+              component: generative-art:test:doctest
+    
+    - path: ./showcases/truchetti
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/truchetti/stack.yaml
+            component: truchetti:exe:truchetti
 
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
