@@ -267,6 +267,10 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 -- segment is flat enough (given by the tolerance parameter), it is simply rendered
 -- as a line.
 --
+-- The algorithm is based on
+-- [an excellent blogpost](https://web.archive.org/web/20180307160123/http://antigrain.com/research/adaptive_bezier/index.html)
+-- that is sadly only available on the internet archive these days.
+--
 -- <<docs/haddock/Geometry/Bezier/bezierSubdivideCasteljau.svg>>
 --
 -- === __(image code)__

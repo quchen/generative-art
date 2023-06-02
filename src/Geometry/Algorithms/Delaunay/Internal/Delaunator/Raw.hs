@@ -209,6 +209,20 @@ triangulation_add_triangle tgl i0 i1 i2 a b c = do
 
     pure t
 
+-- | If the pair of triangles doesn't satisfy the Delaunay condition (p1 is inside
+-- the circumcircle of [p0, pl, pr]), flip them, then do the same check/flip
+-- recursively for the new pair of triangles.
+--
+-- >          pl                    pl
+-- >         /||\                  /  \
+-- >      al/ || \bl            al/    \a
+-- >       /  ||  \              /      \
+-- >      /  a||b  \    flip    /___ar___\
+-- >    p0\   ||   /p1   =>   p0\---bl---/p1
+-- >       \  ||  /              \      /
+-- >      ar\ || /br             b\    /br
+-- >         \||/                  \  /
+-- >          pr                    pr
 triangulation_legalize
     :: HasCallStack
     => TriangulationST s -- ^ Triangulation that needs legalization
@@ -218,24 +232,9 @@ triangulation_legalize
     -> ST s Int -- ^ Halfedge adjacent to a. I don’t fully understand this value yet.
 triangulation_legalize tgl !a points hull = do
     b <- VM.read (__halfedges tgl) a
-    -- If the pair of triangles doesn't satisfy the Delaunay condition (p1 is
-    -- inside the circumcircle of [p0, pl, pr]), flip them, then do the same
-    -- check/flip recursively for the new pair of triangles
-    --
-    --           pl                    pl
-    --          /||\                  /  \
-    --       al/ || \bl            al/    \a
-    --        /  ||  \              /      \
-    --       /  a||b  \    flip    /___ar___\
-    --     p0\   ||   /p1   =>   p0\---bl---/p1
-    --        \  ||  /              \      /
-    --       ar\ || /br             b\    /br
-    --          \||/                  \  /
-    --           pr                    pr
-    --
     let ar = prevHalfedge a
 
-    -- b is a’s opposite halfedge. If it’s not there, it can’t be wrong.
+    -- b is a’s opposite halfedge. If it’s not there (i.e. a is on the hull), we won’t need to flip anything.
     case b == tEMPTY of
         True -> pure ar
         False -> do {

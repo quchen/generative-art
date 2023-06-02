@@ -14,7 +14,7 @@ import qualified Math.Noise         as Perlin
 
 
 
--- | Named arguments for 'perlinNoise'.
+-- | Named arguments for the @perlin*@ functions.
 data PerlinParameters = PerlinParameters
     { _perlinFrequency :: Double
         -- ^ Frequency of the first octave, e.g. \(\frac1{2\text{width}}\) to span the whole width of the picture.
