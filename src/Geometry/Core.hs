@@ -1204,10 +1204,11 @@ resizeLineSymmetric f line@(Line start end) = (centerLine . resizeLine f . trans
 --
 -- Useful for painting lines going through a point symmetrically.
 centerLine :: Line -> Line
-centerLine line@(Line start end) = transform (translate delta) line
-  where
-    middle = 0.5 *. (start +. end)
-    delta = start -. middle
+centerLine (Line start end) =
+    let middle = 0.5 *. (start +. end)
+        end' = middle
+        start' = start -. end +. middle
+    in Line start' end'
 
 -- | Move the end point of the line so that it has length 1.
 normalizeLine :: Line -> Line
@@ -1291,6 +1292,8 @@ intersectionPoint _                              = Nothing
 --
 -- Returns the point of the intersection, and whether it is inside both, one, or
 -- none of the provided finite line segments.
+--
+-- See 'intersectInfiniteLines' for a more performant, but less nuanced result.
 intersectionLL :: Line -> Line -> LLIntersection
 intersectionLL lineL lineR
     = intersectionType
@@ -2004,51 +2007,76 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/perpendicular_bisector.svg" 150 150 $ do
---     let line = Line (Vec2 10 60) (Vec2 140 100)
+-- haddockRender "Geometry/Core/perpendicular_bisector.svg" 200 160 $ do
+--     let line = Line (Vec2 20 20) (Vec2 190 90)
 --         bisector = perpendicularBisector line
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
 --     sketch bisector >> setColor (mathematica97 1) >> C.stroke
 -- :}
--- Generated file: size 2KB, crc32: 0x1f7d2821
+-- Generated file: size 2KB, crc32: 0x9940c32d
 perpendicularBisector :: Line -> Line
-perpendicularBisector line@(Line start end) = perpendicularLineThrough middle line
-  where
-    middle = 0.5 *. (start +. end)
+perpendicularBisector (Line start end) =
+    let middle = 0.5 *. (end +. start)
+    in rotateLine90 (Line middle end)
 
--- | Line perpendicular to a given line through a point.
+rotateLine90 :: Line -> Line
+rotateLine90 (Line start end) = Line start end'
+  where
+    end' = rotate90 (end -. start) +. start
+
+rotate90 :: Vec2 -> Vec2
+rotate90 (Vec2 x y) = Vec2 (-y) x
+
+-- | Line perpendicular to a given line through a point, starting at the
+-- intersection point.
 --
--- The result has the same length as the input, point in its center, and points
--- to the left (90° turned CCW) relative to the input.
+-- If the point is on the line directly, fall back to a perpendicular line through
+-- the point of half the length of the input.
+--
+-- This is also known as the vector projection. For vectors \(\mathbf a\) (pointing
+-- from the start of the line to \(\mathbf p\)) and \(\mathbf b\) (pointing from
+-- the start of the line to its end),
+--
+-- \[
+-- \mathrm{proj}_{\mathbf b}(\mathbf a)
+-- = \frac{\mathbf a\cdot\mathbf b}{\mathbf b\cdot\mathbf b}\mathbf b
+-- \]
 --
 -- <<docs/haddock/Geometry/Core/perpendicular_line_through.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/perpendicular_line_through.svg" 150 140 $ do
---     let line = Line (Vec2 20 20) (Vec2 140 70)
---         point = Vec2 70 70
---         perpendicular = perpendicularLineThrough point line
+-- haddockRender "Geometry/Core/perpendicular_line_through.svg" 170 170 $ do
+--     let line = transform (translate (Vec2 20 20))
+--                          (Line zero (Vec2 (3*40) (4*20)))
+--         points =
+--             [ Vec2 20 110 -- above
+--             , Vec2 70 90 -- above
+--             , Vec2 130 20 -- below
+--             , Vec2 110 80 -- directly on
+--             , Vec2 130 150 -- beyond
+--             ]
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
---     setColor (mathematica97 1)
---     sketch (Circle point 5) >> C.fill
---     sketch perpendicular >> C.stroke
+--     for_ (zip [1..] points) $ \(i, p) -> do
+--         setColor (mathematica97 i)
+--         cairoScope $ sketch (perpendicularLineThrough p line) >> C.setDash [3,5] 0 >> C.stroke
+--         cairoScope $ sketch (Circle p 5) >> C.fill
 -- :}
--- Generated file: size 2KB, crc32: 0xb8e5d1d9
+-- Generated file: size 4KB, crc32: 0xac73c163
 perpendicularLineThrough :: Vec2 -> Line -> Line
-perpendicularLineThrough p line@(Line start _) = centerLine line'
-  where
-    -- Move line so it starts at the origin
-    Line start0 end0 = transform (translate (negateV start)) line
-    -- Rotate end point 90° CCW
-    end0' = let Vec2 x y  = end0
-            in Vec2 (-y) x
-    -- Construct rotated line
-    lineAt0' = Line start0 end0'
-    -- Move line back so it goes through the point
-    line' = transform (translate p) lineAt0'
+perpendicularLineThrough p (Line start end) =
+    let a = p -. start
+        b = end -. start
+        proj = (dotProduct a b/dotProduct b b) *. b +. start
+    in if normSquare (p -. proj) <= 0.01^2
+        then -- p is too close to proj, so a 'Line' does not make
+             -- any sense. Fall back to a line of half the input
+             -- length perpendicular to the original one.
+            let p' = proj +. rotate90 ((end -. start) /. 2)
+            in Line proj p'
+        else Line proj p
 
 -- | Optical reflection of a ray on a mirror. Note that the outgoing line has
 -- reversed direction like light rays would. The second result element is the

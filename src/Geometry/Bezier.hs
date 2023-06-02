@@ -9,8 +9,9 @@ module Geometry.Bezier
     , bezierS
 
     -- * Subdividing
-    , bezierSubdivideT
-    , bezierSubdivideS
+    , bezierSubdivideEquiparametric
+    , bezierSubdivideEquidistant
+    , bezierSubdivideCasteljau
 
     -- * Interpolation
     , bezierSmoothen
@@ -38,6 +39,26 @@ import Numerics.LinearEquationSystem
 -- $setup
 -- >>> import Draw
 -- >>> import qualified Graphics.Rendering.Cairo as C
+
+
+
+-- $references
+--
+-- == Arc length parameterization
+--
+-- * Moving Along a Curve with Specified Speed (2019)
+--   by David Eberly
+--   https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
+--
+-- == Smoothening
+--
+-- * Cubic Bézier Splines
+--   by Michael Joost
+--   https://www.michael-joost.de/bezierfit.pdf
+--
+-- * Building Smooth Paths Using Bézier Curves
+--   by Stuart Kent
+--   https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
 
 
 
@@ -144,20 +165,20 @@ bezierLength bezier = retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
 --
--- For subdivision by arc length, use 'bezierSubdivideS'.
-bezierSubdivideT
+-- For subdivision by arc length, use 'bezierSubdivideEquidistant'.
+bezierSubdivideEquiparametric
     :: Int
     -> Bezier
     -> [Vec2]
-bezierSubdivideT n bz = map (bezierT bz) points
+bezierSubdivideEquiparametric n bz = map (bezierT bz) points
   where
     points = map (\x -> fromIntegral x / fromIntegral (n-1)) [0..n-1]
 
 -- | Trace a 'Bezier' curve with a number of evenly spaced points by arc length.
--- This is much more expensive than 'bezierSubdivideT', but may be desirable for
+-- This is much more expensive than 'bezierSubdivideEquiparametric', but may be desirable for
 -- aesthetic purposes.
 --
--- Here it is alongside 'bezierSubdivideT':
+-- Here it is alongside 'bezierSubdivideEquiparametric':
 --
 -- <<docs/haddock/Geometry/Bezier/subdivide_s_t_comparison.svg>>
 --
@@ -167,8 +188,8 @@ bezierSubdivideT n bz = map (bezierT bz) points
 --     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
 --                     fitToBox = transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 --                 in fitToBox curveRaw
---         evenlySpaced = bezierSubdivideS 16 curve
---         unevenlySpaced = bezierSubdivideT 16 curve
+--         evenlySpaced = bezierSubdivideEquidistant 16 curve
+--         unevenlySpaced = bezierSubdivideEquiparametric 16 curve
 --         offsetBelow :: Transform geo => geo -> geo
 --         offsetBelow = transform (translate (Vec2 0 50))
 --     cairoScope $ do
@@ -189,8 +210,8 @@ bezierSubdivideT n bz = map (bezierT bz) points
 --         cairoScope (setColor (black `withOpacity` 0.2) >> connect e u)
 -- :}
 -- Generated file: size 17KB, crc32: 0x7c147951
-bezierSubdivideS :: Int -> Bezier -> [Vec2]
-bezierSubdivideS n bz = map bezier distances
+bezierSubdivideEquidistant :: Int -> Bezier -> [Vec2]
+bezierSubdivideEquidistant n bz = map bezier distances
   where
 
     -- The step width should correlate with the length of the curve to get a decent
@@ -246,23 +267,65 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
     t0 = 0
     s0 = 0
 
--- $references
+-- | Approximage a Bezier curve with line segments up to a certain precision, using
+-- relatively few points.
 --
--- == Arc length parameterization
+-- The idea behind Casteljau subdivision is that each Bézier curve can be exactly
+-- subdivided into two Bézier curves (of same degree). This is done recursively, in
+-- this implementation (and commonly) in the middle of the curve. Once a curve
+-- segment is flat enough (given by the tolerance parameter), it is simply rendered
+-- as a line.
 --
--- * Moving Along a Curve with Specified Speed (2019)
---   by David Eberly
---   https://www.geometrictools.com/Documentation/MovingAlongCurveSpecifiedSpeed.pdf
+-- <<docs/haddock/Geometry/Bezier/bezierSubdivideCasteljau.svg>>
 --
--- == Smoothening
---
--- * Cubic Bézier Splines
---   by Michael Joost
---   https://www.michael-joost.de/bezierfit.pdf
---
--- * Building Smooth Paths Using Bézier Curves
---   by Stuart Kent
---   https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Bezier/bezierSubdivideCasteljau.svg" 500 330 $ do
+--     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
+--                     fitToBox = transform (transformBoundingBox curveRaw (shrinkBoundingBox 10 [zero, Vec2 500 200]) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
+--                 in fitToBox curveRaw
+--         paintOffset = Vec2 0 30
+--     for_ (zip [0..] [50,25,10,2]) $ \(i, tolerance) -> cairoScope $ do
+--         let points = bezierSubdivideCasteljau tolerance (transform (translate (fromIntegral i *. paintOffset)) curve)
+--         setColor (mathematica97 i)
+--         C.setLineWidth 2
+--         sketch (Polyline points) >> C.stroke
+--         for_ points $ \p -> sketch (Circle p 3) >> C.fill
+--     cairoScope $ do
+--         C.setLineWidth 3
+--         setColor black
+--         sketch (transform (translate (4*.paintOffset)) curve)
+--         C.stroke
+-- :}
+-- Generated file: size 20KB, crc32: 0x679b311c
+bezierSubdivideCasteljau :: Double -> Bezier -> [Vec2]
+bezierSubdivideCasteljau tolerance curve@(Bezier pFirst _ _ _) = pFirst : go curve
+  where
+    go (Bezier p1 p2@(Vec2 x2 y2) p3@(Vec2 x3 y3) p4@(Vec2 x4 y4)) =
+        let
+            p12   = (p1   +. p2  ) /. 2
+            p23   = (p2   +. p3  ) /. 2
+            p34   = (p3   +. p4  ) /. 2
+            p123  = (p12  +. p23 ) /. 2
+            p234  = (p23  +. p34 ) /. 2
+            p1234 = (p123 +. p234) /. 2
+
+            dp@(Vec2 dx dy) = p4 -. p1
+
+            -- d2, d3 are the distance from p2, p3 from the line
+            -- connecting p1 and p4. A curve is flat when those
+            -- two are short together.
+            d2 = abs ((x2-x4)*dy - (y2-y4)*dx)
+            d3 = abs ((x3-x4)*dy - (y3-y4)*dx)
+            curveIsFlat = (d2 + d3)*(d2 + d3) < tolerance^2 * normSquare dp
+        in if curveIsFlat
+            then -- We return only the last point so we don’t get duplicate
+                 -- points for each start+end of adjacent curves.
+                 -- The very first point is forgotten by the
+                [p4]
+            else go (Bezier p1 p12 p123 p1234)
+                 ++
+                 go (Bezier p1234 p234 p34 p4)
 
 -- | Smoothen a number of points by putting a Bezier curve between each pair.
 -- Useful to e.g. make a sketch nicer, or interpolate between points of a crude
