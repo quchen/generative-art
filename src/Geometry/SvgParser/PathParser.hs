@@ -1,7 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Parse an SVG path, as see in the <g> element, such as
--- @M413.654,295.115c0,0-1.283-13.865,12.717-19.615@.
 module Geometry.SvgParser.PathParser (parse) where
 
 

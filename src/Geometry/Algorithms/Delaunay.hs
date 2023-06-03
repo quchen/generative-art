@@ -15,13 +15,13 @@
 -- >>> seed = [2]
 -- >>> (width, height) = (600::Int, 600::Int)
 -- >>> :{
--- >>> points = runST $ do
--- >>>    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
--- >>>    let bb = boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]
--- >>>    points <- poissonDisc gen bb 16 5
--- >>>    let radius = fromIntegral (min width height) / 2.5
--- >>>    pure (filter (\p -> normSquare (p -. boundingBoxCenter bb) <= radius^2) points)
--- >>> :}
+-- points = runST $ do
+--    gen <- MWC.initialize (V.fromList (map fromIntegral seed))
+--    let bb = boundingBox [zero, Vec2 (fromIntegral width) (fromIntegral height)]
+--    points <- poissonDisc gen bb 16 5
+--    let radius = fromIntegral (min width height) / 2.5
+--    pure (filter (\p -> normSquare (p -. boundingBoxCenter bb) <= radius^2) points)
+-- :}
 --
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :{

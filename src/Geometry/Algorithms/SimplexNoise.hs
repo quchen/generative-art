@@ -5,9 +5,9 @@
 -- Optimisations by Peter Eastman. Better rank ordering method for 4D by Stefan
 -- Gustavson in 2012.
 --
--- This code was placed in the public domain by its original author,
--- Stefan Gustavson. You may use it as you see fit, but
--- attribution is appreciated.
+--
+-- This code was placed in the public domain by its original author, Stefan
+-- Gustavson. You may use it as you see fit, but attribution is appreciated.
 module Geometry.Algorithms.SimplexNoise (
       SimplexParameters(..)
     , simplex1

@@ -86,6 +86,9 @@ library:
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw
         - Geometry.Algorithms.Sampling.PoissonDisc
+        - Geometry.SvgParser.Common
+        - Geometry.SvgParser.PathParser
+        - Geometry.SvgParser.SimpleShapes
         - Geometry.Trajectory.PathSimplifier.Radial
         - Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
         - Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt

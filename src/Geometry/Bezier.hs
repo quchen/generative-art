@@ -5,8 +5,8 @@ module Geometry.Bezier
     Bezier(..)
 
     -- * Indexing
-    , bezierT
-    , bezierS
+    , bezierParametric
+    , bezierArcParametric
 
     -- * Subdividing
     , bezierSubdivideEquiparametric
@@ -75,7 +75,7 @@ instance Transform Bezier where
         (transform t d)
 
 instance HasBoundingBox Bezier where
-    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierT bezier t | t <- extremalTs])
+    boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierParametric bezier t | t <- extremalTs])
       where
 
         -- Alg idea: find the roots of the Bezier’s first derivative, collect
@@ -102,17 +102,14 @@ instance HasBoundingBox Bezier where
 
 -- | Point on a 'Bezier' curve.
 --
--- The suffix @T@ indicates the »simple formula« parameterization,
--- which makes this curve easy to compute.
---
 -- \[
--- \text{bezierT}_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = (1-t)^3\,\mathbf a + 3 (1-t)^2 t\,\mathbf b + 3 (1-t) t^2\,\mathbf c + t^3\,\mathbf d
+-- \text{bezierParametric}_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = (1-t)^3\,\mathbf a + 3 (1-t)^2 t\,\mathbf b + 3 (1-t) t^2\,\mathbf c + t^3\,\mathbf d
 -- \]
-bezierT
+bezierParametric
   :: Bezier
   -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT (Bezier a b c d) t
+bezierParametric (Bezier a b c d) t
   =      (1-t)^3     *. a
     +. 3*(1-t)^2*t   *. b
     +. 3*(1-t)  *t^2 *. c
@@ -120,31 +117,25 @@ bezierT (Bezier a b c d) t
 
 -- | First derivative of a 'Bezier' curve, i.e. its velocity vector.
 --
--- The suffix @T@ indicates the »simple formula« parameterization,
--- which makes this curve easy to compute.
---
 -- \[
--- \text{bezierT}'_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = -3(1-t)^2\,\mathbf a + (3+t(-12+9t))\,\mathbf b + (6-9t)t\,\mathbf c + 3t^2\,\mathbf d
+-- \text{bezierParametric}'_{\mathbf a,\mathbf b,\mathbf c,\mathbf d}(t) = -3(1-t)^2\,\mathbf a + (3+t(-12+9t))\,\mathbf b + (6-9t)t\,\mathbf c + 3t^2\,\mathbf d
 -- \]
-bezierT'
+bezierParametric'
   :: Bezier
   -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-bezierT' (Bezier a b c d) t
+bezierParametric' (Bezier a b c d) t
   =    (-3*(1-t)^2)    *. a
     +. (3+t*(-12+9*t)) *. b
     +. ((6-9*t)*t)     *. c
     +. (3*t^2)         *. d
 
 -- | Second derivative of a 'Bezier' curve, i.e. its acceleration vector.
---
--- The suffix @T@ indicates the »simple formula« parameterization,
--- which makes this curve easy to compute.
-_bezierT''
+_bezierParametric''
   :: Bezier
   -> Double -- ^ \[0..1] = [start..end]
   -> Vec2
-_bezierT'' (Bezier a b c d) t
+_bezierParametric'' (Bezier a b c d) t
   =    (6-6*t)         *. a
     +. (-12+18*t)      *. b
     +. (6-18*t)        *. c
@@ -158,7 +149,7 @@ bezierLength
     -> Double
 bezierLength bezier = retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1) 1e-6
   where
-    f t = norm (bezierT' bezier t)
+    f t = norm (bezierParametric' bezier t)
 
 
 
@@ -170,7 +161,7 @@ bezierSubdivideEquiparametric
     :: Int
     -> Bezier
     -> [Vec2]
-bezierSubdivideEquiparametric n bz = map (bezierT bz) points
+bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
   where
     points = map (\x -> fromIntegral x / fromIntegral (n-1)) [0..n-1]
 
@@ -217,36 +208,36 @@ bezierSubdivideEquidistant n bz = map bezier distances
     -- The step width should correlate with the length of the curve to get a decent
     -- RK estimator. This allows both large and tiny curves to be subdivided well.
     -- Increasing this to beyond 2^10 shows only pixel-wide changes, if even.
-    bezier = bezierS_ode bz (len / 2^10)
+    bezier = bezierArcParametric_ode bz (len / 2^10)
     len = bezierLength bz
 
     distances :: [Double]
     distances = [fromIntegral i * len/fromIntegral (n-1) | i <- [0..n-1]]
 
 -- | Get the position on a Bezier curve as a fraction of its length, via solving a
--- differential equation. This is /much/ more expensive to compute than 'bezierT'.
+-- differential equation. This is /much/ more expensive to compute than 'bezierParametric'.
 --
 -- This caches the internal LUT when partially applied, so that the following will
 -- only compute it once for repeated lookups:
 --
 -- @
--- let walkOnBezier = 'bezierS' bezier 0.01
+-- let walkOnBezier = 'bezierArcParametric' bezier 0.01
 -- 'print' [walkOnBezier d | d <- [0, 0.1 .. 5]]
 -- @
-bezierS :: Bezier -> Double -> Double -> Vec2
-bezierS = bezierS_ode
+bezierArcParametric :: Bezier -> Double -> Double -> Vec2
+bezierArcParametric = bezierArcParametric_ode
 
 -- There’s also another method to do this using Newton’s method, detialed in the
 -- paper (see references on bezier subdivision).
-bezierS_ode
+bezierArcParametric_ode
     :: Bezier
     -> Double -- ^ Precision parameter (smaller is more precise but slower).
     -> Double -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
     -> Vec2   -- ^ Point at that distance
-bezierS_ode bz ds
+bezierArcParametric_ode bz ds
   = let lut = s_to_t_lut_ode bz ds
     in \s -> let t = lookupInterpolated lut s
-             in bezierT bz t
+             in bezierParametric bz t
 
 -- | S⇆T lookup table for a Bezier curve
 --
@@ -262,7 +253,7 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 
     sol = rungeKuttaConstantStep dt_ds t0 s0 ds
 
-    dt_ds _s t = 1 / norm (bezierT' bz t)
+    dt_ds _s t = 1 / norm (bezierParametric' bz t)
 
     t0 = 0
     s0 = 0
@@ -275,6 +266,10 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 -- this implementation (and commonly) in the middle of the curve. Once a curve
 -- segment is flat enough (given by the tolerance parameter), it is simply rendered
 -- as a line.
+--
+-- The algorithm is based on
+-- [an excellent blogpost](https://web.archive.org/web/20180307160123/http://antigrain.com/research/adaptive_bezier/index.html)
+-- that is sadly only available on the internet archive these days.
 --
 -- <<docs/haddock/Geometry/Bezier/bezierSubdivideCasteljau.svg>>
 --

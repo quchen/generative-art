@@ -15,8 +15,7 @@ import qualified Test.Geometry.Coordinates.Hexagonal
 import qualified Test.Geometry.Core
 import qualified Test.Geometry.LookupTable.Lookup2
 import qualified Test.Geometry.Processes.Penrose
-import qualified Test.Geometry.SvgParser.PathParser
-import qualified Test.Geometry.SvgParser.SimpleShapes
+import qualified Test.Geometry.SvgParser
 import qualified Test.Physics
 import qualified Test.Uncategorized.Bezier
 import qualified Test.Uncategorized.ConvexHull
@@ -55,8 +54,7 @@ tests = testGroup "Test suite"
     , Test.Geometry.Core.tests
     , Test.Geometry.LookupTable.Lookup2.tests
     , Test.Geometry.Processes.Penrose.tests
-    , Test.Geometry.SvgParser.PathParser.tests
-    , Test.Geometry.SvgParser.SimpleShapes.tests
+    , Test.Geometry.SvgParser.tests
     , Test.Physics.tests
     , Test.Uncategorized.Bezier.tests
     , Test.Uncategorized.ConvexHull.tests
