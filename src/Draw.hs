@@ -490,15 +490,16 @@ instance Sketch Polygon where
     sketch (Polygon xs) = sketch (Polyline xs) >> closePath
 
 -- |
+-- <<docs/haddock/Draw/instance_Sketch_Circle.svg>>
+--
 -- === __(image code)__
 --
--- <<docs/haddock/Draw/instance_Sketch_Circle.svg>>
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Circle.svg" 100 100 $ do
---     sketch (Circle (Vec2 50 50) 45)
+-- haddockRender "Draw/instance_Sketch_Circle.svg" 200 200 $ do
+--     sketch (Circle (Vec2 100 100) 90)
 --     stroke
 -- :}
--- Generated file: size 2KB, crc32: 0xebd35c6d
+-- Generated file: size 2KB, crc32: 0x565193fd
 instance Sketch Circle where
     sketch (Circle (Vec2 x y) r) = arc x y r 0 (2*pi)
 

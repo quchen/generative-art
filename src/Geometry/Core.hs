@@ -148,6 +148,7 @@ import Data.Sequential
 
 -- $setup
 -- >>> import           Control.Monad
+-- >>> import           Data.Ord.Extended
 -- >>> import           Draw
 -- >>> import           Geometry.Algorithms.Sampling
 -- >>> import qualified Graphics.Rendering.Cairo     as C
@@ -260,6 +261,7 @@ mulVTM (Vec2 b1 b2) (Mat2 a11 a12 a21 a22) =
     Vec2 (b1*a11 + b2*a21)
          (b1*a12 + b2*a22)
 
+-- | Multiplicative semigroup.
 instance Semigroup Mat2 where
     Mat2   a11 a12
            a21 a22
@@ -270,10 +272,12 @@ instance Semigroup Mat2 where
      = Mat2 (a11*b11 + a12*b21) (a11*b12 + a12*b22)
             (a21*b11 + a22*b21) (a21*b12 + a22*b22)
 
+-- | Multiplicative monoid.
 instance Monoid Mat2 where
     mempty = Mat2 1 0
                   0 1
 
+-- | Multiplicative group.
 instance Group Mat2 where
     inverse (Mat2 a b
                     d e)
@@ -424,9 +428,9 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/translate.svg" 100 30 $ do
---     let point = Vec2 10 10
---         offset = Vec2 80 10
+-- haddockRender "Geometry/Core/translate.svg" 100 50 $ do
+--     let point = Vec2 20 20
+--         offset = Vec2 70 20
 --         point' = transform (translate offset) point
 --     sketch (Circle point 5)
 --     sketch (Circle point' 5)
@@ -434,7 +438,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     setColor (mathematica97 1)
 --     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
--- Generated file: size 2KB, crc32: 0x93f965ed
+-- Generated file: size 2KB, crc32: 0x5f8c6969
 translate :: Vec2 -> Transformation
 translate = Transformation mempty
 
@@ -879,12 +883,46 @@ instance (HasBoundingBox a) => HasBoundingBox (S.Set a) where
 instance (HasBoundingBox a) => HasBoundingBox (M.Map k a) where
     boundingBox = foldMap boundingBox
 
+-- | <<docs/haddock/Geometry/Core/bounding_box_line.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/bounding_box_line.svg" 150 100 $ do
+--     let line = Line (Vec2 10 10) (Vec2 140 90)
+--     cairoScope $ do
+--         setColor (mathematica97 1)
+--         C.setDash [1.5,3] 0
+--         sketch (boundingBox line)
+--         C.stroke
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         sketch line
+--         C.stroke
+-- :}
+-- Generated file: size 2KB, crc32: 0xd5f4f645
 instance HasBoundingBox Line where
     boundingBox (Line start end) = boundingBox (start, end)
 
 instance HasBoundingBox Polygon where
     boundingBox (Polygon ps) = boundingBox ps
 
+-- | <<docs/haddock/Geometry/Core/bounding_box_polyline.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/bounding_box_polyline.svg" 150 100 $ do
+--     let polyline = Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
+--     cairoScope $ do
+--         setColor (mathematica97 1)
+--         C.setDash [1.5,3] 0
+--         sketch (boundingBox polyline)
+--         C.stroke
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         sketch polyline
+--         C.stroke
+-- :}
+-- Generated file: size 2KB, crc32: 0xd45fc8b5
 instance HasBoundingBox Polyline where boundingBox (Polyline xs) = boundingBox xs
 
 -- | Do the bounding boxes of two objects overlap?
@@ -1513,6 +1551,23 @@ instance Default Circle where
 
 instance NFData Circle where rnf _ = ()
 
+-- | <<docs/haddock/Geometry/Core/bounding_box_circle.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/bounding_box_circle.svg" 150 150 $ do
+--     let circle = Circle (Vec2 75 75) 65
+--     cairoScope $ do
+--         setColor (mathematica97 1)
+--         C.setDash [1.5,3] 0
+--         sketch (boundingBox circle)
+--         C.stroke
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         sketch circle
+--         C.stroke
+-- :}
+-- Generated file: size 2KB, crc32: 0x58f8a8af
 instance HasBoundingBox Circle where
     boundingBox (Circle center r) = boundingBox (center -. Vec2 r r, center +. Vec2 r r)
 
@@ -1635,27 +1690,27 @@ instance Default Ellipse where def = Ellipse mempty
 --
 -- === __(image code)__
 -- >>> :{
--- >>> haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ do
--- >>>     let (w,h) = (300,300)
--- >>>         radius = w/6*0.9
--- >>>         ellipse = toEllipse (Circle zero radius)
--- >>>         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
--- >>>     let paintWithBB i j geo = cairoScope $ do
--- >>>             grid i j
--- >>>             setColor (mathematica97 (i*3+j))
--- >>>             cairoScope $ sketch geo >> C.stroke
--- >>>             cairoScope $ C.setDash [1,1.5] 0 >> sketch (boundingBox geo) >> C.stroke
--- >>>     paintWithBB 0 0 (transform (scale 0.9) ellipse)
--- >>>     paintWithBB 1 0 (transform (scale 0.75) ellipse)
--- >>>     paintWithBB 2 0 (transform (scale 0.5) ellipse)
--- >>>     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
--- >>>     paintWithBB 1 1 (transform (scale' 1 0.5) ellipse)
--- >>>     paintWithBB 2 1 (transform (rotate (deg 30) <> scale' 0.5 1) ellipse)
--- >>>     paintWithBB 0 2 (transform (shear 0.3 0 <> scale' 0.5 1) ellipse)
--- >>>     paintWithBB 1 2 (transform (shear 0 0.3 <> scale' 1 0.5) ellipse)
--- >>>     paintWithBB 2 2 (transform (scale' 1 0.5 <> rotate (deg 45) <> shear 0 1 <> scale' 1 0.5) ellipse)
+-- haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ do
+--     let (w,h) = (300,300)
+--         radius = w/6*0.9
+--         ellipse = toEllipse (Circle zero radius)
+--         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+--     let paintWithBB i j geo = cairoScope $ do
+--             grid i j
+--             setColor (mathematica97 (i*3+j))
+--             cairoScope $ sketch geo >> C.stroke
+--             cairoScope $ C.setDash [1.5,3] 0 >> sketch (boundingBox geo) >> C.stroke
+--     paintWithBB 0 0 (transform (scale 0.9) ellipse)
+--     paintWithBB 1 0 (transform (scale 0.75) ellipse)
+--     paintWithBB 2 0 (transform (scale 0.5) ellipse)
+--     paintWithBB 0 1 (transform (scale' 0.5 1) ellipse)
+--     paintWithBB 1 1 (transform (scale' 1 0.5) ellipse)
+--     paintWithBB 2 1 (transform (rotate (deg 30) <> scale' 0.5 1) ellipse)
+--     paintWithBB 0 2 (transform (shear 0.3 0 <> scale' 0.5 1) ellipse)
+--     paintWithBB 1 2 (transform (shear 0 0.3 <> scale' 1 0.5) ellipse)
+--     paintWithBB 2 2 (transform (scale' 1 0.5 <> rotate (deg 45) <> shear 0 1 <> scale' 1 0.5) ellipse)
 -- :}
--- Generated file: size 9KB, crc32: 0xac92bb50
+-- Generated file: size 9KB, crc32: 0xcc4b0da9
 instance HasBoundingBox Ellipse where
     boundingBox (Ellipse (Transformation (Mat2 a11 a12 a21 a22) (Vec2 b1 b2))) =
         let -- https://tavianator.com/2014/ellipsoid_bounding_boxes.html
@@ -1936,7 +1991,7 @@ adjacentIntersections edges = zipWith
 -- two vectors, or to check whether a vector is to the left or right of another
 -- vector.
 --
--- >>> cross (Vec2 1 0) (Vec2 1 0) -- Colinear
+-- >>> cross (Vec2 1 0) (Vec2 1 0) -- Collinear
 -- 0.0
 --
 -- >>> cross (Vec2 1 0) (Vec2 1 0.1) -- 2nd vec is in positive (counter-clockwise) direction
@@ -1944,6 +1999,37 @@ adjacentIntersections edges = zipWith
 --
 -- >>> cross (Vec2 1 0) (Vec2 1 (-0.1)) -- 2nd vec is in negative (clockwise) direction
 -- -0.1
+--
+-- <<docs/haddock/Geometry/Core/cross_product_leftness_rightness.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/cross_product_leftness_rightness.svg" 200 200 $ do
+--     let line = Line (Vec2 10 10) (Vec2 170 170)
+--     points <- C.liftIO $ MWC.withRng [] $ \gen ->
+--             poissonDisc gen (shrinkBoundingBox 10 [Vec2 50 50, Vec2 200 200]) 10 10
+--     let MinMax lo hi = foldMap (\x -> MinMax x x) $ do
+--             end <- points
+--             let Line start _ = line
+--             pure (cross (end -. start) (vectorOf line))
+--     for_ points $ \end -> grouped (C.paintWithAlpha 0.7) $ do
+--         let Line start _ = line
+--         sketch (Line start end)
+--         setColor (icefire (lerp (min lo (-hi),max (-lo) hi) (0,1) (cross (end -. start) (vectorOf line))))
+--         C.stroke
+--         sketch (Circle end 2)
+--         C.fill
+--     cairoScope $ do
+--         C.setLineWidth 4
+--         setColor black
+--         sketch line
+--         C.stroke
+--         let Line start end = line
+--         sketch (Circle start 4)
+--         sketch (Circle end 4)
+--         C.fill
+-- :}
+-- Generated file: size 118KB, crc32: 0x75a4133f
 cross :: Vec2 -> Vec2 -> Double
 cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
 

@@ -74,6 +74,25 @@ instance Transform Bezier where
         (transform t c)
         (transform t d)
 
+-- | <<docs/haddock/Geometry/Bezier/bounding_box_bezier.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Bezier/bounding_box_bezier.svg" 150 100 $ do
+--     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
+--                     fitToBox = transform (transformBoundingBox curveRaw (shrinkBoundingBox 10 [zero, Vec2 150 100]) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
+--                 in fitToBox curveRaw
+--     cairoScope $ do
+--         setColor (mathematica97 1)
+--         C.setDash [1.5,3] 0
+--         sketch (boundingBox curve)
+--         C.stroke
+--     cairoScope $ do
+--         C.setLineWidth 2
+--         sketch curve
+--         C.stroke
+-- :}
+-- Generated file: size 2KB, crc32: 0x73983106
 instance HasBoundingBox Bezier where
     boundingBox bezier@(Bezier start _ _ end) = boundingBox ([start, end] ++ [bezierParametric bezier t | t <- extremalTs])
       where
