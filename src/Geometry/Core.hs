@@ -784,6 +784,58 @@ boundingBoxIntersection a b =
         | otherwise -> Just (BoundingBox (Vec2 minX minY) (Vec2 maxX maxY))
 
 -- | Width and height of a 'BoundingBox'.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxSize.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxSize.svg" 300 200 $ \wh -> do
+--     let bb = shrinkBoundingBox 20 [zero, wh]
+--         (bbWidth, bbHeight) = boundingBoxSize bb
+--     cairoScope $ do
+--         setColor (mma 0)
+--         sketch (boundingBoxPolygon bb)
+--         C.stroke
+--     let BoundingBox (Vec2 minX minY) (Vec2 maxX maxY) = shrinkBoundingBox 7 bb
+--         arrowBodyX = resizeLineSymmetric (\l -> l-5) (Line (Vec2 minX minY) (Vec2 maxX minY))
+--         arrowBodyY = resizeLineSymmetric (\l -> l-5) (Line (Vec2 minX maxY) (Vec2 minX minY))
+--     let style = def { _arrowheadSize = 7 }
+--     cairoScope $ do
+--         setColor (mma 1)
+--         cairoScope $ do
+--             sketch (Arrow arrowBodyX style)
+--             sketch (Arrow (lineReverse arrowBodyX) style {_arrowDrawBody = False})
+--             C.stroke
+--         cairoScope $ do
+--             let Line start end = arrowBodyX
+--                 Line _ textGoesHere = resizeLine (const 5) (perpendicularBisector arrowBodyX)
+--             let textOpts = PlotTextOptions
+--                     { _textStartingPoint = textGoesHere
+--                     , _textHeight = 10
+--                     , _textHAlign = HCenter
+--                     , _textVAlign = VBottom
+--                     }
+--             for_ (plotText textOpts (printf "width: %.f px" bbWidth)) sketch
+--             C.stroke
+--     cairoScope $ do
+--         setColor (mma 3)
+--         cairoScope $ do
+--             sketch (Arrow arrowBodyY style)
+--             sketch (Arrow (lineReverse arrowBodyY) style {_arrowDrawBody = False})
+--             C.stroke
+--         cairoScope $ do
+--             let Line start end = arrowBodyY
+--                 Line _ textGoesHere = resizeLine (const 5) (perpendicularBisector arrowBodyY)
+--             let textOpts = PlotTextOptions
+--                     { _textStartingPoint = textGoesHere
+--                     , _textHeight = 10
+--                     , _textHAlign = HLeft
+--                     , _textVAlign = VCenter
+--                     }
+--             for_ (plotText textOpts (printf "height: %.f px" bbHeight)) sketch
+--             C.stroke
+-- :}
+-- Generated file: size 9KB, crc32: 0x1ff78b56
 boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
 boundingBoxSize x = (abs deltaX, abs deltaY)
   where
