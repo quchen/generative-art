@@ -225,7 +225,15 @@ coordinateSystem cosy = do
 -- Prints status information about the generated file so that doctests fail when
 -- the file contents change. Inspect the new output and update the output if the
 -- result is OK.
-haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
+haddockRender
+    :: FilePath
+    -> Int -- ^ Image width (px)
+    -> Int -- ^ Image height (px)
+    -> (Vec2 -> Render ())
+        -- ^ The width/height of the image is passed as 'Double'-based 'Vec2's to the
+        -- rendering function for convenience. This makes it easier to write images
+        -- that scale with changes in the width/height parameters.
+    -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
@@ -244,7 +252,7 @@ haddockRender filename w h actions = do
 
         -- We return the matrix so we can paint the 'haddockAxes' correctly below
         matrix <- cairoScope $ do
-            actions
+            actions (Vec2 (fromIntegral w) (fromIntegral h))
             getMatrix
 
         cairoScope $ do
