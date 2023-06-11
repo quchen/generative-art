@@ -6,7 +6,7 @@
 -- +-----------------+--------------------------------------------------------------+---------+
 -- | Name            |                                                              | Domain  |
 -- +=================+==============================================================+=========+
--- | 'mathematica97' | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
+-- | 'mma'           | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
 -- +-----------------+--------------------------------------------------------------+---------+
 -- | 'accent'        | <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>     | [0..7]  |
 -- +-----------------+--------------------------------------------------------------+---------+
@@ -26,7 +26,8 @@
 -- +-----------------+--------------------------------------------------------------+---------+
 module Draw.Color.Schemes.Discrete (
     -- * Mathematica
-      mathematica97
+      mma
+    , mathematica97
 
     -- * Color Brewer 2
     , accent
@@ -55,10 +56,14 @@ import qualified Draw.Color.Schemes.Internal.ColorBrewer2 as ColorBrewer2
 -- me Steven o:-)
 --
 -- <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>>
-mathematica97 :: Int -> Color Double
-mathematica97 i = case mma97cache !? i of
+mma :: Int -> Color Double
+mma i = case mma97cache !? i of
     Just cached -> cached
     Nothing -> toColor (generateMathematica97 i)
+
+{-# DEPRECATED mathematica97 "Renamed to mma" #-}
+mathematica97 :: Int -> Color Double
+mathematica97 = mma
 
 -- Taken straight out of mathematica, translated to Haskell: @ColorData[97] // FullForm@
 generateMathematica97 :: Int -> RGB
