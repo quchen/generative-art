@@ -12,8 +12,7 @@
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/SimplexNoise/simplex_noise.svg" 500 500 $ \_ -> do
--- let (w,h) = (500,500)
+-- haddockRender "Geometry/Algorithms/SimplexNoise/simplex_noise.svg" 500 500 $ \(Vec2 w h) -> do
 -- let (simplexNoiseColor, simplexNoiseVisibility) = runST $ MWC.withRng [] $ \gen -> do
 --         c <- simplex2 gen def
 --             { _simplexFrequency = 5/(2*w)

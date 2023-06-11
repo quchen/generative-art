@@ -183,8 +183,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ \_ -> do
-        --     let (w,h) = (200,160)
+        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ \(Vec2 w h) -> do
         --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
         --     cairoScope $ do
         --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 (w-20) 0))) def)

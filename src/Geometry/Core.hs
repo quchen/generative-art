@@ -676,8 +676,7 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
 --         poissonDisc gen region 15 5
@@ -700,9 +699,8 @@ boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
---         parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
+-- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
+--     let parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
 --         paintCheck :: (HasBoundingBox object, Sketch object) => object -> C.Render ()
 --         paintCheck object = do
 --             when (not (object `insideBoundingBox` parentBB)) $ grouped (C.paintWithAlpha 0.2) $ do
@@ -730,8 +728,7 @@ insideBoundingBox thing bigObject =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
 --         poissonDisc gen region 15 5
@@ -754,8 +751,7 @@ boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ \(Vec2 w h) -> do
 --     (p1s, p2s) <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region1 = shrinkBoundingBox 20 [zero, Vec2 150 150]
 --         p1s <- poissonDisc gen region1 15 5
@@ -802,8 +798,7 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
 --     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
 --     for_ [0,5..25] $ \amount -> cairoScope $ do
 --         when (amount == 0) (C.setLineWidth 3)
@@ -828,8 +823,7 @@ growBoundingBox delta stuff  =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
 --     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
 --     for_ [0,5..25] $ \amount -> cairoScope $ do
 --         when (amount == 0) (C.setLineWidth 3)
@@ -1487,8 +1481,7 @@ polygonAngles polygon@(Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ \_ -> do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen ->
 --         gaussianDistributedPoints
 --             gen
@@ -1603,9 +1596,8 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/ellipses.svg" 300 300 $ \_ -> do
---     let (w,h) = (300,300)
---         center = zero
+-- haddockRender "Geometry/Core/ellipses.svg" 300 300 $ \(Vec2 w h) -> do
+--     let center = zero
 --         radius = w/6*0.9
 --         ellipse = toEllipse (Circle center radius)
 --         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
@@ -1690,12 +1682,11 @@ instance Default Ellipse where def = Ellipse mempty
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ \_ -> do
---     let (w,h) = (300,300)
---         radius = w/6*0.9
+-- haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ \(Vec2 w h) -> do
+--     let radius = w/6*0.9
 --         ellipse = toEllipse (Circle zero radius)
 --         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
---     let paintWithBB i j geo = cairoScope $ do
+--         paintWithBB i j geo = cairoScope $ do
 --             grid i j
 --             setColor (mma (i*3+j))
 --             cairoScope $ sketch geo >> C.stroke
