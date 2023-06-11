@@ -4,10 +4,10 @@ module Test.Draw.Plotting (tests) where
 
 
 
-import qualified Data.Set as S
-import qualified Data.Vector as V
+import qualified Data.Set                 as S
+import qualified Data.Vector              as V
 import qualified Graphics.Rendering.Cairo as C
-import Test.TastyAll
+import           Test.TastyAll
 
 import Draw
 import Draw.Plotting

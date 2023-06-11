@@ -2,8 +2,8 @@ module Test.Geometry.Core (tests) where
 
 
 
-import Geometry.Core
 import Data.Ord
+import Geometry.Core
 
 import Test.TastyAll
 

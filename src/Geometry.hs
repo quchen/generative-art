@@ -8,8 +8,8 @@ module Geometry (
     , module Geometry.Trajectory
 ) where
 
-import Geometry.Algorithms.Contour
 import Geometry.Algorithms.Clipping
+import Geometry.Algorithms.Contour
 import Geometry.Algorithms.Triangulate
 import Geometry.Bezier
 import Geometry.Core

@@ -5,7 +5,7 @@ module Test.Draw.Text (tests) where
 
 
 import qualified Graphics.Rendering.Cairo as C
-import Test.TastyAll
+import           Test.TastyAll
 
 import Draw
 import Geometry as G

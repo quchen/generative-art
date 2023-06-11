@@ -11,8 +11,8 @@ module Geometry.Algorithms.Sampling (
 
 
 import           Control.Applicative
-import           Data.Function
 import           Control.Monad.Primitive
+import           Data.Function
 import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
 import           System.Random.MWC

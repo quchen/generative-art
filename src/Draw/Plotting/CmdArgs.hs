@@ -8,9 +8,9 @@ module Draw.Plotting.CmdArgs (
 
 import Control.Monad
 import Data.Foldable
+import Draw.Plotting.PaperSize
 import Geometry.Core
 import Options.Applicative
-import Draw.Plotting.PaperSize
 import Options.Applicative.Types
 
 

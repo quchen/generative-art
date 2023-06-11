@@ -6,7 +6,7 @@ import Data.Foldable
 import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
-import Geometry as G
+import Geometry                   as G
 import Geometry.Processes.Penrose
 
 import Test.TastyAll

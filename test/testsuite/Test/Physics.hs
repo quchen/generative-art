@@ -1,9 +1,9 @@
 module Test.Physics where
 
-import Control.Monad.ST
-import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC
-import System.Random.MWC.Distributions
+import           Control.Monad.ST
+import qualified Graphics.Rendering.Cairo        as Cairo
+import           System.Random.MWC
+import           System.Random.MWC.Distributions
 
 import Draw
 import Geometry

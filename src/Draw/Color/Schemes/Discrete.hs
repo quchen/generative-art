@@ -41,8 +41,8 @@ module Draw.Color.Schemes.Discrete (
 
 
 
+import           Data.Vector (Vector, (!), (!?))
 import qualified Data.Vector as V
-import Data.Vector (Vector, (!), (!?))
 
 import Draw.Color
 import Draw.Color.Schemes.Internal.Common

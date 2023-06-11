@@ -724,7 +724,7 @@ insideBoundingBox thing bigObject =
         bigObjectBB = boundingBox bigObject
     in bigObjectBB == bigObjectBB <> thingBB
 
--- | Center/mean/centroid of a bounding box.
+-- | Center\/mean\/centroid of a bounding box.
 --
 -- <<docs/haddock/Geometry/Core/boundingBoxCenter.svg>>
 --

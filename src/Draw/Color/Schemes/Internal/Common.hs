@@ -9,9 +9,9 @@ module Draw.Color.Schemes.Internal.Common (
 
 
 
-import qualified Data.Vector as V
-import Data.Vector (Vector, (!))
-import Data.Ord.Extended
+import           Data.Ord.Extended
+import           Data.Vector       (Vector, (!))
+import qualified Data.Vector       as V
 
 import Draw.Color
 import Numerics.Interpolation

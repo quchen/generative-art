@@ -474,7 +474,7 @@ rawSimplexNoise4 perm permMod32 xin yin zin win =
 
     in 27 * sum' cornerContributions
 
--- | Named arguments for 'simplex2', 'simplex3', 'simplex4'.
+-- | Named arguments for 'simplex1', 'simplex2', 'simplex3', 'simplex4'.
 data SimplexParameters = SimplexParameters
     { _simplexFrequency :: Double
         -- ^ Frequency of the first octave, e.g. \(\frac1{2\text{width}}\) to span the whole width of the picture.
@@ -533,7 +533,7 @@ simplex1 gen SimplexParameters{..} = do
 -- @
 -- noiseFunction = 'runST' $ do
 --     gen <- 'MWC.create'
---     'simplex2' 'def' gen
+--     'simplex2' gen 'def'
 -- 'for_' [1..10] $ \x ->
 --     'for_' [1..10] $ \y ->
 --         'print' ('noiseFunction' (Vec2 x y))
