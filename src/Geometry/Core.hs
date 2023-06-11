@@ -1314,9 +1314,10 @@ direction = vectorOf . normalizeLine
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/line_reverse.svg" 100 60 $ \_ -> do
---     let line = Line (Vec2 10 10) (Vec2 70 50)
+-- haddockRender "Geometry/Core/line_reverse.svg" 180 150 $ \_ -> do
+--     let line = Line (Vec2 10 10) (Vec2 150 140)
 --         line' = lineReverse line
+--     C.setLineWidth 2
 --     cairoScope $ do
 --         sketch (Arrow line def)
 --         C.stroke
@@ -1326,7 +1327,7 @@ direction = vectorOf . normalizeLine
 --         sketch (Arrow line' def)
 --         C.stroke
 -- :}
--- Generated file: size 2KB, crc32: 0xc8ad41ff
+-- Generated file: size 2KB, crc32: 0x2e031609
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
