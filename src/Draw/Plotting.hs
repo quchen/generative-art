@@ -8,7 +8,7 @@
 --
 -- === __(image code)__
 -- >>> :{
--- D.haddockRender "Draw/Plotting/example.svg" 300 200 $ do
+-- D.haddockRender "Draw/Plotting/example.svg" 300 200 $ \_ -> do
 --     let haskellLogo' = transform mirrorYCoords haskellLogo
 --         geometry = transform (transformBoundingBox haskellLogo' (shrinkBoundingBox 10 [zero, Vec2 300 200]) def) haskellLogo'
 --         plotSettings = def { _canvasBoundingBox = Just (boundingBox [zero, Vec2 300 200]) }

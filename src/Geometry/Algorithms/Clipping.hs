@@ -6,7 +6,7 @@
 -- >>> import Draw
 -- >>> import qualified Graphics.Rendering.Cairo as C
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/complicated_intersection.svg" 200 160 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/complicated_intersection.svg" 200 160 $ \_ -> do
 --     let p1 = Polygon
 --             [ Vec2 40 30, Vec2 140 30, Vec2 140 140, Vec2 120 140, Vec2 120 80, Vec2 100 80
 --             , Vec2 100 140, Vec2 80 140, Vec2 80 60, Vec2 60 60, Vec2 60 140, Vec2 40 140 ]
@@ -75,7 +75,7 @@ import Geometry.Core
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/hatched_polygon.svg" 100 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/hatched_polygon.svg" 100 100 $ \_ -> do
 --     let polygon = Polygon [Vec2 10 10, Vec2 70 45, Vec2 90 10, Vec2 90 90, Vec2 50 55, Vec2 10 90]
 --     let hatching = hatch polygon (deg 30) 10 0
 --     cairoScope $ do

@@ -78,7 +78,7 @@ instance Transform Bezier where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Bezier/bounding_box_bezier.svg" 150 100 $ do
+-- haddockRender "Geometry/Bezier/bounding_box_bezier.svg" 150 100 $ \_ -> do
 --     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
 --                     fitToBox = transform (transformBoundingBox curveRaw (shrinkBoundingBox 10 [zero, Vec2 150 100]) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 --                 in fitToBox curveRaw
@@ -194,7 +194,7 @@ bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Bezier/subdivide_s_t_comparison.svg" 300 150 $ do
+-- haddockRender "Geometry/Bezier/subdivide_s_t_comparison.svg" 300 150 $ \_ -> do
 --     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
 --                     fitToBox = transform (transformBoundingBox curveRaw (Vec2 10 10, Vec2 290 90) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 --                 in fitToBox curveRaw
@@ -294,7 +294,7 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Bezier/bezierSubdivideCasteljau.svg" 500 330 $ do
+-- haddockRender "Geometry/Bezier/bezierSubdivideCasteljau.svg" 500 330 $ \_ -> do
 --     let curve = let curveRaw = transform (rotate (deg (-30))) (Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3))
 --                     fitToBox = transform (transformBoundingBox curveRaw (shrinkBoundingBox 10 [zero, Vec2 500 200]) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 --                 in fitToBox curveRaw
@@ -352,7 +352,7 @@ bezierSubdivideCasteljau tolerance curve@(Bezier pFirst _ _ _) = pFirst : go cur
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Bezier/bezierSmoothen.svg" 400 300 $ do
+-- haddockRender "Geometry/Bezier/bezierSmoothen.svg" 400 300 $ \_ -> do
 --     let points = [ Vec2 100 275, Vec2 150 125, Vec2 300 275, Vec2 350 75
 --                  , Vec2 250 50, Vec2 75 75, Vec2 75 50, Vec2 225 100
 --                  , Vec2 100 275 ]

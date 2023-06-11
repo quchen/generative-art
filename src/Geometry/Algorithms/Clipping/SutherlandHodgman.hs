@@ -19,7 +19,7 @@ import Geometry.Core
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg" 110 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg" 110 100 $ \_ -> do
 --     let subject = Polygon [Vec2 10 10, Vec2 10 90, Vec2 50 50, Vec2 90 90, Vec2 90 10]
 --         Polygon scissors' = boundingBoxPolygon [Vec2 40 30, Vec2 100 80]
 --         scissors = Polygon ( scissors')

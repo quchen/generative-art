@@ -37,7 +37,7 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
@@ -70,7 +70,7 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
@@ -113,7 +113,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         distribution p = let r = norm (p -. Vec2 150 150) in gaussianFalloff 75 20 r

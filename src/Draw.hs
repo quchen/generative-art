@@ -131,7 +131,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 200 160 $ do
+        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 200 160 $ \_ -> do
         --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
         --     cairoScope $ do
         --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
@@ -157,7 +157,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard.svg" 200 160 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard.svg" 200 160 $ \_ -> do
         --     coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp 160)
         --     cairoScope $ do
         --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
@@ -183,7 +183,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ \_ -> do
         --     let (w,h) = (200,160)
         --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
         --     cairoScope $ do
@@ -339,7 +339,7 @@ lineToVec (Vec2 x y) = lineTo x y
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
 --     stroke
@@ -390,7 +390,7 @@ data Arrow = Arrow !Line !ArrowSpec
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
@@ -451,7 +451,7 @@ instance Sketch a => Sketch (Maybe a) where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
@@ -468,7 +468,7 @@ instance Sketch Line where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
@@ -487,7 +487,7 @@ instance Sketch Polyline where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
@@ -503,7 +503,7 @@ instance Sketch Polygon where
 -- === __(image code)__
 --
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Circle.svg" 200 200 $ do
+-- haddockRender "Draw/instance_Sketch_Circle.svg" 200 200 $ \_ -> do
 --     sketch (Circle (Vec2 100 100) 90)
 --     stroke
 -- :}
@@ -516,7 +516,7 @@ instance Sketch Circle where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
 --                         (toEllipse (Circle zero 45)))
@@ -543,7 +543,7 @@ data Cross = Cross
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ do
+-- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Cross  (Vec2 20 20) 15) >> stroke
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
@@ -565,7 +565,7 @@ instance Sketch Cross where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ do
+-- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ \_ -> do
 --     C.setLineWidth 2
 --     setColor (mma 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
 --     setColor (mma 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
@@ -604,7 +604,7 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ \_ -> do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
 --     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mma 1) >> setDash [4,6] 0 >> stroke)
 --     sketch (boundingBox geometry)
@@ -651,7 +651,7 @@ instance Default CartesianParams where
 --
 -- <<docs/haddock/Draw/cartesianCoordinateSystem.svg>>
 -- >>> :{
--- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
+-- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 $ \_ -> cartesianCoordinateSystem def
 -- :}
 -- Generated file: size 21KB, crc32: 0xf43aac0c
 cartesianCoordinateSystem :: CartesianParams -> Render ()
@@ -711,7 +711,7 @@ instance Default PolarParams where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ do
+-- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ \_ -> do
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
@@ -762,7 +762,7 @@ withOperator op actions = do
 -- dashed, and afterwards fall back to the implicit defaults:
 --
 -- >>> :{
--- haddockRender "Draw/cairoScope.svg" 200 40 $ do
+-- haddockRender "Draw/cairoScope.svg" 200 40 $ \_ -> do
 --     let line = Line (Vec2 10 0) (Vec2 190 0)
 --     cairoScope $ do
 --         C.translate 0 30

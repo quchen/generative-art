@@ -42,7 +42,7 @@ newtype CellSize = CellSize Double
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg" 300 300 $ \_ -> do
 --     let points = runST $ do
 --             gen <- MWC.create
 --             poissonDisc gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 10 4
@@ -98,7 +98,7 @@ poissonDisc gen bb' radius k = do
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg" 300 300 $ \_ -> do
 --     let initialPoints = [Vec2 50 50, Vec2 150 150, Vec2 250 250]
 --         forest = runST $ do
 --             gen <- MWC.create

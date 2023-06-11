@@ -115,7 +115,7 @@ pathToPoints coordinates indices = V.backpermute coordinates (coerce indices)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/input_path.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/input_path.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -146,7 +146,7 @@ inputPath = (coerce :: Vector Int -> Vector TspPoint) . V.enumFromN 0 . V.length
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/nearest_neighbour_path.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/nearest_neighbour_path.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -454,7 +454,7 @@ tsp3optInplace dm path = loop0
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/2-opt.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/2-opt.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -487,7 +487,7 @@ tsp2optPath dm = V.modify (tsp2optInplace dm)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/3-opt.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/3-opt.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
