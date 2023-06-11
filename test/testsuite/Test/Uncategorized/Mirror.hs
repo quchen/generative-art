@@ -20,8 +20,8 @@ tests = testVisual "Mirror along an axis" 550 550 "docs/geometry/mirror" $ \_ ->
     mirror2
 
 originalC, mirroredC :: Double -> Render ()
-originalC o = setColor (withOpacity (mathematica97 0) o)
-mirroredC o = setColor (withOpacity (mathematica97 1) o)
+originalC o = setColor (withOpacity (mma 0) o)
+mirroredC o = setColor (withOpacity (mma 1) o)
 
 setMirrorStyle :: Render ()
 setMirrorStyle = setColor (black `withOpacity` 0.5) >> setDash [5,5] 0 >> setLineWidth 1

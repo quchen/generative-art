@@ -68,9 +68,9 @@ module Draw.Plotting (
 
 
 import           Control.Monad.RWS        hiding (modify)
+import           Data.Default.Class
 import           Data.DList               (DList)
 import qualified Data.DList               as DL
-import           Data.Default.Class
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S
@@ -167,11 +167,11 @@ data PlottingSettings = PlottingSettings
     , _previewPenColor :: D.Color Double
     -- ^ Use this color for drawings in the preview. To get a realistic preview,
     -- match this value with the actual color of your pen.
-    -- ('def'ault: @'mathematica97' 1@)
+    -- ('def'ault: @'mma' 1@)
 
     , _previewPenTravelColor :: Maybe (D.Color Double)
     -- ^ Use this color for indicating pen travel in the preview. 'Nothing'
-    -- will disable pen travel preview. ('def'ault: @'Just' ('mathematica97' 0)@)
+    -- will disable pen travel preview. ('def'ault: @'Just' ('mma' 0)@)
 
     , _previewDecorate :: Bool
     -- ^ Show additional decoration in the preview, like origin and bounding box.
@@ -195,8 +195,8 @@ instance Default PlottingSettings where
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
         , _previewPenWidth = 1
-        , _previewPenColor = D.mathematica97 0
-        , _previewPenTravelColor = Just (D.mathematica97 1)
+        , _previewPenColor = D.mma 0
+        , _previewPenTravelColor = Just (D.mma 1)
         , _previewDecorate = True
         }
 
@@ -585,7 +585,7 @@ addHeaderFooter settings writerLog finalState = mconcat [header, body, footer]
 
 decorateCairoPreview :: PlottingSettings -> PlottingState -> C.Render ()
 decorateCairoPreview settings finalState = D.cairoScope $ when (_previewDecorate settings) $ do
-    let colorGood = D.setColor (D.mathematica97 2)
+    let colorGood = D.setColor (D.mma 2)
         colorBad = D.setColor (D.rgb 1 0 0)
         drawZeroMarker = D.cairoScope $ do
             colorGood

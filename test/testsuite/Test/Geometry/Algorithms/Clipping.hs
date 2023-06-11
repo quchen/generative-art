@@ -73,14 +73,14 @@ lineTest = testVisual "Cut my line into pieces" 220 100 "docs/geometry/clipping/
     setDash [] 0
 
     setLineWidth 3
-    setColor $ mathematica97 0
+    setColor $ mma 0
     sketch (Line paperStart p)
     stroke
-    setColor $ mathematica97 3
+    setColor $ mma 3
     sketch (Line p paperEnd)
     stroke
 
-    setColor $ mathematica97 1
+    setColor $ mma 1
     setFontSize 12
     moveTo 60 10
     showText "Cut my line in two pieces"
@@ -101,7 +101,7 @@ polyCutDraw initialPolygon scissors cutResults = do
         sketch (Arrow scissors def{_arrowheadSize = 5, _arrowDrawBody = False})
         stroke
     drawPolygon i polygon = grouped paint $ do
-        setColor $ mathematica97 i
+        setColor $ mma i
         for_ (polygonEdges polygon) $ \edge -> do
             sketch (Arrow edge def
                 { _arrowheadRelPos   = 0.45
@@ -111,7 +111,7 @@ polyCutDraw initialPolygon scissors cutResults = do
             stroke
         sketch polygon
         strokePreserve
-        setColor $ mathematica97 i `withOpacity` 0.1
+        setColor $ mma i `withOpacity` 0.1
         fill
 
 cutSquareTest :: TestTree
@@ -126,7 +126,7 @@ cutSquareTest = do
             (G.transform (G.translate (Vec2 90 10)) scissors)
             (G.transform (G.translate (Vec2 90 10)) cutResult)
 
-        setColor $ mathematica97 1
+        setColor $ mma 1
         setFontSize 12
         moveTo 90 80
         showText (show (length cutResult) ++ " polygons")
@@ -147,7 +147,7 @@ complicatedPolygonTest = do
             (G.transform (G.translate (Vec2 290 100)) scissors)
             (G.transform (G.translate (Vec2 290 100)) cutResult)
 
-        setColor $ mathematica97 1
+        setColor $ mma 1
         setFontSize 12
         moveTo 250 15
         showText (show (length cutResult) ++ " polygons")
@@ -224,7 +224,7 @@ pathologicalCornerCutsTests = do
                 (placeOriginal polygon)
                 (placeOriginal scissors)
                 (placeCut cutResult)
-            setColor $ mathematica97 0
+            setColor $ mma 0
             for_ (let Polygon corners = polygon in corners) $ \corner -> do
                 sketch (Circle (placeOriginal corner) 2.5)
                 stroke
@@ -233,7 +233,7 @@ pathologicalCornerCutsTests = do
                     sketch (Circle (placeCut corner) 2.5)
                     stroke
         let renderDescription = do
-                setColor $ mathematica97 1
+                setColor $ mma 1
                 let Vec2 x y = placeCut (Vec2 0 0) in moveTo x y >> relMoveTo 70 0
                 setFontSize 12
                 extents <- textExtents name
@@ -291,11 +291,11 @@ hatchRegularPolygon = testVisual "Regular polygon" 300 300 "docs/geometry/clippi
 
     setLineWidth 1
     cairoScope $ do
-        setColor (mathematica97 1)
+        setColor (mma 1)
         for_ shading sketch
         stroke
     cairoScope $ do
-        setColor (mathematica97 0)
+        setColor (mma 0)
         sketch polygon
         stroke
 
@@ -307,23 +307,23 @@ hatchSpiralPolygon = testVisual "Spiral polygon" 300 300 "docs/geometry/clipping
 
     setLineWidth 1
     cairoScope $ do
-        for_ (zip [1..] shading) $ \(i, line) -> setColor (mathematica97 i) >> sketch line >> stroke
+        for_ (zip [1..] shading) $ \(i, line) -> setColor (mma i) >> sketch line >> stroke
     cairoScope $ do
-        setColor (mathematica97 0)
+        setColor (mma 0)
         sketch polygon
         stroke
 
 polygonBinaryOpRender :: Polygon -> Polygon -> [(Polygon, IslandOrHole)] -> Render ()
 polygonBinaryOpRender p1 p2 result = do
     setLineJoin LineJoinRound
-    cairoScope $ setColor (mathematica97 0) >> setLineWidth 1 >> sketch p1 >> stroke
-    cairoScope $ setColor (mathematica97 1) >> setLineWidth 1 >> sketch p2 >> stroke
+    cairoScope $ setColor (mma 0) >> setLineWidth 1 >> sketch p1 >> stroke
+    cairoScope $ setColor (mma 1) >> setLineWidth 1 >> sketch p2 >> stroke
     cairoScope $ do
         for_ (zip [2..] result) $ \(i, (polygon, ty)) -> cairoScope $ do
             cairoScope $ do
                 setLineWidth 1
                 sketch polygon
-                setColor (mathematica97 i `withOpacity` 0.2)
+                setColor (mma i `withOpacity` 0.2)
                 fillPreserve
                 setColor black
                 case ty of

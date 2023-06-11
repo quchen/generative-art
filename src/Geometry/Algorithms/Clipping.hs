@@ -19,20 +19,20 @@
 --     setLineJoin LineJoinRound
 --     cairoScope $ do
 --         setLineWidth 1
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch p1
 --         stroke
 --     cairoScope $ do
 --         setLineWidth 1
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         sketch p2
 --         stroke
 --     for_ (zip [2..] cutResult) $ \(i, (polygon, _islandOrHole)) -> cairoScope $ do
 --         setLineWidth 2
 --         sketch polygon
---         setColor (mathematica97 i `withOpacity` 0.2)
+--         setColor (mma i `withOpacity` 0.2)
 --         fillPreserve
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         stroke
 -- :}
 -- Generated file: size 5KB, crc32: 0xd81cbd60
@@ -80,7 +80,7 @@ import Geometry.Core
 --     let hatching = hatch polygon (deg 30) 10 0
 --     cairoScope $ do
 --         for_ hatching sketch
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         stroke
 --     sketch polygon
 --     stroke

@@ -349,9 +349,9 @@ cubeLerp (Hex q1 r1) (Hex q2 r2) t =
 --         fitToCanvas = transform (transformBoundingBox polygons canvas def)
 --     for_ polygons $ \polygon -> cairoScope $ do
 --         sketch (fitToCanvas polygon)
---         setColor (mathematica97 0 `withOpacity` 0.3)
+--         setColor (mma 0 `withOpacity` 0.3)
 --         C.fillPreserve
---         setColor (mathematica97 0 `withOpacity` 0.5)
+--         setColor (mma 0 `withOpacity` 0.5)
 --         C.stroke
 -- :}
 -- Generated file: size 6KB, crc32: 0x5ec289a8
@@ -375,9 +375,9 @@ line start end =
 --         fitToCanvas = transform (transformBoundingBox polygons canvas def)
 --     for_ polygons $ \polygon -> cairoScope $ do
 --         sketch (fitToCanvas polygon)
---         setColor (mathematica97 1 `withOpacity` 0.3)
+--         setColor (mma 1 `withOpacity` 0.3)
 --         C.fillPreserve
---         setColor (mathematica97 1 `withOpacity` 0.5)
+--         setColor (mma 1 `withOpacity` 0.5)
 --         C.stroke
 -- :}
 -- Generated file: size 7KB, crc32: 0xacce7f95

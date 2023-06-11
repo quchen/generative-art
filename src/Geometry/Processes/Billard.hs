@@ -43,15 +43,15 @@ import Geometry.Core
 -- >>>         startVec = angledLine startPoint startAngle 100
 -- >>>         billardPoints = startPoint : take numReflections (billard (polygonEdges lambda) startVec)
 -- >>>     cairoScope $ do
--- >>>         setColor (mathematica97 0)
+-- >>>         setColor (mma 0)
 -- >>>         C.setDash [2,4] 0
 -- >>>         sketch lambda
 -- >>>         C.stroke
 -- >>>     cairoScope $ do
--- >>>         setColor (mathematica97 0)
+-- >>>         setColor (mma 0)
 -- >>>         for_ billardPoints $ \point -> sketch (Circle point 3) >> C.stroke
 -- >>>     cairoScope $ do
--- >>>         setColor (mathematica97 1)
+-- >>>         setColor (mma 1)
 -- >>>         let billardArrows = zipWith Line billardPoints (tail billardPoints)
 -- >>>         for_ billardArrows $ \arr -> sketch arr >> C.stroke
 -- :}

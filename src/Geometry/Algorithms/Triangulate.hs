@@ -34,7 +34,7 @@ import Util
 --     C.setLineJoin C.LineJoinRound
 --     for_ (zip [0..] triangles) $ \(i, triangle) -> cairoScope $ do
 --         sketch triangle
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         C.fillPreserve
 --         C.stroke
 --     cairoScope $ do

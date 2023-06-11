@@ -44,7 +44,7 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 --             gen <- MWC.create
 --             uniformlyDistributedPoints gen bb numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}
@@ -77,7 +77,7 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
 --             gen <- MWC.create
 --             gaussianDistributedPoints gen bb (30 *. mempty) numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}
@@ -121,7 +121,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 --             gen <- MWC.create
 --             rejection gen bb distribution numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}

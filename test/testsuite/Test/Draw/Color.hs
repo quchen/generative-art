@@ -31,7 +31,7 @@ tests = testGroup "Colors"
         [ let maxSwatches = 16 in testGroup "Discrete"
             [ testGroup "Mathematica"
                 [ testGroup "ColorData[97]"
-                    [ testDiscrete "Visual" "docs/colors/schemes/discrete/mathematica/ColorData97" mathematica97 maxSwatches
+                    [ testDiscrete "Visual" "docs/colors/schemes/discrete/mathematica/ColorData97" mma maxSwatches
                     , testCase "Check against Mathematica output" assertReproducesMathematica
                     ]
                 , testGroup "Color Brewer 2"
@@ -269,7 +269,7 @@ assertReproducesMathematica = sequence_ $ flip V.imap mma97reference $ \i expect
             [ "ColorData[97][" ++ show i ++ "] is " ++ show expected
             , "but our function yields " ++ show actual
             ]
-        actual = mathematica97 i
+        actual = mma i
     assertBool err (expected ~== actual)
 
 mma97reference :: V.Vector (Color Double)

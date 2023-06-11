@@ -139,7 +139,7 @@ data CoordinateSystem
         --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
@@ -165,7 +165,7 @@ data CoordinateSystem
         --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
@@ -191,7 +191,7 @@ data CoordinateSystem
         --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 0 (h-20)))) def)
         --         stroke
         --     cairoScope $ do
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-5)) 10))
@@ -234,7 +234,7 @@ haddockRender filename w h actions = do
 
         do -- Set defaults
             C.setLineWidth 1.5
-            setColor (mathematica97 0)
+            setColor (mma 0)
             C.setDash [] 0
             C.setTolerance 0.1 -- 0.1 is Cairo’s default
             C.setAntialias C.AntialiasDefault
@@ -559,9 +559,9 @@ instance Sketch Cross where
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ do
 --     C.setLineWidth 2
---     setColor (mathematica97 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
---     setColor (mathematica97 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
---     setColor (mathematica97 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
+--     setColor (mma 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
+--     setColor (mma 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
+--     setColor (mma 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
 -- :}
 -- Generated file: size 4KB, crc32: 0x1f4ae5da
 instance Sketch Transformation where
@@ -598,7 +598,7 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 -- >>> :{
 -- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
---     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mathematica97 1) >> setDash [4,6] 0 >> stroke)
+--     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mma 1) >> setDash [4,6] 0 >> stroke)
 --     sketch (boundingBox geometry)
 --     stroke
 -- :}
@@ -679,7 +679,7 @@ cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha 
                 moveTo (fromIntegral x) (fromIntegral y)
                 showTextAligned HCenter VTop str
         setFontSize 8
-        setColor (mathematica97 0)
+        setColor (mma 0)
         sequence_ [ centeredText x y (show x ++ "," ++ show y)
                 | x <- [minX, minX+100 .. maxX]
                 , y <- [minY, minY+100 .. maxY] ]
@@ -759,13 +759,13 @@ withOperator op actions = do
 --     cairoScope $ do
 --         C.translate 0 30
 --         setLineWidth 3
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         sketch line
 --         stroke
 --     cairoScope $ do
 --         C.translate 0 20
 --         setDash [5,3] 0
---         setColor (mathematica97 2)
+--         setColor (mma 2)
 --         sketch line
 --         stroke
 --     C.translate 0 10

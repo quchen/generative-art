@@ -47,7 +47,7 @@ newtype CellSize = CellSize Double
 --             gen <- MWC.create
 --             poissonDisc gen (shrinkBoundingBox 30 [zero, Vec2 300 300]) 10 4
 --     for_ (zip [0..] points) $ \(i,p) -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}

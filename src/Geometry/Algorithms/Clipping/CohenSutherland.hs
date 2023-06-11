@@ -37,12 +37,12 @@ import Util
 --                 pure (makeLooong (Line p (p +. polar angle 1)))
 --         clippedLines = mapMaybe (cohenSutherland mask) lines
 --     for_ clippedLines $ \line -> cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         sketch line
 --         C.stroke
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch (boundingBoxPolygon mask)
 --         C.stroke
 -- :}

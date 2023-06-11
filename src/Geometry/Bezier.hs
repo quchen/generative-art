@@ -83,7 +83,7 @@ instance Transform Bezier where
 --                     fitToBox = transform (transformBoundingBox curveRaw (shrinkBoundingBox 10 [zero, Vec2 150 100]) (TransformBBSettings FitWidthHeight IgnoreAspect FitAlignCenter))
 --                 in fitToBox curveRaw
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox curve)
 --         C.stroke
@@ -203,7 +203,7 @@ bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
 --         offsetBelow :: Transform geo => geo -> geo
 --         offsetBelow = transform (translate (Vec2 0 50))
 --     cairoScope $ do
---         setColor $ mathematica97 1
+--         setColor $ mma 1
 --         sketch curve
 --         C.stroke
 --         sketch (offsetBelow curve)
@@ -215,8 +215,8 @@ bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
 --                 let line = resizeLineSymmetric (*0.8) (Line p q)
 --                 sketch line
 --                 C.stroke
---         cairoScope (setColor (mathematica97 0) >> circle e)
---         cairoScope (setColor (mathematica97 3) >> circle u)
+--         cairoScope (setColor (mma 0) >> circle e)
+--         cairoScope (setColor (mma 3) >> circle u)
 --         cairoScope (setColor (black `withOpacity` 0.2) >> connect e u)
 -- :}
 -- Generated file: size 17KB, crc32: 0x7c147951
@@ -301,7 +301,7 @@ s_to_t_lut_ode bz ds = LookupTable1 (sol_to_vec sol)
 --         paintOffset = Vec2 0 30
 --     for_ (zip [0..] [50,25,10,2]) $ \(i, tolerance) -> cairoScope $ do
 --         let points = bezierSubdivideCasteljau tolerance (transform (translate (fromIntegral i *. paintOffset)) curve)
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         C.setLineWidth 2
 --         sketch (Polyline points) >> C.stroke
 --         for_ points $ \p -> sketch (Circle p 3) >> C.fill
@@ -362,16 +362,16 @@ bezierSubdivideCasteljau tolerance curve@(Bezier pFirst _ _ _) = pFirst : go cur
 --                 sketch bezier
 --                 C.stroke
 --             cairoScope $ do
---                 setColor (mathematica97 0)
+--                 setColor (mma 0)
 --                 sketch (Circle p1 4) >> C.fill
 --                 sketch (Line p0 p1) >> C.stroke
 --             cairoScope $ do
---                 setColor (mathematica97 1)
+--                 setColor (mma 1)
 --                 sketch (Circle p2 4) >> C.fill
 --                 sketch (Line p3 p2) >> C.stroke
 --             cairoScope $ do
 --                 sketch (Circle p0 5)
---                 setColor (mathematica97 3)
+--                 setColor (mma 3)
 --                 C.fillPreserve
 --                 setColor black
 --                 C.stroke

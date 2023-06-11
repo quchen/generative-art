@@ -435,7 +435,7 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --     sketch (Circle point 5)
 --     sketch (Circle point' 5)
 --     C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
 -- Generated file: size 2KB, crc32: 0x5f8c6969
@@ -461,7 +461,7 @@ translate = Transformation mempty
 --     cairoScope $ do
 --         sketch (Circle point 5, Circle point' 5)
 --         C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     let line = Line zero point
 --         line' = Line zero point'
 --     cairoScope $ do
@@ -497,7 +497,7 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --         square' = transform (scale 2) square
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch square'
 --     C.stroke
 -- :}
@@ -567,7 +567,7 @@ mirrorYCoords = scale' 1 (-1)
 --         square' = transform (shear 0.5 0.1) square
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch square'
 --     C.stroke
 -- :}
@@ -682,7 +682,7 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 --         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
 --         poissonDisc gen region 15 5
 --     for_ points $ \p -> sketch (Circle p 3) >> C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (boundingBoxPolygon points) >> C.setLineWidth 3 >> C.stroke
 -- :}
 -- Generated file: size 25KB, crc32: 0x40902165
@@ -706,16 +706,16 @@ boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1
 --         paintCheck :: (HasBoundingBox object, Sketch object) => object -> C.Render ()
 --         paintCheck object = do
 --             when (not (object `insideBoundingBox` parentBB)) $ grouped (C.paintWithAlpha 0.2) $ do
---                 setColor (mathematica97 3)
+--                 setColor (mma 3)
 --                 sketch (boundingBox object)
 --                 C.stroke
 --             sketch object
 --             C.stroke
---     cairoScope $ C.setLineWidth 3 >> setColor (mathematica97 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
---     setColor (mathematica97 0) >> paintCheck (Circle (Vec2 110 60) 20)
---     setColor (mathematica97 1) >> paintCheck (Circle (Vec2 80 110) 15)
---     setColor (mathematica97 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
---     setColor (mathematica97 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
+--     cairoScope $ C.setLineWidth 3 >> setColor (mma 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
+--     setColor (mma 0) >> paintCheck (Circle (Vec2 110 60) 20)
+--     setColor (mma 1) >> paintCheck (Circle (Vec2 80 110) 15)
+--     setColor (mma 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
+--     setColor (mma 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
 -- :}
 -- Generated file: size 5KB, crc32: 0x8c351375
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
@@ -737,7 +737,7 @@ insideBoundingBox thing bigObject =
 --         poissonDisc gen region 15 5
 --     let pointsBB = boundingBox points
 --     for_ points $ \p -> sketch (Circle p 3) >> C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (boundingBoxPolygon pointsBB)
 --     sketch (Cross (boundingBoxCenter pointsBB) 10)
 --     sketch (Circle (boundingBoxCenter pointsBB) 10)
@@ -762,9 +762,9 @@ boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 --         let region2 = shrinkBoundingBox 20 [Vec2 50 50, Vec2 200 200]
 --         p2s <- poissonDisc gen region2 15 5
 --         pure (p1s, p2s)
---     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 0) >> C.fill
---     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 1) >> C.fill
---     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mathematica97 3) >> C.stroke
+--     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mma 0) >> C.fill
+--     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mma 1) >> C.fill
+--     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mma 3) >> C.stroke
 -- :}
 -- Generated file: size 25KB, crc32: 0x72cfba9f
 boundingBoxIntersection
@@ -890,7 +890,7 @@ instance (HasBoundingBox a) => HasBoundingBox (M.Map k a) where
 -- haddockRender "Geometry/Core/bounding_box_line.svg" 150 100 $ do
 --     let line = Line (Vec2 10 10) (Vec2 140 90)
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox line)
 --         C.stroke
@@ -913,7 +913,7 @@ instance HasBoundingBox Polygon where
 -- haddockRender "Geometry/Core/bounding_box_polyline.svg" 150 100 $ do
 --     let polyline = Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox polyline)
 --         C.stroke
@@ -1063,12 +1063,12 @@ normSquare v = dotProduct v v
 --     let angle = deg 30
 --         p = polar angle 100
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.arc 0 0 40 0 (getRad angle)
 --         sketch (Line zero p)
 --         C.stroke
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch (Circle p 3)
 --         C.fill
 -- :}
@@ -1158,11 +1158,11 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 --             def {_bbFitAspect = IgnoreAspect}
 --     cairoScope $ do
 --         sketch (transform trafo atan2Plot)
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         C.stroke
 --     cairoScope $ do
 --         sketch (transform trafo pseudoAtan2Plot)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.stroke
 -- :}
 -- Generated file: size 5KB, crc32: 0xda270ddb
@@ -1275,7 +1275,7 @@ direction = vectorOf . normalizeLine
 --         sketch (Arrow line def)
 --         C.stroke
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.translate 20 0
 --         sketch (Arrow line' def)
 --         C.stroke
@@ -1402,12 +1402,12 @@ intersectionLL lineL lineR
 --         subdivisions = subdivideLine 8 line
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
 --         sketch (Circle point 4)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.fill
 -- :}
 -- Generated file: size 4KB, crc32: 0x527103e6
@@ -1436,12 +1436,12 @@ subdivideLine numSegments line@(Line start end) = do
 --         subdivisions = subdivideLineByLength 30 line
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
 --         sketch (Circle point 4)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.fill
 -- :}
 -- Generated file: size 4KB, crc32: 0x6180122d
@@ -1463,7 +1463,7 @@ subdivideLineByLength segmentLength line =
 --     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
 --     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
 --         C.setLineCap C.LineCapRound
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch edge
 --         C.stroke
 -- :}
@@ -1498,7 +1498,7 @@ polygonAngles polygon@(Polygon corners)
 --     for_ points $ \point -> do
 --         sketch (Circle point 3)
 --         C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     for_ (polygonEdges (convexHull points)) $ \edge ->
 --         sketch (Arrow edge def{_arrowheadRelPos=0.5, _arrowheadSize=5})
 --     C.stroke
@@ -1558,7 +1558,7 @@ instance NFData Circle where rnf _ = ()
 -- haddockRender "Geometry/Core/bounding_box_circle.svg" 150 150 $ do
 --     let circle = Circle (Vec2 75 75) 65
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox circle)
 --         C.stroke
@@ -1672,7 +1672,7 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 -- >>>                    C.stroke
 -- >>>            ]
 -- >>>    for_ (zip [0..] actions) $ \(i, action) -> do
--- >>>        setColor (mathematica97 i)
+-- >>>        setColor (mma i)
 -- >>>        action
 -- :}
 -- Generated file: size 42KB, crc32: 0xb3cabf7b
@@ -1697,7 +1697,7 @@ instance Default Ellipse where def = Ellipse mempty
 --         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
 --     let paintWithBB i j geo = cairoScope $ do
 --             grid i j
---             setColor (mathematica97 (i*3+j))
+--             setColor (mma (i*3+j))
 --             cairoScope $ sketch geo >> C.stroke
 --             cairoScope $ C.setDash [1.5,3] 0 >> sketch (boundingBox geo) >> C.stroke
 --     paintWithBB 0 0 (transform (scale 0.9) ellipse)
@@ -1783,7 +1783,7 @@ countEdgeTraversals subjectPoint edges'
 --     C.setLineWidth 2
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     for_ points $ \point -> do
 --         sketch (Circle point 4)
 --         if pointInPolygon point square then C.fill else C.stroke
@@ -1849,7 +1849,7 @@ validatePolygon = \polygon -> do
 --         averate = polygonAverage polygon
 --     sketch polygon
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Circle averate 5)
 --     sketch (Cross averate 5)
 --     C.stroke
@@ -1871,7 +1871,7 @@ polygonAverage (Polygon corners)
 --         centroid = polygonCentroid polygon
 --     sketch polygon
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Circle centroid 5)
 --     sketch (Cross centroid 5)
 --     C.stroke
@@ -2064,8 +2064,8 @@ signedPolygonArea (Polygon ps)
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
 --         if isConvex polygon
---             then setColor (mathematica97 2)
---             else setColor (mathematica97 3)
+--             then setColor (mma 2)
+--             else setColor (mma 3)
 --         sketch polygon
 --         C.stroke
 -- :}
@@ -2098,7 +2098,7 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 --         bisector = perpendicularBisector line
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
---     sketch bisector >> setColor (mathematica97 1) >> C.stroke
+--     sketch bisector >> setColor (mma 1) >> C.stroke
 -- :}
 -- Generated file: size 2KB, crc32: 0x9940c32d
 perpendicularBisector :: Line -> Line
@@ -2146,7 +2146,7 @@ rotate90 (Vec2 x y) = Vec2 (-y) x
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
 --     for_ (zip [1..] points) $ \(i, p) -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         cairoScope $ sketch (perpendicularLineThrough p line) >> C.setDash [3,5] 0 >> C.stroke
 --         cairoScope $ sketch (Circle p 5) >> C.fill
 -- :}
