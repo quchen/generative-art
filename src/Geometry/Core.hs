@@ -2106,7 +2106,7 @@ rotate90 :: Vec2 -> Vec2
 rotate90 (Vec2 x y) = Vec2 (-y) x
 
 -- | Line perpendicular to a given line through a point, starting at the
--- intersection point.
+-- intersection point and pointing away from the line.
 --
 -- If the point is on the line directly, fall back to a perpendicular line through
 -- the point of half the length of the input.
@@ -2128,20 +2128,24 @@ rotate90 (Vec2 x y) = Vec2 (-y) x
 --     let line = transform (translate (Vec2 20 20))
 --                          (Line zero (Vec2 (3*40) (4*20)))
 --         points =
---             [ Vec2 20 110 -- above
---             , Vec2 70 90 -- above
---             , Vec2 130 20 -- below
---             , Vec2 110 80 -- directly on
+--             [ Vec2 20 110  -- above
+--             , Vec2 70 90   -- above
+--             , Vec2 130 20  -- below
+--             , Vec2 110 80  -- directly on
 --             , Vec2 130 150 -- beyond
 --             ]
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
---     for_ (zip [1..] points) $ \(i, p) -> do
+--     for_ (zip [1..] points) $ \(i, p) -> cairoScope $ do
 --         setColor (mma i)
---         cairoScope $ sketch (perpendicularLineThrough p line) >> C.setDash [3,5] 0 >> C.stroke
---         cairoScope $ sketch (Circle p 5) >> C.fill
+--         sketch (Arrow (perpendicularLineThrough p line) def)
+--         C.stroke
+--         sketch (Circle p 5)
+--         C.strokePreserve
+--         setColor (mma i `withOpacity` 0.7)
+--         C.fill
 -- :}
--- Generated file: size 4KB, crc32: 0xac73c163
+-- Generated file: size 6KB, crc32: 0xf5ff8529
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p (Line start end) =
     let a = p -. start
