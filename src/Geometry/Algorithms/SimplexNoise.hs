@@ -5,9 +5,37 @@
 -- Optimisations by Peter Eastman. Better rank ordering method for 4D by Stefan
 -- Gustavson in 2012.
 --
---
 -- This code was placed in the public domain by its original author, Stefan
 -- Gustavson. You may use it as you see fit, but attribution is appreciated.
+--
+-- <<docs/haddock/Geometry/Algorithms/SimplexNoise/simplex_noise.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Algorithms/SimplexNoise/simplex_noise.svg" 500 500 $ do
+-- let (w,h) = (500,500)
+-- let (simplexNoiseColor, simplexNoiseVisibility) = runST $ MWC.withRng [] $ \gen -> do
+--         c <- simplex2 gen def
+--             { _simplexFrequency = 5/(2*w)
+--             }
+--         v <- simplex2 gen def
+--             { _simplexFrequency = 10/(2*w)
+--             }
+--         pure (c,v)
+--     cellSize = 5
+--     hexes = hexagonsInRange 30 hexZero
+--     fitToViewport = transformBoundingBox (map (hexagonPoly cellSize) hexes) (shrinkBoundingBox 10 [zero, Vec2 w h]) def
+-- for_ hexes $ \hex -> do
+--     let polygon = hexagonPoly cellSize hex
+--         vec = toVec2 cellSize hex
+--         color = icefire (lerp (-1,1) (0,1) (simplexNoiseColor vec))
+--     sketch (transform fitToViewport (shrinkPolygon 1 polygon))
+--     setColor (color `withOpacity` (lerp (-1,1) (0,1) (simplexNoiseVisibility vec)))
+--     C.fillPreserve
+--     setColor (color `withOpacity` (lerp (-1,1) (1,0.2) (simplexNoiseVisibility vec)))
+--     C.stroke
+-- :}
+-- Generated file: size 1MB, crc32: 0x1e0dba00
 module Geometry.Algorithms.SimplexNoise (
       SimplexParameters(..)
     , simplex1
@@ -30,6 +58,15 @@ import qualified Data.Vector.Mutable     as VM
 import qualified System.Random.MWC       as MWC
 
 import Geometry.Core
+
+
+
+-- $setup
+-- >>> import           Draw
+-- >>> import           Geometry.Coordinates.Hexagonal
+-- >>> import qualified Graphics.Rendering.Cairo       as C
+-- >>> import           Numerics.Interpolation
+-- >>> import qualified System.Random.MWC.Extended     as MWC
 
 
 
@@ -474,10 +511,10 @@ createPermutationTable gen = do
 -- | One-dimensional simplex noise. See 'simplex2' for a code example.
 simplex1
     :: PrimMonad st
-    => SimplexParameters
-    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    => MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> SimplexParameters
     -> st (Double -> Double)
-simplex1 SimplexParameters{..} gen = do
+simplex1 gen SimplexParameters{..} = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
     perm <- createPermutationTable gen
@@ -499,14 +536,14 @@ simplex1 SimplexParameters{..} gen = do
 --     'simplex2' 'def' gen
 -- 'for_' [1..10] $ \x ->
 --     'for_' [1..10] $ \y ->
---         'print' ('noiseFunction' x y)
+--         'print' ('noiseFunction' (Vec2 x y))
 -- @
 simplex2
     :: PrimMonad st
-    => SimplexParameters
-    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    => MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> SimplexParameters
     -> st (Vec2 -> Double)
-simplex2 SimplexParameters{..} gen = do
+simplex2 gen SimplexParameters{..} = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
     perm <- createPermutationTable gen
@@ -524,10 +561,10 @@ simplex2 SimplexParameters{..} gen = do
 -- | Three-dimensional simplex noise. See 'simplex2' for a code example.
 simplex3
     :: PrimMonad st
-    => SimplexParameters
-    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    => MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> SimplexParameters
     -> st (Double -> Double -> Double -> Double) -- ^ \(\text{noise}(x,y,z)\)
-simplex3 SimplexParameters{..} gen = do
+simplex3 gen SimplexParameters{..} = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
     perm <- createPermutationTable gen
@@ -545,10 +582,10 @@ simplex3 SimplexParameters{..} gen = do
 -- | Four-dimensional simplex noise. See 'simplex2' for a code example.
 simplex4
     :: PrimMonad st
-    => SimplexParameters
-    -> MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    => MWC.Gen (PrimState st) -- ^ To initialize the permutation table
+    -> SimplexParameters
     -> st (Double -> Double -> Double -> Double -> Double) -- ^ \(\text{noise}(x,y,z,w)\)
-simplex4 SimplexParameters{..} gen = do
+simplex4 gen SimplexParameters{..} = do
     let frequencies = iterate (* _simplexLacunarity) _simplexFrequency
         amplitudes = iterate (* _simplexPersistence) 1
     perm <- createPermutationTable gen
