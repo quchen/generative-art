@@ -311,12 +311,12 @@ margalitKnott op Regular (polygonA, polygonA_Type) (polygonB', polygonB_Type) =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/union.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/union.svg" 150 150 $ \_ -> do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (unionPP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
 --         sketch polygon
---         setColor (mathematica97 1 `withOpacity` 0.2)
+--         setColor (mma 1 `withOpacity` 0.2)
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
@@ -333,12 +333,12 @@ unionPP = ppBinop Union
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg" 150 150 $ \_ -> do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (intersectionPP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
 --         sketch polygon
---         setColor (mathematica97 1 `withOpacity` 0.2)
+--         setColor (mma 1 `withOpacity` 0.2)
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}
@@ -352,12 +352,12 @@ intersectionPP = ppBinop Intersection
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/difference.svg" 150 150 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/MargalitKnott/difference.svg" 150 150 $ \_ -> do
 --     let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
 --         p2 = boundingBoxPolygon [Vec2 50 50, Vec2 140 140]
 --     for_ (differencePP p1 p2) $ \(polygon, _ty) -> cairoScope $ do
 --         sketch polygon
---         setColor (mathematica97 1 `withOpacity` 0.2)
+--         setColor (mma 1 `withOpacity` 0.2)
 --         fill
 --     sketch (p1, p2) >> stroke
 -- :}

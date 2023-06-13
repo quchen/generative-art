@@ -6,7 +6,7 @@
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Coordinates/Hexagonal/cubes.svg" 360 360 $ do
+-- haddockRender "Geometry/Coordinates/Hexagonal/cubes.svg" 360 360 $ \_ -> do
 --     let cellSize = 10
 --         hexagons = runST $ do
 --             gen <- MWC.create
@@ -341,7 +341,7 @@ cubeLerp (Hex q1 r1) (Hex q2 r2) t =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Coordinates/Hexagonal/line.svg" 300 200 $ do
+-- haddockRender "Geometry/Coordinates/Hexagonal/line.svg" 300 200 $ \_ -> do
 --     let cellSize = 20
 --         canvas = shrinkBoundingBox 10 [zero, Vec2 300 200]
 --         hexes = line hexZero (move R 5 (move UR 3 hexZero))
@@ -349,9 +349,9 @@ cubeLerp (Hex q1 r1) (Hex q2 r2) t =
 --         fitToCanvas = transform (transformBoundingBox polygons canvas def)
 --     for_ polygons $ \polygon -> cairoScope $ do
 --         sketch (fitToCanvas polygon)
---         setColor (mathematica97 0 `withOpacity` 0.3)
+--         setColor (mma 0 `withOpacity` 0.3)
 --         C.fillPreserve
---         setColor (mathematica97 0 `withOpacity` 0.5)
+--         setColor (mma 0 `withOpacity` 0.5)
 --         C.stroke
 -- :}
 -- Generated file: size 6KB, crc32: 0x5ec289a8
@@ -367,7 +367,7 @@ line start end =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Coordinates/Hexagonal/ring.svg" 200 200 $ do
+-- haddockRender "Geometry/Coordinates/Hexagonal/ring.svg" 200 200 $ \_ -> do
 --     let cellSize = 20
 --         canvas = shrinkBoundingBox 10 [zero, Vec2 200 200]
 --         hexes = ring 2 hexZero
@@ -375,9 +375,9 @@ line start end =
 --         fitToCanvas = transform (transformBoundingBox polygons canvas def)
 --     for_ polygons $ \polygon -> cairoScope $ do
 --         sketch (fitToCanvas polygon)
---         setColor (mathematica97 1 `withOpacity` 0.3)
+--         setColor (mma 1 `withOpacity` 0.3)
 --         C.fillPreserve
---         setColor (mathematica97 1 `withOpacity` 0.5)
+--         setColor (mma 1 `withOpacity` 0.5)
 --         C.stroke
 -- :}
 -- Generated file: size 7KB, crc32: 0xacce7f95

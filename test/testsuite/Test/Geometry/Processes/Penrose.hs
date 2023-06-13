@@ -6,7 +6,7 @@ import Data.Foldable
 import Graphics.Rendering.Cairo as C hiding (x, y)
 
 import Draw
-import Geometry as G
+import Geometry                   as G
 import Geometry.Processes.Penrose
 
 import Test.TastyAll
@@ -94,9 +94,9 @@ drawTile Tile{..} = cairoScope $ do
     lineToVec tileP1
     lineToVec tileP2
     clipPreserve
-    setColor $ mathematica97 color
+    setColor $ mma color
     strokePreserve
-    setColor $ mathematica97 color `withOpacity` 0.5
+    setColor $ mma color `withOpacity` 0.5
     fill
 
 drawConnectors :: Tile -> Render ()

@@ -32,7 +32,7 @@ import Geometry.Core
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Shapes/haskell_logo.svg" 130 100 $ do
+-- haddockRender "Geometry/Shapes/haskell_logo.svg" 130 100 $ \_ -> do
 --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
 --     for_ haskellLogo $ \polygon -> do
 --         sketch (transform (translate (Vec2 10 10) <> scale 80) polygon)
@@ -68,7 +68,7 @@ haskellLogoRaw = [left, lambda, upper, lower]
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Shapes/spiral_polygon.svg" 100 100 $ do
+-- haddockRender "Geometry/Shapes/spiral_polygon.svg" 100 100 $ \_ -> do
 --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp 100 100)
 --     let polygon = spiralPolygon 8 10
 --     sketch polygon
@@ -103,7 +103,7 @@ spiralPolygon n width = Polygon (reverse (scanl (+.) (Vec2 0 0) relativeSpiral))
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Shapes/regular_pentagon.svg" 100 100 $ do
+-- haddockRender "Geometry/Shapes/regular_pentagon.svg" 100 100 $ \_ -> do
 --     let polygon = transform (translate (Vec2 50 50) <> scale 45) (regularPolygon 5)
 --     sketch polygon
 --     C.stroke

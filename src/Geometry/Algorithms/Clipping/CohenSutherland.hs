@@ -25,7 +25,7 @@ import Util
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/CohenSutherland/cohenSutherland.svg" 300 200 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/CohenSutherland/cohenSutherland.svg" 300 200 $ \_ -> do
 --     let viewport = boundingBox [zero, Vec2 300 200]
 --         mask = shrinkBoundingBox 20 viewport
 --         lines = runST $ do
@@ -37,12 +37,12 @@ import Util
 --                 pure (makeLooong (Line p (p +. polar angle 1)))
 --         clippedLines = mapMaybe (cohenSutherland mask) lines
 --     for_ clippedLines $ \line -> cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         sketch line
 --         C.stroke
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch (boundingBoxPolygon mask)
 --         C.stroke
 -- :}

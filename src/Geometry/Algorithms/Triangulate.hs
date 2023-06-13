@@ -20,22 +20,21 @@ import Util
 -- | Split a polygon into a number of triangles.
 --
 -- Triangulations often make things easier to handle. For example, you may not know
--- the formula to calculate the area of a polygon (involving
--- [determinants of adjacent point pairs!][poly-area]). But if you know the area of
--- a triangle, then you can calculate the area by summing up the area of the
+-- the formula to calculate the area of a polygon. But if you know the area of a
+-- triangle, then you can calculate the area by summing up the area of the
 -- triangulated pieces.
 --
 -- <<docs/haddock/Geometry/Algorithms/Triangulate/triangulate.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Triangulate/triangulate.svg" 240 210 $ do
+-- haddockRender "Geometry/Algorithms/Triangulate/triangulate.svg" 240 210 $ \_ -> do
 --     let polygon = Polygon [Vec2 10 74, Vec2 130 10, Vec2 140 143, Vec2 199 94, Vec2 232 175, Vec2 188 203, Vec2 35 133, Vec2 103 68]
 --         triangles = triangulate polygon
 --     C.setLineJoin C.LineJoinRound
 --     for_ (zip [0..] triangles) $ \(i, triangle) -> cairoScope $ do
 --         sketch triangle
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         C.fillPreserve
 --         C.stroke
 --     cairoScope $ do

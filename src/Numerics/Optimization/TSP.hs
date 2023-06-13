@@ -115,7 +115,7 @@ pathToPoints coordinates indices = V.backpermute coordinates (coerce indices)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/input_path.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/input_path.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -124,10 +124,10 @@ pathToPoints coordinates indices = V.backpermute coordinates (coerce indices)
 --    let path = inputPath points
 --        tour = Polygon (V.toList (pathToPoints points path))
 --    cairoScope $ do
---        setColor (mathematica97 0)
+--        setColor (mma 0)
 --        for_ points $ \p -> sketch (Circle p 3) >> fill
 --    cairoScope $ do
---        setColor (mathematica97 1)
+--        setColor (mma 1)
 --        sketch tour
 --        stroke
 -- :}
@@ -146,7 +146,7 @@ inputPath = (coerce :: Vector Int -> Vector TspPoint) . V.enumFromN 0 . V.length
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/nearest_neighbour_path.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/nearest_neighbour_path.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -156,10 +156,10 @@ inputPath = (coerce :: Vector Int -> Vector TspPoint) . V.enumFromN 0 . V.length
 --        path = tspNearestNeighbourPath dm
 --        tour = Polygon (V.toList (pathToPoints points path))
 --    cairoScope $ do
---        setColor (mathematica97 0)
+--        setColor (mma 0)
 --        for_ points $ \p -> sketch (Circle p 3) >> fill
 --    cairoScope $ do
---        setColor (mathematica97 2)
+--        setColor (mma 2)
 --        sketch tour
 --        stroke
 -- :}
@@ -454,7 +454,7 @@ tsp3optInplace dm path = loop0
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/2-opt.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/2-opt.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -464,10 +464,10 @@ tsp3optInplace dm path = loop0
 --        path = tsp2optPath dm (tspNearestNeighbourPath dm)
 --        tour = Polygon (V.toList (pathToPoints points path))
 --    cairoScope $ do
---        setColor (mathematica97 0)
+--        setColor (mma 0)
 --        for_ points $ \p -> sketch (Circle p 3) >> fill
 --    cairoScope $ do
---        setColor (mathematica97 3)
+--        setColor (mma 3)
 --        sketch tour
 --        stroke
 -- :}
@@ -487,7 +487,7 @@ tsp2optPath dm = V.modify (tsp2optInplace dm)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Numerics/Optimization/TSP/3-opt.svg" 300 200 $ do
+-- haddockRender "Numerics/Optimization/TSP/3-opt.svg" 300 200 $ \_ -> do
 --    points <- liftIO $ do
 --        gen <- MWC.initialize (V.fromList [])
 --        uniform <- uniformlyDistributedPoints gen (shrinkBoundingBox 10 [zero, Vec2 300 200]) 32
@@ -497,10 +497,10 @@ tsp2optPath dm = V.modify (tsp2optInplace dm)
 --        path = tsp3optPath dm (tspNearestNeighbourPath dm)
 --        tour = Polygon (V.toList (pathToPoints points path))
 --    cairoScope $ do
---        setColor (mathematica97 0)
+--        setColor (mma 0)
 --        for_ points $ \p -> sketch (Circle p 3) >> fill
 --    cairoScope $ do
---        setColor (mathematica97 4)
+--        setColor (mma 4)
 --        sketch tour
 --        stroke
 -- :}

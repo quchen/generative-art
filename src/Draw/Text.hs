@@ -39,7 +39,7 @@ data HAlign = HLeft | HCenter | HRight deriving (Eq, Ord, Show)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/Text/show_text_aligned.svg" 200 30 $ do
+-- haddockRender "Draw/Text/show_text_aligned.svg" 200 30 $ \_ -> do
 --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
 --     C.moveTo (200/2) (30/2)
 --     C.scale 3 3
@@ -94,7 +94,7 @@ instance Default PlotTextOptions where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/Text/plot_text.svg" 200 30 $ do
+-- haddockRender "Draw/Text/plot_text.svg" 200 30 $ \_ -> do
 --     let opts = PlotTextOptions
 --             { _textStartingPoint = Vec2 (200/2) (30/2)
 --             , _textHeight = 20

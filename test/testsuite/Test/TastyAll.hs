@@ -41,8 +41,8 @@ import Geometry.SvgParser
 
 import           Test.Arbitrary
 import           Test.Tasty
-import           Test.Tasty.HUnit                hiding (assertEqual)
-import qualified Test.Tasty.HUnit                as HUnit
+import           Test.Tasty.HUnit      hiding (assertEqual)
+import qualified Test.Tasty.HUnit      as HUnit
 import           Test.Tasty.QuickCheck
 
 

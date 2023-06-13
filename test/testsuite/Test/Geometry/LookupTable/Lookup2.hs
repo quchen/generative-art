@@ -2,9 +2,9 @@ module Test.Geometry.LookupTable.Lookup2 (tests) where
 
 
 
+import Control.DeepSeq
 import Geometry
 import Geometry.LookupTable.Lookup2
-import Control.DeepSeq
 
 import Test.TastyAll
 

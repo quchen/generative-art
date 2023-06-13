@@ -131,7 +131,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 200 160 $ do
+        -- haddockRender "Draw/coordinate_system_cairo_standard.svg" 200 160 $ \_ -> do
         --     coordinateSystem CairoStandard_ZeroTopLeft_XRight_YDown
         --     cairoScope $ do
         --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
@@ -139,7 +139,7 @@ data CoordinateSystem
         --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
@@ -157,7 +157,7 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard.svg" 200 160 $ do
+        -- haddockRender "Draw/coordinate_system_math_standard.svg" 200 160 $ \_ -> do
         --     coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp 160)
         --     cairoScope $ do
         --         sketch (Arrow (angledLine (Vec2 10 10) (deg 0) 180) def)
@@ -165,7 +165,7 @@ data CoordinateSystem
         --         stroke
         --     cairoScope $ do
         --         C.translate 10 10
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-7)) 10))
@@ -183,15 +183,14 @@ data CoordinateSystem
         --
         -- === __(image code)__
         -- >>> :{
-        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ do
-        --     let (w,h) = (200,160)
+        -- haddockRender "Draw/coordinate_system_math_standard_centered.svg" 200 160 $ \(Vec2 w h) -> do
         --     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
         --     cairoScope $ do
         --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 (w-20) 0))) def)
         --         sketch (Arrow (centerLine (Line (Vec2 0 0) (Vec2 0 (h-20)))) def)
         --         stroke
         --     cairoScope $ do
-        --         setColor (mathematica97 1)
+        --         setColor (mma 1)
         --         let radius = 40
         --         arc 0 0 radius 0 (pi/2)
         --         sketch (Arrow (lineReverse (angledLine (Vec2 0 radius) (deg (-5)) 10))
@@ -225,7 +224,15 @@ coordinateSystem cosy = do
 -- Prints status information about the generated file so that doctests fail when
 -- the file contents change. Inspect the new output and update the output if the
 -- result is OK.
-haddockRender :: FilePath -> Int -> Int -> Render () -> IO ()
+haddockRender
+    :: FilePath
+    -> Int -- ^ Image width (px)
+    -> Int -- ^ Image height (px)
+    -> (Vec2 -> Render ())
+        -- ^ The width/height of the image is passed as 'Double'-based 'Vec2's to the
+        -- rendering function for convenience. This makes it easier to write images
+        -- that scale with changes in the width/height parameters.
+    -> IO ()
 haddockRender filename w h actions = do
     let filepath = "docs/haddock/" ++ filename
     render filepath w h $ do
@@ -234,7 +241,7 @@ haddockRender filename w h actions = do
 
         do -- Set defaults
             C.setLineWidth 1.5
-            setColor (mathematica97 0)
+            setColor (mma 0)
             C.setDash [] 0
             C.setTolerance 0.1 -- 0.1 is Cairo’s default
             C.setAntialias C.AntialiasDefault
@@ -244,7 +251,7 @@ haddockRender filename w h actions = do
 
         -- We return the matrix so we can paint the 'haddockAxes' correctly below
         matrix <- cairoScope $ do
-            actions
+            actions (Vec2 (fromIntegral w) (fromIntegral h))
             getMatrix
 
         cairoScope $ do
@@ -331,7 +338,7 @@ lineToVec (Vec2 x y) = lineTo x y
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Bezier.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Bezier (Vec2 10 10) (Vec2 50 200) (Vec2 100 (-50)) (Vec2 140 90))
 --     stroke
@@ -382,7 +389,7 @@ data Arrow = Arrow !Line !ArrowSpec
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Arrow.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Arrow (Line (Vec2 10 10) (Vec2 140 90)) def)
 --     stroke
@@ -443,7 +450,7 @@ instance Sketch a => Sketch (Maybe a) where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Line.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Line (Vec2 10 10) (Vec2 140 90))
 --     stroke
@@ -460,7 +467,7 @@ instance Sketch Line where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Sequential_Vec2.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50])
 --     stroke
@@ -479,7 +486,7 @@ instance Sketch Polyline where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_Polygon.svg" 100 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Polygon [Vec2 20 10, Vec2 10 80, Vec2 45 45, Vec2 60 90, Vec2 90 30])
 --     stroke
@@ -495,7 +502,7 @@ instance Sketch Polygon where
 -- === __(image code)__
 --
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Circle.svg" 200 200 $ do
+-- haddockRender "Draw/instance_Sketch_Circle.svg" 200 200 $ \_ -> do
 --     sketch (Circle (Vec2 100 100) 90)
 --     stroke
 -- :}
@@ -508,7 +515,7 @@ instance Sketch Circle where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ do
+-- haddockRender "Draw/instance_Sketch_Ellipse.svg" 150 100 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (G.transform (G.translate (Vec2 75 50) <> G.rotate (deg 20) <> G.scale' 1.4 0.9)
 --                         (toEllipse (Circle zero 45)))
@@ -535,7 +542,7 @@ data Cross = Cross
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ do
+-- haddockRender "Draw/instance_Sketch_Cross.svg" 90 40 $ \_ -> do
 --     C.setLineWidth 2
 --     sketch (Cross  (Vec2 20 20) 15) >> stroke
 --     sketch (Cross  (Vec2 60 20) 15) >> stroke
@@ -557,11 +564,11 @@ instance Sketch Cross where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ do
+-- haddockRender "Draw/instance_Sketch_Transformation.svg" 300 200 $ \_ -> do
 --     C.setLineWidth 2
---     setColor (mathematica97 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
---     setColor (mathematica97 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
---     setColor (mathematica97 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
+--     setColor (mma 0) >> sketch (G.translate (Vec2 20 20)) >> stroke
+--     setColor (mma 1) >> sketch (G.translate (Vec2 110 50) <> G.rotate (deg 30)) >> stroke
+--     setColor (mma 2) >> sketch (G.shear 0.5 0.2 <> G.translate (Vec2 140 0)) >> stroke
 -- :}
 -- Generated file: size 4KB, crc32: 0x1f4ae5da
 instance Sketch Transformation where
@@ -596,9 +603,9 @@ arcSketchNegative (Vec2 x y) r angleStart angleEnd
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ do
+-- haddockRender "Draw/instance_Sketch_BoundingBox.svg" 100 100 $ \_ -> do
 --     let geometry = [Circle (Vec2 30 30) 25, Circle (Vec2 60 60) 35]
---     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mathematica97 1) >> setDash [4,6] 0 >> stroke)
+--     for_ geometry $ \x -> cairoScope (sketch x >> setColor (mma 1) >> setDash [4,6] 0 >> stroke)
 --     sketch (boundingBox geometry)
 --     stroke
 -- :}
@@ -643,7 +650,7 @@ instance Default CartesianParams where
 --
 -- <<docs/haddock/Draw/cartesianCoordinateSystem.svg>>
 -- >>> :{
--- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 (cartesianCoordinateSystem def)
+-- haddockRender "Draw/cartesianCoordinateSystem.svg" 320 220 $ \_ -> cartesianCoordinateSystem def
 -- :}
 -- Generated file: size 21KB, crc32: 0xf43aac0c
 cartesianCoordinateSystem :: CartesianParams -> Render ()
@@ -679,7 +686,7 @@ cartesianCoordinateSystem params@CartesianParams{..}  = grouped (paintWithAlpha 
                 moveTo (fromIntegral x) (fromIntegral y)
                 showTextAligned HCenter VTop str
         setFontSize 8
-        setColor (mathematica97 0)
+        setColor (mma 0)
         sequence_ [ centeredText x y (show x ++ "," ++ show y)
                 | x <- [minX, minX+100 .. maxX]
                 , y <- [minY, minY+100 .. maxY] ]
@@ -703,7 +710,7 @@ instance Default PolarParams where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ do
+-- haddockRender "Draw/radialCoordinateSystem.svg" 250 250 $ \_ -> do
 --     C.translate 50 50
 --     radialCoordinateSystem def
 -- :}
@@ -754,18 +761,18 @@ withOperator op actions = do
 -- dashed, and afterwards fall back to the implicit defaults:
 --
 -- >>> :{
--- haddockRender "Draw/cairoScope.svg" 200 40 $ do
+-- haddockRender "Draw/cairoScope.svg" 200 40 $ \_ -> do
 --     let line = Line (Vec2 10 0) (Vec2 190 0)
 --     cairoScope $ do
 --         C.translate 0 30
 --         setLineWidth 3
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         sketch line
 --         stroke
 --     cairoScope $ do
 --         C.translate 0 20
 --         setDash [5,3] 0
---         setColor (mathematica97 2)
+--         setColor (mma 2)
 --         sketch line
 --         stroke
 --     C.translate 0 10
@@ -880,7 +887,7 @@ toCairoMatrix trafo =
 -- +-----------------+--------------------------------------------------------------+---------+
 -- | Name            |                                                              | Domain  |
 -- +=================+==============================================================+=========+
--- | 'mathematica97' | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
+-- | 'mma'           | <<docs/colors/schemes/discrete/mathematica/ColorData97.svg>> | [0..∞)  |
 -- +-----------------+--------------------------------------------------------------+---------+
 -- | 'accent'        | <<docs/colors/schemes/discrete/colorbrewer2/accent.svg>>     | [0..7]  |
 -- +-----------------+--------------------------------------------------------------+---------+

@@ -10,6 +10,7 @@ module Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt (
 
 
 
+import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
 import           Data.Heap           (Entry (..), Heap)
@@ -18,7 +19,6 @@ import           Data.Maybe
 import           Data.Vector         (Vector, (!?))
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as VM
-import Control.Monad
 
 import Geometry.Core
 

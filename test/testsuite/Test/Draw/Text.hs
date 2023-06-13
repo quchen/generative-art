@@ -5,7 +5,7 @@ module Test.Draw.Text (tests) where
 
 
 import qualified Graphics.Rendering.Cairo as C
-import Test.TastyAll
+import           Test.TastyAll
 
 import Draw
 import Geometry as G
@@ -22,12 +22,12 @@ testAlignment :: (HAlign, VAlign) -> TestTree
 testAlignment alignment@(hAlign, vAlign) = testVisual (show alignment) 100 100 file $ \(w, h) -> do
     coordinateSystem (MathStandard_ZeroCenter_XRight_YUp w h)
     cairoScope $ do
-        setColor (mathematica97 1)
+        setColor (mma 1)
         sketch (Line (Vec2 0 (-100)) (Vec2 0 100))
         sketch (Line (Vec2 (-100) 0) (Vec2 100 0))
         C.stroke
     cairoScope $ do
-        setColor (mathematica97 0)
+        setColor (mma 0)
         for_ (plotText def {_textHAlign = hAlign, _textVAlign = vAlign} "align") sketch
         C.stroke
   where
@@ -39,7 +39,7 @@ testSize = testVisual "Font size" 580 200 "docs/font/size" $ \(w, h) -> do
     for_ [10, 20, 30, 50] $ \size -> do
         C.translate 0 10
         cairoScope $ do
-            setColor (mathematica97 1)
+            setColor (mma 1)
             sketch (Line (Vec2 2 0) (Vec2 2 size))
             C.stroke
             C.setDash [4, 4] 0
@@ -47,7 +47,7 @@ testSize = testVisual "Font size" 580 200 "docs/font/size" $ \(w, h) -> do
             sketch (Line (Vec2 2 size) (Vec2 w size))
             C.stroke
         cairoScope $ do
-            setColor (mathematica97 0)
+            setColor (mma 0)
             for_ (plotText def {_textHeight = size, _textStartingPoint = Vec2 10 0} "Test xX fF gG") sketch
             C.stroke
         C.translate 0 (size + 10)

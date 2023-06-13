@@ -82,11 +82,11 @@ picassoSquirrel = testVisual "Picasso squirrel" 320 270 "docs/interpolation/2_pi
         setLineWidth 1.5
         for_ beziers $ \bezier -> for_ bezier $ \(Bezier start c1 c2 end) -> do
             cairoScope . grouped (paintWithAlpha 0.7) $ do
-                    setColor $ mathematica97 3
+                    setColor $ mma 3
                     sketch (Circle c1 2) >> fill
                     moveToVec start >> lineToVec c1 >> stroke
             cairoScope . grouped (paintWithAlpha 0.7) $ do
-                    setColor $ mathematica97 1
+                    setColor $ mma 1
                     sketch (Circle c2 2) >> fill
                     moveToVec c2 >> lineToVec end >> stroke
     cairoScope $ do
@@ -161,7 +161,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
 
     cairoScope $ do
         let fit = fitToBox beziers (boundingBox (Vec2 10 10, Vec2 (300-10) (100-10)))
-        setColor $ mathematica97 0
+        setColor $ mma 0
         sketch (PolyBezier (fit beziers))
         stroke
         moveTo 200 70
@@ -174,7 +174,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
             fit = fitToBox (subpoints, simplified) (boundingBox (Vec2 10 110, Vec2 (300-10) (200-10)))
 
         cairoScope $ for_ (fit subpoints) $ \p -> do
-            setColor $ mathematica97 1 `withOpacity` 0.1
+            setColor $ mma 1 `withOpacity` 0.1
             sketch (Circle p 2)
             fill
 
@@ -187,7 +187,7 @@ subdivideBezierCurveTest = testVisual "Subdivide" 300 300 "docs/interpolation/4_
     let interpolated = bezierSmoothen simplified
     cairoScope $ do
         let fit = fitToBox interpolated (boundingBox (Vec2 10 210, Vec2 (300-10) (300-10)))
-        setColor $ mathematica97 3
+        setColor $ mma 3
         sketch (PolyBezier (fit interpolated))
         stroke
         moveTo 200 270
@@ -203,6 +203,6 @@ bezierLoop = testVisual "Loop interpolation" 60 100 "docs/interpolation/bezier_l
 
     for_ geometry $ \bezier -> cairoScope $ do
         sketch [bezier]
-        setColor (mathematica97 0 `withOpacity` 0.5)
+        setColor (mma 0 `withOpacity` 0.5)
         setLineWidth 2
         stroke

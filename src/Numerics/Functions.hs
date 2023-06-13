@@ -18,8 +18,8 @@ module Numerics.Functions (
 
 
 
-import Numerics.Interpolation
 import Data.Ord.Extended
+import Numerics.Interpolation
 
 
 

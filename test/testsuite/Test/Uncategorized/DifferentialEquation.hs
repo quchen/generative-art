@@ -69,7 +69,7 @@ renderTwoBodyProblem (w, h) = do
             newPath
             sketch (Circle sun 16)
             setLineWidth 2
-            setColor $ mathematica97 1
+            setColor $ mma 1
             fillPreserve
             setSourceRGB 0 0 0
             stroke
@@ -82,7 +82,7 @@ renderTwoBodyProblem (w, h) = do
         paintPlanet = cairoScope $ do
             let (_t0, planet) = head planetTrajectory
             sketch (Circle planet 8)
-            setColor $ mathematica97 3
+            setColor $ mma 3
             fillPreserve
             setSourceRGB 0 0 0
             setLineWidth 2

@@ -46,10 +46,10 @@ perpendicularBisectorTest = testVisual "Perpendicular bisector" 190 60 "docs/geo
         bisector = perpendicularBisector line
 
     setLineWidth 1
-    setColor $ mathematica97 0
+    setColor $ mma 0
     sketch line
     stroke
-    setColor $ mathematica97 1
+    setColor $ mma 1
     sketch bisector
     stroke
 
@@ -65,12 +65,12 @@ perpendicularLineThroughTest = testVisual "Perpendicular line through point" 250
         line' = perpendicularLineThrough point line
 
     setLineWidth 1
-    setColor $ mathematica97 0
+    setColor $ mma 0
     sketch line
     stroke
     sketch (Circle point 3)
     stroke
-    setColor $ mathematica97 1
+    setColor $ mma 1
     sketch line'
     stroke
 

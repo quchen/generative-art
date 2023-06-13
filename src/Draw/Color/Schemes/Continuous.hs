@@ -84,6 +84,8 @@ import qualified Draw.Color.Schemes.Internal.Seaborn      as Seaborn
 -- linearly interpolated between.
 --
 -- The actual logo’s colors can be found at @[0, 0.5, 1]@.
+--
+-- <<docs/colors/schemes/continuous/haskell/logo.png>>
 haskell :: Double -> Color Double
 haskell = toColor . clamped Haskell.logo
 

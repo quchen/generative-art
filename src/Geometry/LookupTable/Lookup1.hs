@@ -7,9 +7,9 @@ module Geometry.LookupTable.Lookup1 (
 
 
 
-import qualified Data.Vector   as V
-import Control.DeepSeq
-import Data.Ord.Extended
+import           Control.DeepSeq
+import           Data.Ord.Extended
+import qualified Data.Vector       as V
 
 import Numerics.Interpolation
 

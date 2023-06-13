@@ -25,11 +25,11 @@
 --
 -- >>> delaunay = delaunayTriangulation points
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/delaunay_voronoi.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/delaunay_voronoi.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
@@ -39,14 +39,14 @@
 --         let startRamp = imageSize * 0.4
 --             endRamp = imageSize * 0.8
 --             opacity = 1 - smoothstep startRamp endRamp (let Vec2 _ y = edgeCenter edge in y)
---         setColor (mathematica97 3 `withOpacity` opacity)
+--         setColor (mma 3 `withOpacity` opacity)
 --         sketch edge
 --         stroke
 --     for_ (clipEdgesToBox bb (voronoiEdges delaunay)) $ \edge -> do
 --         let startRamp = imageSize * 0.2
 --             endRamp = imageSize * 0.6
 --             opacity = smoothstep startRamp endRamp (let Vec2 _ y = edgeCenter edge in y)
---         setColor (mathematica97 0 `withOpacity` opacity)
+--         setColor (mma 0 `withOpacity` opacity)
 --         sketch edge
 --         stroke
 -- :}
@@ -129,16 +129,16 @@ delaunayTriangulation = Api.delaunayTriangulation . toVector
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/triangles.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/triangles.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     V.iforM_ (delaunayTriangles delaunay) $ \i triangle -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (growPolygon (-2) triangle)
 --         fill
 -- :}
@@ -154,16 +154,16 @@ delaunayTriangles = Api._triangles
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/edges.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/edges.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     V.iforM_ (delaunayEdges delaunay) $ \i edge -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch edge
 --         stroke
 -- :}
@@ -181,20 +181,20 @@ delaunayEdges = Api._edges
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/voronoi_corners.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/voronoi_corners.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     for_ (clipEdgesToBox bb (voronoiEdges delaunay)) $ \edge -> do
---         setColor (mathematica97 0 `withOpacity` 0.2)
+--         setColor (mma 0 `withOpacity` 0.2)
 --         sketch edge
 --         stroke
 --     V.iforM_ (voronoiCorners delaunay) $ \i corner -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle corner 2)
 --         fill
 -- :}
@@ -214,16 +214,16 @@ voronoiCorners = Api._voronoiCorners
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/voronoi_edges.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/voronoi_edges.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     V.iforM_ (clipEdgesToBox bb (voronoiEdges delaunay)) $ \i edge -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch edge
 --         stroke
 -- :}
@@ -245,16 +245,16 @@ voronoiEdges = Api._voronoiEdges
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/voronoi_cells.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/voronoi_cells.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     V.iforM_ (clipCellsToBox bb (voronoiCells delaunay)) $ \i polygon -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (growPolygon (-2) polygon)
 --         fill
 -- :}
@@ -271,20 +271,20 @@ voronoiCells = Api._voronoiCells
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/convex_hull.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/convex_hull.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     sketch (Polygon (toList (delaunayHull delaunay)))
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     stroke
 --     for_ points $ \p -> do
 --         sketch (Circle p 2)
---         setColor (mathematica97 3)
+--         setColor (mma 3)
 --         fill
 -- :}
 -- Generated file: size 37KB, crc32: 0x461696a3
@@ -303,7 +303,7 @@ delaunayHull = Api._convexHull
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/find_triangle.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/find_triangle.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --         findThesePoints = runST $ do
@@ -312,7 +312,7 @@ delaunayHull = Api._convexHull
 --                 bb' = boundingBox [Vec2 margin' margin', Vec2 (fromIntegral width - margin') (fromIntegral height - margin')]
 --             poissonDisc gen bb' 50 4
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
@@ -324,7 +324,7 @@ delaunayHull = Api._convexHull
 --     for_ (zip [0..] foundTriangleIndices) $ \(i, (needle, p)) -> do
 --         let closest = points V.! p
 --         cairoScope $ do
---             setColor (mathematica97 i)
+--             setColor (mma i)
 --             sketch (Circle closest 3) >> fill
 --             sketch (Circle needle 3) >> fill
 --         cairoScope $ do
@@ -332,7 +332,7 @@ delaunayHull = Api._convexHull
 --             sketch (Circle closest 3) >> stroke
 --             sketch (Circle needle 3) >> stroke
 --         cairoScope $ do
---             setColor (mathematica97 i)
+--             setColor (mma i)
 --             sketch (Line needle closest) >> stroke
 -- :}
 -- Generated file: size 181KB, crc32: 0x6d8c142f
@@ -365,18 +365,18 @@ findClosestInputPoint = Api._findClosestInputPoint
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Delaunay/lloyd_relaxation.svg" width height $ do
+-- haddockRender "Geometry/Algorithms/Delaunay/lloyd_relaxation.svg" width height $ \_ -> do
 --     let margin = 10
 --         bb = boundingBox [Vec2 margin margin, Vec2 (fromIntegral width - margin) (fromIntegral height - margin)]
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         setDash [5,5] 0
 --         sketch (boundingBoxPolygon bb)
 --         stroke
 --     let points' = iterate (lloydRelaxation bb 1) points !! 5
 --         delaunay' = delaunayTriangulation points'
 --     V.iforM_ (clipCellsToBox bb (voronoiCells delaunay')) $ \i polygon -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (growPolygon (-2) polygon)
 --         fill
 -- :}

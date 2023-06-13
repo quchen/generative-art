@@ -19,14 +19,14 @@ import Geometry.Core
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg" 110 100 $ do
+-- haddockRender "Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg" 110 100 $ \_ -> do
 --     let subject = Polygon [Vec2 10 10, Vec2 10 90, Vec2 50 50, Vec2 90 90, Vec2 90 10]
 --         Polygon scissors' = boundingBoxPolygon [Vec2 40 30, Vec2 100 80]
 --         scissors = Polygon ( scissors')
 --         clipped = sutherlandHodgman subject scissors
---     sketch clipped >> setColor (mathematica97 0 `withOpacity` 0.5) >> fill
---     sketch subject >> setColor (mathematica97 1) >> stroke
---     sketch scissors >> setColor (mathematica97 3) >> setDash [3,3] 0 >> stroke
+--     sketch clipped >> setColor (mma 0 `withOpacity` 0.5) >> fill
+--     sketch subject >> setColor (mma 1) >> stroke
+--     sketch scissors >> setColor (mma 3) >> setDash [3,3] 0 >> stroke
 -- :}
 -- Generated file: size 2KB, crc32: 0x722cb97a
 sutherlandHodgman

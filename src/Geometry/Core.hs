@@ -428,14 +428,14 @@ instance (Transform a, Transform b, Transform c, Transform d, Transform e) => Tr
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/translate.svg" 100 50 $ do
+-- haddockRender "Geometry/Core/translate.svg" 100 50 $ \_ -> do
 --     let point = Vec2 20 20
 --         offset = Vec2 70 20
 --         point' = transform (translate offset) point
 --     sketch (Circle point 5)
 --     sketch (Circle point' 5)
 --     C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Arrow (Line point point') def) >> C.stroke
 -- :}
 -- Generated file: size 2KB, crc32: 0x5f8c6969
@@ -454,14 +454,14 @@ translate = Transformation mempty
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/rotate.svg" 100 70 $ do
+-- haddockRender "Geometry/Core/rotate.svg" 100 70 $ \_ -> do
 --     let point = Vec2 90 10
 --         angle = deg 30
 --         point' = transform (rotate angle) point
 --     cairoScope $ do
 --         sketch (Circle point 5, Circle point' 5)
 --         C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     let line = Line zero point
 --         line' = Line zero point'
 --     cairoScope $ do
@@ -492,12 +492,12 @@ rotateAround pivot angle = translate pivot <> rotate angle <> inverse (translate
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/scale.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/scale.svg" 100 100 $ \_ -> do
 --     let square = Polygon [Vec2 10 10, Vec2 10 45, Vec2 45 45, Vec2 45 10]
 --         square' = transform (scale 2) square
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch square'
 --     C.stroke
 -- :}
@@ -562,12 +562,12 @@ mirrorYCoords = scale' 1 (-1)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/shear.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/shear.svg" 100 100 $ \_ -> do
 --     let square = Polygon [Vec2 10 10, Vec2 10 80, Vec2 50 80, Vec2 50 10]
 --         square' = transform (shear 0.5 0.1) square
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch square'
 --     C.stroke
 -- :}
@@ -676,13 +676,12 @@ instance Transform a => Transform (NoBoundingBox a) where transform t (NoBoundin
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxPolygon.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
 --         poissonDisc gen region 15 5
 --     for_ points $ \p -> sketch (Circle p 3) >> C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (boundingBoxPolygon points) >> C.setLineWidth 3 >> C.stroke
 -- :}
 -- Generated file: size 25KB, crc32: 0x40902165
@@ -700,22 +699,21 @@ boundingBoxPolygon object = Polygon [Vec2 x1 y1, Vec2 x2 y1, Vec2 x2 y2, Vec2 x1
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ do
---     let (w,h) = (200,200)
---         parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
+-- haddockRender "Geometry/Core/insideBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
+--     let parentBB = shrinkBoundingBox 50 [zero, Vec2 w h]
 --         paintCheck :: (HasBoundingBox object, Sketch object) => object -> C.Render ()
 --         paintCheck object = do
 --             when (not (object `insideBoundingBox` parentBB)) $ grouped (C.paintWithAlpha 0.2) $ do
---                 setColor (mathematica97 3)
+--                 setColor (mma 3)
 --                 sketch (boundingBox object)
 --                 C.stroke
 --             sketch object
 --             C.stroke
---     cairoScope $ C.setLineWidth 3 >> setColor (mathematica97 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
---     setColor (mathematica97 0) >> paintCheck (Circle (Vec2 110 60) 20)
---     setColor (mathematica97 1) >> paintCheck (Circle (Vec2 80 110) 15)
---     setColor (mathematica97 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
---     setColor (mathematica97 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
+--     cairoScope $ C.setLineWidth 3 >> setColor (mma 3) >> sketch (boundingBoxPolygon parentBB) >> C.stroke
+--     setColor (mma 0) >> paintCheck (Circle (Vec2 110 60) 20)
+--     setColor (mma 1) >> paintCheck (Circle (Vec2 80 110) 15)
+--     setColor (mma 2) >> paintCheck (Line (Vec2 20 40) (Vec2 60 90))
+--     setColor (mma 4) >> paintCheck (transform (translate (Vec2 130 130) <> scale 30) (Geometry.Shapes.regularPolygon 5))
 -- :}
 -- Generated file: size 5KB, crc32: 0x8c351375
 insideBoundingBox :: (HasBoundingBox thing, HasBoundingBox bigObject) => thing -> bigObject -> Bool
@@ -724,20 +722,19 @@ insideBoundingBox thing bigObject =
         bigObjectBB = boundingBox bigObject
     in bigObjectBB == bigObjectBB <> thingBB
 
--- | Center/mean/centroid of a bounding box.
+-- | Center\/mean\/centroid of a bounding box.
 --
 -- <<docs/haddock/Geometry/Core/boundingBoxCenter.svg>>
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxCenter.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region = shrinkBoundingBox 20 [zero, Vec2 w h]
 --         poissonDisc gen region 15 5
 --     let pointsBB = boundingBox points
 --     for_ points $ \p -> sketch (Circle p 3) >> C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (boundingBoxPolygon pointsBB)
 --     sketch (Cross (boundingBoxCenter pointsBB) 10)
 --     sketch (Circle (boundingBoxCenter pointsBB) 10)
@@ -754,17 +751,16 @@ boundingBoxCenter x = let BoundingBox lo hi = boundingBox x in (lo+.hi)/.2
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/boundingBoxIntersection.svg" 200 200 $ \(Vec2 w h) -> do
 --     (p1s, p2s) <- C.liftIO $ MWC.withRng [] $ \gen -> do
 --         let region1 = shrinkBoundingBox 20 [zero, Vec2 150 150]
 --         p1s <- poissonDisc gen region1 15 5
 --         let region2 = shrinkBoundingBox 20 [Vec2 50 50, Vec2 200 200]
 --         p2s <- poissonDisc gen region2 15 5
 --         pure (p1s, p2s)
---     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 0) >> C.fill
---     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mathematica97 1) >> C.fill
---     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mathematica97 3) >> C.stroke
+--     for_ p1s $ \p -> sketch (Circle p 3) >> setColor (mma 0) >> C.fill
+--     for_ p2s $ \p -> sketch (Circle p 3) >> setColor (mma 1) >> C.fill
+--     sketch (fmap boundingBoxPolygon (boundingBoxIntersection p1s p2s)) >> setColor (mma 3) >> C.stroke
 -- :}
 -- Generated file: size 25KB, crc32: 0x72cfba9f
 boundingBoxIntersection
@@ -788,6 +784,58 @@ boundingBoxIntersection a b =
         | otherwise -> Just (BoundingBox (Vec2 minX minY) (Vec2 maxX maxY))
 
 -- | Width and height of a 'BoundingBox'.
+--
+-- <<docs/haddock/Geometry/Core/boundingBoxSize.svg>>
+--
+-- === __(image code)__
+-- >>> :{
+-- haddockRender "Geometry/Core/boundingBoxSize.svg" 300 200 $ \wh -> do
+--     let bb = shrinkBoundingBox 20 [zero, wh]
+--         (bbWidth, bbHeight) = boundingBoxSize bb
+--     cairoScope $ do
+--         setColor (mma 0)
+--         sketch (boundingBoxPolygon bb)
+--         C.stroke
+--     let BoundingBox (Vec2 minX minY) (Vec2 maxX maxY) = shrinkBoundingBox 7 bb
+--         arrowBodyX = resizeLineSymmetric (\l -> l-5) (Line (Vec2 minX minY) (Vec2 maxX minY))
+--         arrowBodyY = resizeLineSymmetric (\l -> l-5) (Line (Vec2 minX maxY) (Vec2 minX minY))
+--     let style = def { _arrowheadSize = 7 }
+--     cairoScope $ do
+--         setColor (mma 1)
+--         cairoScope $ do
+--             sketch (Arrow arrowBodyX style)
+--             sketch (Arrow (lineReverse arrowBodyX) style {_arrowDrawBody = False})
+--             C.stroke
+--         cairoScope $ do
+--             let Line start end = arrowBodyX
+--                 Line _ textGoesHere = resizeLine (const 5) (perpendicularBisector arrowBodyX)
+--             let textOpts = PlotTextOptions
+--                     { _textStartingPoint = textGoesHere
+--                     , _textHeight = 10
+--                     , _textHAlign = HCenter
+--                     , _textVAlign = VBottom
+--                     }
+--             for_ (plotText textOpts (printf "width: %.f px" bbWidth)) sketch
+--             C.stroke
+--     cairoScope $ do
+--         setColor (mma 3)
+--         cairoScope $ do
+--             sketch (Arrow arrowBodyY style)
+--             sketch (Arrow (lineReverse arrowBodyY) style {_arrowDrawBody = False})
+--             C.stroke
+--         cairoScope $ do
+--             let Line start end = arrowBodyY
+--                 Line _ textGoesHere = resizeLine (const 5) (perpendicularBisector arrowBodyY)
+--             let textOpts = PlotTextOptions
+--                     { _textStartingPoint = textGoesHere
+--                     , _textHeight = 10
+--                     , _textHAlign = HLeft
+--                     , _textVAlign = VCenter
+--                     }
+--             for_ (plotText textOpts (printf "height: %.f px" bbHeight)) sketch
+--             C.stroke
+-- :}
+-- Generated file: size 9KB, crc32: 0x1ff78b56
 boundingBoxSize :: HasBoundingBox a => a -> (Double, Double)
 boundingBoxSize x = (abs deltaX, abs deltaY)
   where
@@ -802,8 +850,7 @@ boundingBoxSize x = (abs deltaX, abs deltaY)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/growBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
 --     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
 --     for_ [0,5..25] $ \amount -> cairoScope $ do
 --         when (amount == 0) (C.setLineWidth 3)
@@ -828,8 +875,7 @@ growBoundingBox delta stuff  =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/shrinkBoundingBox.svg" 200 200 $ \(Vec2 w h) -> do
 --     let bb = shrinkBoundingBox 40 [zero, Vec2 w h]
 --     for_ [0,5..25] $ \amount -> cairoScope $ do
 --         when (amount == 0) (C.setLineWidth 3)
@@ -887,10 +933,10 @@ instance (HasBoundingBox a) => HasBoundingBox (M.Map k a) where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/bounding_box_line.svg" 150 100 $ do
+-- haddockRender "Geometry/Core/bounding_box_line.svg" 150 100 $ \_ -> do
 --     let line = Line (Vec2 10 10) (Vec2 140 90)
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox line)
 --         C.stroke
@@ -910,10 +956,10 @@ instance HasBoundingBox Polygon where
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/bounding_box_polyline.svg" 150 100 $ do
+-- haddockRender "Geometry/Core/bounding_box_polyline.svg" 150 100 $ \_ -> do
 --     let polyline = Polyline [Vec2 10 10, Vec2 90 90, Vec2 120 10, Vec2 140 50]
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox polyline)
 --         C.stroke
@@ -1059,16 +1105,16 @@ normSquare v = dotProduct v v
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/polar.svg" 100 60 $ do
+-- haddockRender "Geometry/Core/polar.svg" 100 60 $ \_ -> do
 --     let angle = deg 30
 --         p = polar angle 100
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.arc 0 0 40 0 (getRad angle)
 --         sketch (Line zero p)
 --         C.stroke
 --     cairoScope $ do
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch (Circle p 3)
 --         C.fill
 -- :}
@@ -1142,7 +1188,7 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/pseudo_angle.svg" 200 100 $ do
+-- haddockRender "Geometry/Core/pseudo_angle.svg" 200 100 $ \_ -> do
 --     let anglesDeg = takeWhile (< 180) [-180, -175 ..]
 --         atan2Plot = Polyline $ do
 --             angleDeg <- anglesDeg
@@ -1158,11 +1204,11 @@ normalizeAngle start a = rad (getRad (a -. start) `rem'` (2*pi)) +. start
 --             def {_bbFitAspect = IgnoreAspect}
 --     cairoScope $ do
 --         sketch (transform trafo atan2Plot)
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         C.stroke
 --     cairoScope $ do
 --         sketch (transform trafo pseudoAtan2Plot)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.stroke
 -- :}
 -- Generated file: size 5KB, crc32: 0xda270ddb
@@ -1268,19 +1314,20 @@ direction = vectorOf . normalizeLine
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/line_reverse.svg" 100 60 $ do
---     let line = Line (Vec2 10 10) (Vec2 70 50)
+-- haddockRender "Geometry/Core/line_reverse.svg" 180 150 $ \_ -> do
+--     let line = Line (Vec2 10 10) (Vec2 150 140)
 --         line' = lineReverse line
+--     C.setLineWidth 2
 --     cairoScope $ do
 --         sketch (Arrow line def)
 --         C.stroke
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.translate 20 0
 --         sketch (Arrow line' def)
 --         C.stroke
 -- :}
--- Generated file: size 2KB, crc32: 0xc8ad41ff
+-- Generated file: size 2KB, crc32: 0x2e031609
 lineReverse :: Line -> Line
 lineReverse (Line start end) = Line end start
 
@@ -1397,17 +1444,17 @@ intersectionLL lineL lineR
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/subdivide_line.svg" 200 150 $ do
+-- haddockRender "Geometry/Core/subdivide_line.svg" 200 150 $ \_ -> do
 --     let line = Line (Vec2 20 20) (Vec2 190 140)
 --         subdivisions = subdivideLine 8 line
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
 --         sketch (Circle point 4)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.fill
 -- :}
 -- Generated file: size 4KB, crc32: 0x527103e6
@@ -1431,17 +1478,17 @@ subdivideLine numSegments line@(Line start end) = do
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ do
+-- haddockRender "Geometry/Core/subdivide_line_by_length.svg" 200 150 $ \_ -> do
 --     let line = Line (Vec2 20 20) (Vec2 190 140)
 --         subdivisions = subdivideLineByLength 30 line
 --     cairoScope $ do
 --         C.setLineWidth 2
---         setColor (mathematica97 0)
+--         setColor (mma 0)
 --         sketch line
 --         C.stroke
 --     cairoScope $ for_ subdivisions $ \point -> do
 --         sketch (Circle point 4)
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.fill
 -- :}
 -- Generated file: size 4KB, crc32: 0x6180122d
@@ -1459,11 +1506,11 @@ subdivideLineByLength segmentLength line =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/polygon_edges.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_edges.svg" 100 100 $ \_ -> do
 --     let polygon = Polygon [ transform (rotateAround (Vec2 50 50) (deg d)) (Vec2 50 10) | d <- take 5 [0, 360/5 ..] ]
 --     for_ (zip [0..] (polygonEdges polygon)) $ \(i, edge) -> do
 --         C.setLineCap C.LineCapRound
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch edge
 --         C.stroke
 -- :}
@@ -1487,8 +1534,7 @@ polygonAngles polygon@(Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ do
---     let (w,h) = (200,200)
+-- haddockRender "Geometry/Core/convex_hull.svg" 200 200 $ \(Vec2 w h) -> do
 --     points <- C.liftIO $ MWC.withRng [] $ \gen ->
 --         gaussianDistributedPoints
 --             gen
@@ -1498,7 +1544,7 @@ polygonAngles polygon@(Polygon corners)
 --     for_ points $ \point -> do
 --         sketch (Circle point 3)
 --         C.fill
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     for_ (polygonEdges (convexHull points)) $ \edge ->
 --         sketch (Arrow edge def{_arrowheadRelPos=0.5, _arrowheadSize=5})
 --     C.stroke
@@ -1555,10 +1601,10 @@ instance NFData Circle where rnf _ = ()
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/bounding_box_circle.svg" 150 150 $ do
+-- haddockRender "Geometry/Core/bounding_box_circle.svg" 150 150 $ \_ -> do
 --     let circle = Circle (Vec2 75 75) 65
 --     cairoScope $ do
---         setColor (mathematica97 1)
+--         setColor (mma 1)
 --         C.setDash [1.5,3] 0
 --         sketch (boundingBox circle)
 --         C.stroke
@@ -1603,77 +1649,76 @@ toEllipse (Circle center radius) = Ellipse (translate center <> scale radius)
 --
 -- === __(image code)__
 -- >>> :{
--- >>> haddockRender "Geometry/Core/ellipses.svg" 300 300 $ do
--- >>>    let (w,h) = (300,300)
--- >>>        center = zero
--- >>>        radius = w/6*0.9
--- >>>        ellipse = toEllipse (Circle center radius)
--- >>>        grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
--- >>>    let actions =
--- >>>            [ cairoScope $ do
--- >>>                grid 0 0
--- >>>                for_ (take 10 [0..]) $ \i -> do
--- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
--- >>>                    sketch (transform (scaleAround center scaleFactor) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 1 0
--- >>>                for_ (take 10 [0..]) $ \i -> do
--- >>>                    let scaleFactor = lerpID (0,9) (0.1, 1) i
--- >>>                    sketch (transform (scaleAround' center scaleFactor 1) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 2 0
--- >>>                for_ [0..9] $ \i -> do
--- >>>                    let scaleFactor1 = lerp (0, 9) (1, 0.1) (fromIntegral i)
--- >>>                        scaleFactor2 = lerp (0, 9) (0.1, 1) (fromIntegral i)
--- >>>                    sketch (transform (scaleAround' center scaleFactor1 scaleFactor2) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 0 1
--- >>>                for_ (take 10 [0..]) $ \i -> do
--- >>>                    let scaleX = scaleAround' center (lerpID (0,9) (0.5,1) (fromIntegral i)) 1
--- >>>                        scaleY = scaleAround' center 1 (lerpID (0,9) (0.1,1) (fromIntegral i))
--- >>>                    sketch (transform (scaleX <> scaleY) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 1 1
--- >>>                for_ (take 10 [0..]) $ \i -> do
--- >>>                    let angle = deg (lerpID (0,9) (0, 90) i)
--- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 2 1
--- >>>                for_ (take 19 [0..]) $ \i -> do
--- >>>                    let angle = deg (lerpID (0,19) (0, 180) i)
--- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 0 2
--- >>>                for_ (take 9 [0..]) $ \i -> do
--- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
--- >>>                        angle = deg (lerpID (0,9) (90,0) i)
--- >>>                    sketch (transform (rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 1 2
--- >>>                for_ (take 9 [0..]) $ \i -> do
--- >>>                    let scaleFactor = lerpID (0,9) (1,0.1) i
--- >>>                        angle = deg (lerpID (0,9) (0,90) i)
--- >>>                    sketch (transform (scaleAround center scaleFactor <> rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
--- >>>                    C.stroke
--- >>>            , cairoScope $ do
--- >>>                grid 2 2
--- >>>                for_ (take 9 [0..]) $ \i -> do
--- >>>                    let BoundingBox topLeft _ = boundingBox ellipse
--- >>>                        scaleFactor = lerpID (0,9) (1,0.1) i
--- >>>                        angle = deg (lerpID (0,9) (0,90) i)
--- >>>                    sketch (transform (rotateAround center angle <> scaleAround (0.5 *. (topLeft -. center)) scaleFactor) ellipse)
--- >>>                    C.stroke
--- >>>            ]
--- >>>    for_ (zip [0..] actions) $ \(i, action) -> do
--- >>>        setColor (mathematica97 i)
--- >>>        action
+-- haddockRender "Geometry/Core/ellipses.svg" 300 300 $ \(Vec2 w h) -> do
+--     let center = zero
+--         radius = w/6*0.9
+--         ellipse = toEllipse (Circle center radius)
+--         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
+--     let actions =
+--             [ cairoScope $ do
+--                 grid 0 0
+--                 for_ (take 10 [0..]) $ \i -> do
+--                     let scaleFactor = lerpID (0,9) (0.1, 1) i
+--                     sketch (transform (scaleAround center scaleFactor) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 1 0
+--                 for_ (take 10 [0..]) $ \i -> do
+--                     let scaleFactor = lerpID (0,9) (0.1, 1) i
+--                     sketch (transform (scaleAround' center scaleFactor 1) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 2 0
+--                 for_ [0..9] $ \i -> do
+--                     let scaleFactor1 = lerp (0, 9) (1, 0.1) (fromIntegral i)
+--                         scaleFactor2 = lerp (0, 9) (0.1, 1) (fromIntegral i)
+--                     sketch (transform (scaleAround' center scaleFactor1 scaleFactor2) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 0 1
+--                 for_ (take 10 [0..]) $ \i -> do
+--                     let scaleX = scaleAround' center (lerpID (0,9) (0.5,1) (fromIntegral i)) 1
+--                         scaleY = scaleAround' center 1 (lerpID (0,9) (0.1,1) (fromIntegral i))
+--                     sketch (transform (scaleX <> scaleY) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 1 1
+--                 for_ (take 10 [0..]) $ \i -> do
+--                     let angle = deg (lerpID (0,9) (0, 90) i)
+--                     sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 2 1
+--                 for_ (take 19 [0..]) $ \i -> do
+--                     let angle = deg (lerpID (0,19) (0, 180) i)
+--                     sketch (transform (rotateAround center angle <> scaleAround' center 1 0.5) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 0 2
+--                 for_ (take 9 [0..]) $ \i -> do
+--                     let scaleFactor = lerpID (0,9) (1,0.1) i
+--                         angle = deg (lerpID (0,9) (90,0) i)
+--                     sketch (transform (rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 1 2
+--                 for_ (take 9 [0..]) $ \i -> do
+--                     let scaleFactor = lerpID (0,9) (1,0.1) i
+--                         angle = deg (lerpID (0,9) (0,90) i)
+--                     sketch (transform (scaleAround center scaleFactor <> rotateAround center angle <> scaleAround' center 1 scaleFactor) ellipse)
+--                     C.stroke
+--             , cairoScope $ do
+--                 grid 2 2
+--                 for_ (take 9 [0..]) $ \i -> do
+--                     let BoundingBox topLeft _ = boundingBox ellipse
+--                         scaleFactor = lerpID (0,9) (1,0.1) i
+--                         angle = deg (lerpID (0,9) (0,90) i)
+--                     sketch (transform (rotateAround center angle <> scaleAround (0.5 *. (topLeft -. center)) scaleFactor) ellipse)
+--                     C.stroke
+--             ]
+--     for_ (zip [0..] actions) $ \(i, action) -> do
+--         setColor (mma i)
+--         action
 -- :}
 -- Generated file: size 42KB, crc32: 0xb3cabf7b
 newtype Ellipse = Ellipse Transformation
@@ -1690,14 +1735,13 @@ instance Default Ellipse where def = Ellipse mempty
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ do
---     let (w,h) = (300,300)
---         radius = w/6*0.9
+-- haddockRender "Geometry/Core/bounding_box_ellipse.svg" 300 300 $ \(Vec2 w h) -> do
+--     let radius = w/6*0.9
 --         ellipse = toEllipse (Circle zero radius)
 --         grid i j = C.translate (fromIntegral i*w/3 + w/6) (fromIntegral j*h/3 + w/6)
---     let paintWithBB i j geo = cairoScope $ do
+--         paintWithBB i j geo = cairoScope $ do
 --             grid i j
---             setColor (mathematica97 (i*3+j))
+--             setColor (mma (i*3+j))
 --             cairoScope $ sketch geo >> C.stroke
 --             cairoScope $ C.setDash [1.5,3] 0 >> sketch (boundingBox geo) >> C.stroke
 --     paintWithBB 0 0 (transform (scale 0.9) ellipse)
@@ -1777,13 +1821,13 @@ countEdgeTraversals subjectPoint edges'
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/point_in_polygon.svg" 180 180 $ do
+-- haddockRender "Geometry/Core/point_in_polygon.svg" 180 180 $ \_ -> do
 --     let square = boundingBoxPolygon (shrinkBoundingBox 40 [zero, Vec2 180 180])
 --         points = subdivideLine 11 (Line (Vec2 20 120) (Vec2 160 60))
 --     C.setLineWidth 2
 --     sketch square
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     for_ points $ \point -> do
 --         sketch (Circle point 4)
 --         if pointInPolygon point square then C.fill else C.stroke
@@ -1844,12 +1888,12 @@ validatePolygon = \polygon -> do
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/polygon_average.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_average.svg" 100 100 $ \_ -> do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         averate = polygonAverage polygon
 --     sketch polygon
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Circle averate 5)
 --     sketch (Cross averate 5)
 --     C.stroke
@@ -1866,12 +1910,12 @@ polygonAverage (Polygon corners)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/polygon_centroid.svg" 100 100 $ do
+-- haddockRender "Geometry/Core/polygon_centroid.svg" 100 100 $ \_ -> do
 --     let polygon = Polygon [Vec2 10 10, Vec2 10 90, Vec2 20 70, Vec2 40 60, Vec2 30 40, Vec2 90 90, Vec2 80 20]
 --         centroid = polygonCentroid polygon
 --     sketch polygon
 --     C.stroke
---     setColor (mathematica97 1)
+--     setColor (mma 1)
 --     sketch (Circle centroid 5)
 --     sketch (Cross centroid 5)
 --     C.stroke
@@ -1894,7 +1938,7 @@ polygonCircumference = foldl' (\acc edge -> acc + lineLength edge) 0 . polygonEd
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/grow_polygon.svg" 160 230 $ do
+-- haddockRender "Geometry/Core/grow_polygon.svg" 160 230 $ \_ -> do
 --     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
 --     for_ [0,5..25] $ \offset -> cairoScope $ do
 --         when (offset == 0) (C.setLineWidth 3)
@@ -1947,7 +1991,7 @@ growPolygon offset polygon =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/shrink_polygon.svg" 160 230 $ do
+-- haddockRender "Geometry/Core/shrink_polygon.svg" 160 230 $ \_ -> do
 --     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
 --     for_ [0,5..25] $ \offset -> cairoScope $ do
 --         when (offset == 0) (C.setLineWidth 3)
@@ -2004,7 +2048,7 @@ adjacentIntersections edges = zipWith
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/cross_product_leftness_rightness.svg" 200 200 $ do
+-- haddockRender "Geometry/Core/cross_product_leftness_rightness.svg" 200 200 $ \_ -> do
 --     let line = Line (Vec2 10 10) (Vec2 170 170)
 --     points <- C.liftIO $ MWC.withRng [] $ \gen ->
 --             poissonDisc gen (shrinkBoundingBox 10 [Vec2 50 50, Vec2 200 200]) 10 10
@@ -2059,13 +2103,13 @@ signedPolygonArea (Polygon ps)
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/is_convex.svg" 200 100 $ do
+-- haddockRender "Geometry/Core/is_convex.svg" 200 100 $ \_ -> do
 --     let convex = Polygon [Vec2 10 10, Vec2 10 90, Vec2 90 90, Vec2 90 10]
 --         concave = Polygon [Vec2 110 10, Vec2 110 90, Vec2 150 50, Vec2 190 90, Vec2 190 10]
 --     for_ [convex, concave] $ \polygon -> do
 --         if isConvex polygon
---             then setColor (mathematica97 2)
---             else setColor (mathematica97 3)
+--             then setColor (mma 2)
+--             else setColor (mma 3)
 --         sketch polygon
 --         C.stroke
 -- :}
@@ -2093,12 +2137,12 @@ isConvex (Polygon ps) = allSameSign angleDotProducts
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/perpendicular_bisector.svg" 200 160 $ do
+-- haddockRender "Geometry/Core/perpendicular_bisector.svg" 200 160 $ \_ -> do
 --     let line = Line (Vec2 20 20) (Vec2 190 90)
 --         bisector = perpendicularBisector line
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
---     sketch bisector >> setColor (mathematica97 1) >> C.stroke
+--     sketch bisector >> setColor (mma 1) >> C.stroke
 -- :}
 -- Generated file: size 2KB, crc32: 0x9940c32d
 perpendicularBisector :: Line -> Line
@@ -2115,7 +2159,7 @@ rotate90 :: Vec2 -> Vec2
 rotate90 (Vec2 x y) = Vec2 (-y) x
 
 -- | Line perpendicular to a given line through a point, starting at the
--- intersection point.
+-- intersection point and pointing away from the line.
 --
 -- If the point is on the line directly, fall back to a perpendicular line through
 -- the point of half the length of the input.
@@ -2133,24 +2177,28 @@ rotate90 (Vec2 x y) = Vec2 (-y) x
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/perpendicular_line_through.svg" 170 170 $ do
+-- haddockRender "Geometry/Core/perpendicular_line_through.svg" 170 170 $ \_ -> do
 --     let line = transform (translate (Vec2 20 20))
 --                          (Line zero (Vec2 (3*40) (4*20)))
 --         points =
---             [ Vec2 20 110 -- above
---             , Vec2 70 90 -- above
---             , Vec2 130 20 -- below
---             , Vec2 110 80 -- directly on
+--             [ Vec2 20 110  -- above
+--             , Vec2 70 90   -- above
+--             , Vec2 130 20  -- below
+--             , Vec2 110 80  -- directly on
 --             , Vec2 130 150 -- beyond
 --             ]
 --     C.setLineWidth 2
 --     sketch line >> C.stroke
---     for_ (zip [1..] points) $ \(i, p) -> do
---         setColor (mathematica97 i)
---         cairoScope $ sketch (perpendicularLineThrough p line) >> C.setDash [3,5] 0 >> C.stroke
---         cairoScope $ sketch (Circle p 5) >> C.fill
+--     for_ (zip [1..] points) $ \(i, p) -> cairoScope $ do
+--         setColor (mma i)
+--         sketch (Arrow (perpendicularLineThrough p line) def)
+--         C.stroke
+--         sketch (Circle p 5)
+--         C.strokePreserve
+--         setColor (mma i `withOpacity` 0.7)
+--         C.fill
 -- :}
--- Generated file: size 4KB, crc32: 0xac73c163
+-- Generated file: size 6KB, crc32: 0xf5ff8529
 perpendicularLineThrough :: Vec2 -> Line -> Line
 perpendicularLineThrough p (Line start end) =
     let a = p -. start
@@ -2173,7 +2221,7 @@ perpendicularLineThrough p (Line start end) =
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Core/reflection.svg" 520 300 $ do
+-- haddockRender "Geometry/Core/reflection.svg" 520 300 $ \_ -> do
 --    let mirrorSurface = angledLine (Vec2 10 100) (deg 10) 510
 --    cairoScope $ do
 --        C.setLineWidth 2

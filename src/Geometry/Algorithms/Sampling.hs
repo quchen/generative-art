@@ -11,8 +11,8 @@ module Geometry.Algorithms.Sampling (
 
 
 import           Control.Applicative
-import           Data.Function
 import           Control.Monad.Primitive
+import           Data.Function
 import           Data.Vector                     (Vector)
 import qualified Data.Vector                     as V
 import           System.Random.MWC
@@ -37,14 +37,14 @@ import Geometry.Algorithms.Sampling.PoissonDisc
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/uniform.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
 --             gen <- MWC.create
 --             uniformlyDistributedPoints gen bb numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}
@@ -70,14 +70,14 @@ uniformlyDistributedPoints gen bb count = V.replicateM count randomPoint
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/gaussian.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         points = runST $ do
 --             gen <- MWC.create
 --             gaussianDistributedPoints gen bb (30 *. mempty) numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}
@@ -113,7 +113,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 --
 -- === __(image code)__
 -- >>> :{
--- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ do
+-- haddockRender "Geometry/Algorithms/Sampling/rejection.svg" 300 300 $ \_ -> do
 --     let numPoints = 1000
 --         bb = shrinkBoundingBox 30 [zero, Vec2 300 300]
 --         distribution p = let r = norm (p -. Vec2 150 150) in gaussianFalloff 75 20 r
@@ -121,7 +121,7 @@ gaussianDistributedPoints gen container covariance count = V.replicateM count ra
 --             gen <- MWC.create
 --             rejection gen bb distribution numPoints
 --     V.iforM_ points $ \i p -> do
---         setColor (mathematica97 i)
+--         setColor (mma i)
 --         sketch (Circle p 2)
 --         fill
 -- :}

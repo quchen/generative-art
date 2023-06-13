@@ -1,9 +1,9 @@
 module Test.Physics where
 
-import Control.Monad.ST
-import qualified Graphics.Rendering.Cairo as Cairo
-import System.Random.MWC
-import System.Random.MWC.Distributions
+import           Control.Monad.ST
+import qualified Graphics.Rendering.Cairo        as Cairo
+import           System.Random.MWC
+import           System.Random.MWC.Distributions
 
 import Draw
 import Geometry
@@ -52,10 +52,10 @@ testTwoBody = testVisual "Two-Body simulation" 200 200 "docs/physics/twoBody" $ 
         (trajectory1, trajectory2) = unzip (snd <$> trajectories)
 
     sketch (Polyline (fmap q (take 1000 trajectory1)))
-    setColor (mathematica97 0)
+    setColor (mma 0)
     Cairo.stroke
     sketch (Polyline (fmap q (take 1000 trajectory2)))
-    setColor (mathematica97 1)
+    setColor (mma 1)
     Cairo.stroke
 
 testThreeBody :: TestTree
@@ -69,7 +69,7 @@ testThreeBody = testVisual "Three-Body simulation" 200 200 "docs/physics/threeBo
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
         sketch (Polyline (fmap q trajectory))
-        setColor (mathematica97 i)
+        setColor (mma i)
         Cairo.stroke
 
 testCollision :: TestTree
@@ -82,7 +82,7 @@ testCollision = testVisual "Particle collision" 200 200 "docs/physics/collision"
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
         sketch (Polyline (fmap q trajectory))
-        setColor (mathematica97 i)
+        setColor (mma i)
         Cairo.stroke
 
 nBodyCoulomb :: NBody Double -> NBody PhaseSpace -> [(Double, NBody PhaseSpace)]
@@ -112,7 +112,7 @@ testBrownianMotion = testVisual "Brownian motion" 200 200 "docs/physics/brownian
 
     for_ (zip [0..] (getNBody trajectories)) $ \(i, trajectory) -> do
         sketch (Polyline (fmap q trajectory))
-        setColor (mathematica97 i)
+        setColor (mma i)
         Cairo.stroke
 
 gaussianVec2

@@ -15,17 +15,18 @@ import           Formatting             hiding (center)
 
 
 
+-- | Raw GCode for penplotting.
 data GCode
     = GComment TL.Text
-    | GBlock [GCode]
-    | F_Feedrate Double
-    | M0_Pause
+    | GBlock [GCode]    -- ^ Group a couple of commands for easier reading.
+    | F_Feedrate Double -- ^ Set the feedrate. Normally mm/min, but can be altered using G93, G94, G20, G21.
+    | M0_Pause          -- ^ Pause and wait for user input
 
-    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G0 X Y Z@
-    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G1 F X Y Z@
-    | G02_ArcClockwise (Maybe Double) Double Double Double Double -- ^ @G2 F I J X Y@
-    | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double -- ^ @G3 F I J X Y@
-    | G04_Dwell_ms Double -- ^ @G4 P@
+    | G00_LinearRapidMove (Maybe Double) (Maybe Double) (Maybe Double)                   -- ^ @G0 X Y Z@: Move as fast as possible
+    | G01_LinearFeedrateMove (Maybe Double) (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G1 F X Y Z@: Move with specified feedrate
+    | G02_ArcClockwise (Maybe Double) Double Double Double Double                        -- ^ @G2 F I J X Y@: Paint part of a circle, clockwise
+    | G03_ArcCounterClockwise (Maybe Double) Double Double Double Double                 -- ^ @G3 F I J X Y@: Paint part of a circle, counterclockwise
+    | G04_Dwell_ms Double -- ^ @G4 P@: wait a number of milliseconds.
     | G17_Plane_XY
     | G18_Plane_ZX
     | G19_Plane_YZ
@@ -33,12 +34,13 @@ data GCode
     | G21_UseMm
     | G28_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G28 X Y Z@
     | G30_GotoPredefinedPosition (Maybe Double) (Maybe Double) (Maybe Double) -- ^ @G30 X Y Z@
-    | G90_AbsoluteMovement
-    | G91_RelativeMovement
+    | G90_AbsoluteMovement -- ^ Move commands use coordinates relative to the origin
+    | G91_RelativeMovement -- ^ Move commands use coordinates relative to the current position
     | G93_Feedrate_TravelInFractionOfMinute
     | G94_Feedrate_UnitsPerMinute
     deriving (Eq, Ord, Show)
 
+-- | Convert 'GCode' to 'TL.Text', to be written to a file.
 renderGCode :: [GCode] -> TL.Text
 renderGCode [GBlock xs] = renderGCode xs -- Remove indentation if it's a single top-level block
 renderGCode xs = TL.toLazyText (mconcat (intersperse "\n" (fmap (renderGcodeIndented 0) xs)))
