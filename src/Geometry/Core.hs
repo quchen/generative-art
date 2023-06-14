@@ -228,7 +228,7 @@ data Mat2 = Mat2 !Double !Double !Double !Double
 -- | Multiply a matrix \(A\) with a (column) vector \(\mathbf b\).
 --
 -- \[
--- \sum_i\mathbf e_i c_i = \sum_i\mathbf e_i a_{ij} b_j
+-- \sum_i\mathbf e_i c_i = \sum_{ij}\mathbf e_i a_{ij} b_j
 -- \quad\Leftrightarrow\quad
 -- \begin{pmatrix}c_1\\c_2\end{pmatrix}
 -- = \begin{pmatrix}a_{11}&a_{12}\\ a_{21}&a_{22}\end{pmatrix}
@@ -246,7 +246,7 @@ mulMV (Mat2 a11 a12 a21 a22) (Vec2 b1 b2) =
 -- | Multiply a (row) vector \(\mathbf a^\top\) with a matrix \(A\).
 --
 -- \[
--- \sum_i\mathbf e_i c_i = \sum_i b_i a_{ij} \mathbf e_j
+-- \sum_i\mathbf e_i c_i = \sum_{ij} b_i a_{ij} \mathbf e_j
 -- \quad\Leftrightarrow\quad
 -- \begin{pmatrix}c_1&c_2\end{pmatrix}
 -- = \begin{pmatrix}b_1&b_2\end{pmatrix}
@@ -1438,7 +1438,7 @@ intersectionLL lineL lineR
 -- distorting straight lines. The first and last points are (exactly) equal to the
 -- start and end of the input line.
 --
--- See also 'subdivideLineByLength.'.
+-- See also 'subdivideLineByLength'.
 --
 -- <<docs/haddock/Geometry/Core/subdivide_line.svg>>
 --
@@ -1458,7 +1458,10 @@ intersectionLL lineL lineR
 --         C.fill
 -- :}
 -- Generated file: size 4KB, crc32: 0x527103e6
-subdivideLine :: Int -> Line -> [Vec2]
+subdivideLine
+    :: Int -- ^ Number of segments
+    -> Line
+    -> [Vec2]
 subdivideLine _ (Line start end) | start == end = [start, end]
 subdivideLine numSegments line@(Line start end) = do
     let v = vectorOf line
@@ -1493,7 +1496,9 @@ subdivideLine numSegments line@(Line start end) = do
 -- :}
 -- Generated file: size 4KB, crc32: 0x6180122d
 subdivideLineByLength
-    :: Double -- ^ Maximum segment length
+    :: Double
+        -- ^ Maximum segment length. All segments will have the same length; to
+        --   accomplish this, this value is an upper bound.
     -> Line
     -> [Vec2]
 subdivideLineByLength segmentLength line =
@@ -1995,11 +2000,11 @@ growPolygon offset polygon =
 --     let polygon = transform (scale 2) $ Polygon [Vec2 20 40, Vec2 20 80, Vec2 40 60, Vec2 60 80, Vec2 60 40, Vec2 40 20]
 --     for_ [0,5..25] $ \offset -> cairoScope $ do
 --         when (offset == 0) (C.setLineWidth 3)
---         setColor (icefire (Numerics.Interpolation.lerp (0,15) (0.5, 0) (fromIntegral offset)))
+--         setColor (icefire (Numerics.Interpolation.lerp (0,25) (0.5, 0) (fromIntegral offset)))
 --         sketch (shrinkPolygon (fromIntegral offset) polygon)
 --         C.stroke
 -- :}
--- Generated file: size 4KB, crc32: 0xc5085e44
+-- Generated file: size 4KB, crc32: 0x4a75ae5c
 shrinkPolygon :: Double -> Polygon -> Polygon
 shrinkPolygon delta = growPolygon (-delta)
 
