@@ -4,6 +4,9 @@ module Geometry.Bezier
 (
     Bezier(..)
 
+    -- * General properties
+    , bezierLength
+
     -- * Indexing
     , bezierParametric
     , bezierArcParametric
@@ -126,7 +129,7 @@ instance HasBoundingBox Bezier where
 -- \]
 bezierParametric
   :: Bezier
-  -> Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \([0\ldots 1] = [\mathrm{start}\ldots\mathrm{end}]\)
   -> Vec2
 bezierParametric (Bezier a b c d) t
   =      (1-t)^3     *. a
@@ -141,7 +144,7 @@ bezierParametric (Bezier a b c d) t
 -- \]
 bezierParametric'
   :: Bezier
-  -> Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \([0\ldots 1] = [\mathrm{start}\ldots\mathrm{end}]\)
   -> Vec2
 bezierParametric' (Bezier a b c d) t
   =    (-3*(1-t)^2)    *. a
@@ -152,7 +155,7 @@ bezierParametric' (Bezier a b c d) t
 -- | Second derivative of a 'Bezier' curve, i.e. its acceleration vector.
 _bezierParametric''
   :: Bezier
-  -> Double -- ^ \[0..1] = [start..end]
+  -> Double -- ^ \([0\ldots 1] = [\mathrm{start}\ldots\mathrm{end}]\)
   -> Vec2
 _bezierParametric'' (Bezier a b c d) t
   =    (6-6*t)         *. a
@@ -160,9 +163,17 @@ _bezierParametric'' (Bezier a b c d) t
     +. (6-18*t)        *. c
     +. (6*t)           *. d
 
--- | Estimate the length of a 'Bezier' curve by approximating it with a number of segments.
+-- | Length of a Bézier curve by integration using Simpson’s Rule. It’s comparably
+-- slow, but very precise.
 --
--- The number of segments doesn’t need to be very high: 16 is already plenty for most curves.
+-- If speed is more important than quality, simply sum up a segmented subdivision.
+-- 16 subdivisions is often enough for a reasonably good result:
+--
+-- >>> curve = Bezier (Vec2 0 0) (Vec2 1 5) (Vec2 2.5 (-1)) (Vec2 3 3)
+-- >>> bezierLength curve
+-- 5.645...
+-- >>> polylineLength . Polyline . bezierSubdivideEquiparametric 16 $ curve
+-- 5.612...
 bezierLength
     :: Bezier
     -> Double
@@ -170,14 +181,12 @@ bezierLength bezier = retryExponentiallyUntilPrecision (integrateSimpson13 f 0 1
   where
     f t = norm (bezierParametric' bezier t)
 
-
-
 -- | Trace a 'Bezier' curve with a number of points, using the polynomial curve
 -- parameterization. This is very fast, but leads to unevenly spaced points.
 --
 -- For subdivision by arc length, use 'bezierSubdivideEquidistant'.
 bezierSubdivideEquiparametric
-    :: Int
+    :: Int -- ^ Number of segments
     -> Bezier
     -> [Vec2]
 bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
@@ -220,7 +229,10 @@ bezierSubdivideEquiparametric n bz = map (bezierParametric bz) points
 --         cairoScope (setColor (black `withOpacity` 0.2) >> connect e u)
 -- :}
 -- Generated file: size 17KB, crc32: 0x7c147951
-bezierSubdivideEquidistant :: Int -> Bezier -> [Vec2]
+bezierSubdivideEquidistant
+    :: Int -- ^ Number of segments
+    -> Bezier
+    -> [Vec2]
 bezierSubdivideEquidistant n bz = map bezier distances
   where
 
@@ -243,7 +255,11 @@ bezierSubdivideEquidistant n bz = map bezier distances
 -- let walkOnBezier = 'bezierArcParametric' bezier 0.01
 -- 'print' [walkOnBezier d | d <- [0, 0.1 .. 5]]
 -- @
-bezierArcParametric :: Bezier -> Double -> Double -> Vec2
+bezierArcParametric
+    :: Bezier
+    -> Double -- ^ Precision parameter (smaller is more precise but slower).
+    -> Double -- ^ Distance to walk on the curve. Clips (stops at the end) when asked to »walk too far«.
+    -> Vec2   -- ^ Point at that distance
 bezierArcParametric = bezierArcParametric_ode
 
 -- There’s also another method to do this using Newton’s method, detialed in the
