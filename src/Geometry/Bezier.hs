@@ -366,6 +366,11 @@ bezierSubdivideCasteljau tolerance curve@(Bezier pFirst _ _ _) = pFirst : go cur
 --
 -- <<docs/haddock/Geometry/Bezier/bezierSmoothen.svg>>
 --
+-- This works even for input loops with at least three points (plus one duplicate for the looping condition start=end). (For smaller inputs the
+-- scale is arbitrary so these solutions are excluded here.)
+--
+-- <<docs/haddock/Geometry/Bezier/bezierSmoothen_tiny_loop.svg>>
+--
 -- === __(image code)__
 -- >>> :{
 -- haddockRender "Geometry/Bezier/bezierSmoothen.svg" 400 300 $ \_ -> do
@@ -392,12 +397,42 @@ bezierSubdivideCasteljau tolerance curve@(Bezier pFirst _ _ _) = pFirst : go cur
 --                 setColor black
 --                 C.stroke
 --     C.setLineWidth 2
---     for_ (bezierSmoothenLoop points) prettyBezier
+--     for_ (bezierSmoothen points) prettyBezier
 -- :}
--- Generated file: size 15KB, crc32: 0x9f26361e
+-- Generated file: size 15KB, crc32: 0xb9f3566d
+--
+-- >>> :{
+-- haddockRender "Geometry/Bezier/bezierSmoothen_tiny_loop.svg" 200 200 $ \_ -> do
+--     let points = [ Vec2 20 60
+--                  , Vec2 150 50
+--                  , Vec2 140 180
+--                  , Vec2 20 60 ]
+--     let prettyBezier bezier@(Bezier p0 p1 p2 p3) = do
+--             cairoScope $ do
+--                 setColor black
+--                 sketch bezier
+--                 C.stroke
+--             cairoScope $ do
+--                 setColor (mma 0)
+--                 sketch (Circle p1 4) >> C.fill
+--                 sketch (Line p0 p1) >> C.stroke
+--             cairoScope $ do
+--                 setColor (mma 1)
+--                 sketch (Circle p2 4) >> C.fill
+--                 sketch (Line p3 p2) >> C.stroke
+--             cairoScope $ do
+--                 sketch (Circle p0 5)
+--                 setColor (mma 3)
+--                 C.fillPreserve
+--                 setColor black
+--                 C.stroke
+--     C.setLineWidth 2
+--     for_ (bezierSmoothen points) prettyBezier
+-- :}
+-- Generated file: size 7KB, crc32: 0xca727498
 bezierSmoothen :: Sequential vector => vector Vec2 -> Vector Bezier
 bezierSmoothen vecSequence
-    | V.head vec == V.last vec = bezierSmoothenLoop vec
+    | V.head vec == V.last vec = bezierSmoothenLoop (V.tail vec)
     | otherwise = bezierSmoothenOpen vec
     where vec = toVector vecSequence
 
@@ -441,17 +476,28 @@ target n vertices = V.generate n $ \i -> case () of
       | otherwise -> 4 *. vertices ! i     +. 2 *. vertices ! (i+1)
 
 -- | Like 'bezierSmoothen', but will smoothly connect the start and the end of the
--- given trajectory as well. (Simply using 'bezierSmoothen' will yield a sharp bend
--- at the line’s origin.)
-bezierSmoothenLoop :: Sequential vector => vector Vec2 -> Vector Bezier
+-- given trajectory as well.
+bezierSmoothenLoop
+    :: Sequential vector
+    => vector Vec2  -- ^ [0,1,2,3 ... 99]
+    -> Vector Bezier
 bezierSmoothenLoop pointsSequence
-    | length points <= 2 = V.empty
+    | length points <= 2 = V.empty -- Is possible, but not unique. The »radius«/size is arbitrary.
     | otherwise =
         -- The idea is this: we can artificially lengthen a closed trajectory by
         -- wrapping it onto itself. We then interpolate it as if it was open, and later
         -- forget the end parts again. In the overlap, we get a smooth transition.
-        let opened = V.tail points
-            openedWithAppendix = opened <> V.take 4 opened
-        in V.slice 2 (V.length points-1) (bezierSmoothenOpen openedWithAppendix)
+        -- The overlap has to be 3 points:
+        --   1. 0-th derivative so we umm continue in the right direction
+        --   2. 1st derivative, so the corner is not pointy
+        --   3. 2nd derivative, so the corner is smooth.
+        let pointsWrapped = takeLast 3 points <> points <> V.take 3 points
+                          -- NB <=2 points is handled in the guard at the top
+
+        in V.slice 3 (V.length points) (bezierSmoothenOpen pointsWrapped)
+            -- Notes:
+            --   1. The slice starts at point 2 because points 0+1 are responsible for continuity of the 1st+2nd derivative.
+            --   2. (implicit) we also discard the 1st+2nd last elements for the same reason in the slice.
     where
       points = toVector pointsSequence
+      takeLast n vec = V.drop (V.length vec - n) vec
