@@ -26,17 +26,17 @@ main = do
 
 drawing :: Cairo.Render ()
 drawing = do
+    let t = 10
     gen <- Cairo.liftIO (initialize (V.fromList [4]))
     let rect = growPolygon (-100) $ Polygon [Vec2 0 0, Vec2 800 0, Vec2 800 600, Vec2 0 600]
         center = Vec2 400 300
-    polys <- shatter gen 10 [rect]
+    polys <- shatter gen 4 [(rect, zero)]
     setColor black
-    for_ polys $ \poly -> do
+    for_ polys $ \(poly, velocity) -> do
         angle <- randomAngle gen
         let rotation = rotateAround (polygonCentroid poly) (angle /. 18)
-            distanceFromCenter = polygonCentroid poly -. center
-            explosion = translate (0.002 *. norm distanceFromCenter *. distanceFromCenter)
-        sketch (transform (explosion <> rotation) growPolygon (-2) poly)
+            explosion = translate (t *. velocity)
+        sketch (transform explosion growPolygon (-2) poly)
         color <- randomColor gen
         setColor black
         Cairo.strokePreserve
@@ -44,19 +44,24 @@ drawing = do
         Cairo.fill
 
 
-randomCut :: GenIO -> Polygon -> Cairo.Render [Polygon]
-randomCut gen poly = do
+-- fmap (+1) $ fmap (*2) $ [1, 2, 3]
+
+
+randomCut :: GenIO -> (Polygon, Vec2) -> Cairo.Render [(Polygon, Vec2)]
+randomCut gen (poly, velocity) = do
     let pivot = polygonCentroid poly
     angle <- randomAngle gen
-    let scissors = angledLine pivot angle 1
-    pure (cutPolygon scissors poly)
+    let scissors@(Line a b) = angledLine pivot angle 1
+        [shard1, shard2] = cutPolygon scissors poly
+        velocity2 = direction (perpendicularBisector scissors)
+        velocity2Signed = signum (cross (b -. a) (polygonCentroid shard1 -. a)) *. velocity2
+    pure [(shard1, velocity +. velocity2Signed), (shard2, velocity -. velocity2Signed)]
 
-shatter :: GenIO -> Int -> [Polygon] -> Cairo.Render [Polygon]
+shatter :: GenIO -> Int -> [(Polygon, Vec2)] -> Cairo.Render [(Polygon, Vec2)]
 shatter gen 0 polys = pure polys
 shatter gen n polys = do
     shards <- for polys $ \poly -> do
-        angle <- randomAngle gen
-        randomCut gen (transform (rotateAround (polygonCentroid poly) (angle /. 180)) poly)
+        randomCut gen poly
     shatter gen (n-1) (concat shards)
 
 randomColor :: GenIO -> Cairo.Render (Color Double)
@@ -66,5 +71,5 @@ randomColor gen = do
 
 randomAngle :: GenIO -> Cairo.Render Angle
 randomAngle gen = do
-    angle <- Cairo.liftIO $ uniformRM (0, 360) gen
+    angle <- Cairo.liftIO (uniformRM (0, 360) gen)
     pure (deg angle)
