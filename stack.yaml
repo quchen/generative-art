@@ -1,6 +1,7 @@
 flags: {}
 packages:
     - .
+    - app/munihac_2023
 extra-deps:
     - cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994

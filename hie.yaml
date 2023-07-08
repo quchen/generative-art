@@ -2,6 +2,8 @@ cradle:
   stack:
     - path: ./src
       component: generative-art:lib
+    - path: ./app/munihac_2023
+      component: munihac2023
     - path: ./test/testsuite
       component: generative-art:test:testsuite
     - path: ./test/doctest
