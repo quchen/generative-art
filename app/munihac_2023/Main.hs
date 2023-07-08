@@ -42,9 +42,10 @@ drawing t = do
     setColor black
     for_ shards $ \Shard{..} -> do
         let explosion = translate (t *. velocity)
-        sketch (transform explosion poly)
-        setColor color
+        sketch (transform explosion growPolygon (-2) poly)
+        setColor black
         Cairo.strokePreserve
+        setColor color
         Cairo.fill
 
 
