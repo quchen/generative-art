@@ -1,4 +1,5 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 import Control.Monad
@@ -34,23 +35,28 @@ main = for_ [0..1000 :: Int] $ \t -> do
 drawing :: Double -> Cairo.Render ()
 drawing t = do
     gen <- Cairo.liftIO (initialize (V.fromList [4]))
-    polys <- shatter gen 10 (fmap (, zero) (transform (scale 600) haskellLogo))
+    shards <- shatter gen 10 $ zipWith3 Shard
+        (transform (scale 600) haskellLogo)
+        (repeat zero)
+        (fmap haskell [0, 0.5, 1, 1])
     setColor black
-    for_ polys $ \(poly, velocity) -> do
+    for_ shards $ \Shard{..} -> do
         let explosion = translate (t *. velocity)
         sketch (transform explosion growPolygon (-2) poly)
-        color <- randomColor gen
         setColor black
         Cairo.strokePreserve
         setColor color
         Cairo.fill
 
 
--- fmap (+1) $ fmap (*2) $ [1, 2, 3]
+data Shard = Shard
+    { poly :: Polygon
+    , velocity :: Vec2
+    , color :: Color Double
+    }
 
-
-randomCut :: GenIO -> (Polygon, Vec2) -> Cairo.Render [(Polygon, Vec2)]
-randomCut gen (poly, velocity) = do
+randomCut :: GenIO -> Shard -> Cairo.Render [Shard]
+randomCut gen Shard{..} = do
     let pivot = polygonCentroid poly
     angle <- randomAngle gen
     let scissors@(Line a b) = angledLine pivot angle 1
@@ -58,17 +64,17 @@ randomCut gen (poly, velocity) = do
         velocity2 = direction (perpendicularBisector scissors)
         addVelocity shard =
             let velocity2Signed = signum (cross (b -. a) (polygonCentroid shard -. a)) *. velocity2
-            in (shard, velocity +. velocity2Signed)
+            in Shard { poly = shard, velocity = velocity +. velocity2Signed, color = color }
         shardsWithNewVelocity = fmap addVelocity shards
     pure shardsWithNewVelocity
 
-shatter :: GenIO -> Int -> [(Polygon, Vec2)] -> Cairo.Render [(Polygon, Vec2)]
+shatter :: GenIO -> Int -> [Shard] -> Cairo.Render [Shard]
 shatter gen 0 polys = pure polys
 shatter gen n polys = do
-    shards <- for polys $ \poly -> do
-        if polygonArea (fst poly) < 1000
-            then pure [poly]
-            else randomCut gen poly
+    shards <- for polys $ \shard -> do
+        if polygonArea (poly shard) < 1000
+            then pure [shard]
+            else randomCut gen shard
     shatter gen (n-1) (concat shards)
 
 randomColor :: GenIO -> Cairo.Render (Color Double)
