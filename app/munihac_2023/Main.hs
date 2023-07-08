@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 module Main (main) where
 
 import Control.Monad
@@ -10,6 +11,7 @@ import Draw
 import Geometry.Chaotic (initializeMwc)
 import Data.Traversable
 import Text.Printf (printf)
+import Geometry.Shapes (haskellLogo)
 
 -- | You can generate the output files using either:
 --
@@ -25,13 +27,12 @@ main = for_ [0..1000 :: Int] $ \t -> do
     render file 800 600 $ do
         setColor white
         Cairo.paint
-        drawing (fromIntegral t / 10)
+        drawing (fromIntegral (1000 - t) / 10)
 
 drawing :: Double -> Cairo.Render ()
 drawing t = do
     gen <- Cairo.liftIO (initialize (V.fromList [4]))
-    let rect = growPolygon (-100) $ Polygon [Vec2 0 0, Vec2 800 0, Vec2 800 600, Vec2 0 600]
-    polys <- shatter gen 10 [(rect, zero)]
+    polys <- shatter gen 10 (fmap (, zero) (transform (scale 600) haskellLogo))
     setColor black
     for_ polys $ \(poly, velocity) -> do
         let explosion = translate (t *. velocity)
@@ -51,22 +52,27 @@ randomCut gen (poly, velocity) = do
     let pivot = polygonCentroid poly
     angle <- randomAngle gen
     let scissors@(Line a b) = angledLine pivot angle 1
-        [shard1, shard2] = cutPolygon scissors poly
+        shards = cutPolygon scissors poly
         velocity2 = direction (perpendicularBisector scissors)
-        velocity2Signed = signum (cross (b -. a) (polygonCentroid shard1 -. a)) *. velocity2
-    pure [(shard1, velocity +. velocity2Signed), (shard2, velocity -. velocity2Signed)]
+        addVelocity shard =
+            let velocity2Signed = signum (cross (b -. a) (polygonCentroid shard -. a)) *. velocity2
+            in (shard, velocity +. velocity2Signed)
+        shardsWithNewVelocity = fmap addVelocity shards
+    pure shardsWithNewVelocity
 
 shatter :: GenIO -> Int -> [(Polygon, Vec2)] -> Cairo.Render [(Polygon, Vec2)]
 shatter gen 0 polys = pure polys
 shatter gen n polys = do
     shards <- for polys $ \poly -> do
-        randomCut gen poly
+        if polygonArea (fst poly) < 1000
+            then pure [poly]
+            else randomCut gen poly
     shatter gen (n-1) (concat shards)
 
 randomColor :: GenIO -> Cairo.Render (Color Double)
 randomColor gen = do 
-    n <- Cairo.liftIO $ uniformRM (1, 200) gen
-    pure (mma n)
+    n <- Cairo.liftIO $ uniformRM (0, 1) gen
+    pure (haskell n)
 
 randomAngle :: GenIO -> Cairo.Render Angle
 randomAngle gen = do
