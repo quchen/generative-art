@@ -20,6 +20,8 @@ import Geometry.Shapes (haskellLogo)
 --
 -- `ghcid --command='stack ghci --main-is munihac2023' --test=main -W`
 -- (fast compilation, slower execution time, requires `ghcid` installation)
+--
+-- To render a video: ffmpeg -i munihac2023/shatter%04d.png -vf "setpts=N/60/TB,framerate=fps=60" -c:v libx264 -pix_fmt yuv420p munihac2023.mp4
 main :: IO ()
 main = for_ [0..1000 :: Int] $ \t -> do
     let file = printf "munihac2023/shatter%04d.png" t 
