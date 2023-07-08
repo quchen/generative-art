@@ -9,6 +9,7 @@ import Geometry
 import Draw
 import Geometry.Chaotic (initializeMwc)
 import Data.Traversable
+import Text.Printf (printf)
 
 -- | You can generate the output files using either:
 --
@@ -18,19 +19,20 @@ import Data.Traversable
 -- `ghcid --command='stack ghci --main-is munihac2023' --test=main -W`
 -- (fast compilation, slower execution time, requires `ghcid` installation)
 main :: IO ()
-main = do
-    render "munihac2023/shatter.png" 800 600 $ do
+main = for_ [0..1000 :: Int] $ \t -> do
+    let file = printf "munihac2023/shatter%04d.png" t 
+    putStrLn file
+    render file 800 600 $ do
         setColor white
         Cairo.paint
-        drawing
+        drawing (fromIntegral t / 10)
 
-drawing :: Cairo.Render ()
-drawing = do
-    let t = 10
+drawing :: Double -> Cairo.Render ()
+drawing t = do
     gen <- Cairo.liftIO (initialize (V.fromList [4]))
     let rect = growPolygon (-100) $ Polygon [Vec2 0 0, Vec2 800 0, Vec2 800 600, Vec2 0 600]
         center = Vec2 400 300
-    polys <- shatter gen 4 [(rect, zero)]
+    polys <- shatter gen 10 [(rect, zero)]
     setColor black
     for_ polys $ \(poly, velocity) -> do
         angle <- randomAngle gen
