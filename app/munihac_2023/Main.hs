@@ -31,13 +31,10 @@ drawing :: Double -> Cairo.Render ()
 drawing t = do
     gen <- Cairo.liftIO (initialize (V.fromList [4]))
     let rect = growPolygon (-100) $ Polygon [Vec2 0 0, Vec2 800 0, Vec2 800 600, Vec2 0 600]
-        center = Vec2 400 300
     polys <- shatter gen 10 [(rect, zero)]
     setColor black
     for_ polys $ \(poly, velocity) -> do
-        angle <- randomAngle gen
-        let rotation = rotateAround (polygonCentroid poly) (angle /. 18)
-            explosion = translate (t *. velocity)
+        let explosion = translate (t *. velocity)
         sketch (transform explosion growPolygon (-2) poly)
         color <- randomColor gen
         setColor black
