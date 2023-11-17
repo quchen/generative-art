@@ -6,5 +6,5 @@ extra-deps:
     - Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     - plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
     - alfred-margaret-2.1.0.0
-resolver: lts-21.1
+resolver: lts-21.20
 allow-newer: true
