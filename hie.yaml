@@ -7,7 +7,6 @@ cradle:
     - path: ./test/doctest
       component: generative-art:test:doctest
     - path: ./penplotting/SvgSource
-      component: penplotting-gasket
-
+      component: penplotting-svg
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
