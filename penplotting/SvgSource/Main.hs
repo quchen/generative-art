@@ -45,14 +45,14 @@ main = do
         Left err -> T.putStrLn ("Parse error: " <> err) >> exitWith (ExitFailure 1)
         Right svgElements -> plotIt svgElements options
 
-plotPipeline :: Options -> [SvgElement] -> [Polyline []]
+plotPipeline :: Options -> [SvgElement] -> [Polyline]
 plotPipeline options = technicalImprovements . transformToPaper . selectDesiredPart . preprocess
   where
     preprocess =
-          concatMap pathToPolyline
           -- SVG has zero on the top left. We mirror the Y axis
           -- to align the axis before doing all the fitting transformations.
-        . G.transform mirrorYCoords
+          G.transform mirrorYCoords
+        . concatMap pathToPolyline
     selectDesiredPart =
         let removalCenter = johannesWohnung
             removalRadius = circleRadius
@@ -83,7 +83,7 @@ plotIt svgElements options = do
     writeGCodeFile (_outputFileG options) plotResult
     case _previewFile options of
         Nothing -> pure ()
-        Just svgFilePath -> renderPreview svgFilePath plotResult
+        Just svgFilePath -> renderPreview svgFilePath 1 plotResult
 
 radiusThreshold :: Vec2 -> Double -> [[Vec2]] -> [[Vec2]]
 radiusThreshold center radius polylines = do
@@ -98,7 +98,7 @@ subsequencesSatisfying p xs = case span p (dropWhile (not . p) xs) of
     ([], _) -> []
     (subsequence, rest) -> subsequence : subsequencesSatisfying p rest
 
-lineLongEnough :: Sequential f => Options -> Polyline f -> Maybe (Polyline f)
+lineLongEnough :: Options -> Polyline -> Maybe Polyline
 lineLongEnough options polyline = case _minimumLineLength options of
     Just minLength
         | polylineLength polyline < minLength -> Nothing
@@ -120,13 +120,14 @@ pathToPolyline :: SvgElement -> [[Vec2]]
 pathToPolyline (SvgPath paths) = map pathToLineSegments paths
 pathToPolyline (SvgLine (Line x y)) = [[x,y]]
 pathToPolyline (SvgEllipse (Ellipse e)) = transform e [[x,y] | Line x y <- polygonEdges (regularPolygon 128)]
+pathToPolyline (SvgCircle circle) = pathToPolyline (SvgEllipse (toEllipse circle))
 
 pathToLineSegments :: [Either Line Bezier] -> [Vec2]
 pathToLineSegments [] = []
 pathToLineSegments [Left (Line x y)] = [x,y]
 pathToLineSegments (Left (Line x _) : xs) = x : pathToLineSegments xs
-pathToLineSegments [Right bezier] = bezierSubdivideT 32 bezier
-pathToLineSegments (Right bezier : xs) = init (bezierSubdivideT 32 bezier) ++ pathToLineSegments xs
+pathToLineSegments [Right bezier] = bezierSubdivideEquiparametric 32 bezier
+pathToLineSegments (Right bezier : xs) = init (bezierSubdivideEquiparametric 32 bezier) ++ pathToLineSegments xs
 
 data Options = Options
     { _inputFileSvg :: FilePath
