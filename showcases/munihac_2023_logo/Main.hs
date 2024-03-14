@@ -19,7 +19,7 @@ import Geometry.Shapes (haskellLogo)
 
 -- ghcid --command='stack ghci generative-art:lib munihac2023logo --main-is munihac2023logo:exe:munihac2023logo' --test=main --warnings --no-title
 main :: IO ()
-main = mainHaskellLogoSmall
+main = mainHaskellLogoMedium
 
 mainHaskellLogo :: IO ()
 mainHaskellLogo = do
@@ -91,10 +91,45 @@ mainHaskellLogoSmall = do
     render "munihac-2023-logo-oneline.png" picWidth picHeight drawing
     render "munihac-2023-logo-oneline.svg" picWidth picHeight drawing
 
+mainHaskellLogoMedium :: IO ()
+mainHaskellLogoMedium = do
+    let picWidth, picHeight :: Num a => a
+        picWidth = 700
+        picHeight = 500
+        lineWidth = 6
+        count = 140
+    gen <- initialize (V.fromList [3])
+    let -- constructed so that we have roughly `count` points
+        adaptiveRadius = sqrt (0.75 * picWidth * picHeight / fromIntegral count)
+        samplingProps = PoissonDiscParams
+            { _poissonShape = boundingBox [zero, Vec2 picWidth picHeight]
+            , _poissonRadius = adaptiveRadius
+            , _poissonK      = 4
+            }
+    points <- poissonDisc gen samplingProps
+    print (length points)
+    let voronoi = toVoronoi (lloydRelaxation 2 $ bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 picWidth picHeight)) points)
+
+    let polygonsAndColors = do
+            voronoiRegion <- _voronoiRegion <$> _voronoiCells voronoi
+            (glyph, color) <- haskellLogoWithColors (picWidth, picHeight)
+            (polygon, _) <- intersectionPP voronoiRegion (growPolygon (lineWidth/1.2) glyph)
+            guard $ polygonArea polygon > 0
+            pure (chaikin 0.25 $ chaikin 0.15 $ growPolygon (-lineWidth/1.3) polygon, color)
+
+    let drawing = do
+            cairoScope (setColor white >> C.paint)
+            for_ polygonsAndColors $ \(polygon, color) ->
+                drawPoly polygon color lineWidth
+            --for_ (haskellLogoWithColors (picWidth, picHeight)) $ \(poly, color) ->
+            --    drawPoly poly color lineWidth
+    render "munihac-2023-logo-oneline-medium.png" picWidth picHeight drawing
+    render "munihac-2023-logo-oneline-medium.svg" picWidth picHeight drawing
+
 haskellLogoWithColors :: (Double, Double) -> [(Polygon, Color Double)]
 haskellLogoWithColors (picWidth, picHeight) = zip haskellLogoCentered haskellLogoColors
   where
-    haskellLogoCentered = G.transform (G.translate (Vec2 1 (picHeight/2 - 10)) <> G.scale 20) haskellLogo
+    haskellLogoCentered = G.transform (G.translate (Vec2 1 (picHeight/6)) <> G.scale (picHeight * 2/3)) haskellLogo
     haskellLogoColors = [haskell 0, haskell 0.5, haskell 1, haskell 1]
 
 haskellLogoWithColorsShortened :: (Double, Double) -> [(Polygon, Color Double)]
