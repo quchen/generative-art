@@ -19,10 +19,10 @@ import Circuits.Render
 -- ghcid --command='stack ghci generative-art:lib generative-art:exe:haskell-logo-circuits --main-is=generative-art:exe:haskell-logo-circuits' --test=main --no-title --warnings
 main :: IO ()
 main = do
-    let lambdaScale = 6
+    let lambdaScale = 2
         lambdaGeometry = hexLambda lambdaScale
 
-        surroundingScale = lambdaScale*8
+        surroundingScale = lambdaScale*20
         surroundingGeometry = largeSurroundingCircle surroundingScale lambdaGeometry
 
         (lambdaCircuits, surroundingCircuits) =
@@ -32,7 +32,7 @@ main = do
             let cellSize = 3
             C.translate (fromIntegral picWidth/2) (fromIntegral picHeight/2)
             cairoScope $ do
-                setLineWidth 1
+                setLineWidth 1.5
                 renderWires purple  cellSize lambdaCircuits
                 renderWires grey cellSize surroundingCircuits
     render "out/circuits.svg" picWidth picHeight mainRender
@@ -42,8 +42,8 @@ main = do
             paint
         mainRender
   where
-    picWidth = 520
-    picHeight = 440
+    picWidth = 128
+    picHeight = 128
 
 -- | A lambda in hexagonal coordinates.
 hexLambda
