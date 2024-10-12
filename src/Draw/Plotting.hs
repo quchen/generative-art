@@ -67,10 +67,11 @@ module Draw.Plotting (
 
 
 
+import           Control.Monad
 import           Control.Monad.RWS        hiding (modify)
-import           Data.Default.Class
 import           Data.DList               (DList)
 import qualified Data.DList               as DL
+import           Data.Default.Class
 import           Data.Foldable
 import           Data.Maybe
 import qualified Data.Set                 as S

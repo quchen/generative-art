@@ -34,7 +34,7 @@ packages:
     hackage: alfred-margaret-2.1.0.0
 snapshots:
 - completed:
-    sha256: 5921ddc75f5dd3f197fbc32e1e5676895a8e7b971d4f82ef6b556657801dd18a
-    size: 640054
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/20.yaml
-  original: lts-21.20
+    sha256: c6274f9587d6bf40b6aaa7d1092684c37a2d8bb1e0df999ae0e2b755db15682d
+    size: 720026
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/37.yaml
+  original: lts-22.37
