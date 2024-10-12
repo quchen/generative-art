@@ -4,7 +4,6 @@ module Test.Uncategorized.Properties (tests) where
 
 
 
-import Control.Applicative
 import Text.Printf
 
 import Geometry as G
