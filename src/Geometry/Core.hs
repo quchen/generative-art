@@ -1218,7 +1218,9 @@ pseudoAngle (Vec2 x y) = pseudoAtan2 y x
 -- | Source of this nice alg:
 -- https://vegard.wiki/w/Pseudoangles
 pseudoAtan2 :: Double -> Double -> Double
-pseudoAtan2 y x =  signum y * (1 - x / (abs x + abs y))
+pseudoAtan2 y x =
+    let r = x / (abs x + abs y)
+    in if y < 0 then r-1 else 1-r
 
 -- | Directional vector of a line, i.e. the vector pointing from start to end. The
 -- norm of the vector is the length of the line. Use 'direction' if you need a
