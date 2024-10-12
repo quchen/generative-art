@@ -7,6 +7,9 @@ haddock :
 doctest :
 	stack test generative-art:doctest --fast
 
+testsuite :
+	stack test generative-art:testsuite --fast
+
 testall :
 	stack test generative-art:testsuite generative-art:doctest --fast
 
