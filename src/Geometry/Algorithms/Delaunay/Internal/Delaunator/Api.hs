@@ -147,7 +147,7 @@ data VoronoiPolygon
         -- infinity at the beginning\/end in the direction of the first\/last
         -- argument. For example, the bottom\/right quadrant (in screen coordinates)
         -- would be @'VoronoiInfinite' ('Vec2' 0 1) ['Vec2' 0 0] ('Vec2' 1 0)@.
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Show)
 
 instance Sketch VoronoiPolygon where
     sketch (VoronoiFinite polygon) = sketch polygon

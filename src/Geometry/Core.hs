@@ -193,9 +193,14 @@ normalizePolygon (Polygon corners) = Polygon (rotateUntil (== minimum corners) c
 
 instance Eq Polygon where
     p1 == p2
-      = let Polygon p1_normalized = normalizePolygon p1
-            Polygon p2_normalized = normalizePolygon p2
-        in p1_normalized == p2_normalized
+      = let Polygon ps = p1
+            lenPs = length ps
+            Polygon qs = p2
+            lenQs = length qs
+        in lenPs == lenQs && elem ps (take lenPs (iterate rotate1 qs))
+
+rotate1 :: [a] -> [a]
+rotate1 xs = zipWith (flip const) xs (drop 1 (cycle xs))
 
 -- | Rotate a list until the predicate holds. If it never holds, return the
 -- input list.
@@ -204,12 +209,6 @@ rotateUntil p xs = zipWith
     (flip const)
     xs
     (dropWhile (not . p) (cycle xs))
-
-instance Ord Polygon where
-    compare p1 p2
-      = let Polygon p1Edges = normalizePolygon p1
-            Polygon p2Edges = normalizePolygon p2
-        in compare p1Edges p2Edges
 
 instance Show Polygon where
     show poly = let Polygon corners = normalizePolygon poly
