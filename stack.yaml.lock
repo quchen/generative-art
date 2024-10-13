@@ -5,13 +5,6 @@
 
 packages:
 - completed:
-    hackage: cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
-    pantry-tree:
-      sha256: a5d7014b0df2600377d061185b104f755274935554e723e2b7b600b85ffc7ae2
-      size: 2831
-  original:
-    hackage: cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
-- completed:
     hackage: Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     pantry-tree:
       sha256: 27a9154935b4d30a22830477c60c5108fd713a184d456272c2fccbf361d2395f
