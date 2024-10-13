@@ -10,7 +10,6 @@ module Geometry.Algorithms.Sampling (
 
 
 
-import           Control.Applicative
 import           Control.Monad.Primitive
 import           Data.Function
 import           Data.Vector                     (Vector)
