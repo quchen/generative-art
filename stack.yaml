@@ -7,3 +7,4 @@ extra-deps:
     - alfred-margaret-2.1.0.2
 resolver: lts-22.37
 allow-newer: true
+notify-if-nix-on-path: false
