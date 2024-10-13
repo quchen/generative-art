@@ -10,6 +10,7 @@ module Geometry.Algorithms.Sampling (
 
 
 
+import           Control.Applicative             (liftA2)
 import           Control.Monad.Primitive
 import           Data.Function
 import           Data.Vector                     (Vector)

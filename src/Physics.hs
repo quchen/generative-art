@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Physics where
 
+import Control.Applicative     (liftA2)
 import Geometry
 import Numerics.VectorAnalysis
 
