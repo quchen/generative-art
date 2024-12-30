@@ -1,0 +1,263 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.35.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           generative-art
+version:        0.1.0.0
+description:    Generative art using Haskell. See README.md.
+homepage:       https://github.com/quchen/generative-art#readme
+bug-reports:    https://github.com/quchen/generative-art/issues
+author:         David »quchen« Luposchainsky – dluposchainsky (λ) gmail,
+                Franz Thoma – f.m.thoma (λ) gmail
+maintainer:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail,
+                Franz Thoma – f.m.thoma (λ) gmail
+copyright:      2018–today David Luposchainsky,
+                2018–today Franz Thoma
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/quchen/generative-art
+
+library
+  exposed-modules:
+      Algebra.Group
+      Algebra.VectorSpace
+      Data.Crc32
+      Data.List.Extended
+      Data.Multwomap
+      Data.Ord.Extended
+      Data.Sequential
+      Data.Tree.Extended
+      Data.Vector.Extended
+      Draw
+      Draw.Color
+      Draw.Color.Schemes.Continuous
+      Draw.Color.Schemes.Discrete
+      Draw.NormalizeSvg
+      Draw.Plotting
+      Draw.Plotting.CmdArgs
+      Draw.Plotting.GCode
+      Draw.Plotting.PaperSize
+      Draw.Text
+      Geometry
+      Geometry.Algorithms.Clipping
+      Geometry.Algorithms.Contour
+      Geometry.Algorithms.Delaunay
+      Geometry.Algorithms.PerlinNoise
+      Geometry.Algorithms.Sampling
+      Geometry.Algorithms.SimplexNoise
+      Geometry.Algorithms.Triangulate
+      Geometry.Bezier
+      Geometry.Chaotic
+      Geometry.Coordinates.Hexagonal
+      Geometry.Core
+      Geometry.LookupTable.Lookup1
+      Geometry.LookupTable.Lookup2
+      Geometry.Processes.Billard
+      Geometry.Processes.FlowField
+      Geometry.Processes.Geodesics
+      Geometry.Processes.Penrose
+      Geometry.Processes.PoissonDiscForest
+      Geometry.Shapes
+      Geometry.SvgParser
+      Geometry.Trajectory
+      Numerics.ConvergentRecursion
+      Numerics.DifferentialEquation
+      Numerics.FindRoot
+      Numerics.Functions
+      Numerics.Integrate
+      Numerics.Interpolation
+      Numerics.LinearEquationSystem
+      Numerics.Optimization.TSP
+      Numerics.VectorAnalysis
+      Physics
+      System.Random.MWC.Extended
+      Util
+      Why
+  other-modules:
+      Draw.Color.Schemes.Internal.ColorBrewer2
+      Draw.Color.Schemes.Internal.Common
+      Draw.Color.Schemes.Internal.Haskell
+      Draw.Color.Schemes.Internal.MatPlotLib
+      Draw.Color.Schemes.Internal.Seaborn
+      Geometry.Algorithms.Clipping.CohenSutherland
+      Geometry.Algorithms.Clipping.Internal
+      Geometry.Algorithms.Clipping.MargalitKnott
+      Geometry.Algorithms.Clipping.SutherlandHodgman
+      Geometry.Algorithms.Contour.Internal
+      Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
+      Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw
+      Geometry.Algorithms.Sampling.PoissonDisc
+      Geometry.SvgParser.Common
+      Geometry.SvgParser.PathParser
+      Geometry.SvgParser.SimpleShapes
+      Geometry.Trajectory.PathSimplifier.Radial
+      Geometry.Trajectory.PathSimplifier.RamerDouglasPeucker
+      Geometry.Trajectory.PathSimplifier.VisvalingamWhyatt
+      Geometry.Trajectory.ReassembleLines
+  hs-source-dirs:
+      src
+  default-extensions:
+      BangPatterns
+      LambdaCase
+      MultiWayIf
+      RecordWildCards
+  ghc-options: -Wall -Wno-type-defaults -j -Wno-incomplete-uni-patterns
+  build-depends:
+      Noise
+    , alfred-margaret
+    , base >=4.7 && <5
+    , bytestring
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , deepseq
+    , directory
+    , dlist
+    , filepath
+    , formatting
+    , heaps
+    , megaparsec
+    , mtl
+    , mwc-random
+    , optparse-applicative
+    , parallel
+    , plotfont
+    , primitive
+    , random
+    , regex-tdfa
+    , text
+    , tf-random
+    , transformers
+    , vector
+    , vector-algorithms
+  default-language: Haskell2010
+
+test-suite doctest
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Paths_generative_art
+  hs-source-dirs:
+      test/doctest
+  default-extensions:
+      BangPatterns
+      LambdaCase
+      MultiWayIf
+      RecordWildCards
+  ghc-options: -Wall -Wno-type-defaults -j -Wno-incomplete-uni-patterns -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      Noise
+    , alfred-margaret
+    , base >=4.7 && <5
+    , bytestring
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , deepseq
+    , directory
+    , dlist
+    , doctest
+    , filepath
+    , formatting
+    , heaps
+    , megaparsec
+    , mtl
+    , mwc-random
+    , optparse-applicative
+    , parallel
+    , plotfont
+    , primitive
+    , random
+    , regex-tdfa
+    , text
+    , tf-random
+    , transformers
+    , vector
+    , vector-algorithms
+  default-language: Haskell2010
+
+test-suite testsuite
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Test.Arbitrary
+      Test.Data.Tree.Extended
+      Test.Draw
+      Test.Draw.Color
+      Test.Draw.Plotting
+      Test.Draw.Text
+      Test.Geometry.Algorithms.Clipping
+      Test.Geometry.Algorithms.Contour
+      Test.Geometry.Coordinates.Hexagonal
+      Test.Geometry.Core
+      Test.Geometry.LookupTable.Lookup2
+      Test.Geometry.Processes.Penrose
+      Test.Geometry.SvgParser
+      Test.Physics
+      Test.TastyAll
+      Test.Uncategorized.Bezier
+      Test.Uncategorized.ConvexHull
+      Test.Uncategorized.DifferentialEquation
+      Test.Uncategorized.GrowPolygon
+      Test.Uncategorized.IntersectionLL
+      Test.Uncategorized.Mirror
+      Test.Uncategorized.Properties
+      Test.Uncategorized.SimpleOperations
+      Test.Uncategorized.Trajectory
+      Paths_generative_art
+  hs-source-dirs:
+      test/testsuite
+  default-extensions:
+      BangPatterns
+      LambdaCase
+      MultiWayIf
+      RecordWildCards
+  ghc-options: -Wall -Wno-type-defaults -j -Wno-incomplete-uni-patterns -threaded -rtsopts -with-rtsopts=-N -Wall -j -Wno-type-defaults -Wno-incomplete-uni-patterns
+  build-depends:
+      Glob
+    , Noise
+    , QuickCheck
+    , alfred-margaret
+    , async
+    , base >=4.7 && <5
+    , bytestring
+    , cairo
+    , colour
+    , containers
+    , data-default-class
+    , deepseq
+    , directory
+    , dlist
+    , filepath
+    , formatting
+    , generative-art
+    , heaps
+    , megaparsec
+    , mtl
+    , mwc-random
+    , optparse-applicative
+    , parallel
+    , plotfont
+    , primitive
+    , process
+    , random
+    , regex-tdfa
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , text
+    , tf-random
+    , transformers
+    , vector
+    , vector-algorithms
+  default-language: Haskell2010

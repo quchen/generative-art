@@ -2,5 +2,4 @@
 **/*.svg
 **/*.png
 !showcases/*.png
-*.cabal
 .vscode
