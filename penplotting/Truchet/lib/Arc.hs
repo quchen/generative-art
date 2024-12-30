@@ -197,7 +197,7 @@ arcsClippingExample = do
     render "docs/clipping_example.svg" 200 200 (drawing clipArc)
     render "docs/negative_clipping_example.svg" 200 200 (drawing clipArcNegative)
 
-approximate :: Arc -> Polyline []
+approximate :: Arc -> Polyline
 approximate (Straight start end) = Polyline [start, end]
 approximate (CwArc center start end) =
     let Polyline ps = approximate (CcwArc center end start)

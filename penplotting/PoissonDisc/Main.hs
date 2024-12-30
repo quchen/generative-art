@@ -41,7 +41,7 @@ samplesRadial = do
 samplesNoise :: IO [(Vec2, Vec2, Double)]
 samplesNoise = do
     gen <- initialize (V.fromList [1237])
-    noise <- simplex2 def { _simplexFrequency = 1/150 , _simplexOctaves = 2 } gen
+    noise <- simplex2 gen def { _simplexFrequency = 1/150 , _simplexOctaves = 2 }
     let bb = boundingBox (Vec2 50 50, Vec2 (picWidth - 50) (picHeight - 50))
         r0 = 30
         samplingProps = PoissonDiscParams
@@ -63,7 +63,7 @@ renderPoissonDisc baseName samples = do
     render ("out/" <> baseName <> ".png") picWidth picHeight drawingCairo
 
     let circles = minimizePenHoveringBy MinimizePenHoveringSettings { _getStartEndPoint = \(Circle c _) -> (c, c), _flipObject = Nothing, _mergeObjects = Nothing } $ S.fromList $ fmap (\(c, _, r) -> Circle c (r/2)) samples
-        connectingLines = fmap Polyline $ minimizePenHovering $ S.fromList $ (\(to, from, _) -> [from, to]) <$> samples
+        connectingLines = fmap (Polyline . V.toList) $ minimizePenHovering $ S.fromList $ (\(to, from, _) -> [from, to]) <$> samples
         drawingPlot = do
             comment "Place pen on bottom left corner of the paper"
             comment "Margin is roughly 4cm, and included in the plotting area"

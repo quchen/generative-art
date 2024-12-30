@@ -55,7 +55,7 @@ hexLambda c = ProcessGeometry
     , _edge =  pointsOnEdge
     }
   where
-    polygon = Hex.Polygon corners
+    polygon = Hex.HexPolygon corners
     corners = walkInSteps
         [ id
         , move R  (c*2)

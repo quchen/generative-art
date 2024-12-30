@@ -42,7 +42,7 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
     let timeEvolution
             = fitToCanvas
             . minimizePenHoveringBy penHoveringSettings . S.fromList
-            . fmap bezierSmoothenOpen
+            . fmap bezierSmoothen
             . transpose
             . fmap (take 50 . fmap snd . spaced 2000 . fieldLine (rotationField seed))
             $ initialPoints
@@ -62,7 +62,7 @@ main = for_ (zip [1 :: Int ..] seeds) $ \(i, seed) -> do
             comment "Plot size is 60x40, place origin at (margin, margin) relative to the paper"
             comment "On 44x63 paper, margins are (15mm, 20mm)"
             for_ timeEvolution $ plot . rotateToLandscape
-    renderPreview (printf "out/bezier%i.png" i) plotResult
+    renderPreview (printf "out/bezier%i.png" i) 1 plotResult
     writeGCodeFile (printf "bezier%i.g" i) plotResult
 
 -- 2D vector potential, which in 2D is umm well a scalar potential.

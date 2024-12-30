@@ -36,7 +36,7 @@ main = do
         coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp picHeight)
         cairoScope (setColor white >> C.paint)
         for_ (zip [0..] dendrites) $ \(c, d) -> do
-            setColor (mathematica97 c)
+            setColor (mma c)
             drawDendrite (root d) d
 
     let settings = def
@@ -55,7 +55,7 @@ main = do
                 penChange
                 plotDendrite (root dendrite) dendrite
 
-    renderPreview "out/dendrites.png" plotResult
+    renderPreview "out/dendrites.png" 1 plotResult
     writeGCodeFile "dendrites.g" plotResult
 
 drawDendrite :: Vec2 -> Dendrite -> C.Render ()

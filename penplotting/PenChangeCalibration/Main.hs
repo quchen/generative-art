@@ -20,7 +20,7 @@ main = do
             for_ (_circles calibrationDrawing) plot
             for_ (_crosshair calibrationDrawing) plot
     writeGCodeFile "out/calibration.g" plotResult
-    renderPreview "out/preview.svg" plotResult
+    renderPreview "out/preview.svg" 1 plotResult
 
 data CalibrationDrawing = CalibrationDrawing
     { _nonius :: [Line]

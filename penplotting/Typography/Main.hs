@@ -20,12 +20,10 @@ main :: IO ()
 main = do
     Right iosevka <- TT.loadFontFile "/home/fthoma/.nix-profile/share/fonts/truetype/iosevka-custom-regular.ttf"
     gen <- initializeMwc (23 :: Int)
-    let params = PoissonDiscParams
-            { _poissonShape = boundingBox [Vec2 100 50, Vec2 900 850]
-            , _poissonRadius = 80
-            , _poissonK = 4
-            }
-    pts <- poissonDisc gen params
+    let poissonShape = boundingBox [Vec2 100 50, Vec2 900 850]
+        poissonRadius = 80
+        poissonK = 4
+    pts <- poissonDisc gen poissonShape poissonRadius poissonK
     glyphs <- for pts $ \pt -> do
         char <- uniformRM ('a', 'z') gen
         style <- uniformM gen

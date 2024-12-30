@@ -17,7 +17,7 @@ import Draw
 import Draw.Plotting
 import Geometry
 import Geometry.Algorithms.SimplexNoise
-import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
+import Geometry.Coordinates.Hexagonal hiding (rotateAround)
 import Geometry.Shapes
 
 
@@ -99,15 +99,15 @@ testplot = do
                     pause PauseUserConfirm
                     penUp
             comment "Silver pen"
-            local (\s -> s { _previewPenColor = mathematica97 2 }) $
+            local (\s -> s { _previewPenColor = mma 2 }) $
                 for_ ((\(_, x, _) -> x) <$> shapes) plot
             penChange
             comment "Gold pen"
-            local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ do -- gold pen requires veeeery low feedrate
+            local (\s -> s { _previewPenColor = mma 3, _feedrate = 500 }) $ do -- gold pen requires veeeery low feedrate
                 plot ((\(_, _, x) -> x) <$> shapes)
                 plot ((\(x, _, _) -> x) <$> shapes)
 
-    renderPreview "out/penplotting-truchet-testplot.svg" plotResult
+    renderPreview "out/penplotting-truchet-testplot.svg" 1 plotResult
     writeGCodeFile "truchet-testplot.g" plotResult
 
 triptych :: IO ()
@@ -127,7 +127,7 @@ triptych = do
 
         generateTiling prototiles = runST $ do
             gen <- initialize (V.fromList [125])
-            noise <- simplex2 def { _simplexFrequency = 1/50, _simplexOctaves = 4 } gen
+            noise <- simplex2 gen def { _simplexFrequency = 1/50, _simplexOctaves = 4 }
             let bump d p = case norm p of
                     r | r < d -> exp (1 - 1 / (1 - (r/d)^2))
                       | otherwise -> 0
@@ -156,16 +156,16 @@ triptych = do
                         pause PauseUserConfirm
                         penUp
                 comment "Silver pen"
-                local (\s -> s { _previewPenColor = mathematica97 2 }) $
+                local (\s -> s { _previewPenColor = mma 2 }) $
                     for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor1)) plot
                 penChange
                 comment "Gold pen"
-                local (\s -> s { _previewPenColor = mathematica97 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
+                local (\s -> s { _previewPenColor = mma 3, _feedrate = 500 }) $ -- gold pen requires veeeery low feedrate
                     for_ (transform (translate (Vec2 (picWidth/2) (picHeight/2))) $ optimize (V.map (uncurry toArc) <$> strandsColor2)) plot
                 penChange
         print (_totalBoundingBox plotResult)
 
-        renderPreview ("out/penplotting-truchet" ++ show k ++ "-preview.svg") plotResult
+        renderPreview ("out/penplotting-truchet" ++ show k ++ "-preview.svg") 1 plotResult
         writeGCodeFile ("truchet" ++ show k ++ ".g") plotResult
 
 newtype Tile = Tile (M.Map (Direction, Int) Direction) deriving (Eq, Ord, Show)

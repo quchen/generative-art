@@ -17,7 +17,7 @@ import Arc
 import Draw
 import Draw.Plotting
 import Geometry
-import Geometry.Coordinates.Hexagonal hiding (Polygon)
+import Geometry.Coordinates.Hexagonal
 
 
 
@@ -62,8 +62,8 @@ main = do
             for_ (take 5 xs) plotStrandSlightlySmaller
             for_ xs plotStrand
         plotResult = runPlot settings plotting
-    renderPreview "out/penplotting-truchetti-preview.png" plotResult
-    renderPreview "out/penplotting-truchetti-preview.svg" plotResult
+    renderPreview "out/penplotting-truchetti-preview.png" 1 plotResult
+    renderPreview "out/penplotting-truchetti-preview.svg" 1 plotResult
     writeGCodeFile "truchetti.g" plotResult
 
 plane :: [Hex]

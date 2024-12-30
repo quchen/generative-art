@@ -96,11 +96,10 @@ runSimulation :: Double -> Double -> [[(Double, PhaseSpace)]]
 runSimulation pressure tmax =
     let particles = runST $ do
             gen <- initialize (V.fromList [134])
-            qs <- poissonDisc gen def
-                { _poissonShape = boundingBox [4 *. margin, Vec2 picWidth picHeight -. 4 *. margin]
-                , _poissonRadius = sqrt (picWidth * picHeight) / 18
-                , _poissonK = 4
-                }
+            let poissonShape = boundingBox [4 *. margin, Vec2 picWidth picHeight -. 4 *. margin]
+                poissonRadius = sqrt (picWidth * picHeight) / 18
+                poissonK = 4
+            qs <- poissonDisc gen poissonShape poissonRadius poissonK
             ps <- replicateM (length qs) $ gaussianVec2 zero 1 gen
             pure (NBody $ zipWith PhaseSpace ps qs)
         masses = pure 1

@@ -31,7 +31,7 @@ main = do
 
 penPressure :: Plot ()
 penPressure = do
-    let hatches = fmap (\poly -> hatch poly zero 1) haskellLogo
+    let hatches = fmap (\poly -> hatch poly zero 1 0) haskellLogo
         hatchesWithPressure = concat $ zipWith (\p hs -> fmap (, p) hs) [2, 5, 10, 10] hatches
         sortedHatches = sortOn (\(Line (Vec2 _ y) _, _) -> y) $ sortOn (\(Line (Vec2 x _) _, _) -> x) hatchesWithPressure
     for_ sortedHatches $ \(Line p q, pressure) ->
@@ -50,7 +50,7 @@ hatchingDensity = do
             origin = Vec2 (x * 30) (y * 40)
         for_ strokes $ plot . transform (translate origin <> translate (Vec2 0 21) <> scale 0.2)
         let box = transform (translate origin) (boundingBoxPolygon (boundingBox [zero, Vec2 20 20]))
-            hatches = zigzag (hatch box (deg 0) density)
+            hatches = zigzag (hatch box (deg 0) density 0)
         plot hatches
   where
     zigzag = Polyline . go

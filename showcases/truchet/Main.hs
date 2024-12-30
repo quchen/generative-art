@@ -10,7 +10,7 @@ import           System.Random.MWC
 
 import Draw
 import Geometry
-import Geometry.Coordinates.Hexagonal hiding (Polygon, rotateAround)
+import Geometry.Coordinates.Hexagonal hiding (rotateAround)
 
 
 

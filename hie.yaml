@@ -76,6 +76,11 @@ cradle:
         cradle:
           stack:
             stackYaml: ./penplotting/Truchet/stack.yaml
+            components:
+              - path: ./penplotting/Truchet/Truchet.hs
+                component: penplotting-truchet:exe:penplotting-truchet
+              - path: ./penplotting/Truchet/Truchetti.hs
+                component: penplotting-truchet:exe:penplotting-truchetti
     - path: ./penplotting/Typography
       config:
         cradle:

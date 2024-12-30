@@ -3,7 +3,6 @@ module Main (main) where
 
 
 import           Control.Monad
-import           Data.Coerce
 import           Data.List
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C hiding (height, width, x, y)
@@ -12,7 +11,6 @@ import           System.Random.MWC        (initialize)
 
 
 import qualified Data.Set                        as S
-import           Data.Vector                     (Vector)
 import           Draw
 import           Draw.Plotting
 import           Draw.Plotting.CmdArgs
@@ -59,26 +57,25 @@ main = do
 
     writeGCodeFile (_outputFileG options) (runPlot plottingSettings drawing)
 
-mkGeometry :: Options -> IO [Polyline Vector]
+mkGeometry :: Options -> IO [Polyline]
 mkGeometry options = do
     let (width_opt, height_opt, margin_opt) = widthHeightMargin options
         width_mm = width_opt - 2 * margin_opt
         height_mm = height_opt - 2 * margin_opt
     gen <- initialize (V.fromList [fromIntegral noiseSeed])
-    startPoints <- poissonDisc gen PoissonDiscParams
-        { _poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) (height_mm / 10) ]
-        , _poissonK = 3
-        , _poissonRadius = 5
-        }
+    let poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) (height_mm / 10) ]
+        poissonRadius = 5
+        poissonK = 3
+    startPoints <- poissonDisc gen poissonShape poissonRadius poissonK
     let mkTrajectory start =
               Polyline
             . map (\(_t, pos) -> pos)
             . takeWhile
                 (\(t, pos) -> t <= 200 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
             $ fieldLine (velocityField options) (G.transform (G.scale' 1 10) start)
-    pure ((coerce . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts options . mkTrajectory)) startPoints)
+    pure ((fmap (Polyline . V.toList) . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts options . mkTrajectory)) startPoints)
 
-drawFieldLine :: Polyline Vector -> Render ()
+drawFieldLine :: Polyline -> Render ()
 drawFieldLine (Polyline polyLine) = cairoScope $ do
     let simplified = simplifyTrajectoryRadial 2 polyLine
     unless (null (drop 2 simplified)) $ do
@@ -88,7 +85,7 @@ drawFieldLine (Polyline polyLine) = cairoScope $ do
 groupOn :: Eq b => (a -> b) -> [a] -> [[a]]
 groupOn f = groupBy (\x y -> f x == f y)
 
-splitIntoInsideParts :: Sequential list => Options -> Polyline list -> [[Vec2]]
+splitIntoInsideParts :: Options -> Polyline -> [[Vec2]]
 splitIntoInsideParts options (Polyline xs) = filter (\(x:_) -> x `insideBoundingBox` drawBB) . groupOn (\p -> insideBoundingBox p drawBB) . toList $ xs
   where
     drawBB = boundingBox (Vec2 margin margin, Vec2 (width - margin) (height - margin))
