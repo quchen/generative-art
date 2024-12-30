@@ -19,17 +19,18 @@ import Geometry.Shapes
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 200
-picHeight = 200
+picWidth = 500
+picHeight = 500
 
 canvas :: Polygon
 canvas = transform (translate (Vec2 (picWidth/2) (picHeight/2)) <> scale' (picWidth/2) (picHeight/2)) (regularPolygon 32)
 
+-- ghcid --command='stack ghci penplotting-dendrites:exe:penplotting-dendrites' --test=main --no-title --warnings
 main :: IO ()
 main = do
     gen <- create
     let seeds = [Vec2 (0.1 * picWidth) (0.5 * picHeight), Vec2 (0.9 * picWidth) (0.5 * picHeight)]
-        radius = 2
+        radius = 3
     dendrites <- growDendrites gen seeds radius
 
     render "out/dendrites.png" picWidth picHeight $ do
@@ -43,6 +44,7 @@ main = do
             { _feedrate = 3000
             , _zTravelHeight = 3
             , _zDrawingHeight = -2
+            , _previewPenWidth = 0.5
             }
 
         penChange = withDrawingHeight 0 $ do
@@ -55,15 +57,15 @@ main = do
                 penChange
                 plotDendrite (root dendrite) dendrite
 
-    renderPreview "out/dendrites.png" 1 plotResult
-    writeGCodeFile "dendrites.g" plotResult
+    renderPreview "out/dendrites.png" 30 plotResult
+    writeGCodeFile "out/dendrites.g" plotResult
 
 drawDendrite :: Vec2 -> Dendrite -> C.Render ()
 drawDendrite parent (Node p children) = do
     sketch (Line parent p)
     C.stroke
     when (null children) $ do
-        sketch (Circle p 2)
+        sketch (Circle p 3)
         C.stroke
     for_ children $ drawDendrite p
 
