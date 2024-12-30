@@ -11,17 +11,144 @@ cradle:
             - path: ./test/doctest
               component: generative-art:test:doctest
     
+    - path: ./penplotting/ApollonianGasket
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/ApollonianGasket/stack.yaml
+    - path: ./penplotting/Bezier
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Bezier/stack.yaml
+    - path: ./penplotting/circuits
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/circuits/stack.yaml
     - path: ./penplotting/DelaunayVoronoi
       config:
         cradle:
           stack:
             stackYaml: ./penplotting/DelaunayVoronoi/stack.yaml
+    - path: ./penplotting/dendrites
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/dendrites/stack.yaml
+    - path: ./penplotting/FlowLines
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/FlowLines/stack.yaml
+    - path: ./penplotting/Hatched
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Hatched/stack.yaml
+    - path: ./penplotting/Kilometer
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Kilometer/stack.yaml
+    - path: ./penplotting/PenChangeCalibration
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/PenChangeCalibration/stack.yaml
+    - path: ./penplotting/PoissonDisc
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/PoissonDisc/stack.yaml
+    - path: ./penplotting/Pressure
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Pressure/stack.yaml
+    - path: ./penplotting/SvgSource
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/SvgSource/stack.yaml
+    - path: ./penplotting/Truchet
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Truchet/stack.yaml
+    - path: ./penplotting/Typography
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Typography/stack.yaml
+    - path: ./penplotting/Voronoi
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/Voronoi/stack.yaml
+
+    - path: ./showcases/circuits
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/circuits/stack.yaml
+    - path: ./showcases/haskell_logo_billard
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/haskell_logo_billard/stack.yaml
+    - path: ./showcases/haskell_logo_shattered
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/haskell_logo_shattered/stack.yaml
+    - path: ./showcases/haskell_logo_voronoi
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/haskell_logo_voronoi/stack.yaml
+    - path: ./showcases/munihac_2022_logo
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/munihac_2022_logo/stack.yaml
+    - path: ./showcases/particle_shooter
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/particle_shooter/stack.yaml
+    - path: ./showcases/pulsar
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/pulsar/stack.yaml
+    - path: ./showcases/truchet
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/truchet/stack.yaml
     - path: ./showcases/truchetti
       config:
         cradle:
           stack:
             stackYaml: ./showcases/truchetti/stack.yaml
             component: truchetti:exe:truchetti
+    - path: ./showcases/vector_fields
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/vector_fields/stack.yaml
+    - path: ./showcases/voronoi_3d
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/voronoi_3d/stack.yaml
+
+    - path: ./showcases/truchetti
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/truchetti/stack.yaml
 
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
