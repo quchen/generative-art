@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -10,7 +10,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # need to match Stackage LTS version from stack.yaml resolver
-        hPkgs = pkgs.haskell.packages."ghc8107";
+        hPkgs = pkgs.haskell.packages."ghc948";
 
         devtools = with hPkgs; [
           ghc
@@ -23,10 +23,24 @@
         ];
 
         pkgconfigDeps = with pkgs; [
+          brotli.dev
+          bzip2.dev
           cairo.dev
+          expat.dev
+          fontconfig.dev
+          freetype.dev
           gtk2.dev
           gtkd
-          pkgconfig
+          libpng.dev
+          pixman
+          pkg-config
+          xorg.libX11.dev
+          xorg.libXau.dev
+          xorg.libxcb.dev
+          xorg.libXdmcp.dev
+          xorg.libXext.dev
+          xorg.libXrender.dev
+          xorg.xorgproto
           zlib
           zlib.dev
         ];
@@ -50,7 +64,7 @@
                 --extra-lib-dirs=$out/lib \
                 --extra-include-dirs=$out/include \
               " \
-              --set PKG_CONFIG_PATH $out/lib/pkgconfig \
+              --set PKG_CONFIG_PATH "$out/lib/pkgconfig:$out/share/pkgconfig" \
               --set LD_LIBRARY_PATH ${pkgs.lib.makeLibraryPath pkgconfigDeps}
           '';
         };
