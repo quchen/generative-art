@@ -5,13 +5,6 @@
 
 packages:
 - completed:
-    hackage: cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
-    pantry-tree:
-      sha256: a5d7014b0df2600377d061185b104f755274935554e723e2b7b600b85ffc7ae2
-      size: 2831
-  original:
-    hackage: cairo-0.13.10.0@sha256:388f39af90d50b920cad70612046041a7ffd7f5b60721862c0c797ecddf7e902,4153
-- completed:
     hackage: Noise-1.0.6@sha256:7eb0d021e334ca2341a9cb51eac7d6f2c76b4e4e1a27264509b38264dc202b32,1994
     pantry-tree:
       sha256: 27a9154935b4d30a22830477c60c5108fd713a184d456272c2fccbf361d2395f
@@ -26,15 +19,15 @@ packages:
   original:
     hackage: plotfont-0.1.0.1@sha256:e3b2507c6350feee8ff5a612a0ac3f5a7e8f39efb2895fbca70c0220834652a4,1155
 - completed:
-    hackage: alfred-margaret-1.1.2.0@sha256:f820b7361df3b208945404c027108ca378c01e8fe78ca8f966270315864343f1,4542
+    hackage: alfred-margaret-2.1.0.2@sha256:2903ce63f9054ec607c03439231cdacd0a3b731febe05f493d073bcb1a8bc1a7,4918
     pantry-tree:
-      sha256: b9b9fd6dce6323985f75d296bd20f2a2d0ec4090e5cda6015d59476831fca38e
-      size: 2241
+      sha256: f747ba440a8a87e433970d07cb1edabac770f111fec0732ee83026cf2bf7286e
+      size: 1938
   original:
-    hackage: alfred-margaret-1.1.2.0
+    hackage: alfred-margaret-2.1.0.2
 snapshots:
 - completed:
-    sha256: dcf4fc28f12d805480ddbe8eb8c370e11db12f0461d0110a4240af27ac88d725
-    size: 650255
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/22.yaml
-  original: lts-20.22
+    sha256: a81fb3877c4f9031e1325eb3935122e608d80715dc16b586eb11ddbff8671ecd
+    size: 640086
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/25.yaml
+  original: lts-21.25
