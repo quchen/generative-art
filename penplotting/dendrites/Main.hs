@@ -74,8 +74,8 @@ plotDendrite parent (Node p children) = do
     let branch = Line parent p
     plot branch
     when (null children) $ do
-        plot (Line p (p +. 0.4 *. direction branch))
-        plot (Circle p 0.4)
+        plot (Line p (p +. 1.0 *. direction branch))
+        plot (Circle p 1.0)
     for_ children $ plotDendrite p
 
 growDendrites :: GenIO -> [Vec2] -> Double -> IO [Dendrite]
