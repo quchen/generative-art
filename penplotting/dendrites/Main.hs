@@ -19,8 +19,8 @@ import Geometry.Shapes
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 500
-picHeight = 500
+picWidth = 470
+picHeight = 470
 
 canvas :: Polygon
 canvas = transform (translate (Vec2 (picWidth/2) (picHeight/2)) <> scale' (picWidth/2) (picHeight/2)) (regularPolygon 32)
