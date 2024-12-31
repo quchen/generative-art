@@ -6,6 +6,7 @@ import           Control.Monad
 import           Data.List
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C hiding (height, width, x, y)
+import           Graphics.Rendering.Cairo.Matrix as C
 import           Options.Applicative
 import           System.Random.MWC        (initialize)
 
@@ -26,26 +27,29 @@ import           Numerics.VectorAnalysis
 
 -- Higher values yield lower-frequency noise
 noiseScale :: Double
-noiseScale = 0.5
+noiseScale = 0.55
 
 noiseSeed :: Int
 noiseSeed = 519496
 
+-- stack build --exec "penplotting-flowlines -o out/flowlines.g --size 500x300 --landscape"
 main :: IO ()
 main = do
     options <- commandLineOptions
     geometry <- mkGeometry options
 
     let (width, height, _) = widthHeightMargin options
-    render "out/vector_fields.svg" (round width) (round height) $ do
+    render "out/vector_fields.png" (10 * round width) (10 * round height) $ do
 
-        cairoScope $ do
-            setColor black
-            C.paint
+        C.transform (C.Matrix 10 0 0 10 0 0)
 
         cairoScope $ do
             setColor white
-            setLineWidth 0.3
+            C.paint
+
+        cairoScope $ do
+            setColor black
+            setLineWidth 0.2
             for_ geometry drawFieldLine
 
     let drawing = sequence
@@ -63,15 +67,15 @@ mkGeometry options = do
         width_mm = width_opt - 2 * margin_opt
         height_mm = height_opt - 2 * margin_opt
     gen <- initialize (V.fromList [fromIntegral noiseSeed])
-    let poissonShape = boundingBox [ Vec2 (-50) 0, Vec2 (width_mm + 50) (height_mm / 10) ]
-        poissonRadius = 5
+    let poissonShape = boundingBox [ Vec2 (-0.1 * width_mm) (-0.01 * height_mm), Vec2 (1.1 * width_mm) (0.11 * height_mm) ]
+        poissonRadius = 1.4
         poissonK = 3
     startPoints <- poissonDisc gen poissonShape poissonRadius poissonK
     let mkTrajectory start =
               Polyline
             . map (\(_t, pos) -> pos)
             . takeWhile
-                (\(t, pos) -> t <= 200 && pos `insideBoundingBox` (Vec2 (-50) (-50), Vec2 (width_mm+50) (height_mm+50)))
+                (\(t, pos) -> t <= 40 && pos `insideBoundingBox` (Vec2 (-0.1 * width_mm) (-0.1 * height_mm), Vec2 (1.1 * width_mm) (1.1 * height_mm)))
             $ fieldLine (velocityField options) (G.transform (G.scale' 1 10) start)
     pure ((fmap (Polyline . V.toList) . minimizePenHovering . S.fromList . concatMap (splitIntoInsideParts options . mkTrajectory)) startPoints)
 
@@ -112,7 +116,8 @@ velocityField :: Options -> Vec2 -> Vec2
 velocityField options p@(Vec2 x y) = Vec2 1 0 +. perturbationStrength *. rotationField options p
   where
     perturbationStrength =
-        0.8
+        0.6
+        * sqrt (width_mm * height_mm)
         * logisticRamp (0.6*width_mm) (width_mm/6) x
         * gaussianFalloff (0.5*height_mm) (0.4*height_mm) y
 
