@@ -13,7 +13,7 @@ import System.Random.MWC.Distributions
 
 import Draw
 import Draw.Plotting
-import Geometry
+import Geometry hiding (Line)
 import Geometry.Shapes
 
 
@@ -71,11 +71,11 @@ drawDendrite parent (Node p children) = do
 
 plotDendrite :: Vec2 -> Dendrite -> Plot ()
 plotDendrite parent (Node p children) = do
-    let branch = Line parent p
+    let dir = (p -. parent) /. norm (p -. parent)
     case children of
         [] -> do
-            let p1 = p -. 0.8 *. direction branch
-                p2 = p -. 0.4 *. direction branch
+            let p1 = p -. 0.8 *. dir
+                p2 = p -. 0.4 *. dir
             plot (Line parent p1)
             plot (Circle p 0.8)
             plot (Line p1 p2)
@@ -149,4 +149,15 @@ candidates gen GrowthState{..} p = fmap catMaybes $ replicateM 20 $ do
         guard (not (any (\q -> norm (p' -. q) <= _radius) _allNodes))
         Just p'
 
+-- Same as Geometry.Line, but with a Plotting instance that guarantees it to be drawn in the intended direction
+data Line = Line Vec2 Vec2
 
+instance Sketch Line where
+    sketch (Line start end) = do
+        moveToVec start
+        lineToVec end
+
+instance Plotting Line where
+    plot (Line a b) = commented "Line" $ do
+        repositionTo a
+        lineTo b
