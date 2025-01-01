@@ -72,11 +72,17 @@ drawDendrite parent (Node p children) = do
 plotDendrite :: Vec2 -> Dendrite -> Plot ()
 plotDendrite parent (Node p children) = do
     let branch = Line parent p
-    plot branch
-    when (null children) $ do
-        plot (Line p (p +. 1.0 *. direction branch))
-        plot (Circle p 1.0)
-    for_ children $ plotDendrite p
+    case children of
+        [] -> do
+            let p1 = p -. 0.8 *. direction branch
+                p2 = p -. 0.4 *. direction branch
+            plot (Line parent p1)
+            plot (Circle p 0.8)
+            plot (Line p1 p2)
+            plot (Circle p 0.4)
+        _ -> do
+            plot (Line parent p)
+            for_ children $ plotDendrite p
 
 growDendrites :: GenIO -> [Vec2] -> Double -> IO [Dendrite]
 growDendrites gen seeds radius = fmap _result <$> loop (S.fromList seeds) (V.fromList (initialState <$> seeds))
