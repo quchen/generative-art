@@ -44,6 +44,7 @@ main = do
             { _feedrate = 3000
             , _zTravelHeight = 3
             , _zDrawingHeight = -2
+            , _repositionThreshold = 0.01
             , _previewPenWidth = 0.5
             }
 
