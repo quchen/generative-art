@@ -403,7 +403,9 @@ previewCanvas = commented "Preview bounding box" $ do
 repositionTo :: Vec2 -> Plot ()
 repositionTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
-    when (currentXY /= target) $ do
+    -- Only move if there's recognizable movement
+    -- (0.01mm is well below typical resolution of even the finest pens)
+    when (norm (currentXY -. target) > 0.01) $ do
         penUp
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
 
