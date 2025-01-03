@@ -15,7 +15,6 @@ import Draw
 import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
-import Geometry.Algorithms.Voronoi
 
 
 
@@ -36,32 +35,36 @@ main = do
     gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = 1440 * sqrt (0.75 / count)
-        samplingProps = PoissonDiscParams
-            { _poissonShape = boundingBox [zero, Vec2 1440 1440]
-            , _poissonRadius = adaptiveRadius
-            , _poissonK      = 4
-            }
+        poissonShape  = boundingBox [zero, Vec2 1440 1440]
+        poissonRadius = adaptiveRadius
+        poissonK      = 4
+        bounds        = BoundingBox  (Vec2 0 0) (Vec2 1440 1440)
 
-    points <- poissonDisc gen samplingProps
+    points <- poissonDisc gen poissonShape poissonRadius poissonK
     print (length points)
-    let voronoi = toVoronoi (lloydRelaxation 4 (bowyerWatson (BoundingBox (Vec2 0 0) (Vec2 1440 1440)) points))
-        voronoiWithProps = mapWithMetadata (\p _ _ -> (randomColor p, randomHeight p)) voronoi
+    let voronoi
+            = clipCellsToBox bounds
+            $ voronoiCells
+            $ delaunayTriangulation
+            $ V.last
+            $ V.iterateN 4 (lloydRelaxation bounds 1)
+            $ V.fromList points
+        voronoiWithProps = (\(seed, region) -> (seed, randomColor seed, randomHeight seed, region)) <$> zip points (V.toList voronoi)
         origin = Vec2 (picWidth/2) (picHeight/2)
-        voronoiCells = sortOn ((\(Polygon ps) -> minimum (yCoordinate <$> ps)) . fst) $
-            ( \c ->
-                ( G.transform
+        cells = sortOn (\(Polygon ps, _, _) -> minimum (yCoordinate <$> ps)) $ do
+            (seed, color, height, region) <- voronoiWithProps
+            let region' = G.transform
                     (  G.translate (Vec2 0 (picHeight/5))
                     <> G.scaleAround' origin 1 0.35
                     <> G.rotateAround origin (deg 45)
                     <> G.translate (Vec2 560 0 )
-                    <> G.scaleAround (_voronoiSeed c) 0.9 )
-                    (_voronoiRegion c)
-                , _voronoiProps c) )
-            <$> _voronoiCells voronoiWithProps
+                    <> G.scaleAround seed 0.9 )
+                    region
+            pure (region', color, height)
 
     render file scaledWidth scaledHeight $ do
         cairoScope (setColor (magma 0.05) >> paint)
-        for_ voronoiCells $ uncurry drawCell
+        for_ cells drawCell
 
 randomHeight :: Vec2 -> Double
 randomHeight = \p -> 300 + 400 * noise2d p + 200 * exp(- 0.000005 * normSquare (p -. origin))
@@ -76,9 +79,9 @@ randomColor = \p -> inferno (0.6 + 0.35 * noise2d p)
     noise = perlin { perlinOctaves = 5, perlinFrequency = 0.001, perlinPersistence = 0.65, perlinSeed = 1980166 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
 
-drawCell :: Polygon -> (Color Double, Double) -> Render ()
-drawCell (Polygon []) _ = pure ()
-drawCell poly@(Polygon ps) (color, height) = cairoScope $ do
+drawCell :: (Polygon, Color Double, Double) -> Render ()
+drawCell (Polygon [], _, _) = pure ()
+drawCell (poly@(Polygon ps), color, height) = cairoScope $ do
     let lineColor = blend 0.95 color white
         sideColor = blend 0.1 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
         topColor = blend 0.7 (color `withOpacity` 0.8) (black `withOpacity` 0.3)
