@@ -91,6 +91,11 @@ cradle:
         cradle:
           stack:
             stackYaml: ./penplotting/Voronoi/stack.yaml
+    - path: ./penplotting/voronoi_3d
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/voronoi_3d/stack.yaml
 
     - path: ./showcases/circuits
       config:
