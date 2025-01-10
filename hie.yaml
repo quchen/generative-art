@@ -148,14 +148,11 @@ cradle:
         cradle:
           stack:
             stackYaml: ./showcases/voronoi_3d/stack.yaml
-
-    - path: ./showcases/truchetti
+    - path: ./showcases/warped_tiles
       config:
         cradle:
           stack:
-            stackYaml: ./showcases/truchetti/stack.yaml
+            stackYaml: ./showcases/warped_tiles/stack.yaml
 
     # - path: ./path/to/main/hs
     #   component: name-of-the-package
-    - path: ./showcases/warped_tiles
-      component: warped-tiles
