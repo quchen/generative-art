@@ -83,11 +83,11 @@ main = do
 
 randomHeight :: Vec2 -> Double
 randomHeight p
-    = (picHeight / 6)
-    + (picHeight / 2) * noise2d p
-    + (picHeight / 6) * exp(- 0.000005 * normSquare (p -. origin))
+    = (picHeight * 0.25)
+    + (picHeight * 0.8) * noise2d p
+    + (picHeight * 0.2) * exp(- 0.000005 * normSquare (p -. origin))
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.002, perlinSeed = 1980166 }
+    noise = perlin { perlinOctaves = 4, perlinFrequency = picHeight / 300000, perlinSeed = 1980169 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
     origin = Vec2 (picHeight / 2) (picHeight / 2)
 
@@ -153,7 +153,7 @@ sketchLines cells =
     a `between` (b, c) = (b < a && a < c) || (c < a && a < b)
 
 plotCells :: [[Line]] -> Plot ()
-plotCells layers = for_ layers $ \layer -> do
+plotCells layers = for_ (take 2 layers) $ \layer -> do
     penChange
     for_ (minimizePenHoveringBy minimizePenHoveringSettings (S.fromList layer)) plot
 
@@ -163,7 +163,7 @@ drawCells layers = for_ (zip layers strokes) $ \(layer, stroke) -> cairoScope $ 
     C.setLineWidth stroke
     sketch layer
     C.stroke
-  where strokes = [4, 2, 1, 1]
+  where strokes = [4, 1]
 
 _x, _y :: Vec2 -> Double
 _x (Vec2 x _) = x
