@@ -73,6 +73,7 @@ main = do
             { _feedrate = 6000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
+            , _repositionThreshold = 0.05
             , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth paperHeight])
             }
         plotResult = runPlot plottingSettings (plotCells (G.transform (G.translate (Vec2 0 ((paperHeight - picHeight) / 2))) cellLines))
