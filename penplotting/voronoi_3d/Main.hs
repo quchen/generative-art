@@ -152,7 +152,9 @@ sketchLines cells =
             in  zipWith (++) 
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) topEdge)
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) bottomEdge)
-    in foldr (zipWith (++)) (repeat []) (sideEdgesPlotting ++ bottomTopEdgesPlotting)
+    in fmap
+        (filter (\line -> lineLength line > 0.3)) -- Lots of small clippign artifacts, only keep lines that are longer than a pen diameter
+        (foldr (zipWith (++)) (repeat []) (sideEdgesPlotting ++ bottomTopEdgesPlotting))
   where 
     a `between` (b, c) = (b < a && a < c) || (c < a && a < b)
 
