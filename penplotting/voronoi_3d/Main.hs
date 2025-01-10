@@ -21,11 +21,11 @@ import Geometry.Algorithms.Sampling
 
 
 
-picWidth, picHeight, margin, size :: Num a => a
+picWidth, picHeight, paperHeight, size :: Num a => a
 picWidth = 500
 picHeight = 500
-margin = 100
-size = picHeight - 2 * margin
+paperHeight = 430
+size = 300
 
 previewScale :: Num a => a
 previewScale = 10
@@ -63,7 +63,7 @@ main = do
                     (  G.translate (Vec2 0 (- size/4))
                     <> G.scaleAround' origin 1 0.35
                     <> G.rotateAround origin (deg 45)
-                    <> G.translate (Vec2 ((picWidth - size) / 2) margin)
+                    <> G.translate (Vec2 ((picWidth - size) / 2) ((picHeight - size) / 2))
                     <> G.scaleAround seed 0.9 )
                     region
             pure (region', height)
@@ -73,9 +73,9 @@ main = do
             { _feedrate = 6000
             , _zTravelHeight = 5
             , _zDrawingHeight = -2
-            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth picHeight])
+            , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth paperHeight])
             }
-        plotResult = runPlot plottingSettings (plotCells cellLines)
+        plotResult = runPlot plottingSettings (plotCells (G.transform (G.translate (Vec2 0 ((paperHeight - picHeight) / 2))) cellLines))
     
     renderPreview "out/voronoi_3d_preview.png" previewScale plotResult
     writeGCodeFile "out/voronoi_3d.g" plotResult
