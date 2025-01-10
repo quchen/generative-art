@@ -33,7 +33,7 @@ epsilon = 0.01
 
 main :: IO ()
 main = do
-    let count = 200
+    let count = 100
 
     gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let -- constructed so that we have roughly `count` points
@@ -83,11 +83,11 @@ main = do
 
 randomHeight :: Vec2 -> Double
 randomHeight p
-    = (picHeight / 4)
-    + (picHeight / 3) * noise2d p
+    = (picHeight / 6)
+    + (picHeight / 2) * noise2d p
     + (picHeight / 6) * exp(- 0.000005 * normSquare (p -. origin))
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.001, perlinSeed = 1980166 }
+    noise = perlin { perlinOctaves = 4, perlinFrequency = 0.002, perlinSeed = 1980166 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
     origin = Vec2 (picHeight / 2) (picHeight / 2)
 
@@ -158,11 +158,12 @@ plotCells layers = for_ layers $ \layer -> do
     for_ (minimizePenHoveringBy minimizePenHoveringSettings (S.fromList layer)) plot
 
 drawCells :: [[Line]] -> C.Render ()
-drawCells layers = for_ (zip layers colors) $ \(layer, color) -> cairoScope $ do
-    setColor color
+drawCells layers = for_ (zip layers strokes) $ \(layer, stroke) -> cairoScope $ do
+    setColor black
+    C.setLineWidth stroke
     sketch layer
     C.stroke
-  where colors = (black `withOpacity`) <$> [1, 0.75, 0.5, 0.25]
+  where strokes = [4, 2, 1, 1]
 
 _x, _y :: Vec2 -> Double
 _x (Vec2 x _) = x
