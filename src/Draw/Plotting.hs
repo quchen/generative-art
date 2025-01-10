@@ -52,6 +52,7 @@ module Draw.Plotting (
     -- ** File structure
     , block
     , comment
+    , commented
 
     -- * Raw G-Code
     , penDown
