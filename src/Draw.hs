@@ -78,7 +78,8 @@ import Draw.Color.Schemes.Continuous
 import Draw.Color.Schemes.Discrete
 import Draw.NormalizeSvg
 import Draw.Text
-import Geometry                      as G
+import Geometry.Core as G
+import Geometry.Bezier as G
 
 
 

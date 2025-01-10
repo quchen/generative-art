@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -36,6 +36,7 @@ library
       Data.Sequential
       Data.Tree.Extended
       Data.Vector.Extended
+      Debug.Trace.Sketch
       Draw
       Draw.Color
       Draw.Color.Schemes.Continuous
@@ -137,6 +138,7 @@ library
     , text
     , tf-random
     , transformers
+    , uuid
     , vector
     , vector-algorithms
   default-language: Haskell2010
@@ -182,6 +184,7 @@ test-suite doctest
     , text
     , tf-random
     , transformers
+    , uuid
     , vector
     , vector-algorithms
   default-language: Haskell2010
@@ -258,6 +261,7 @@ test-suite testsuite
     , text
     , tf-random
     , transformers
+    , uuid
     , vector
     , vector-algorithms
   default-language: Haskell2010

@@ -42,6 +42,7 @@ dependencies:
     - text
     - tf-random
     - transformers
+    - uuid
     - vector
     - vector-algorithms
 

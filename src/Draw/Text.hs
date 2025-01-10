@@ -11,7 +11,7 @@ module Draw.Text (
 
 
 import           Data.Default.Class
-import           Geometry
+import           Geometry.Core
 import qualified Graphics.PlotFont        as PF
 import qualified Graphics.Rendering.Cairo as C
 
