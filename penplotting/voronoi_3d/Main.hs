@@ -31,11 +31,11 @@ previewScale :: Num a => a
 previewScale = 10
 
 epsilon :: Double
-epsilon = 0.01
+epsilon = 0.0001
 
 main :: IO ()
 main = do
-    let count = 120
+    let count = 80
 
     gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let 
@@ -91,7 +91,7 @@ randomHeight p
     + (size * 0.8) * noise2d p
     + (size * 0.2) * exp(- 0.000005 * normSquare (p -. origin))
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = size / 300000, perlinSeed = 1980164 }
+    noise = perlin { perlinOctaves = 4, perlinFrequency = size / 250000, perlinSeed = 1980163 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
     origin = Vec2 (size / 2) (size / 2)
 
@@ -132,7 +132,7 @@ sketchLines cells =
             in  clipLine (shadowingSidePolys ++ shadowingTopPolys) line
         bottomTopEdgesPlotting = bottomTopEdges <&> \(bottomEdge, topEdge) ->
             let (p, q) = let Line p q = bottomEdge in if (q -. p) `dotProduct` Vec2 1 0 > 0 then (p, q) else (q, p)
-                shadowingSidePolys = fmap (growPolygon (2*epsilon)) $ flip filter sidePolys $ \poly@(Polygon [p', q', _, _])
+                shadowingSidePolys = fmap (growPolygon epsilon) $ flip filter sidePolys $ \poly@(Polygon [p', q', _, _])
                     -> (_x p `between` (_x p', _x q') && cross (q' -. p') (p -. p') > 0)
                     || (_x q `between` (_x p', _x q') && cross (q' -. p') (q -. p') > 0)
                     || (_x p' `between` (_x p, _x q) && cross (q -. p) (p' -. p) < 0)
@@ -153,7 +153,7 @@ sketchLines cells =
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) topEdge)
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) bottomEdge)
     in fmap
-        (filter (\line -> lineLength line > 0.3)) -- Lots of small clippign artifacts, only keep lines that are longer than a pen diameter
+        (filter (\line -> lineLength line > 0.1)) -- Lots of small clipping artifacts, only keep lines that are longer than a pen diameter
         (foldr (zipWith (++)) (repeat []) (sideEdgesPlotting ++ bottomTopEdgesPlotting))
   where 
     a `between` (b, c) = (b < a && a < c) || (c < a && a < b)
