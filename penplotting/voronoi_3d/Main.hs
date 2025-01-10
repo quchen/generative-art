@@ -18,8 +18,6 @@ import Draw.Plotting
 import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
-import Control.Monad (guard)
-import Debug.Trace (traceShowM, traceShow, traceShowId)
 import System.Environment (getArgs)
 
 
@@ -125,11 +123,13 @@ drawCells cells = do
             in  clipLine (shadowingSidePolys ++ shadowingTopPolys) line
         bottomTopEdgesPlotting = bottomTopEdges <&> \(bottomEdge, topEdge) ->
             let (p, q) = let Line p q = bottomEdge in if (q -. p) `dotProduct` Vec2 1 0 > 0 then (p, q) else (q, p)
-                shadowingSidePolys = fmap (shrinkPolygon (2*epsilon)) $ flip filter sidePolys $ \(Polygon [p', q', _, _])
-                    -> (_x p `between` (_x p', _x q') && cross (q' -. p') (p -. p') > 0)
-                    || (_x q `between` (_x p', _x q') && cross (q' -. p') (q -. p') > 0)
-                    || (_x p' `between` (_x p, _x q) && cross (q -. p) (p' -. p) < 0)
-                    || (_x q' `between` (_x p, _x q) && cross (q -. p) (q' -. p) < 0)
+                shadowingSidePolys = fmap (growPolygon (2*epsilon)) $ flip filter sidePolys $ \poly@(Polygon [p', q', _, _])
+                    -> let foo = ((_x p `between` (_x p', _x q') && cross (q' -. p') (p -. p') > 0)
+                                || (_x q `between` (_x p', _x q') && cross (q' -. p') (q -. p') > 0)
+                                || (_x p' `between` (_x p, _x q) && cross (q -. p) (p' -. p) < 0)
+                                || (_x q' `between` (_x p, _x q) && cross (q -. p) (q' -. p) < 0))
+                                && p /= p' && p /= q' && q /= p' && q /= q'
+                       in if foo then traceShow (Line p q, poly) foo else foo
                 shadowingTopPolys = fmap (shrinkPolygon epsilon) $ do
                     (bottomPoly, topPoly) <- bottomTopPolys
                     point <- [p, q]
@@ -174,10 +174,19 @@ clipLine ps line = go ps [line] [] [] []
             in  go ls (result >>= \line -> differenceLP line supportingPoly)
 
 differenceLP :: Line -> Polygon -> [Line]
-differenceLP (Line p q) scissors =
-    let paper = Polygon [p, q]
-        parts = differencePP paper scissors
-    in fmap (head . polygonEdges . fst) parts
+differenceLP line@(Line p q) scissors = go ([p] ++ intersections ++ [q])
+  where
+    intersections = do
+        edge <- polygonEdges scissors
+        case intersectionLL line edge of
+            IntersectionReal i -> pure i
+            _ -> []
+    go (a : b : is)
+        | pointInPolygon ((a +. b) /. 2) scissors
+        = go (b : is)
+        | otherwise
+        = Line a b : go (b : is)
+    go _ = []
 
 (<&>) :: [a] -> (a -> b) -> [b]
 (<&>) = flip fmap
