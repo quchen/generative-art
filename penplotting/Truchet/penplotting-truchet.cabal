@@ -1,4 +1,4 @@
-cabal-version: 1.18
+cabal-version: 1.12
 
 -- This file has been generated from package.yaml by hpack version 0.37.0.
 --
@@ -13,9 +13,6 @@ maintainer:     Franz Thoma
 copyright:      2022 Franz Thoma
 license:        BSD3
 build-type:     Simple
-extra-doc-files:
-    docs/clipping_example.svg
-    docs/negative_clipping_example.svg
 
 source-repository head
   type: git

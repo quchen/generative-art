@@ -22,9 +22,9 @@ import Geometry.Algorithms.Sampling
 
 
 picWidth, picHeight, paperHeight, size :: Num a => a
-picWidth = 500
-picHeight = 500
-paperHeight = 430
+picWidth = 630
+picHeight = 440
+paperHeight = 440
 size = 300
 
 previewScale :: Num a => a
