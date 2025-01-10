@@ -21,9 +21,11 @@ import Geometry.Algorithms.Sampling
 
 
 
-picWidth, picHeight :: Num a => a
-picWidth = 600
-picHeight = 430
+picWidth, picHeight, margin, size :: Num a => a
+picWidth = 500
+picHeight = 500
+margin = 100
+size = picHeight - 2 * margin
 
 previewScale :: Num a => a
 previewScale = 10
@@ -33,15 +35,16 @@ epsilon = 0.01
 
 main :: IO ()
 main = do
-    let count = 100
+    let count = 120
 
     gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
-    let -- constructed so that we have roughly `count` points
-        adaptiveRadius = picHeight * sqrt (0.75 / count)
-        poissonShape  = boundingBox [zero, Vec2 picHeight picHeight]
+    let 
+        -- constructed so that we have roughly `count` points
+        adaptiveRadius = size * sqrt (0.75 / count)
+        poissonShape  = boundingBox [zero, Vec2 size size]
         poissonRadius = adaptiveRadius
         poissonK      = 4
-        bounds        = BoundingBox  (Vec2 0 0) (Vec2 picHeight picHeight)
+        bounds        = BoundingBox  (Vec2 0 0) (Vec2 size size)
 
     points <- poissonDisc gen poissonShape poissonRadius poissonK
     print (length points)
@@ -57,10 +60,10 @@ main = do
         cells = sortOn (\(Polygon ps, _) -> minimum (_y <$> ps)) $ do
             (seed, height, region) <- voronoiWithProps
             let region' = G.transform
-                    (  G.translate (Vec2 0 (-picHeight/5))
+                    (  G.translate (Vec2 0 (- size/4))
                     <> G.scaleAround' origin 1 0.35
                     <> G.rotateAround origin (deg 45)
-                    <> G.translate (Vec2 ((picWidth - picHeight) / 2) 0 )
+                    <> G.translate (Vec2 ((picWidth - size) / 2) margin)
                     <> G.scaleAround seed 0.9 )
                     region
             pure (region', height)
@@ -83,13 +86,13 @@ main = do
 
 randomHeight :: Vec2 -> Double
 randomHeight p
-    = (picHeight * 0.25)
-    + (picHeight * 0.8) * noise2d p
-    + (picHeight * 0.2) * exp(- 0.000005 * normSquare (p -. origin))
+    = (size * 0.25)
+    + (size * 0.8) * noise2d p
+    + (size * 0.2) * exp(- 0.000005 * normSquare (p -. origin))
   where
-    noise = perlin { perlinOctaves = 4, perlinFrequency = picHeight / 300000, perlinSeed = 1980169 }
+    noise = perlin { perlinOctaves = 4, perlinFrequency = size / 300000, perlinSeed = 1980164 }
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
-    origin = Vec2 (picHeight / 2) (picHeight / 2)
+    origin = Vec2 (size / 2) (size / 2)
 
 sketchLines :: [(Polygon, Double)] -> [[Line]]
 sketchLines cells = 
