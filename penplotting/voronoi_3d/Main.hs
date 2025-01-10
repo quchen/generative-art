@@ -18,7 +18,6 @@ import Draw.Plotting
 import Geometry                     as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
-import System.Environment (getArgs)
 
 
 
@@ -26,16 +25,17 @@ picWidth, picHeight :: Num a => a
 picWidth = 600
 picHeight = 430
 
+previewScale :: Num a => a
+previewScale = 10
+
 epsilon :: Double
 epsilon = 0.01
 
 main :: IO ()
 main = do
-    seed <- read . head <$> getArgs
+    let count = 200
 
-    let count = 10
-
-    gen <- initialize (V.fromList [seed])
+    gen <- initialize (V.fromList [12, 984, 498, 498, 626, 15, 165])
     let -- constructed so that we have roughly `count` points
         adaptiveRadius = picHeight * sqrt (0.75 / count)
         poissonShape  = boundingBox [zero, Vec2 picHeight picHeight]
@@ -64,6 +64,7 @@ main = do
                     <> G.scaleAround seed 0.9 )
                     region
             pure (region', height)
+        cellLines = sketchLines cells
 
     let plottingSettings = def
             { _feedrate = 6000
@@ -71,10 +72,14 @@ main = do
             , _zDrawingHeight = -2
             , _canvasBoundingBox = Just (boundingBox [zero, Vec2 picWidth picHeight])
             }
-        plotResult = runPlot plottingSettings (drawCells cells)
+        plotResult = runPlot plottingSettings (plotCells cellLines)
     
-    renderPreview "out/voronoi_3d.png" 10 plotResult
+    renderPreview "out/voronoi_3d_preview.png" previewScale plotResult
     writeGCodeFile "out/voronoi_3d.g" plotResult
+    render "out/voronoi_3d.png" (previewScale * picWidth) (previewScale * picHeight) $ do
+        coordinateSystem (MathStandard_ZeroBottomLeft_XRight_YUp (previewScale * picHeight))
+        cairoScope (setColor white >> C.paint)
+        drawCells (G.transform (G.scale previewScale) cellLines)
 
 randomHeight :: Vec2 -> Double
 randomHeight p
@@ -86,8 +91,8 @@ randomHeight p
     noise2d (Vec2 x y) = fromMaybe 0 $ getValue noise (x, y, 0)
     origin = Vec2 (picHeight / 2) (picHeight / 2)
 
-drawCells :: [(Polygon, Double)] -> Plot ()
-drawCells cells = do
+sketchLines :: [(Polygon, Double)] -> [[Line]]
+sketchLines cells = 
     let bottomTopPolys = (\(p, h) -> (p, G.transform (G.translate (Vec2 0 h)) p)) <$> cells
         sidePolys = do
             (Polygon ps, height) <- cells
@@ -124,12 +129,10 @@ drawCells cells = do
         bottomTopEdgesPlotting = bottomTopEdges <&> \(bottomEdge, topEdge) ->
             let (p, q) = let Line p q = bottomEdge in if (q -. p) `dotProduct` Vec2 1 0 > 0 then (p, q) else (q, p)
                 shadowingSidePolys = fmap (growPolygon (2*epsilon)) $ flip filter sidePolys $ \poly@(Polygon [p', q', _, _])
-                    -> let foo = ((_x p `between` (_x p', _x q') && cross (q' -. p') (p -. p') > 0)
-                                || (_x q `between` (_x p', _x q') && cross (q' -. p') (q -. p') > 0)
-                                || (_x p' `between` (_x p, _x q) && cross (q -. p) (p' -. p) < 0)
-                                || (_x q' `between` (_x p, _x q) && cross (q -. p) (q' -. p) < 0))
-                                && p /= p' && p /= q' && q /= p' && q /= q'
-                       in if foo then traceShow (Line p q, poly) foo else foo
+                    -> (_x p `between` (_x p', _x q') && cross (q' -. p') (p -. p') > 0)
+                    || (_x q `between` (_x p', _x q') && cross (q' -. p') (q -. p') > 0)
+                    || (_x p' `between` (_x p, _x q) && cross (q -. p) (p' -. p) < 0)
+                    || (_x q' `between` (_x p, _x q) && cross (q -. p) (q' -. p) < 0)
                 shadowingTopPolys = fmap (shrinkPolygon epsilon) $ do
                     (bottomPoly, topPoly) <- bottomTopPolys
                     point <- [p, q]
@@ -145,11 +148,21 @@ drawCells cells = do
             in  zipWith (++) 
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) topEdge)
                     (clipLine (shadowingSidePolys ++ shadowingTopPolys) bottomEdge)
-    for_ (foldr (zipWith (++)) (repeat []) (sideEdgesPlotting ++ bottomTopEdgesPlotting)) $ \layer -> do
-        penChange
-        for_ (minimizePenHoveringBy minimizePenHoveringSettings (S.fromList layer)) plot
+    in foldr (zipWith (++)) (repeat []) (sideEdgesPlotting ++ bottomTopEdgesPlotting)
   where 
     a `between` (b, c) = (b < a && a < c) || (c < a && a < b)
+
+plotCells :: [[Line]] -> Plot ()
+plotCells layers = for_ layers $ \layer -> do
+    penChange
+    for_ (minimizePenHoveringBy minimizePenHoveringSettings (S.fromList layer)) plot
+
+drawCells :: [[Line]] -> C.Render ()
+drawCells layers = for_ (zip layers colors) $ \(layer, color) -> cairoScope $ do
+    setColor color
+    sketch layer
+    C.stroke
+  where colors = (black `withOpacity`) <$> [1, 0.75, 0.5, 0.25]
 
 _x, _y :: Vec2 -> Double
 _x (Vec2 x _) = x
