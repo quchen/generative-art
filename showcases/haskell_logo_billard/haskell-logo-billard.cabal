@@ -1,0 +1,37 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.37.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           haskell-logo-billard
+version:        0.1.0.0
+homepage:       https://github.com/quchen/generative-art#readme
+bug-reports:    https://github.com/quchen/generative-art/issues
+author:         David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+maintainer:     David »quchen« Luposchainsky – dluposchainsky (λ) gmail
+copyright:      2018 David Luposchainsky
+license:        BSD3
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/quchen/generative-art
+
+executable haskell-logo-billard
+  main-is: Main.hs
+  other-modules:
+      Paths_haskell_logo_billard
+  hs-source-dirs:
+      ./
+  default-extensions:
+      BangPatterns
+      LambdaCase
+      MultiWayIf
+      RecordWildCards
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults
+  build-depends:
+      base
+    , cairo
+    , generative-art
+  default-language: Haskell2010
