@@ -1,0 +1,42 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.37.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           penplotting-flowlines
+version:        0.1.0.0
+homepage:       https://github.com/quchen/generative-art#readme
+bug-reports:    https://github.com/quchen/generative-art/issues
+author:         Franz Thoma,
+                David Luposchainsky
+maintainer:     Franz Thoma,
+                David Luposchainsky
+copyright:      2022 Franz Thoma,
+                2022 David Luposchainsky
+license:        BSD3
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/quchen/generative-art
+
+executable penplotting-flowlines
+  main-is: Main.hs
+  other-modules:
+      Paths_penplotting_flowlines
+  hs-source-dirs:
+      ./
+  default-extensions:
+      LambdaCase
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Wno-type-defaults -O
+  build-depends:
+      base
+    , cairo
+    , containers
+    , generative-art
+    , mwc-random
+    , optparse-applicative
+    , text
+    , vector
+  default-language: Haskell2010

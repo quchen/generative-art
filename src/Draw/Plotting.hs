@@ -52,6 +52,7 @@ module Draw.Plotting (
     -- ** File structure
     , block
     , comment
+    , commented
 
     -- * Raw G-Code
     , penDown
@@ -140,6 +141,12 @@ data PlottingSettings = PlottingSettings
     -- at max speed might lead to unwanted vibrations. 'Nothing' means as fast
     -- as possible. ('def'ault: 'Nothing')
 
+    , _repositionThreshold :: Double
+    -- ^ Minimum recognizable repositioning distance: For repositioning moves shorter
+    -- than this distance, the pen will not be lifted. Set to a number that's small
+    -- compared to your pen diameter, e.g. 0.01 mm. ('default': 0.0, i.e. pen will
+    -- always lifted unless points coincide exactly.)
+
     , _finishMove :: Maybe FinishMove
     -- ^ Do a final move after the drawing has ended. ('def'ault: 'Nothing')
 
@@ -192,6 +199,7 @@ instance Default PlottingSettings where
         , _zTravelHeight = 1
         , _zDrawingHeight = -1
         , _zLoweringFeedrate = Nothing
+        , _repositionThreshold = 0
         , _finishMove = Nothing
         , _previewDrawnShapesBoundingBox = True
         , _canvasBoundingBox = Nothing
@@ -402,7 +410,8 @@ previewCanvas = commented "Preview bounding box" $ do
 repositionTo :: Vec2 -> Plot ()
 repositionTo target@(Vec2 x y) = do
     currentXY <- gets _penXY
-    when (currentXY /= target) $ do
+    threshold <- asks _repositionThreshold
+    when (norm (currentXY -. target) > threshold) $ do
         penUp
         gCode [ G00_LinearRapidMove (Just x) (Just y) Nothing ]
 

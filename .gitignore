@@ -2,5 +2,5 @@
 **/*.svg
 **/*.png
 !showcases/*.png
-*.cabal
 .vscode
+**/out/
