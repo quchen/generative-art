@@ -1,24 +1,15 @@
-{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
 
 
 import Data.Colour.Names
-import Data.List ( sortOn )
-import Data.Maybe ( fromMaybe )
-import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
-import Math.Noise (Perlin (..), getValue, perlin)
-import System.Random.MWC ( initialize, uniformRM )
 
 import Draw
 import Geometry as G
 import Geometry.Algorithms.Delaunay
-import Geometry.Algorithms.Sampling
 import Geometry.Algorithms.Sampling.Vogel
-import Control.Monad (replicateM, when)
-import Control.Applicative (Applicative(liftA2))
 
 
 
