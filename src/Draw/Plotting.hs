@@ -62,6 +62,10 @@ module Draw.Plotting (
     -- * Utilities
     , minimizePenHovering
     , minimizePenHoveringBy
+    , optimizingLines
+    , optimizingPolylines
+    , mergingPolylines
+    , optimizingPolygons
     , MinimizePenHoveringSettings(..)
     , module Data.Default.Class
 ) where
@@ -850,6 +854,34 @@ data MinimizePenHoveringSettings a = MinimizePenHoveringSettings
     , _flipObject :: Maybe (a -> a)
     , _mergeObjects :: Maybe (a -> a -> Maybe a)
     }
+
+optimizingLines :: MinimizePenHoveringSettings Line
+optimizingLines = MinimizePenHoveringSettings
+        { _getStartEndPoint = \(Line a b) -> (a, b)
+        , _flipObject = Just (\(Line a b) -> Line b a)
+        , _mergeObjects = Nothing
+        }
+
+optimizingPolylines :: MinimizePenHoveringSettings Polyline
+optimizingPolylines = MinimizePenHoveringSettings
+        { _getStartEndPoint = \(Polyline ps) -> (head ps, last ps)
+        , _flipObject = Just (\(Polyline ps) -> Polyline (reverse ps))
+        , _mergeObjects = Nothing
+        }
+
+mergingPolylines :: MinimizePenHoveringSettings Polyline
+mergingPolylines = MinimizePenHoveringSettings
+        { _getStartEndPoint = \(Polyline ps) -> (head ps, last ps)
+        , _flipObject = Just (\(Polyline ps) -> Polyline (reverse ps))
+        , _mergeObjects = Just (\(Polyline as) (Polyline (b:bs)) -> if last as == b then Just (Polyline (as ++ bs)) else Nothing)
+        }
+
+optimizingPolygons :: MinimizePenHoveringSettings Polygon
+optimizingPolygons = MinimizePenHoveringSettings
+        { _getStartEndPoint = \(Polygon (p:_)) -> (p, p)
+        , _flipObject = Nothing
+        , _mergeObjects = Nothing
+        }
 
 -- | Similar to 'minimizePenHovering', but for arbitrary objects with a given start and end point.
 minimizePenHoveringBy :: Ord a => MinimizePenHoveringSettings a -> S.Set a -> [a]

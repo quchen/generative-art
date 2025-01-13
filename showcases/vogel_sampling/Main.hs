@@ -111,15 +111,8 @@ plotPic delaunay voronoi = runPlot plottingSettings $ do
     resize :: Transform a => a -> a
     resize = G.transform (G.scale (plotSize / squareSize))
 
-    minimizePenHoveringSettings :: MinimizePenHoveringSettings Polyline
-    minimizePenHoveringSettings = MinimizePenHoveringSettings
-        { _getStartEndPoint = \(Polyline ps) -> (head ps, last ps)
-        , _flipObject = Just (\(Polyline ps) -> Polyline (reverse ps))
-        , _mergeObjects = Nothing
-        }
-
     mergedDelaunayEdges :: [Polyline]
-    mergedDelaunayEdges = go sortedSeeds delaunayEdgeMap
+    mergedDelaunayEdges = minimizePenHoveringBy mergingPolylines $ S.fromList $ go sortedSeeds delaunayEdgeMap
       where
         go [] _ = []
         go (seed:seeds) em | targets <- MM.lookup seed em = case targets of
