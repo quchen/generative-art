@@ -32,6 +32,7 @@ executable vogel-sampling
     , colour
     , containers
     , generative-art
+    , multimap
     , mwc-random
     , vector
   default-language: Haskell2010

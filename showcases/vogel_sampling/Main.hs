@@ -3,6 +3,9 @@ module Main (main) where
 
 
 import Data.Colour.Names
+import qualified Data.List as L
+import qualified Data.Map as M
+import qualified Data.MultiMap as MM
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
@@ -13,6 +16,7 @@ import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling.Vogel
 import Data.List (sortOn)
+import Data.List.Extended (nubOrd)
 
 
 
@@ -59,7 +63,7 @@ main = do
     render "out/vogel_sampling.png" picWidth picHeight $ drawPic edges voronoiSmoothed
     let plotResult = plotPic edges voronoiSmoothed
     renderPreview "out/vogel_sampling_preview.png" 5 plotResult
-    writeGCodeFile "out/voge_sampling.g" plotResult
+    writeGCodeFile "out/vogel_sampling.g" plotResult
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
@@ -92,7 +96,7 @@ plotPic delaunay voronoi = runPlot plottingSettings $ do
     penChange
     for_ (resize mergedDelaunayEdges) plot
     penChange
-    --for_ (resize voronoi) plot
+    for_ (resize voronoi) plot
   where
     plottingSettings :: PlottingSettings
     plottingSettings = def
@@ -107,20 +111,43 @@ plotPic delaunay voronoi = runPlot plottingSettings $ do
     resize :: Transform a => a -> a
     resize = G.transform (G.scale (plotSize / squareSize))
 
-    minimizePenHoveringSettings :: MinimizePenHoveringSettings Line
+    minimizePenHoveringSettings :: MinimizePenHoveringSettings Polyline
     minimizePenHoveringSettings = MinimizePenHoveringSettings
-        { _getStartEndPoint = \(Line a b) -> (a, b)
-        , _flipObject = Just (\(Line a b) -> Line b a)
+        { _getStartEndPoint = \(Polyline ps) -> (head ps, last ps)
+        , _flipObject = Just (\(Polyline ps) -> Polyline (reverse ps))
         , _mergeObjects = Nothing
         }
 
-    mergedDelaunayEdges :: [Line]
-    mergedDelaunayEdges = minimizePenHoveringBy minimizePenHoveringSettings
-        $ S.fromList
-        $ sortOn (\(Line a b) -> getDeg $ angleBetween (Line center a) (Line a b))
-        $ fmap (\(Line a b) -> if norm (center -. a) < norm (center -. b) then Line a b else Line b a)
-        $ delaunay
+    mergedDelaunayEdges :: [Polyline]
+    mergedDelaunayEdges = go sortedSeeds delaunayEdgeMap
+      where
+        go [] _ = []
+        go (seed:seeds) em | targets <- MM.lookup seed em = case targets of
+            [] -> go seeds em
+            t:_ -> let (pl, em') = follow seed t [seed] (removeMM em (seed, t)) in pl : go (seed:seeds) em'
+        follow :: Vec2 -> Vec2 -> [Vec2] -> MM.MultiMap Vec2 Vec2 -> (Polyline, MM.MultiMap Vec2 Vec2)
+        follow prev next pl em | targets <- MM.lookup next em = case targets of
+            [] -> (Polyline (next:pl), em)
+            _  -> case filter (\t -> abs (getDeg (angleBetween (Line prev next) (Line next t))) < 30) targets of
+                [] -> (Polyline (next:pl), em)
+                (t:_) -> follow next t (next:pl) (removeMM em (next, t))
+        
+        removeMM :: (Ord k, Eq v) => MM.MultiMap k v -> (k, v) -> MM.MultiMap k v
+        removeMM mm (k, v)
+            | MM.member mm k = MM.fromMap . M.adjust (L.\\ [v]) k . MM.toMap $ mm
+            | otherwise = mm
+        
+    sortedSeeds :: [Vec2]
+    sortedSeeds
+        = sortOn (\p -> norm (center -. p))
+        $ nubOrd
+        $ delaunay >>= (\(Line a b) -> [a, b])
 
+    delaunayEdgeMap :: MM.MultiMap Vec2 Vec2
+    delaunayEdgeMap
+        = foldl' (flip (uncurry MM.insert)) MM.empty
+        $ fmap (\(Line a b) -> if norm (center -. a) < norm (center -. b) then (a, b) else (b, a))
+        $ delaunay
 
 penChange :: Plot ()
 penChange = withDrawingHeight 0 $ do
