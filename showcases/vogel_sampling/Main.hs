@@ -3,6 +3,7 @@ module Main (main) where
 
 
 import Data.Colour.Names
+import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
 
@@ -20,13 +21,15 @@ picWidth = 1440
 picHeight = 1440
 squareSize = min picWidth picHeight
 
+center :: Vec2
+center = Vec2 (picWidth/2) (picHeight/2)
+
 plotSize :: Num a => a
 plotSize = 440
 
 main :: IO ()
 main = do
-    let center = Vec2 (picWidth/2) (picHeight/2)
-        extents = boundingBox [Vec2 0 0, Vec2 picWidth picHeight]
+    let extents = boundingBox [Vec2 0 0, Vec2 picWidth picHeight]
 
     let seeds = filter (`insideBoundingBox` extents) $ vogel VogelSamplingParams
             { _vogelRadius = squareSize / sqrt 2
@@ -39,7 +42,7 @@ main = do
 
     let delaunay = delaunayTriangulation seeds
         cells = V.toList $ clipCellsToBox extents $ voronoiCells delaunay
-        triangles = filter
+        _triangles = filter
             (\(Polygon ps) -> all (\p -> norm (p -. center) < cutoff) ps)
             (V.toList $ delaunayTriangles delaunay)
         edges = filter
@@ -84,24 +87,39 @@ drawPic delaunay voronoi = do
             C.stroke
 
 plotPic :: [Line] -> [Polygon] -> RunPlotResult
-plotPic delaunay voronoi =
-    let plottingSettings = def
-            { _feedrate = 6000
-            , _zTravelHeight = 5
-            , _zDrawingHeight = -2
-            , _repositionThreshold = 0.05
-            , _canvasBoundingBox = Just $ boundingBox [zero, Vec2 plotSize plotSize]
-            , _previewPenWidth = 0.2
-            }
-        scaleFactor = plotSize / squareSize
-        resize :: Transform a => a -> a
-        resize = G.transform (G.scale scaleFactor)
+plotPic delaunay voronoi = runPlot plottingSettings $ do
+    penChange
+    for_ (resize mergedDelaunayEdges) plot
+    penChange
+    for_ (resize voronoi) plot
+  where
+    plottingSettings :: PlottingSettings
+    plottingSettings = def
+        { _feedrate = 6000
+        , _zTravelHeight = 5
+        , _zDrawingHeight = -2
+        , _repositionThreshold = 0.05
+        , _canvasBoundingBox = Just $ boundingBox [zero, Vec2 plotSize plotSize]
+        , _previewPenWidth = 0.2
+        }
+    
+    resize :: Transform a => a -> a
+    resize = G.transform (G.scale (plotSize / squareSize))
 
-    in runPlot plottingSettings $ do
-        penChange
-        for_ (resize voronoi) plot
-        penChange
-        for_ (resize delaunay) plot
+    minimizePenHoveringSettings :: MinimizePenHoveringSettings Line
+    minimizePenHoveringSettings = MinimizePenHoveringSettings
+        { _getStartEndPoint = \(Line a b) -> (a, b)
+        , _flipObject = Just (\(Line a b) -> Line b a)
+        , _mergeObjects = Nothing
+        }
+
+    mergedDelaunayEdges :: [Line]
+    mergedDelaunayEdges = minimizePenHoveringBy minimizePenHoveringSettings
+        $ S.fromList
+        $ sortOn (\(Line a b) -> getDeg $ angleBetween (Line center a) (Line a b))
+        $ fmap (\(Line a b) -> if norm (center -. a) < norm (center -. b) then Line a b else Line b a)
+        $ delaunay
+
 
 penChange :: Plot ()
 penChange = withDrawingHeight 0 $ do

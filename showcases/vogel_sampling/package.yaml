@@ -10,6 +10,7 @@ dependencies:
     - base
     - cairo
     - colour
+    - containers
     - mwc-random
     - Noise
     - vector

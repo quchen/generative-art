@@ -30,6 +30,7 @@ executable vogel-sampling
     , base
     , cairo
     , colour
+    , containers
     , generative-art
     , mwc-random
     , vector
