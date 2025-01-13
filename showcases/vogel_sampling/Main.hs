@@ -1,3 +1,5 @@
+{-# LANGUAGE StandaloneDeriving #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Main (main) where
 
 
@@ -96,7 +98,7 @@ plotPic delaunay voronoi = runPlot plottingSettings $ do
     penChange
     for_ (resize mergedDelaunayEdges) plot
     penChange
-    for_ (resize voronoi) plot
+    for_ (resize (minimizePenHoveringBy optimizingPolygons (S.fromList voronoi))) plot
   where
     plottingSettings :: PlottingSettings
     plottingSettings = def
@@ -148,3 +150,6 @@ penChange = withDrawingHeight 0 $ do
     penDown
     pause PauseUserConfirm
     penUp
+
+-- This instance may not be well-defined, but it's useful (and sensible) for collecting polygons in a 'Set'.
+deriving instance Ord Polygon
