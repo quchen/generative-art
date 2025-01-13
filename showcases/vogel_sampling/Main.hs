@@ -59,6 +59,7 @@ main = do
     render "out/vogel_sampling.png" picWidth picHeight $ drawPic edges voronoiSmoothed
     let plotResult = plotPic edges voronoiSmoothed
     renderPreview "out/vogel_sampling_preview.png" 5 plotResult
+    writeGCodeFile "out/voge_sampling.g" plotResult
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
@@ -91,7 +92,7 @@ plotPic delaunay voronoi = runPlot plottingSettings $ do
     penChange
     for_ (resize mergedDelaunayEdges) plot
     penChange
-    for_ (resize voronoi) plot
+    --for_ (resize voronoi) plot
   where
     plottingSettings :: PlottingSettings
     plottingSettings = def
