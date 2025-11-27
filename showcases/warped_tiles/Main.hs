@@ -49,6 +49,10 @@ main = do
             { _canvasBoundingBox = Just paperBB
             , _previewDrawnShapesBoundingBox = True
             , _previewPenTravelColor = Nothing
+            , _previewPenWidth = 1
+            , _zTravelHeight = 3
+            , _zDrawingHeight = -2
+            , _feedrate = 3000
             }
     
         plotResult = runPlot plotSettings $ for_ cells plot
