@@ -42,35 +42,31 @@ main = render file picWidth picHeight $ do
     cairoScope (setColor white >> C.paint)
     setColor black
     C.setLineWidth 1
-    let iso = isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (256, 144)} potential
-        potentialLines = 
-            [ Polyline isoline
-            | z <- [-50, -49.7 .. 20]
-            , isoline@(p:_) <- iso z
-            , and [ norm (p -. p') > 20 | (p', _) <- charges ]
-            ]
-        fieldLines = sampleFieldLines
-        intersectionPoints = nubOrd $ do
-            pl <- potentialLines
-            fl <- fieldLines
-            lineIntersections pl fl
-        triangulation = delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
-        triangles = delaunayTriangles triangulation
-        cells = clipCellsToBox canvas $ voronoiCells triangulation
-    --for_ potentialLines $ \l -> do
-    --    sketch l
-    --    stroke
-    --for_ fieldLines $ \l -> cairoScope $ do
-    --    setColor (black `withOpacity` 0.3)
-    --    sketch l
-    --    stroke
-    --for_ triangles $ \poly -> do
-    --    sketch poly
-    --    C.stroke
-    for_ cells $ \cell -> do
-        let area = polygonArea cell
-        sketch $ chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
+    for_ geometry $ \cell -> do
+        sketch cell
         C.stroke
+
+geometry :: V.Vector Polygon
+geometry = smooth <$> cells
+  where
+    iso = isoLines Grid { _range = (zero, Vec2 picWidth picHeight), _maxIndex = (256, 144)} potential
+    potentialLines = 
+        [ Polyline isoline
+        | z <- [-50, -49.7 .. 20]
+        , isoline@(p:_) <- iso z
+        , and [ norm (p -. p') > 20 | (p', _) <- charges ]
+        ]
+    fieldLines = sampleFieldLines
+    intersectionPoints = nubOrd $ do
+        pl <- potentialLines
+        fl <- fieldLines
+        lineIntersections pl fl
+    triangulation = delaunayTriangulation (intersectionPoints ++ (fst <$> charges))
+    triangles = delaunayTriangles triangulation
+    cells = clipCellsToBox canvas $ voronoiCells triangulation
+    smooth cell =
+        let area = polygonArea cell
+        in chaikin 0.25 $ chaikin 0.25 $ chaikin 0.1 $ growPolygon (-0.1 * sqrt area) cell
 
 chaikin :: Double -> Polygon -> Polygon
 chaikin _ (Polygon []) = Polygon []
