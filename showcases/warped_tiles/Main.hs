@@ -10,7 +10,7 @@ import Data.Maybe ( fromMaybe, isJust, catMaybes )
 import Data.Ord ( comparing )
 import qualified Data.Vector as V
 import Graphics.Rendering.Cairo as C
-import System.Random.MWC ( initialize, uniformRM, GenIO, create, Gen )
+import System.Random.MWC ( initialize, uniformRM, GenIO, initialize, Gen )
 
 import Draw
 import Draw.Plotting
@@ -55,11 +55,11 @@ main = do
 
     writeGCodeFile "out/warped-tiles.g" plotResult
     renderPreview "out/warped-tiles-preview.svg" 10 plotResult
-    render "out/warped-tiles.png" picWidth picHeight $ do
+    render "out/warped-tiles.svg" picWidth picHeight $ do
         cairoScope (setColor white >> C.paint)
         setColor black
-        C.setLineWidth 1
         for_ cells $ \cell -> do
+            C.setLineWidth ((log (polygonArea cell) - 2) / 2)
             sketch cell
             C.stroke
     
@@ -97,7 +97,8 @@ chaikin lambda (Polygon ps@(p:_)) = Polygon $ concat
 
 charges :: [(Vec2, Double)]
 charges = traceShowId $ runST $ do
-    gen <- create
+    -- 3, 7, 8, 12
+    gen <- initialize $ V.fromList [14]
     let poissonShape = canvas
         poissonRadius = 120
         poissonK = 10
