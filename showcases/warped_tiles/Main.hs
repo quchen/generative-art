@@ -13,6 +13,7 @@ import Graphics.Rendering.Cairo as C
 import System.Random.MWC ( initialize, uniformRM, GenIO, create, Gen )
 
 import Draw
+import Draw.Plotting
 import Geometry as G
 import Geometry.Algorithms.Delaunay
 import Geometry.Algorithms.Sampling
@@ -28,23 +29,40 @@ import Data.Traversable
 
 
 picWidth, picHeight :: Num a => a
-picWidth = 2560
-picHeight = 1440
+picWidth = 420
+picHeight = 297
 
 canvas :: BoundingBox
 canvas = boundingBox [zero, Vec2 picWidth picHeight]
 
-file :: FilePath
-file = "out/warped-tiles.png"
-
 main :: IO ()
-main = render file picWidth picHeight $ do
-    cairoScope (setColor white >> C.paint)
-    setColor black
-    C.setLineWidth 1
-    for_ geometry $ \cell -> do
-        sketch cell
-        C.stroke
+main = do
+    let margin = 10
+        paperBB = boundingBox [zero, Vec2 picWidth picHeight]
+        drawInsideBB = boundingBox [zero +. Vec2 margin margin, Vec2 picWidth picHeight -. Vec2 margin margin]
+
+        cells = G.transform
+            (transformBoundingBox (boundingBox geometry) drawInsideBB def)
+            geometry
+
+        plotSettings = def
+            { _canvasBoundingBox = Just paperBB
+            , _previewDrawnShapesBoundingBox = True
+            , _previewPenTravelColor = Nothing
+            }
+    
+        plotResult = runPlot plotSettings $ for_ cells plot
+
+    writeGCodeFile "out/warped-tiles.g" plotResult
+    renderPreview "out/warped-tiles-preview.svg" 10 plotResult
+    render "out/warped-tiles.png" picWidth picHeight $ do
+        cairoScope (setColor white >> C.paint)
+        setColor black
+        C.setLineWidth 1
+        for_ cells $ \cell -> do
+            sketch cell
+            C.stroke
+    
 
 geometry :: V.Vector Polygon
 geometry = smooth <$> cells
@@ -81,7 +99,7 @@ charges :: [(Vec2, Double)]
 charges = traceShowId $ runST $ do
     gen <- create
     let poissonShape = canvas
-        poissonRadius = 800
+        poissonRadius = 120
         poissonK = 10
     ps <- poissonDisc gen poissonShape poissonRadius poissonK
     for ps $ \p -> do
@@ -152,10 +170,13 @@ a `fmod` b = let c = a / b in (c - fromIntegral (floor c)) * b
 
 
 fieldLine :: (Vec2 -> Vec2) -> Vec2 -> (Polyline, Maybe (Vec2, Double))
-fieldLine vf p = (Polyline (fst <$> fl), snd (last fl))
+fieldLine vf p = (Polyline (fst <$> fl), maybeP)
   where
     trajectory = snd <$> rungeKuttaAdaptiveStep (const vf) p 0 0.1 normSquare 0.0001
     fl = takeWhile ((`insideBoundingBox` canvas) . fst) $ takeUntil1 (isJust . snd) $ dropWhile (isJust . snd) $ fmap (\p -> (p, closeToCharge p)) trajectory
+    maybeP = case fl of
+        [] -> Nothing
+        _ -> snd (last fl)
 
 takeUntil1 :: (a -> Bool) -> [a] -> [a]
 takeUntil1 _ [] = []
