@@ -36,9 +36,9 @@ main = for_ [0..100 :: Int] $ \i -> do
             , let outlines = isoLines Grid { _range = (Vec2 (-60) (-60), Vec2 (picWidth+60) (picWidth+60)), _maxIndex = (picWidth `div` 5, picWidth `div` 5) } (slice z) 1
             ]
         clippedLayers = zipWith clipWithAbove layers (drop 1 (tails layers))
-        penHoveringSettings = MinimizePenHoveringSettings { _getStartEndPoint = \(Polygon (p:_)) -> (p, p), _flipObject = Nothing, _mergeObjects = Nothing }
+        penHoveringSettings = MinimizePenHoveringSettings { _getStartEndPoint = \(OrdPolygon (Polygon (p:_))) -> (p, p), _flipObject = Nothing, _mergeObjects = Nothing }
         fitToCanvas = transformBoundingBox clippedLayers canvas def
-        paths = minimizePenHoveringBy penHoveringSettings $ S.fromList $ transform fitToCanvas $ concat clippedLayers
+        paths = fmap unOrd $ minimizePenHoveringBy penHoveringSettings $ S.fromList $ fmap OrdPolygon $ transform fitToCanvas $ concat clippedLayers
 
     let settings = def
             { _feedrate = 3000
@@ -51,7 +51,15 @@ main = for_ [0..100 :: Int] $ \i -> do
             for_ paths plot
 
     --writeGCodeFile "out/metaballs.g" plotResult
-    renderPreview ("out/metaballs" ++ show i ++ ".png") plotResult
+    renderPreview ("out/metaballs" ++ show i ++ ".png") 1 plotResult
+
+newtype OrdPolygon = OrdPolygon { unOrd :: Polygon } deriving (Eq)
+
+instance Ord OrdPolygon where
+    compare (OrdPolygon p1) (OrdPolygon p2)
+      = let Polygon p1Edges = normalizePolygon p1
+            Polygon p2Edges = normalizePolygon p2
+        in compare p1Edges p2Edges
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
