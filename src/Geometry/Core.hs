@@ -1,3 +1,5 @@
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Geometry.Core (
     -- * Primitives
     -- ** 2D Vectors
@@ -67,9 +69,6 @@ module Geometry.Core (
     , normalizeAngle
     , pseudoAngle
 
-    -- ** 3D Vectors
-    , Vec3(..)
-
     -- ** Vector arithmetic
     , VectorSpace(..)
     , vsum
@@ -122,6 +121,14 @@ module Geometry.Core (
     , direction
     , module Data.Sequential
     , Group(..)
+
+    -- ** 3D Vectors
+    , Vec3(..)
+    , crossProduct3
+    , Triangle3(..)
+    , Projection(..)
+    , cull
+
 ) where
 
 
@@ -2108,6 +2115,12 @@ adjacentIntersections edges = zipWith
 cross :: Vec2 -> Vec2 -> Double
 cross (Vec2 x1 y1) (Vec2 x2 y2) = det (Mat2 x1 y1 x2 y2)
 
+-- | Cross product of two 3D vectors.
+--
+-- \[ \mathbf{a} \times \mathbf{b} = \begin{pmatrix} a_y b_z - a_z b_y \\ a_z b_x - a_x b_z \\ a_x b_y - a_y b_x \end{pmatrix} \]
+crossProduct3 :: Vec3 -> Vec3 -> Vec3
+crossProduct3 (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (y1*z2 - z1*y2) (z1*x2 - x1*z2) (x1*y2 - y1*x2)
+
 -- | Determinant a matrix.
 det :: Mat2 -> Double
 det (Mat2 a11 a12 a21 a22) = a11*a22 - a12*a21
@@ -2306,3 +2319,33 @@ reflection ray mirror
           where
             mirrorAxis = perpendicularLineThrough iPoint mirror
             ray' = transform (mirrorAlong mirrorAxis) ray
+
+data Triangle3 = Triangle3
+    { _triNormal   :: !Vec3
+    , _triVertices  :: !(Vec3, Vec3, Vec3)
+    } deriving (Eq, Ord, Show)
+
+instance NFData Triangle3 where
+    rnf (Triangle3 n (a, b, c)) = rnf n `seq` rnf a `seq` rnf b `seq` rnf c
+
+class Projection a b | a -> b where
+    projection :: Vec3 -> a -> b
+
+instance Projection Vec3 Vec2 where
+    projection n v =
+        let nHat = n /. norm n
+            arbitrary = if abs (dotProduct nHat (Vec3 1 0 0)) > 0.9
+                        then Vec3 0 1 0
+                        else Vec3 1 0 0
+            uRaw = arbitrary -. dotProduct arbitrary nHat *. nHat
+            u = uRaw /. norm uRaw
+            w = crossProduct3 nHat u
+        in Vec2 (dotProduct v u) (dotProduct v w)
+
+instance Projection Triangle3 Polygon where
+    projection n tri =
+        let (v1, v2, v3) = _triVertices tri
+        in Polygon [projection n v1, projection n v2, projection n v3]
+
+cull :: Vec3 -> [Triangle3] -> [Triangle3]
+cull n = filter (\t -> _triNormal t `dotProduct` n >= 0)

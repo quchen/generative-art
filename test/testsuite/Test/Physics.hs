@@ -85,7 +85,7 @@ testCollision = testVisual "Particle collision" 200 200 "docs/physics/collision"
         setColor (mma i)
         Cairo.stroke
 
-nBodyCoulomb :: NBody Double -> NBody PhaseSpace -> [(Double, NBody PhaseSpace)]
+nBodyCoulomb :: NBody Double -> NBody (PhaseSpace Vec2) -> [(Double, NBody (PhaseSpace Vec2))]
 nBodyCoulomb masses particles =
     let interactionPotential = coulombPotential (-10000)
         toleranceNorm (NBody xs) = maximum (fmap (\PhaseSpace {..} -> max (norm p) (norm q)) xs)

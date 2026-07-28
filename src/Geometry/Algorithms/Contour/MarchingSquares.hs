@@ -1,5 +1,5 @@
-module Geometry.Algorithms.Contour.Internal (
-    module Geometry.Algorithms.Contour.Internal
+module Geometry.Algorithms.Contour.MarchingSquares (
+    module Geometry.Algorithms.Contour.MarchingSquares
 ) where
 
 

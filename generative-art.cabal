@@ -1,6 +1,6 @@
-cabal-version: 1.12
+cabal-version: 1.18
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -20,6 +20,226 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+extra-doc-files:
+    docs/colors/schemes/continuous/colorbrewer2/blues.png
+    docs/colors/schemes/continuous/colorbrewer2/brBG.png
+    docs/colors/schemes/continuous/colorbrewer2/buGn.png
+    docs/colors/schemes/continuous/colorbrewer2/buPu.png
+    docs/colors/schemes/continuous/colorbrewer2/gnBu.png
+    docs/colors/schemes/continuous/colorbrewer2/greens.png
+    docs/colors/schemes/continuous/colorbrewer2/greys.png
+    docs/colors/schemes/continuous/colorbrewer2/oranges.png
+    docs/colors/schemes/continuous/colorbrewer2/orRd.png
+    docs/colors/schemes/continuous/colorbrewer2/piYG.png
+    docs/colors/schemes/continuous/colorbrewer2/pRGn.png
+    docs/colors/schemes/continuous/colorbrewer2/puBu.png
+    docs/colors/schemes/continuous/colorbrewer2/puBuGn.png
+    docs/colors/schemes/continuous/colorbrewer2/puOr.png
+    docs/colors/schemes/continuous/colorbrewer2/puRd.png
+    docs/colors/schemes/continuous/colorbrewer2/purples.png
+    docs/colors/schemes/continuous/colorbrewer2/rdBu.png
+    docs/colors/schemes/continuous/colorbrewer2/rdGy.png
+    docs/colors/schemes/continuous/colorbrewer2/rdPu.png
+    docs/colors/schemes/continuous/colorbrewer2/rdYlBu.png
+    docs/colors/schemes/continuous/colorbrewer2/rdYlGn.png
+    docs/colors/schemes/continuous/colorbrewer2/reds.png
+    docs/colors/schemes/continuous/colorbrewer2/spectral.png
+    docs/colors/schemes/continuous/colorbrewer2/ylGn.png
+    docs/colors/schemes/continuous/colorbrewer2/ylGnBu.png
+    docs/colors/schemes/continuous/colorbrewer2/ylOrBr.png
+    docs/colors/schemes/continuous/colorbrewer2/ylOrRd.png
+    docs/colors/schemes/continuous/haskell/logo.png
+    docs/colors/schemes/continuous/matplotlib/cividis.png
+    docs/colors/schemes/continuous/matplotlib/inferno.png
+    docs/colors/schemes/continuous/matplotlib/magma.png
+    docs/colors/schemes/continuous/matplotlib/plasma.png
+    docs/colors/schemes/continuous/matplotlib/turbo.png
+    docs/colors/schemes/continuous/matplotlib/twilight.png
+    docs/colors/schemes/continuous/matplotlib/viridis.png
+    docs/colors/schemes/continuous/seaborn/crest.png
+    docs/colors/schemes/continuous/seaborn/flare.png
+    docs/colors/schemes/continuous/seaborn/icefire.png
+    docs/colors/schemes/continuous/seaborn/mako.png
+    docs/colors/schemes/continuous/seaborn/rocket.png
+    docs/colors/schemes/continuous/seaborn/vlag.png
+    docs/colors/schemes/discrete/colorbrewer2/accent.svg
+    docs/colors/schemes/discrete/colorbrewer2/dark2.svg
+    docs/colors/schemes/discrete/colorbrewer2/paired.svg
+    docs/colors/schemes/discrete/colorbrewer2/pastel1.svg
+    docs/colors/schemes/discrete/colorbrewer2/pastel2.svg
+    docs/colors/schemes/discrete/colorbrewer2/set1.svg
+    docs/colors/schemes/discrete/colorbrewer2/set2.svg
+    docs/colors/schemes/discrete/colorbrewer2/set3.svg
+    docs/colors/schemes/discrete/mathematica/ColorData97.svg
+    docs/differential_equations/1_two_body_problem.svg
+    docs/differential_equations/2_double_pendulum.svg
+    docs/differential_equations/3_noise_pendulum.svg
+    docs/differential_equations/geodesic_hill_and_valley.svg
+    docs/font/alignment_HCenter_VBottom.svg
+    docs/font/alignment_HCenter_VCenter.svg
+    docs/font/alignment_HCenter_VTop.svg
+    docs/font/alignment_HLeft_VBottom.svg
+    docs/font/alignment_HLeft_VCenter.svg
+    docs/font/alignment_HLeft_VTop.svg
+    docs/font/alignment_HRight_VBottom.svg
+    docs/font/alignment_HRight_VCenter.svg
+    docs/font/alignment_HRight_VTop.svg
+    docs/font/size.svg
+    docs/geometry/clipping/1_line.svg
+    docs/geometry/clipping/2_square.svg
+    docs/geometry/clipping/3_complicated.svg
+    docs/geometry/clipping/4_miss.svg
+    docs/geometry/clipping/5_through_corner.svg
+    docs/geometry/clipping/5_zigzag.svg
+    docs/geometry/clipping/6_corner_cases_lol.svg
+    docs/geometry/clipping/6_corner_cases_loo.svg
+    docs/geometry/clipping/6_corner_cases_ool.svg
+    docs/geometry/clipping/6_corner_cases_ooo.svg
+    docs/geometry/clipping/6_corner_cases_oor.svg
+    docs/geometry/clipping/6_corner_cases_roo.svg
+    docs/geometry/clipping/6_corner_cases_ror.svg
+    docs/geometry/clipping/hatch_polygon_regular.svg
+    docs/geometry/clipping/hatch_polygon_spiral.svg
+    docs/geometry/clipping/polygon-polygon-difference-complicated.svg
+    docs/geometry/clipping/polygon-polygon-difference-disjoint.svg
+    docs/geometry/clipping/polygon-polygon-difference-double-traversal.svg
+    docs/geometry/clipping/polygon-polygon-difference-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-difference-simple.svg
+    docs/geometry/clipping/polygon-polygon-intersection-complicated.svg
+    docs/geometry/clipping/polygon-polygon-intersection-disjoint.svg
+    docs/geometry/clipping/polygon-polygon-intersection-double-traversal.svg
+    docs/geometry/clipping/polygon-polygon-intersection-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-intersection-simple.svg
+    docs/geometry/clipping/polygon-polygon-union-complicated.svg
+    docs/geometry/clipping/polygon-polygon-union-disjoint.svg
+    docs/geometry/clipping/polygon-polygon-union-double-traversal.svg
+    docs/geometry/clipping/polygon-polygon-union-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-union-simple.svg
+    docs/geometry/grow_polygon_shrink_ear.svg
+    docs/geometry/intersection/almost_parallel.svg
+    docs/geometry/intersection/half_virtual.svg
+    docs/geometry/intersection/parallel.svg
+    docs/geometry/intersection/real.svg
+    docs/geometry/intersection/virtual.svg
+    docs/geometry/mirror.svg
+    docs/geometry/perpendicular_bisector.svg
+    docs/geometry/perpendicular_line_through_point.svg
+    docs/geometry/rotate_line.svg
+    docs/haddock/Draw/cairoScope.svg
+    docs/haddock/Draw/cartesianCoordinateSystem.svg
+    docs/haddock/Draw/Color/set_color.svg
+    docs/haddock/Draw/coordinate_system_cairo_standard.svg
+    docs/haddock/Draw/coordinate_system_math_standard.svg
+    docs/haddock/Draw/coordinate_system_math_standard_centered.svg
+    docs/haddock/Draw/instance_Sketch_Arrow.svg
+    docs/haddock/Draw/instance_Sketch_Bezier.svg
+    docs/haddock/Draw/instance_Sketch_BoundingBox.svg
+    docs/haddock/Draw/instance_Sketch_Circle.svg
+    docs/haddock/Draw/instance_Sketch_Cross.svg
+    docs/haddock/Draw/instance_Sketch_Ellipse.svg
+    docs/haddock/Draw/instance_Sketch_Line.svg
+    docs/haddock/Draw/instance_Sketch_Polygon.svg
+    docs/haddock/Draw/instance_Sketch_Sequential_Vec2.svg
+    docs/haddock/Draw/instance_Sketch_Transformation.svg
+    docs/haddock/Draw/Plotting/example.svg
+    docs/haddock/Draw/Plotting/leaving_the_canvas.svg
+    docs/haddock/Draw/radialCoordinateSystem.svg
+    docs/haddock/Draw/Text/plot_text.svg
+    docs/haddock/Draw/Text/show_text_aligned.svg
+    docs/haddock/Geometry/Algorithms/Clipping/CohenSutherland/cohenSutherland.svg
+    docs/haddock/Geometry/Algorithms/Clipping/complicated_intersection.svg
+    docs/haddock/Geometry/Algorithms/Clipping/hatched_polygon.svg
+    docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/difference.svg
+    docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/intersection.svg
+    docs/haddock/Geometry/Algorithms/Clipping/MargalitKnott/union.svg
+    docs/haddock/Geometry/Algorithms/Clipping/SutherlandHodgman/sutherland_hodgman.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/convex_hull.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/delaunay_voronoi.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/edges.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/find_triangle.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/lloyd_relaxation.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/triangles.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/voronoi_cells.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/voronoi_corners.svg
+    docs/haddock/Geometry/Algorithms/Delaunay/voronoi_edges.svg
+    docs/haddock/Geometry/Algorithms/Sampling/gaussian.svg
+    docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc.svg
+    docs/haddock/Geometry/Algorithms/Sampling/PoissonDisc/poisson_disc_forest.svg
+    docs/haddock/Geometry/Algorithms/Sampling/rejection.svg
+    docs/haddock/Geometry/Algorithms/Sampling/uniform.svg
+    docs/haddock/Geometry/Algorithms/SimplexNoise/simplex_noise.svg
+    docs/haddock/Geometry/Algorithms/Triangulate/triangulate.svg
+    docs/haddock/Geometry/Bezier/bezierSmoothen.svg
+    docs/haddock/Geometry/Bezier/bezierSubdivideCasteljau.svg
+    docs/haddock/Geometry/Bezier/bounding_box_bezier.svg
+    docs/haddock/Geometry/Bezier/subdivide_s_t_comparison.svg
+    docs/haddock/Geometry/Coordinates/Hexagonal/cubes.svg
+    docs/haddock/Geometry/Coordinates/Hexagonal/line.svg
+    docs/haddock/Geometry/Coordinates/Hexagonal/ring.svg
+    docs/haddock/Geometry/Core/bounding_box_circle.svg
+    docs/haddock/Geometry/Core/bounding_box_ellipse.svg
+    docs/haddock/Geometry/Core/bounding_box_line.svg
+    docs/haddock/Geometry/Core/bounding_box_polyline.svg
+    docs/haddock/Geometry/Core/boundingBoxCenter.svg
+    docs/haddock/Geometry/Core/boundingBoxIntersection.svg
+    docs/haddock/Geometry/Core/boundingBoxPolygon.svg
+    docs/haddock/Geometry/Core/boundingBoxSize.svg
+    docs/haddock/Geometry/Core/convex_hull.svg
+    docs/haddock/Geometry/Core/cross_product_leftness_rightness.svg
+    docs/haddock/Geometry/Core/ellipses.svg
+    docs/haddock/Geometry/Core/grow_polygon.svg
+    docs/haddock/Geometry/Core/growBoundingBox.svg
+    docs/haddock/Geometry/Core/insideBoundingBox.svg
+    docs/haddock/Geometry/Core/is_convex.svg
+    docs/haddock/Geometry/Core/line_reverse.svg
+    docs/haddock/Geometry/Core/perpendicular_bisector.svg
+    docs/haddock/Geometry/Core/perpendicular_line_through.svg
+    docs/haddock/Geometry/Core/point_in_polygon.svg
+    docs/haddock/Geometry/Core/polar.svg
+    docs/haddock/Geometry/Core/polygon_average.svg
+    docs/haddock/Geometry/Core/polygon_centroid.svg
+    docs/haddock/Geometry/Core/polygon_edges.svg
+    docs/haddock/Geometry/Core/pseudo_angle.svg
+    docs/haddock/Geometry/Core/reflection.svg
+    docs/haddock/Geometry/Core/rotate.svg
+    docs/haddock/Geometry/Core/scale.svg
+    docs/haddock/Geometry/Core/shear.svg
+    docs/haddock/Geometry/Core/shrink_polygon.svg
+    docs/haddock/Geometry/Core/shrinkBoundingBox.svg
+    docs/haddock/Geometry/Core/subdivide_line.svg
+    docs/haddock/Geometry/Core/subdivide_line_by_length.svg
+    docs/haddock/Geometry/Core/translate.svg
+    docs/haddock/Geometry/Processes/Billard/billard.svg
+    docs/haddock/Geometry/Processes/FlowField/module_header.svg
+    docs/haddock/Geometry/Shapes/haskell_logo.svg
+    docs/haddock/Geometry/Shapes/regular_pentagon.svg
+    docs/haddock/Geometry/Shapes/spiral_polygon.svg
+    docs/haddock/Numerics/Optimization/TSP/2-opt.svg
+    docs/haddock/Numerics/Optimization/TSP/3-opt.svg
+    docs/haddock/Numerics/Optimization/TSP/input_path.svg
+    docs/haddock/Numerics/Optimization/TSP/nearest_neighbour_path.svg
+    docs/interpolation/2_picasso_squirrel.svg
+    docs/interpolation/3_simplify_path_radial.svg
+    docs/interpolation/3_simplify_path_rdp.svg
+    docs/interpolation/3_simplify_path_vw.svg
+    docs/interpolation/4_bezier_subdivide.svg
+    docs/interpolation/bezier_loop_interpolation.svg
+    docs/iso_lines/circles.svg
+    docs/iso_lines/parabola.svg
+    docs/iso_lines/potentials.svg
+    docs/penrose/1_base_configurations.svg
+    docs/penrose/2_subdivision.svg
+    docs/penrose/3_inscribed_pentagons.svg
+    docs/penrose/4_subdivision_with_pentagons.svg
+    docs/physics/brownian.svg
+    docs/physics/collision.svg
+    docs/physics/particleInPotential.svg
+    docs/physics/threeBody.svg
+    docs/physics/twoBody.svg
+    docs/plotting/penTravel_flip_merge.svg
+    docs/plotting/penTravel_flip_noMerge.svg
+    docs/plotting/penTravel_noFlip_merge.svg
+    docs/plotting/penTravel_noFlip_noMerge.svg
 
 source-repository head
   type: git
@@ -60,6 +280,7 @@ library
       Geometry.Core
       Geometry.LookupTable.Lookup1
       Geometry.LookupTable.Lookup2
+      Geometry.LookupTable.Lookup3
       Geometry.Processes.Billard
       Geometry.Processes.FlowField
       Geometry.Processes.Geodesics
@@ -91,7 +312,8 @@ library
       Geometry.Algorithms.Clipping.Internal
       Geometry.Algorithms.Clipping.MargalitKnott
       Geometry.Algorithms.Clipping.SutherlandHodgman
-      Geometry.Algorithms.Contour.Internal
+      Geometry.Algorithms.Contour.MarchingSquares
+      Geometry.Algorithms.Contour.MarchingCubes
       Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
       Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw
       Geometry.Algorithms.Sampling.PoissonDisc

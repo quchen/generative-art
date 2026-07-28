@@ -5,6 +5,7 @@ module Test.Geometry.Algorithms.Contour (tests) where
 import           Control.Monad
 import           Control.Monad.ST
 import           Data.Foldable
+import qualified Data.Map.Strict          as Map
 import qualified Data.Vector              as V
 import           Graphics.Rendering.Cairo as C
 import qualified System.Random.MWC        as MWC
@@ -23,6 +24,7 @@ tests = testGroup "Contour finding"
     , classifyTests
     , contourEdgesTests
     , closedIsoIsClosedTest
+    , marchingCubesTests
     , visualTests
     ]
 
@@ -42,6 +44,60 @@ closedIsoIsClosedTest :: TestTree
 closedIsoIsClosedTest = testCase "Closed iso line results in closed trajectory" $ do
     let iso = head (isoLines (Grid (Vec2 (-2) (-2), Vec2 2 2) (10, 10)) normSquare 1)
     assertBool "First and last entries are not the same" (head iso == last iso)
+
+marchingCubesTests :: TestTree
+marchingCubesTests = testGroup "Marching cubes"
+    [ sphereProducesTriangles
+    , emptyFieldNoTriangles
+    , singleComponentSphere
+    , sphereIsClosedManifold
+    ]
+
+sphereProducesTriangles :: TestTree
+sphereProducesTriangles = testCase "Sphere iso surface produces triangles" $ do
+    let grid = Grid3 (Vec3 (-2) (-2) (-2), Vec3 2 2 2) (10, 10, 10)
+        f (Vec3 x y z) = x*x + y*y + z*z
+        components = isoSurfaces grid f 1
+        totalTris = sum (map length components)
+    assertBool "Expected some triangles for sphere" (totalTris > 0)
+
+emptyFieldNoTriangles :: TestTree
+emptyFieldNoTriangles = testCase "Uniform field produces no triangles" $ do
+    let grid = Grid3 (Vec3 (-2) (-2) (-2), Vec3 2 2 2) (10, 10, 10)
+        f _ = 5
+        components = isoSurfaces grid f 1
+        totalTris = sum (map length components)
+    assertEqual "Expected no triangles for uniform field above threshold" (Expected 0) (Actual totalTris)
+
+singleComponentSphere :: TestTree
+singleComponentSphere = testCase "Sphere iso surface is a single component" $ do
+    let grid = Grid3 (Vec3 (-2) (-2) (-2), Vec3 2 2 2) (15, 15, 15)
+        f (Vec3 x y z) = x*x + y*y + z*z
+        components = isoSurfaces grid f 1
+    assertEqual "Expected single connected component for sphere" (Expected 1) (Actual (length components))
+
+sphereIsClosedManifold :: TestTree
+sphereIsClosedManifold = testCase "Sphere iso surface is a closed manifold (every edge appears exactly twice)" $ do
+    let grid = Grid3 (Vec3 (-2) (-2) (-2), Vec3 2 2 2) (15, 15, 15)
+        f (Vec3 x y z) = x*x + y*y + z*z
+        components = isoSurfaces grid f 1
+        allTris = concat components
+        edgeCounts = Map.fromListWith (+)
+            [ (edge, 1)
+            | Triangle3 _ (a, b, c) <- allTris
+            , edge <- [canonicalEdge a b, canonicalEdge b c, canonicalEdge c a]
+            ]
+        badEdges = Map.filter (/= 2) edgeCounts
+    assertEqual "Expected all edges to appear exactly twice" (Expected 0) (Actual (Map.size badEdges))
+
+canonicalEdge :: Vec3 -> Vec3 -> (Double, Double, Double, Double, Double, Double)
+canonicalEdge a b
+    | a <= b    = toTuple a b
+    | otherwise = toTuple b a
+  where
+    toTuple (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) =
+        (roundTo 6 x1, roundTo 6 y1, roundTo 6 z1, roundTo 6 x2, roundTo 6 y2, roundTo 6 z2)
+    roundTo n x = fromIntegral (round (x * 10^n) :: Int) / 10^n
 
 visualTests :: TestTree
 visualTests = testGroup "Visual"

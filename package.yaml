@@ -82,7 +82,8 @@ library:
         - Geometry.Algorithms.Clipping.Internal
         - Geometry.Algorithms.Clipping.MargalitKnott
         - Geometry.Algorithms.Clipping.SutherlandHodgman
-        - Geometry.Algorithms.Contour.Internal
+        - Geometry.Algorithms.Contour.MarchingSquares
+        - Geometry.Algorithms.Contour.MarchingCubes
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Api
         - Geometry.Algorithms.Delaunay.Internal.Delaunator.Raw
         - Geometry.Algorithms.Sampling.PoissonDisc

@@ -116,7 +116,7 @@ crossTest = testGroup "Determinant/cross product"
 
 dotProductTest :: TestTree
 dotProductTest = testGroup "Dot product"
-    [ testProperty "Commutativity" (\v1 v2 -> dotProduct v1 v2 ~== dotProduct v2 v1)
+    [ testProperty "Commutativity" (\v1 v2 -> dotProduct v1 v2 ~== dotProduct (v2 :: Vec2) v1)
     , testProperty "Zero is eliminator" (\v1 -> dotProduct v1 (Vec2 0 0) ~== 0)
     , testGroup "Measure of colinearity"
         [ testProperty "…with unit vector" $ \vGen ->
