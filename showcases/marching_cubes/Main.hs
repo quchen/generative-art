@@ -6,6 +6,7 @@ import Control.Monad
 import Data.Foldable
 import qualified Graphics.Rendering.Cairo as C
 import System.Random.MWC
+import Text.Printf
 
 import Draw
 import Geometry
@@ -21,15 +22,15 @@ scaleFactor :: Double
 scaleFactor = 1
 
 resolution :: Int
-resolution = 100
+resolution = 20
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
 
 main :: IO ()
-main = do
+main = for_ ([0..100] :: [Int]) $ \seed -> do
     let count = 100
-    gen <- initializeMwc (42 :: Int)
+    gen <- initializeMwc seed
     centers <- replicateM count (uniformRM (Vec3 (-300) (-300) (-300), Vec3 300 300 300) gen)
     radii <- replicateM count (uniformRM (25, 75) gen)
 
@@ -37,7 +38,7 @@ main = do
         metaballField q
             | norm q > 200 = 0
             | otherwise    = vsum (zipWith ball radii centers) q
-        file = "out/marching_cubes.svg"
+        file = printf "out/marching_cubes_%03d.svg" seed
         scaledWidth = round (scaleFactor * picWidth)
         scaledHeight = round (scaleFactor * picHeight)
         grid = Grid3 (negateV (Vec3 300 300 300), Vec3 300 300 300) (resolution, resolution, resolution)
@@ -58,4 +59,4 @@ main = do
             setColor (inferno 0.75)
             C.setLineWidth 0.5
             C.stroke
-    writeSTL "out/marching_cubes.stl" components
+    writeSTL (printf "out/marching_cubes_%03d.stl" seed) components
