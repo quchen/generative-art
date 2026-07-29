@@ -7,12 +7,13 @@ module Geometry.Algorithms.Contour.MarchingCubes (
 import           Control.DeepSeq
 import           Control.Parallel.Strategies
 import           Data.Bits                   (testBit, (.|.))
-import qualified Data.IntMap.Strict          as IM
 import           Data.Foldable
 import           Data.Vector                 (Vector, (!))
 import qualified Data.Vector                 as V
 import qualified Data.Vector.Unboxed         as VU
 import           System.IO
+
+import qualified Data.Map.Strict             as Map
 
 import Geometry.Core
 import Geometry.LookupTable.Lookup3
@@ -468,73 +469,75 @@ computeNormal v0 v1 v2 =
         len = norm n
     in if len > 1e-12 then n /. len else Vec3 0 0 1
 
+data DSU = DSU
+    { dsuParent :: !(Map.Map VertexKey VertexKey)
+    , dsuRank   :: !(Map.Map VertexKey Int)
+    }
+
+type VertexKey = (Int, Int, Int)
+
+emptyDSU :: DSU
+emptyDSU = DSU Map.empty Map.empty
+
+dsuFind :: DSU -> VertexKey -> (DSU, VertexKey)
+dsuFind dsu@(DSU parent _) k = case Map.lookup k parent of
+    Nothing -> (dsu, k)
+    Just p  | p == k    -> (dsu, k)
+            | otherwise -> let (dsu', r) = dsuFind dsu p
+                            in (dsu' { dsuParent = Map.insert k r (dsuParent dsu') }, r)
+
+dsuInsert :: DSU -> VertexKey -> DSU
+dsuInsert dsu@(DSU parent rank) k
+    | k `Map.member` parent = dsu
+    | otherwise = DSU (Map.insert k k parent) (Map.insert k 0 rank)
+
+dsuUnion :: DSU -> VertexKey -> VertexKey -> DSU
+dsuUnion dsu a b =
+    let (dsu1, ra) = dsuFind dsu a
+        (dsu2, rb) = dsuFind dsu1 b
+    in if ra == rb
+        then dsu2
+        else
+            let ranka = Map.findWithDefault 0 ra (dsuRank dsu2)
+                rankb = Map.findWithDefault 0 rb (dsuRank dsu2)
+            in if ranka < rankb
+                then dsu2 { dsuParent = Map.insert ra rb (dsuParent dsu2) }
+                else if ranka > rankb
+                    then dsu2 { dsuParent = Map.insert rb ra (dsuParent dsu2) }
+                    else dsu2 { dsuParent = Map.insert rb ra (dsuParent dsu2)
+                              , dsuRank   = Map.insert ra (ranka + 1) (dsuRank dsu2) }
+
 groupConnectedComponents :: [Triangle3] -> [[Triangle3]]
 groupConnectedComponents [] = []
-groupConnectedComponents triangles = finalize (go triangles IM.empty IM.empty)
+groupConnectedComponents triangles =
+    let dsu = foldl' link emptyDSU triangles
+    in groupByRoot dsu triangles
   where
-    go [] parent assigned = (parent, assigned)
-    go (t:ts) parent assigned =
-        let Triangle3 _ (v0, v1, v2) = t
-            key0 = vec3Key v0
-            key1 = vec3Key v1
-            key2 = vec3Key v2
-            roots = nubOrd [ findRoot parent k
-                           | k <- [key0, key1, key2]
-                           , k `IM.member` assigned
-                           ]
-            newAssigned = IM.insert key0 () $ IM.insert key1 () $ IM.insert key2 () assigned
-        in case roots of
-            [] ->
-                let parent1 = IM.insert key0 key0 parent
-                    parent2 = union parent1 key0 key1
-                    parent3 = union parent2 key0 key2
-                in go ts parent3 newAssigned
-            [r] ->
-                let parent1 = union parent r key0
-                    parent2 = union parent1 r key1
-                    parent3 = union parent2 r key2
-                in go ts parent3 newAssigned
-            (r:rs) ->
-                let parent1 = foldl' (\p r' -> union p r r') parent rs
-                    parent2 = union parent1 r key0
-                    parent3 = union parent2 r key1
-                    parent4 = union parent3 r key2
-                in go ts parent4 newAssigned
+    link dsu (Triangle3 _ (v0, v1, v2)) =
+        let k0 = vec3Key v0
+            k1 = vec3Key v1
+            k2 = vec3Key v2
+            d0 = dsuInsert dsu k0
+            d1 = dsuInsert d0 k1
+            d2 = dsuInsert d1 k2
+            u1 = dsuUnion d2 k0 k1
+            u2 = dsuUnion u1 k0 k2
+        in u2
 
-    findRoot parent k = case IM.lookup k parent of
-        Just p | p /= k    -> findRoot parent p
-               | otherwise -> k
-        Nothing -> k
-
-    union parent a b
-        | ra == rb = parent
-        | otherwise = IM.insert ra rb parent
+    groupByRoot dsu = Map.elems . foldl' bucket Map.empty
       where
-        ra = findRoot parent a
-        rb = findRoot parent b
+        bucket m t =
+            let Triangle3 _ (v0, _, _) = t
+                k = vec3Key v0
+                (_, r) = dsuFind dsu k
+            in Map.insertWith (++) r [t] m
 
-    nubOrd = go' []
-      where
-        go' acc [] = reverse acc
-        go' acc (x:xs) | x `elem` acc = go' acc xs
-                       | otherwise    = go' (x:acc) xs
-
-    finalize (parent, assigned) =
-        let compMap = IM.foldlWithKey' (\m k _ ->
-                        let r = findRoot parent k
-                        in IM.insertWith (++) r [k] m
-                    ) IM.empty assigned
-        in [ [ t
-             | t <- triangles
-             , let Triangle3 _ (v0, _, _) = t
-             , let k = vec3Key v0
-             , k `IM.member` assigned
-             , findRoot parent k == r
-             ]
-           | r <- IM.keys compMap ]
-
-vec3Key :: Vec3 -> Int
-vec3Key (Vec3 x y z) = round (x * 73856093) + round (y * 19349663) + round (z * 83492791)
+vec3Key :: Vec3 -> VertexKey
+vec3Key (Vec3 x y z) =
+    ( round (x * 1e6)
+    , round (y * 1e6)
+    , round (z * 1e6)
+    )
 
 isoSurfaces
     :: Grid3
