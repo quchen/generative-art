@@ -51,6 +51,11 @@ cradle:
         cradle:
           stack:
             stackYaml: ./penplotting/Kilometer/stack.yaml
+    - path: ./penplotting/metaballs
+      config:
+        cradle:
+          stack:
+            stackYaml: ./penplotting/metaballs/stack.yaml
     - path: ./penplotting/PenChangeCalibration
       config:
         cradle:
@@ -112,6 +117,11 @@ cradle:
         cradle:
           stack:
             stackYaml: ./showcases/haskell_logo_voronoi/stack.yaml
+    - path: ./showcases/marching_cubes
+      config:
+        cradle:
+          stack:
+            stackYaml: ./showcases/marching_cubes/stack.yaml
     - path: ./showcases/munihac_2022_logo
       config:
         cradle:
