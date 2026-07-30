@@ -34,7 +34,7 @@ data LookupTable3 a = LookupTable3 Grid3 (Vector (Vector (Vector a)))
 instance NFData a => NFData (LookupTable3 a) where
     rnf (LookupTable3 grid vec) = withStrategy (parTraversable rdeepseq) vec `seq` rnf grid
 
-createLookupTable3 :: Grid3 -> (Vec3 -> a) -> LookupTable3 a
+createLookupTable3 :: NFData a => Grid3 -> (Vec3 -> a) -> LookupTable3 a
 createLookupTable3 grid f = LookupTable3 grid (valueTable3 grid f)
 
 lookupNearest3 :: LookupTable3 Double -> Vec3 -> Double
@@ -111,8 +111,9 @@ toGrid3 (Grid3 (Vec3 xMin yMin zMin, Vec3 xMax yMax zMax) (iMax, jMax, kMax)) (V
         kContinuous = clamp (0, fromIntegral kMax) (lerp (zMin, zMax) (0, fromIntegral kMax) z)
     in CIVec3 iContinuous jContinuous kContinuous
 
-valueTable3 :: Grid3 -> (Vec3 -> a) -> Vector (Vector (Vector a))
+valueTable3 :: NFData a => Grid3 -> (Vec3 -> a) -> Vector (Vector (Vector a))
 valueTable3 grid@Grid3{_maxIndex3 = (is, js, ks)} f =
+    withStrategy (parTraversable rdeepseq) $
     V.generate (is+1) (\i ->
         V.generate (js+1) (\j ->
             V.generate (ks+1) (\k ->

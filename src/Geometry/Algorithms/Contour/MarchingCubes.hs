@@ -422,8 +422,11 @@ cubesToTriangles
     -> Vector (Vector (Vector CubeClassification))
     -> [Triangle3]
 cubesToTriangles grid f threshold tolerance classified =
-    fold.fold.fold $ ifor classified $ \i jSlice ->
-        ifor jSlice $ \j kSlice ->
+    concat $ withStrategy (parTraversable rdeepseq) $
+        map sliceTriangles (V.toList (V.indexed classified))
+  where
+    sliceTriangles (i, jSlice) = concatMap concat $
+        V.toList $ ifor jSlice $ \j kSlice ->
             ifor kSlice $ \k classification ->
                 let origin = IVec3 i j k
                     idx = cubeIndex classification

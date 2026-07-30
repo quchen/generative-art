@@ -22,13 +22,13 @@ scaleFactor :: Double
 scaleFactor = 1
 
 resolution :: Int
-resolution = 20
+resolution = 120
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
 
 main :: IO ()
-main = for_ ([0..100] :: [Int]) $ \seed -> do
+main = for_ ([0] :: [Int]) $ \seed -> do
     let count = 100
     gen <- initializeMwc seed
     centers <- replicateM count (uniformRM (Vec3 (-300) (-300) (-300), Vec3 300 300 300) gen)
