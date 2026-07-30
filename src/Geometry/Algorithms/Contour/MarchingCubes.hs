@@ -530,7 +530,7 @@ groupConnectedComponents triangles =
             let Triangle3 _ (v0, _, _) = t
                 k = vec3Key v0
                 (_, r) = dsuFind dsu k
-            in Map.insertWith (++) r [t] m
+            in Map.insertWith (flip (++)) r [t] m
 
 vec3Key :: Vec3 -> VertexKey
 vec3Key (Vec3 x y z) =
