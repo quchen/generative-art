@@ -5,15 +5,20 @@ module Geometry.Algorithms.Contour.MarchingCubes (
 
 
 import           Control.DeepSeq
+import           Control.Monad               (when)
+import           Control.Monad.ST
 import           Control.Parallel.Strategies
 import           Data.Bits                   (testBit, (.|.))
 import           Data.Foldable
 import           Data.Vector                 (Vector, (!))
 import qualified Data.Vector                 as V
+import qualified Data.Vector.Mutable         as VM
 import qualified Data.Vector.Unboxed         as VU
 import           System.IO
 
+import qualified Data.IntMap.Strict          as IntMap
 import qualified Data.Map.Strict             as Map
+import qualified Data.Set                    as Set
 
 import Geometry.Core
 import Geometry.LookupTable.Lookup3
@@ -420,9 +425,9 @@ cubesToTriangles
     -> Double
     -> Double
     -> Vector (Vector (Vector CubeClassification))
-    -> [Triangle3]
+    -> [[Triangle3]]
 cubesToTriangles grid f threshold tolerance classified =
-    concat $ withStrategy (parTraversable rdeepseq) $
+    withStrategy (parTraversable rdeepseq) $
         map sliceTriangles (V.toList (V.indexed classified))
   where
     sliceTriangles (i, jSlice) = concatMap concat $
@@ -472,68 +477,11 @@ computeNormal v0 v1 v2 =
         len = norm n
     in if len > 1e-12 then n /. len else Vec3 0 0 1
 
-data DSU = DSU
-    { dsuParent :: !(Map.Map VertexKey VertexKey)
-    , dsuRank   :: !(Map.Map VertexKey Int)
-    }
+-- ---------------------------------------------------------------------------
+-- Connected components via per-slice mutable (ST) union-find + boundary merge
+-- ---------------------------------------------------------------------------
 
 type VertexKey = (Int, Int, Int)
-
-emptyDSU :: DSU
-emptyDSU = DSU Map.empty Map.empty
-
-dsuFind :: DSU -> VertexKey -> (DSU, VertexKey)
-dsuFind dsu@(DSU parent _) k = case Map.lookup k parent of
-    Nothing -> (dsu, k)
-    Just p  | p == k    -> (dsu, k)
-            | otherwise -> let (dsu', r) = dsuFind dsu p
-                            in (dsu' { dsuParent = Map.insert k r (dsuParent dsu') }, r)
-
-dsuInsert :: DSU -> VertexKey -> DSU
-dsuInsert dsu@(DSU parent rank) k
-    | k `Map.member` parent = dsu
-    | otherwise = DSU (Map.insert k k parent) (Map.insert k 0 rank)
-
-dsuUnion :: DSU -> VertexKey -> VertexKey -> DSU
-dsuUnion dsu a b =
-    let (dsu1, ra) = dsuFind dsu a
-        (dsu2, rb) = dsuFind dsu1 b
-    in if ra == rb
-        then dsu2
-        else
-            let ranka = Map.findWithDefault 0 ra (dsuRank dsu2)
-                rankb = Map.findWithDefault 0 rb (dsuRank dsu2)
-            in if ranka < rankb
-                then dsu2 { dsuParent = Map.insert ra rb (dsuParent dsu2) }
-                else if ranka > rankb
-                    then dsu2 { dsuParent = Map.insert rb ra (dsuParent dsu2) }
-                    else dsu2 { dsuParent = Map.insert rb ra (dsuParent dsu2)
-                              , dsuRank   = Map.insert ra (ranka + 1) (dsuRank dsu2) }
-
-groupConnectedComponents :: [Triangle3] -> [[Triangle3]]
-groupConnectedComponents [] = []
-groupConnectedComponents triangles =
-    let dsu = foldl' link emptyDSU triangles
-    in groupByRoot dsu triangles
-  where
-    link dsu (Triangle3 _ (v0, v1, v2)) =
-        let k0 = vec3Key v0
-            k1 = vec3Key v1
-            k2 = vec3Key v2
-            d0 = dsuInsert dsu k0
-            d1 = dsuInsert d0 k1
-            d2 = dsuInsert d1 k2
-            u1 = dsuUnion d2 k0 k1
-            u2 = dsuUnion u1 k0 k2
-        in u2
-
-    groupByRoot dsu = Map.elems . foldl' bucket Map.empty
-      where
-        bucket m t =
-            let Triangle3 _ (v0, _, _) = t
-                k = vec3Key v0
-                (_, r) = dsuFind dsu k
-            in Map.insertWith (flip (++)) r [t] m
 
 vec3Key :: Vec3 -> VertexKey
 vec3Key (Vec3 x y z) =
@@ -541,6 +489,196 @@ vec3Key (Vec3 x y z) =
     , round (y * 1e6)
     , round (z * 1e6)
     )
+
+-- | A sparse key -> local-index mapping built per slice. Keeps the per-slice
+--   parent/rank arrays dense and small (one slot per distinct vertex actually
+--   present in the slice, not the whole (jMax+1)*(kMax+1) face).
+data SliceKeyMap = SliceKeyMap
+    { skmKeys      :: !(IntMap.IntMap VertexKey)  -- local idx -> key
+    , skmIndex     :: !(Map.Map VertexKey Int)     -- key -> local idx
+    , skmNextIndex :: !Int
+    }
+
+instance NFData SliceKeyMap where
+    rnf (SliceKeyMap keys idx next) = rnf keys `seq` rnf idx `seq` rnf next
+
+emptySliceKeyMap :: SliceKeyMap
+emptySliceKeyMap = SliceKeyMap IntMap.empty Map.empty 0
+
+sliceKeyInsert :: VertexKey -> SliceKeyMap -> (Int, SliceKeyMap)
+sliceKeyInsert k skm@(SliceKeyMap keys idx next) =
+    case Map.lookup k idx of
+        Just n  -> (n, skm)
+        Nothing -> (next, SliceKeyMap
+            (IntMap.insert next k keys)
+            (Map.insert k next idx)
+            (next + 1))
+
+-- | Iterative union-find with path compression on a mutable boxed Int vector.
+--   Local indices only. (Rank is not needed for the find, only for union.)
+dsuFindST :: VM.MVector s Int -> Int -> ST s Int
+dsuFindST parent x0 = go x0
+  where
+    go x = do
+        p <- VM.read parent x
+        if p == x
+            then pure x
+            else do
+                -- path halving: point x at its grandparent before recursing
+                pp <- VM.read parent p
+                VM.write parent x pp
+                go p
+
+dsuUnionST :: VM.MVector s Int -> VM.MVector s Int -> Int -> Int -> ST s ()
+dsuUnionST parent rank a b = do
+    ra <- dsuFindST parent a
+    rb <- dsuFindST parent b
+    when (ra /= rb) $ do
+        qa <- VM.read rank ra
+        qb <- VM.read rank rb
+        if qa < qb
+            then VM.write parent ra rb
+            else if qa > qb
+                then VM.write parent rb ra
+                else do
+                    VM.write parent rb ra
+                    VM.write rank ra (qa + 1)
+
+-- | Build the per-slice DSU and return the local-index root for each key.
+--   Returns (keyToRoot, sliceKeyMap) so callers can map keys to roots.
+buildSliceDSU :: [Triangle3] -> ST s (SliceKeyMap, VM.MVector s Int, VM.MVector s Int)
+buildSliceDSU tris = do
+    -- Pass 1: collect distinct keys.
+    let skm0 = foldl' insKey emptySliceKeyMap tris
+        insKey skm (Triangle3 _ (v0, v1, v2)) =
+            let (_, s1) = sliceKeyInsert (vec3Key v0) skm
+                (_, s2) = sliceKeyInsert (vec3Key v1) s1
+                (_, s3) = sliceKeyInsert (vec3Key v2) s2
+            in s3
+        n = skmNextIndex skm0
+    parent <- VM.new n
+    rank   <- VM.new n
+    mapM_ (\i -> VM.write parent i i) [0 .. n-1]
+    VM.set rank 0
+    -- Pass 2: union triangle vertices.
+    let link (Triangle3 _ (v0, v1, v2)) = do
+            let k0 = vec3Key v0
+                k1 = vec3Key v1
+                k2 = vec3Key v2
+            -- keys were inserted in pass 1, so lookup is total
+            case (Map.lookup k0 (skmIndex skm0), Map.lookup k1 (skmIndex skm0), Map.lookup k2 (skmIndex skm0)) of
+                (Just i0, Just i1, Just i2) -> do
+                    dsuUnionST parent rank i0 i1
+                    dsuUnionST parent rank i0 i2
+                _ -> pure ()
+    mapM_ link tris
+    pure (skm0, parent, rank)
+
+-- | Bucket a slice's triangles by their local root. Returns a map from local
+--   root index to the triangles whose first vertex maps to that root.
+bucketSlice
+    :: SliceKeyMap
+    -> VM.MVector s Int
+    -> [Triangle3]
+    -> ST s (IntMap.IntMap [Triangle3])
+bucketSlice skm parent tris = go tris IntMap.empty
+  where
+    go [] acc = pure acc
+    go (t@(Triangle3 _ (v0, _, _)) : rest) acc =
+        case Map.lookup (vec3Key v0) (skmIndex skm) of
+            Nothing -> go rest acc
+            Just li -> do
+                r <- dsuFindST parent li
+                go rest (IntMap.insertWith (flip (++)) r [t] acc)
+
+-- | Run a slice's DSU in ST and return:
+--   * the SliceKeyMap (for the boundary merge),
+--   * a key -> local-root map (computed while the parent array is live),
+--   * the (local-root -> triangles) buckets.
+runSlice
+    :: [Triangle3]
+    -> (SliceKeyMap, Map.Map VertexKey Int, IntMap.IntMap [Triangle3])
+runSlice tris = runST $ do
+    (skm, parent, _) <- buildSliceDSU tris
+    buckets <- bucketSlice skm parent tris
+    -- Resolve every key's local root while the mutable parent array is live.
+    keyRoots <- mapM (\(li, k) -> do r <- dsuFindST parent li; pure (k, r))
+                     (IntMap.toList (skmKeys skm))
+    pure (skm, Map.fromList keyRoots, buckets)
+
+-- | Global merge DSU over per-slice component roots.
+--   A "global node" is identified by (sliceIndex, localRootIndex).
+type GlobalKey = (Int, Int)
+type GlobalDSU = IntMap.IntMap GlobalKey  -- child -> representative
+
+-- Injective packing of (sliceIdx, localRoot) into a single Int key.
+gkey :: GlobalKey -> Int
+gkey (s, r) = s * 1000000000 + r
+
+gdsuFind :: GlobalDSU -> GlobalKey -> GlobalKey
+gdsuFind dsu k = case IntMap.lookup (gkey k) dsu of
+    Nothing -> k
+    Just p  | p == k    -> k
+            | otherwise -> gdsuFind dsu p
+
+gdsuUnion :: GlobalDSU -> GlobalKey -> GlobalKey -> GlobalDSU
+gdsuUnion dsu a b =
+    let ra = gdsuFind dsu a
+        rb = gdsuFind dsu b
+    in if ra == rb
+        then dsu
+        else IntMap.insert (gkey rb) ra dsu
+
+-- | Seed the global DSU so every (sliceIdx, localIdx) is its own root.
+--   (Any localIdx can end up as a component root, so seed them all.)
+seedGlobalDSU :: GlobalDSU -> (Int, SliceKeyMap, a, b) -> GlobalDSU
+seedGlobalDSU dsu (sIdx, skm, _, _) =
+    foldl' (\d li -> IntMap.insert (gkey (sIdx, li)) (sIdx, li) d) dsu
+           (IntMap.keys (skmKeys skm))
+
+-- | For an adjacent pair of slices, union the global roots of every vertex
+--   key that appears in both slices (i.e. on the shared boundary face).
+--   The union is performed on the *local roots* of the shared keys, not the
+--   raw local indices: a shared vertex's leaf index in slice A may resolve to
+--   a different root than the same key in slice B, and it's the roots that
+--   represent components.
+mergePair :: GlobalDSU -> ((Int, SliceKeyMap, Map.Map VertexKey Int, a), (Int, SliceKeyMap, Map.Map VertexKey Int, a)) -> GlobalDSU
+mergePair d ((sIdxA, skmA, keyRootsA, _), (sIdxB, skmB, keyRootsB, _)) =
+    let keysB = Set.fromList (IntMap.elems (skmKeys skmB))
+        shared = filter (`Set.member` keysB) (IntMap.elems (skmKeys skmA))
+    in foldl' (\d' k ->
+                case (Map.lookup k keyRootsA, Map.lookup k keyRootsB) of
+                    (Just ra, Just rb) -> gdsuUnion d' (sIdxA, ra) (sIdxB, rb)
+                    _                  -> d') d shared
+
+-- | Rebucket all per-slice triangles under their global root.
+collectBuckets :: GlobalDSU -> IntMap.IntMap [Triangle3] -> (Int, a, b, IntMap.IntMap [Triangle3]) -> IntMap.IntMap [Triangle3]
+collectBuckets gdsu acc (sIdx, _, _, buckets) =
+    foldl' (\acc' (localRoot, ts) ->
+                let gRoot = gdsuFind gdsu (sIdx, localRoot)
+                in IntMap.insertWith (flip (++)) (gkey gRoot) ts acc') acc
+            (IntMap.toList buckets)
+
+-- | Merge per-slice components across adjacent slices by finding shared
+--   vertex keys on the boundary and unioning their global representatives.
+mergeSlices
+    :: [(Int, SliceKeyMap, Map.Map VertexKey Int, IntMap.IntMap [Triangle3])]
+    -> IntMap.IntMap [Triangle3]
+mergeSlices sliceData =
+    let gdsu0 = foldl' seedGlobalDSU IntMap.empty sliceData
+        gdsu1 = foldl' mergePair gdsu0 (zip sliceData (drop 1 sliceData))
+    in foldl' (collectBuckets gdsu1) IntMap.empty sliceData
+
+groupConnectedComponents :: [[Triangle3]] -> [[Triangle3]]
+groupConnectedComponents [] = []
+groupConnectedComponents triangleSlices =
+    IntMap.elems $ mergeSlices sliceData
+  where
+    -- Run each slice's DSU in parallel, tagging with its slice index.
+    sliceData = withStrategy (parTraversable rdeepseq) $
+        zipWith (\i tris -> let (skm, keyRoots, buckets) = runSlice tris
+                            in (i, skm, keyRoots, buckets))
+                [0..] triangleSlices
 
 isoSurfaces
     :: Grid3
@@ -553,8 +691,8 @@ isoSurfaces grid f =
         let tableThresholded = applyThreshold3 threshold table
             classified = classifyCubes tableThresholded
             tolerance = 1e-3
-            triangles = cubesToTriangles grid f threshold tolerance classified
-            components = groupConnectedComponents triangles
+            triangleSlices = cubesToTriangles grid f threshold tolerance classified
+            components = groupConnectedComponents triangleSlices
         in components
 
 writeSTL :: FilePath -> [[Triangle3]] -> IO ()
