@@ -244,8 +244,36 @@ snapEpsilonSquared = snapEpsilon ^ 2
 
 -- | Cut a line with multiple knives, and report the intersection points in order
 -- along the edge.
+--
+-- 'intersectionLL' uses an *inclusive* segment-straddle test: an endpoint of
+-- one segment that lies on the other segment's *infinite* extension makes the
+-- test report 'IntersectionReal' even when the true intersection parameter is
+-- well outside [0,1]. This is normally fine (collinear-ish geometries), but
+-- breaks 'MargalitKnott' when two polygons share a vertex: many unrelated
+-- edges of the other polygon pass through that shared vertex, so each of them
+-- falsely reports an intersection with the subject edge — at points that lie
+-- /outside/ the subject edge. These phantom cuts then enter the vertex ring
+-- as boundary vertices of the *other* polygon, producing result polygons with
+-- vertices that are in neither input polygon.
+--
+-- We therefore re-check each 'IntersectionReal' point against the finite
+-- subject edge using the exact collinear-and-within-segment predicate (no
+-- epsilon, matching 'pointOnPolygonBoundary'), and drop the ones that do not
+-- actually lie on the edge. Knife edges that merely touch a shared vertex but
+-- do not cross the subject edge no longer contribute phantom cuts.
 multiCutLine :: Line -> [Line] -> [Vec2]
-multiCutLine edge knives = [x | IntersectionReal x <- map (intersectionLL edge) knives]
+multiCutLine edge knives =
+    [ x | IntersectionReal x <- map (intersectionLL edge) knives
+        , onSegment x edge
+        ]
+  where
+    onSegment p (Line a b) =
+        let ab = b -. a
+            ap' = p -. a
+            isCollinear = cross ab ap' == 0
+            bp = p -. b
+            withinSegment = dotProduct ap' ab >= 0 && dotProduct bp ab >= 0
+        in isCollinear && withinSegment
 
 -- Position of a point on a line relative to the line’s start in arbitrary units.
 -- Useful for sorting.

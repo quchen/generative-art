@@ -65,7 +65,7 @@ tests = testGroup "Clipping"
             , sharedEdgeDifferenceTest
             ]
         , testGroup "Regression cases (FP-divergent shared vertex / edge)"
-            [ failure1, failure2, failure3, failure4, failure5 ]
+            [ failure1, failure2, failure3, failure4, failure5, failure6 ]
         ]
     ]
 
@@ -655,3 +655,39 @@ failure5 =
         result = differencePP p1 p2
     in testVisual "Self-touching polygon (repeated non-adjacent vertex)" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure5" $ \_ ->
         polygonBinaryOpRender p1 p2 result
+
+-- | Regression: the union of two triangles sharing one vertex (and a
+-- near-collinear knife edge emanating from it) produced a result polygon with
+-- a vertex that lies outside *both* input polygons. The stray vertex
+-- @Vec2 (-109.71428571428571) 219.42857142857142@ is the spurious one.
+--
+-- Every vertex of a correct union must lie in at least one of the input
+-- polygons (the union covers only points that are in A or in B), or on its
+-- boundary within a small tolerance (output vertices that coincide with input
+-- vertices may sit just outside due to FP noise).
+--
+-- To reproduce: Run current version of marching-cubes showcase, the problematic
+-- call ist number 0860 in the debug tracing output
+failure6 :: TestTree
+failure6 = testCase "Union vertices stay within input polygons (near-collinear shared vertex)" $ do
+    let p1 = Polygon
+            [ Vec2 (-197.28435427052983) 2.29527016543296
+            , Vec2 (-148.2945594148663) (-82.55754357695274)
+            , Vec2 (-149.61973426274193) 84.8528137423857 ]
+        p2 = Polygon
+            [ Vec2 (-149.61973426274193) 84.8528137423857
+            , Vec2 (-147.42145027803443) 85.6358145222732
+            , Vec2 (-100.62993940707837) 169.70562748477138 ]
+        result = unionPP p1 p2
+        allOutputCorners = concatMap (\(Polygon ps, _) -> ps) result
+        -- A point is "in or on" a polygon if it is inside, or close to an
+        -- edge (within 1e-6). Output vertices that coincide with input
+        -- vertices may sit a few ULPs outside; a genuine stray vertex like
+        -- @(-109.7, 219.4)@ is ~30 units away from every edge.
+        inOrOn p poly = pointInPolygon p poly
+            || any (<= 1e-6) [distanceFromLine p edge | edge <- polygonEdges poly]
+        outsideBoth p = not (inOrOn p p1) && not (inOrOn p p2)
+        bad = filter outsideBoth allOutputCorners
+    unless (null bad) $ assertFailure (unlines
+        $ "Union produced vertices outside both input polygons:"
+        : map (("  " ++) . show) bad)
