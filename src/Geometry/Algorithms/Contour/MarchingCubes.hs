@@ -558,7 +558,7 @@ buildSliceDSU tris = do
         n = skmNextIndex skm0
     parent <- VM.new n
     rank   <- VM.new n
-    mapM_ (\i -> VM.write parent i i) [0 .. n-1]
+    traverse_ (\i -> VM.write parent i i) [0 .. n-1]
     VM.set rank 0
     -- Pass 2: union triangle vertices.
     let link (Triangle3 _ (v0, v1, v2)) = do
@@ -571,7 +571,7 @@ buildSliceDSU tris = do
                     dsuUnionST parent rank i0 i1
                     dsuUnionST parent rank i0 i2
                 _ -> pure ()
-    mapM_ link tris
+    traverse_ link tris
     pure (skm0, parent, rank)
 
 -- | Bucket a slice's triangles by their local root. Returns a map from local
@@ -602,7 +602,7 @@ runSlice tris = runST $ do
     (skm, parent, _) <- buildSliceDSU tris
     buckets <- bucketSlice skm parent tris
     -- Resolve every key's local root while the mutable parent array is live.
-    keyRoots <- mapM (\(li, k) -> do r <- dsuFindST parent li; pure (k, r))
+    keyRoots <- traverse (\(li, k) -> do r <- dsuFindST parent li; pure (k, r))
                      (IntMap.toList (skmKeys skm))
     pure (skm, Map.fromList keyRoots, buckets)
 
