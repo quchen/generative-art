@@ -1,6 +1,57 @@
-module Geometry.Algorithms.Contour.MarchingCubes (
-    module Geometry.Algorithms.Contour.MarchingCubes
-) where
+-- |
+-- Module      : Geometry.Algorithms.Contour.MarchingCubes
+-- Description : 3D iso-surface extraction by the marching cubes algorithm
+--
+-- = Marching cubes
+--
+-- This module implements the classic /marching cubes/ algorithm
+-- [Lorensen, Cline 1987] for extracting a triangular mesh approximating an
+-- iso-surface \( \{ x \in \mathbb{R}^3 \mid f(x) = c \} \) of a scalar field
+-- \( f : \mathbb{R}^3 \to \mathbb{R} \) sampled on a regular 'Grid3'.
+--
+-- The pipeline is:
+--
+-- 1. Sample @f@ on every node of the grid with 'valueTable3'.
+-- 2. Threshold the samples against the contour value with 'applyThreshold3',
+--    yielding an 'XO3' label per node (@X3@ = below or equal, @O3@ = above).
+-- 3. 'classifyCubes' packs the eight corner labels of every cube of the grid
+--    into a 'CubeClassification'.
+-- 4. 'cubeIndex' hashes a cube's classification into the 0–255 index used to
+--    look up the crossed edges in 'edgeTable' and the emitted triangles in
+--    'triTable'.
+-- 5. 'cubesToTriangles' places one vertex per crossed edge by root-finding the
+--    exact crossing of @f@ with the contour ('edgeInterpolation' /
+--    'binarySearchRoot3') and stitches them into 'Triangle3's.
+-- 6. 'groupConnectedComponents' partitions the per-slice triangle lists into
+--    globally connected components by merging shared boundary vertices across
+--    adjacent slices with a union-find structure (see
+--    "Connected components").
+--
+-- The top-level entry point 'isoSurfaces' wires these stages together. The
+-- convenience 'writeSTL' exporter serialises the result as an ASCII STL file
+-- (one nested solid per component).
+--
+-- == Partial application / caching
+--
+-- Like 'Geometry.Algorithms.Contour.MarchingSquares.isoLines', 'isoSurfaces'
+-- caches the (expensive) function evaluations by partially applying the grid
+-- and the field. Reuse the partial application across several thresholds:
+--
+-- @
+-- grid :: 'Grid3'
+-- grid = 'Geometry.LookupTable.Lookup3.Grid3' ('Vec3' (-3) (-3) (-3), 'Vec3' 3 3 3) (60, 60, 60)
+--
+-- -- Good: sample f once, then probe many iso values.
+-- surfaces :: 'Double' -> [['Triangle3']]
+-- surfaces = 'isoSurfaces' grid f
+-- @
+--
+-- == Parallelism
+--
+-- Thresholding, classification and triangle generation are parallelised per
+-- slice with 'parTraversable', so the algorithm scales reasonably well on
+-- multicore machines for moderately sized grids.
+module Geometry.Algorithms.Contour.MarchingCubes where
 
 
 
@@ -24,7 +75,93 @@ import Geometry.Core
 import Geometry.LookupTable.Lookup3
 
 
+-- * Entry point
 
+-- | Find iso-surfaces of a function in three dimensions, the surfaces
+-- \( \{ x \mid f(x) = \text{threshold} \} \), where the function has a
+-- certain threshold value.
+--
+-- 'isoSurfaces' caches the sampling of the field by partially applying the grid
+-- and the field. Reuse the partial application across several thresholds:
+--
+-- @
+-- grid :: 'Grid3'
+-- grid = 'Geometry.LookupTable.Lookup3.Grid3' ('Vec3' (-3) (-3) (-3), 'Vec3' 3 3 3) (60, 60, 60)
+--
+-- -- Good: sample f once, then probe many iso values.
+-- surfaces :: 'Double' -> [['Triangle3']]
+-- surfaces = 'isoSurfaces' grid f
+-- @
+isoSurfaces
+    :: Grid3
+    -> (Vec3 -> Double) -- ^ Scalar field
+    -> Double -- ^ Iso-surface threshold
+    -> [[Triangle3]] -- ^ Iso-surface of the field, grouped by connected components
+isoSurfaces grid f =
+    let table = valueTable3 grid f
+    in \threshold ->
+        let tableThresholded = applyThreshold3 threshold table
+            classified = classifyCubes tableThresholded
+            tolerance = 1e-3
+            triangleSlices = cubesToTriangles grid f threshold tolerance classified
+            components = groupConnectedComponents triangleSlices
+        in components
+
+-- | Serialise a list of connected components (as produced by 'isoSurfaces')
+--   to an ASCII STL file. The file is structured as a top-level
+--   @solid model@ containing one nested @solid component_N@ per
+--   component, so that downstream tools can either treat the whole file as a
+--   single mesh or address individual components.
+writeSTL
+    :: FilePath
+    -> [[Triangle3]] -- ^ List of triangles grouped by connected components
+    -> IO ()
+writeSTL filePath components = do
+    h <- openFile filePath WriteMode
+    hPutStrLn h "solid model"
+    for_ (zip [0..] components) $ \(i, tris) -> do
+        hPutStrLn h $ "  solid component_" ++ show i
+        for_ tris $ \(Triangle3 (Vec3 nx ny nz) (Vec3 x0 y0 z0, Vec3 x1 y1 z1, Vec3 x2 y2 z2)) -> do
+            hPutStrLn h $ "  facet normal " ++ show nx ++ " " ++ show ny ++ " " ++ show nz
+            hPutStrLn h "    outer loop"
+            hPutStrLn h $ "      vertex " ++ show x0 ++ " " ++ show y0 ++ " " ++ show z0
+            hPutStrLn h $ "      vertex " ++ show x1 ++ " " ++ show y1 ++ " " ++ show z1
+            hPutStrLn h $ "      vertex " ++ show x2 ++ " " ++ show y2 ++ " " ++ show z2
+            hPutStrLn h "    endloop"
+            hPutStrLn h "  endfacet"
+        hPutStrLn h $ "  endsolid component_" ++ show i
+    hPutStrLn h "endsolid model"
+    hClose h
+
+
+
+-- * Marching Cubes implementation
+
+-- ** Step 1: Sample the field
+--
+-- $step1
+--
+-- See 'valueTable3' in 'Geometry.Algorithms.Lookup.Lookup3'.
+
+
+
+-- ** Step 2: Apply threshold
+
+-- | Compare every sampled value of @f@ against a @threshold@ and label the
+--   grid nodes accordingly. Returns a 3D vector of 'XO3' with the same shape
+--   as the input table. The first argument is the contour value @c@ such that
+--   the iso-surface is \( \{ x \mid f(x) = c \} \).
+applyThreshold3 :: Double -> Vector (Vector (Vector Double)) -> Vector (Vector (Vector XO3))
+applyThreshold3 threshold = linewiseDeepseq3 . (fmap.fmap.fmap) xo
+  where
+    xo v | v <= threshold = X3
+         | otherwise      = O3
+
+-- | Sign of a sampled scalar field relative to a contour threshold. @X3@
+-- means the value is at or below the threshold (the \"inside\" of the
+-- surface), @O3@ means strictly above (the \"outside\"). Used as a binary
+-- label per grid node; the eight labels of a cube's corners are bundled in
+-- a 'CubeClassification'.
 data XO3 = X3 | O3
     deriving (Eq, Ord, Show)
 
@@ -32,24 +169,27 @@ instance NFData XO3 where
     rnf X3 = ()
     rnf O3 = ()
 
+
+
+-- ** Step 3: Classify the cubes
+
+-- | The eight 'XO3' corner labels of a single cube of the grid, in the order
+--
+-- @v000 v100 v110 v010 v001 v101 v111 v011@
+--
+-- (binary-coded by @x y z@, with @1@ meaning \"incremented index\"). This is
+-- the input to 'cubeIndex' and ultimately to the lookup tables
+-- 'edgeTable' / 'triTable'.
 data CubeClassification = CubeClassification !XO3 !XO3 !XO3 !XO3 !XO3 !XO3 !XO3 !XO3
     deriving (Eq, Ord, Show)
 
 instance NFData CubeClassification where
     rnf _ = ()
 
-linewiseDeepseq3 :: NFData a => Vector (Vector (Vector a)) -> Vector (Vector (Vector a))
-linewiseDeepseq3 = withStrategy (parTraversable (parTraversable rdeepseq))
-
-applyThreshold3 :: Double -> Vector (Vector (Vector Double)) -> Vector (Vector (Vector XO3))
-applyThreshold3 threshold = linewiseDeepseq3 . (fmap.fmap.fmap) xo
-  where
-    xo v | v <= threshold = X3
-         | otherwise      = O3
-
-ifor :: Vector a -> (Int -> a -> b) -> Vector b
-ifor = flip V.imap
-
+-- | Bundle the eight corner labels of every cube of the grid into a
+-- 'CubeClassification'. The input vector must contain at least two elements
+-- per axis (a single cube spans two nodes); the outermost layer is dropped
+-- because a cube starting at the last node would run out of bounds.
 classifyCubes :: Vector (Vector (Vector XO3)) -> Vector (Vector (Vector CubeClassification))
 classifyCubes xos = linewiseDeepseq3 $
     ifor (V.init xos) $ \i js ->
@@ -65,18 +205,68 @@ classifyCubes xos = linewiseDeepseq3 $
                     v011 = xos!i!(j+1)!(k+1)
                 in CubeClassification v000 v100 v110 v010 v001 v101 v111 v011
 
+
+
+-- ** Step 4: Index cubes for lookup tables
+
+-- | Compute the 8-bit marching-cubes cube index from a cube's
+--   'CubeClassification'. The result is in the range @[0 .. 255]@ and indexes
+--   both 'edgeTable' (which edges the surface crosses) and 'triTable'
+--   (which triangles to emit). Bit @b@ is set when the corresponding corner
+--   is @X3@ (below the threshold).
+--
+-- Indexes 0 and 255 mean "no intersection" (completely outnside/inside
+-- of the iso-surface).
 cubeIndex :: CubeClassification -> Int
 cubeIndex (CubeClassification c0 c1 c2 c3 c4 c5 c6 c7) =
     let bit b xo = if xo == X3 then b else 0
     in  bit 1   c0 .|. bit 2   c1 .|. bit 4   c2 .|. bit 8   c3
     .|. bit 16  c4 .|. bit 32  c5 .|. bit 64  c6 .|. bit 128 c7
 
+
+
+-- ** Step 5: Create triangles from intersecting cubes
+
+-- | Turn the whole classified grid into a list of per-slice triangle lists.
+--   Each outer element corresponds to one @i@-slice of the grid and contains
+--   every 'Triangle3' generated by the cubes in that slice; the slices are
+--   processed in parallel with 'parTraversable'.
+cubesToTriangles
+    :: Grid3
+    -> (Vec3 -> Double) -- ^ Scalar field
+    -> Double -- ^ Threshold
+    -> Double -- ^ Tolerance (for locating the exact intersections)
+    -> Vector (Vector (Vector CubeClassification))
+    -> [[Triangle3]] -- ^ List of triangles grouped by i-slices
+cubesToTriangles grid f threshold tolerance classified =
+    withStrategy (parTraversable rdeepseq) $
+        map sliceTriangles (V.toList (V.indexed classified))
+  where
+    sliceTriangles (i, jSlice) = concatMap concat $
+        V.toList $ ifor jSlice $ \j kSlice ->
+            ifor kSlice $ \k classification ->
+                let origin = IVec3 i j k
+                    idx = cubeIndex classification
+                in if idx == 0 || idx == 255
+                    then []
+                    else let edges = cubeEdges origin
+                             edgeBits = edgeTable VU.! idx
+                             triIndices = triTable V.! idx
+                         in buildTriangles grid f threshold tolerance edges edgeBits triIndices
+
+-- | A directed edge of a cube, identified by its two integer grid endpoints.
+--   Used to refer to the 12 canonical edges of a cube in 'cubeEdges' and
+--   by the lookup tables.
 data Edge3 = Edge3 !IVec3 !IVec3
     deriving (Eq, Ord, Show)
 
 instance NFData Edge3 where
     rnf _ = ()
 
+-- | The 12 edges of the cube whose lower-left-front corner is at the given
+--   'IVec3', in the canonical order assumed by 'edgeTable' and 'triTable'
+--   (edges 0–3 lie on the @z = k@ face, edges 4–7 on the @z = k+1@ face, and
+--   edges 8–11 connect the two @z@-layers).
 cubeEdges :: IVec3 -> V.Vector Edge3
 cubeEdges (IVec3 i j k) = V.fromList
     [ Edge3 (IVec3 i j k)         (IVec3 (i+1) j k)
@@ -93,6 +283,10 @@ cubeEdges (IVec3 i j k) = V.fromList
     , Edge3 (IVec3 i (j+1) k)     (IVec3 i (j+1) (k+1))
     ]
 
+-- | The classic marching-cubes edge table: for each of the 256 possible cube
+--   classifications, a 12-bit bitmask whose @e@-th bit is set iff the
+--   surface crosses edge @e@ of the cube (see 'cubeEdges' for the edge
+--   numbering). Indexed by 'cubeIndex'.
 edgeTable :: VU.Vector Int
 edgeTable = VU.fromList
     [ 0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c
@@ -129,6 +323,12 @@ edgeTable = VU.fromList
     , 0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0
     ]
 
+-- | The classic marching-cubes triangle table: for each of the 256 possible
+--   cube classifications, a flat list of edge indices interpreted as triples
+--   @\[e0, e1, e2, e3, e4, e5, ...\]@ — every three consecutive entries form
+--   one outgoing triangle's vertices (on the edges listed). Indexed by
+--   'cubeIndex'. Empty entries (cube fully inside or fully outside the
+--   surface) produce no triangles.
 triTable :: V.Vector (V.Vector Int)
 triTable = V.fromList
     [ V.fromList []
@@ -389,23 +589,63 @@ triTable = V.fromList
     , V.fromList []
     ]
 
-data Line3 = Line3 !Vec3 !Vec3
+-- | Emit the triangles for a single cube, given its 12 edges, the bitmask of
+--   crossed edges, and the flat list of edge-index triples from 'triTable'.
+--   Each requested triple is converted to a 'Triangle3' whose normal is the
+--   (normalised) cross product of two of its edge vectors; degenerate
+--   triangles (zero-area) fall back to the unit @+z@ normal. Triples that
+--   reference an edge that was not crossed are skipped.
+buildTriangles
+    :: Grid3
+    -> (Vec3 -> Double) -- ^ Scalar field
+    -> Double -- ^ Threshold
+    -> Double -- ^ Tolerance (for locating the exact intersections)
+    -> V.Vector Edge3 -- ^ Edges of the cube
+    -> Int -- ^ Edge bits as looked up in 'edgeTable'
+    -> V.Vector Int -- ^ Indices of the edges that form a triangle, as looked up in 'triTable'
+    -> [Triangle3] -- ^ Resulting triangles from this cube
+buildTriangles grid f threshold tolerance edges edgeBits triIndices =
+    let edgeVertexMap = V.imap (\ei edge ->
+            if testBit edgeBits ei
+                then Just (edgeInterpolation grid f threshold edge tolerance)
+                else Nothing) edges
+        go [] = []
+        go (e0:e1:e2:rest) =
+            case (edgeVertexMap V.! e0, edgeVertexMap V.! e1, edgeVertexMap V.! e2) of
+                (Just v0, Just v1, Just v2) ->
+                    let normal = computeNormal v0 v1 v2
+                    in Triangle3 normal (v0, v1, v2) : go rest
+                _ -> go rest
+        go _ = []
+    in go (V.toList triIndices)
 
-line3Length :: Line3 -> Double
-line3Length (Line3 a b) = norm (b -. a)
-
+-- | Locate the point on a single cube edge where the scalar field crosses the
+-- iso value @threshold@, by bisecting the edge in continuous coordinates.
+-- The grid is used only to translate the integer endpoints of the 'Edge3'
+-- into world space; the root-finding itself ('binarySearchRoot3') evaluates
+-- @f@ directly. @tolerance@ is the maximum acceptable segment length at
+-- which the bisection stops.
+--
+-- Not really an interpolation, more a root search. Could be replaced by simple
+-- linear interpolation to trade precision for speed.
 edgeInterpolation
     :: Grid3
-    -> (Vec3 -> Double)
-    -> Double
-    -> Edge3
-    -> Double
-    -> Vec3
+    -> (Vec3 -> Double) -- ^ Scalar field
+    -> Double -- ^ Threshold
+    -> Edge3 -- ^ The edge in question
+    -> Double -- ^ Tolerance for finding the root
+    -> Vec3 -- ^ The exact intersection point within the edge
 edgeInterpolation grid f threshold (Edge3 iStart iEnd) tolerance =
     let start = fromGrid3 grid iStart
         end   = fromGrid3 grid iEnd
     in binarySearchRoot3 f start end threshold tolerance
 
+-- | Bisection root finder for \( f(x) - \text{threshold} = 0 \) along the
+--   segment @[start, end]@. The endpoints are assumed to bracket a sign change
+--   (which is the case for edges selected by the marching-cubes lookup
+--   tables). Recurses until the segment is shorter than @tolerance@, then
+--   returns its midpoint. If, due to floating-point noise, neither half
+--   brackets the root, the midpoint is returned as a fallback.
 binarySearchRoot3 :: (Vec3 -> Double) -> Vec3 -> Vec3 -> Double -> Double -> Vec3
 binarySearchRoot3 f start end threshold tolerance
     | len <= tolerance = middle
@@ -419,56 +659,10 @@ binarySearchRoot3 f start end threshold tolerance
     fMiddle = f middle - threshold
     fEnd    = f end - threshold
 
-cubesToTriangles
-    :: Grid3
-    -> (Vec3 -> Double)
-    -> Double
-    -> Double
-    -> Vector (Vector (Vector CubeClassification))
-    -> [[Triangle3]]
-cubesToTriangles grid f threshold tolerance classified =
-    withStrategy (parTraversable rdeepseq) $
-        map sliceTriangles (V.toList (V.indexed classified))
-  where
-    sliceTriangles (i, jSlice) = concatMap concat $
-        V.toList $ ifor jSlice $ \j kSlice ->
-            ifor kSlice $ \k classification ->
-                let origin = IVec3 i j k
-                    idx = cubeIndex classification
-                in if idx == 0 || idx == 255
-                    then []
-                    else let edges = cubeEdges origin
-                             edgeBits = edgeTable VU.! idx
-                             triIndices = triTable V.! idx
-                         in buildTriangles grid f threshold tolerance edges edgeBits triIndices
-
-buildTriangles
-    :: Grid3
-    -> (Vec3 -> Double)
-    -> Double
-    -> Double
-    -> V.Vector Edge3
-    -> Int
-    -> V.Vector Int
-    -> [Triangle3]
-buildTriangles grid f threshold tolerance edges edgeBits triIndices =
-    let edgeVertexMap = V.imap (\ei edge ->
-            if testBitMC edgeBits ei
-                then Just (edgeInterpolation grid f threshold edge tolerance)
-                else Nothing) edges
-        go [] = []
-        go (e0:e1:e2:rest) =
-            case (edgeVertexMap V.! e0, edgeVertexMap V.! e1, edgeVertexMap V.! e2) of
-                (Just v0, Just v1, Just v2) ->
-                    let normal = computeNormal v0 v1 v2
-                    in Triangle3 normal (v0, v1, v2) : go rest
-                _ -> go rest
-        go _ = []
-    in go (V.toList triIndices)
-
-testBitMC :: Int -> Int -> Bool
-testBitMC = testBit
-
+-- | Outward unit normal of the triangle @v0 v1 v2@, computed as the
+--   normalised cross product of @(v1 - v0)@ and @(v2 - v0)@. Returns the
+--   fallback normal @(0,0,1)@ for degenerate (zero-area) triangles so the
+--   downstream STL export always has a valid normal vector.
 computeNormal :: Vec3 -> Vec3 -> Vec3 -> Vec3
 computeNormal v0 v1 v2 =
     let e1 = v1 -. v0
@@ -477,12 +671,63 @@ computeNormal v0 v1 v2 =
         len = norm n
     in if len > 1e-12 then n /. len else Vec3 0 0 1
 
--- ---------------------------------------------------------------------------
--- Connected components via per-slice mutable (ST) union-find + boundary merge
--- ---------------------------------------------------------------------------
 
+
+-- ** Step 6: Merge connected components
+
+-- *** Connected components via per-slice mutable (ST) union-find + boundary merge
+--
+-- $components
+--
+-- After 'cubesToTriangles' we have a list of triangle lists, one per @i@-slice
+-- of the grid. Within a single slice, two triangles belong to the same
+-- connected component iff they share a vertex. Across adjacent slices,
+-- components merge when they share a vertex that lies on their common
+-- boundary face.
+--
+-- To avoid building one global union-find over the (potentially millions of)
+-- vertices, this section runs a /per-slice/ Disjoint Set Union (DSU) in 'ST'
+-- (see 'buildSliceDSU', 'bucketSlice'), then stitches the slice-local components
+-- together with a -- small persistent 'GlobalDSU' that only ever touches shared
+-- boundary keys (see 'mergeSlices', 'groupConnectedComponents').
+
+-- | Group the per-slice triangle lists produced by 'cubesToTriangles' into
+-- globally connected components. Each output list is one connected
+-- component's triangles. The per-slice DSUs are run in parallel via
+-- 'parTraversable'; the global merge is sequential (and cheap, since it
+-- only touches shared boundary keys).
+groupConnectedComponents :: [[Triangle3]] -> [[Triangle3]]
+groupConnectedComponents [] = []
+groupConnectedComponents triangleSlices =
+    IntMap.elems $ mergeSlices sliceData
+  where
+    -- Run each slice's DSU in parallel, tagging with its slice index.
+    sliceData = withStrategy (parTraversable rdeepseq) $
+        zipWith (\i tris -> let (skm, keyRoots, buckets) = runSlice tris
+                            in (i, skm, keyRoots, buckets))
+                [0..] triangleSlices
+
+-- | Merge per-slice components across adjacent slices by finding shared
+-- vertex keys on the boundary and unioning their global representatives.
+mergeSlices
+    :: [(Int, SliceKeyMap, Map.Map VertexKey Int, IntMap.IntMap [Triangle3])]
+    -> IntMap.IntMap [Triangle3]
+mergeSlices sliceData =
+    let gdsu0 = foldl' seedGlobalDSU IntMap.empty sliceData
+        gdsu1 = foldl' mergePair gdsu0 (zip sliceData (drop 1 sliceData))
+    in foldl' (collectBuckets gdsu1) IntMap.empty sliceData
+
+-- | A quantised key for a vertex in 3D space. Coordinates are scaled by
+-- @1e6@ and rounded to 'Int' so that vertices that coincide up to
+-- sub-micron precision compare equal — this is what makes shared boundary
+-- vertices match across adjacent slices.
 type VertexKey = (Int, Int, Int)
 
+-- | Quantise a 'Vec3' into a 'VertexKey'. The factor @1e6@ corresponds to
+-- roughly micrometer resolution for inputs in the typical plotting scale;
+-- it is large enough to absorb floating-point noise from
+-- 'binarySearchRoot3' while still distinguishing genuinely different
+-- vertices.
 vec3Key :: Vec3 -> VertexKey
 vec3Key (Vec3 x y z) =
     ( round (x * 1e6)
@@ -491,11 +736,11 @@ vec3Key (Vec3 x y z) =
     )
 
 -- | A sparse key -> local-index mapping built per slice. Keeps the per-slice
---   parent/rank arrays dense and small (one slot per distinct vertex actually
---   present in the slice, not the whole (jMax+1)*(kMax+1) face).
+-- parent\/rank arrays dense and small (one slot per distinct vertex actually
+-- present in the slice, not the whole @(jMax+1)*(kMax+1)@ face).
 data SliceKeyMap = SliceKeyMap
-    { skmKeys      :: !(IntMap.IntMap VertexKey)  -- local idx -> key
-    , skmIndex     :: !(Map.Map VertexKey Int)     -- key -> local idx
+    { skmKeys      :: !(IntMap.IntMap VertexKey) -- ^ local idx -> key
+    , skmIndex     :: !(Map.Map VertexKey Int) -- ^ key -> local idx
     , skmNextIndex :: !Int
     }
 
@@ -505,6 +750,8 @@ instance NFData SliceKeyMap where
 emptySliceKeyMap :: SliceKeyMap
 emptySliceKeyMap = SliceKeyMap IntMap.empty Map.empty 0
 
+-- | Insert a key into a 'SliceKeyMap', returning its (possibly pre-existing)
+-- local index and the updated map.
 sliceKeyInsert :: VertexKey -> SliceKeyMap -> (Int, SliceKeyMap)
 sliceKeyInsert k skm@(SliceKeyMap keys idx next) =
     case Map.lookup k idx of
@@ -515,7 +762,7 @@ sliceKeyInsert k skm@(SliceKeyMap keys idx next) =
             (next + 1))
 
 -- | Iterative union-find with path compression on a mutable boxed Int vector.
---   Local indices only. (Rank is not needed for the find, only for union.)
+-- Local indices only. (Rank is not needed for the find, only for union.)
 dsuFindST :: VM.MVector s Int -> Int -> ST s Int
 dsuFindST parent x0 = go x0
   where
@@ -529,6 +776,7 @@ dsuFindST parent x0 = go x0
                 VM.write parent x pp
                 go p
 
+-- | Union by rank of two local indices in the per-slice DSU.
 dsuUnionST :: VM.MVector s Int -> VM.MVector s Int -> Int -> Int -> ST s ()
 dsuUnionST parent rank a b = do
     ra <- dsuFindST parent a
@@ -545,7 +793,7 @@ dsuUnionST parent rank a b = do
                     VM.write rank ra (qa + 1)
 
 -- | Build the per-slice DSU and return the local-index root for each key.
---   Returns (keyToRoot, sliceKeyMap) so callers can map keys to roots.
+-- Returns (keyToRoot, sliceKeyMap) so callers can map keys to roots.
 buildSliceDSU :: [Triangle3] -> ST s (SliceKeyMap, VM.MVector s Int, VM.MVector s Int)
 buildSliceDSU tris = do
     -- Pass 1: collect distinct keys.
@@ -575,7 +823,7 @@ buildSliceDSU tris = do
     pure (skm0, parent, rank)
 
 -- | Bucket a slice's triangles by their local root. Returns a map from local
---   root index to the triangles whose first vertex maps to that root.
+-- root index to the triangles whose first vertex maps to that root.
 bucketSlice
     :: SliceKeyMap
     -> VM.MVector s Int
@@ -592,6 +840,7 @@ bucketSlice skm parent tris = go tris IntMap.empty
                 go rest (IntMap.insertWith (flip (++)) r [t] acc)
 
 -- | Run a slice's DSU in ST and return:
+--
 --   * the SliceKeyMap (for the boundary merge),
 --   * a key -> local-root map (computed while the parent array is live),
 --   * the (local-root -> triangles) buckets.
@@ -607,7 +856,7 @@ runSlice tris = runST $ do
     pure (skm, Map.fromList keyRoots, buckets)
 
 -- | Global merge DSU over per-slice component roots.
---   A "global node" is identified by (sliceIndex, localRootIndex).
+-- A "global node" is identified by (sliceIndex, localRootIndex).
 type GlobalKey = (Int, Int)
 type GlobalDSU = IntMap.IntMap GlobalKey  -- child -> representative
 
@@ -630,18 +879,18 @@ gdsuUnion dsu a b =
         else IntMap.insert (gkey rb) ra dsu
 
 -- | Seed the global DSU so every (sliceIdx, localIdx) is its own root.
---   (Any localIdx can end up as a component root, so seed them all.)
+-- (Any localIdx can end up as a component root, so seed them all.)
 seedGlobalDSU :: GlobalDSU -> (Int, SliceKeyMap, a, b) -> GlobalDSU
 seedGlobalDSU dsu (sIdx, skm, _, _) =
     foldl' (\d li -> IntMap.insert (gkey (sIdx, li)) (sIdx, li) d) dsu
            (IntMap.keys (skmKeys skm))
 
 -- | For an adjacent pair of slices, union the global roots of every vertex
---   key that appears in both slices (i.e. on the shared boundary face).
---   The union is performed on the *local roots* of the shared keys, not the
---   raw local indices: a shared vertex's leaf index in slice A may resolve to
---   a different root than the same key in slice B, and it's the roots that
---   represent components.
+-- key that appears in both slices (i.e. on the shared boundary face).
+-- The union is performed on the *local roots* of the shared keys, not the
+-- raw local indices: a shared vertex's leaf index in slice A may resolve to
+-- a different root than the same key in slice B, and it's the roots that
+-- represent components.
 mergePair :: GlobalDSU -> ((Int, SliceKeyMap, Map.Map VertexKey Int, a), (Int, SliceKeyMap, Map.Map VertexKey Int, a)) -> GlobalDSU
 mergePair d ((sIdxA, skmA, keyRootsA, _), (sIdxB, skmB, keyRootsB, _)) =
     let keysB = Set.fromList (IntMap.elems (skmKeys skmB))
@@ -659,56 +908,18 @@ collectBuckets gdsu acc (sIdx, _, _, buckets) =
                 in IntMap.insertWith (flip (++)) (gkey gRoot) ts acc') acc
             (IntMap.toList buckets)
 
--- | Merge per-slice components across adjacent slices by finding shared
---   vertex keys on the boundary and unioning their global representatives.
-mergeSlices
-    :: [(Int, SliceKeyMap, Map.Map VertexKey Int, IntMap.IntMap [Triangle3])]
-    -> IntMap.IntMap [Triangle3]
-mergeSlices sliceData =
-    let gdsu0 = foldl' seedGlobalDSU IntMap.empty sliceData
-        gdsu1 = foldl' mergePair gdsu0 (zip sliceData (drop 1 sliceData))
-    in foldl' (collectBuckets gdsu1) IntMap.empty sliceData
 
-groupConnectedComponents :: [[Triangle3]] -> [[Triangle3]]
-groupConnectedComponents [] = []
-groupConnectedComponents triangleSlices =
-    IntMap.elems $ mergeSlices sliceData
-  where
-    -- Run each slice's DSU in parallel, tagging with its slice index.
-    sliceData = withStrategy (parTraversable rdeepseq) $
-        zipWith (\i tris -> let (skm, keyRoots, buckets) = runSlice tris
-                            in (i, skm, keyRoots, buckets))
-                [0..] triangleSlices
 
-isoSurfaces
-    :: Grid3
-    -> (Vec3 -> Double)
-    -> Double
-    -> [[Triangle3]]
-isoSurfaces grid f =
-    let table = valueTable3 grid f
-    in \threshold ->
-        let tableThresholded = applyThreshold3 threshold table
-            classified = classifyCubes tableThresholded
-            tolerance = 1e-3
-            triangleSlices = cubesToTriangles grid f threshold tolerance classified
-            components = groupConnectedComponents triangleSlices
-        in components
 
-writeSTL :: FilePath -> [[Triangle3]] -> IO ()
-writeSTL filePath components = do
-    h <- openFile filePath WriteMode
-    hPutStrLn h "solid marching_cubes"
-    for_ (zip [0..] components) $ \(i, tris) -> do
-        hPutStrLn h $ "  solid component_" ++ show i
-        for_ tris $ \(Triangle3 (Vec3 nx ny nz) (Vec3 x0 y0 z0, Vec3 x1 y1 z1, Vec3 x2 y2 z2)) -> do
-            hPutStrLn h $ "  facet normal " ++ show nx ++ " " ++ show ny ++ " " ++ show nz
-            hPutStrLn h "    outer loop"
-            hPutStrLn h $ "      vertex " ++ show x0 ++ " " ++ show y0 ++ " " ++ show z0
-            hPutStrLn h $ "      vertex " ++ show x1 ++ " " ++ show y1 ++ " " ++ show z1
-            hPutStrLn h $ "      vertex " ++ show x2 ++ " " ++ show y2 ++ " " ++ show z2
-            hPutStrLn h "    endloop"
-            hPutStrLn h "  endfacet"
-        hPutStrLn h $ "  endsolid component_" ++ show i
-    hPutStrLn h "endsolid marching_cubes"
-    hClose h
+-- * Utilities
+
+-- | Force the outer two layers of a 3D vector in parallel so that subsequent
+-- (strict) traversals do not spark redundant work. The innermost layer is
+-- evaluated to normal form via 'rdeepseq'.
+linewiseDeepseq3 :: NFData a => Vector (Vector (Vector a)) -> Vector (Vector (Vector a))
+linewiseDeepseq3 = withStrategy (parTraversable (parTraversable rdeepseq))
+
+-- | 'Data.Vector.imap' with arguments flipped, for a slightly more readable
+-- point-free style in the classification passes.
+ifor :: Vector a -> (Int -> a -> b) -> Vector b
+ifor = flip V.imap
