@@ -53,6 +53,19 @@ tests = testGroup "Clipping"
             , polygonDifferenceStressTest
             , differenceOfFullySubsumedSquaresTest
             ]
+        , testGroup "Corner cases (vertex-on-edge / shared-edge)"
+            [ sharedCornerUnionTest
+            , sharedCornerIntersectionTest
+            , sharedCornerDifferenceTest
+            , vertexOnEdgeUnionTest
+            , vertexOnEdgeIntersectionTest
+            , vertexOnEdgeDifferenceTest
+            , sharedEdgeUnionTest
+            , sharedEdgeIntersectionTest
+            , sharedEdgeDifferenceTest
+            ]
+        , testGroup "Regression cases (FP-divergent shared vertex / edge)"
+            [ failure1, failure2, failure3, failure4, failure5 ]
         ]
     ]
 
@@ -474,3 +487,171 @@ differenceOfFullySubsumedSquaresTest = polygonBinaryOpFullySubsumed
     differencePP
     "Second polygon is fully inside first"
     "docs/geometry/clipping/polygon-polygon-difference-fully-subsumed"
+
+
+-- | Two axis-aligned squares sharing exactly one corner. The doc examples use
+-- @boundingBoxPolygon [Vec2 10 10, Vec2 100 100]@ and
+-- @boundingBoxPolygon [Vec2 50 50, Vec2 140 140]@, which share the corner
+-- @(50,50)@. Before the fix this triggered
+-- @Multwomap: Overflow: second arg already has two targets@ because the shared
+-- coordinate ended up with two outgoing fragments in one polygon's fragment map
+-- and only one in the other's, and 'MM.union' then overflowed. With the fix,
+-- 'cutPolygon' drops the redundant boundary entry and the fragments chain up
+-- correctly.
+sharedCornerUnionTest :: TestTree
+sharedCornerUnionTest = polygonBinaryOpSimple
+    unionPP
+    "Shared corner (union)"
+    "docs/geometry/clipping/polygon-polygon-union-shared-corner"
+
+sharedCornerIntersectionTest :: TestTree
+sharedCornerIntersectionTest = polygonBinaryOpSimple
+    intersectionPP
+    "Shared corner (intersection)"
+    "docs/geometry/clipping/polygon-polygon-intersection-shared-corner"
+
+sharedCornerDifferenceTest :: TestTree
+sharedCornerDifferenceTest = polygonBinaryOpSimple
+    differencePP
+    "Shared corner (difference)"
+    "docs/geometry/clipping/polygon-polygon-difference-shared-corner"
+
+-- | A vertex of one polygon lies exactly on an edge of the other (but no shared
+-- corner). Constructed so the bottom edge of p1 (@y=50, x in [20,140]@) passes
+-- through the top vertex of p2 (@(80,50)@) without coinciding with p2's top
+-- edge. This is the canonical vertex-on-edge case that requires a 'Boundary'
+-- classification in 'pointInPolygonOrBoundary' to select the correct edge
+-- fragments.
+vertexOnEdgeUnionTest :: TestTree
+vertexOnEdgeUnionTest =
+    let p1 = boundingBoxPolygon [Vec2 20 50, Vec2 140 120]
+        p2 = Polygon [Vec2 60 10, Vec2 100 10, Vec2 80 50]
+        result = unionPP p1 p2
+    in testVisual "Vertex on edge (union)" 160 140 "docs/geometry/clipping/polygon-polygon-union-vertex-on-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+vertexOnEdgeIntersectionTest :: TestTree
+vertexOnEdgeIntersectionTest =
+    let p1 = boundingBoxPolygon [Vec2 20 50, Vec2 140 120]
+        p2 = Polygon [Vec2 60 10, Vec2 100 10, Vec2 80 50]
+        result = intersectionPP p1 p2
+    in testVisual "Vertex on edge (intersection)" 160 140 "docs/geometry/clipping/polygon-polygon-intersection-vertex-on-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+vertexOnEdgeDifferenceTest :: TestTree
+vertexOnEdgeDifferenceTest =
+    let p1 = boundingBoxPolygon [Vec2 20 50, Vec2 140 120]
+        p2 = Polygon [Vec2 60 10, Vec2 100 10, Vec2 80 50]
+        result = differencePP p1 p2
+    in testVisual "Vertex on edge (difference)" 160 140 "docs/geometry/clipping/polygon-polygon-difference-vertex-on-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+-- | Two polygons sharing a full collinear edge segment. p1's right edge
+-- (@x=100, y in [10,100]@) and p2's left edge (@x=100, y in [40,100]@) overlap
+-- along the segment @(100,40)–(100,100)@. Both endpoints are shared vertices,
+-- and the entire overlap is collinear. This stresses both the vertex dedup in
+-- 'cutPolygon' and the 'Boundary' midpoint test in 'insertEdgeFragement'.
+sharedEdgeUnionTest :: TestTree
+sharedEdgeUnionTest =
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 100 40, Vec2 200 120]
+        result = unionPP p1 p2
+    in testVisual "Shared collinear edge (union)" 220 140 "docs/geometry/clipping/polygon-polygon-union-shared-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+sharedEdgeIntersectionTest :: TestTree
+sharedEdgeIntersectionTest =
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 100 40, Vec2 200 120]
+        result = intersectionPP p1 p2
+    in testVisual "Shared collinear edge (intersection)" 220 140 "docs/geometry/clipping/polygon-polygon-intersection-shared-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+sharedEdgeDifferenceTest :: TestTree
+sharedEdgeDifferenceTest =
+    let p1 = boundingBoxPolygon [Vec2 10 10, Vec2 100 100]
+        p2 = boundingBoxPolygon [Vec2 100 40, Vec2 200 120]
+        result = differencePP p1 p2
+    in testVisual "Shared collinear edge (difference)" 220 140 "docs/geometry/clipping/polygon-polygon-difference-shared-edge" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+failure1 :: TestTree
+failure1 =
+    let p1 = Polygon
+            [ Vec2 (-180.20942060275013) (-29.2891600118938)
+            , Vec2 (-104.35744140302432) (-102.09032181668888)
+            , Vec2 (-75.65668830760478) 0.0 ]
+        p2 = Polygon
+            [Vec2 (-180.20942060275013) (-29.2891600118938)
+            , Vec2 (-75.65668830760478) 0.0
+            , Vec2 (-180.2094206027501) 29.2891600118938 ]
+        result = differencePP p1 p2
+    in testVisual "Shared edge, FP-divergent shared vertex (difference)" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure1" $ \_ -> do
+        liftIO $ assertEqual "Expected output polygon" (Expected p1) (Actual (fst (head result)))
+        polygonBinaryOpRender p1 p2 result
+
+failure2 :: TestTree
+failure2 =
+    let p1 = Polygon
+            [ Vec2 (-180.2094206027501) 29.2891600118938
+            , Vec2 (-75.65668830760478) 0.0
+            , Vec2 (-94.46830930598787) 163.62391142310275 ]
+        p2 = Polygon
+            [ Vec2 (-180.20942060275013) (-29.2891600118938)
+            , Vec2 (-75.65668830760478) 0.0
+            , Vec2 (-180.2094206027501) 29.2891600118938 ]
+        result = differencePP p1 p2
+    in testVisual "Shared edge added by both polygons (difference)" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure2" $ \_ -> do
+        liftIO $ assertEqual "Expected output polygon" (Expected p1) (Actual (fst (head result)))
+        polygonBinaryOpRender p1 p2 result
+
+
+failure3 :: TestTree
+failure3 =
+    let p1 = Polygon
+            [ Vec2 (-180.2094206027501) 29.2891600118938
+            , Vec2 (-75.65668830760478) 0.0
+            , Vec2 (-94.46830930598787) 163.62391142310275
+            , Vec2 (-180.2094206027501) 29.2891600118938 ]
+        p2 = Polygon
+            [ Vec2 (-197.119525019955) 0.0
+            , Vec2 (-180.20942060275013) (-29.2891600118938)
+            , Vec2 (-180.2094206027501) 29.2891600118938 ]
+        result = differencePP p1 p2
+    in testVisual "Degenerate input (repeated first/last vertex) is sanitized" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure3" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+failure4 :: TestTree
+failure4 =
+    let p1 = Polygon
+            [ Vec2 27.917066630243085 21.213203435596384
+            , Vec2 30.251886046322475 23.96972871113259
+            , Vec2 30.63132970887029 27.599175236441674
+            , Vec2 30.78793750558226 27.339787052829866
+            , Vec2 31.163118955396147 29.698484809834987 ]
+        p2 = Polygon
+            [ Vec2 30.63132970887029 27.599175236441674
+            , Vec2 34.4869138749247 21.213203435596384
+            , Vec2 38.713868434111056 24.627980214224436 ]
+        result = differencePP p1 p2
+    in testVisual "Shared vertex with ULP-divergent cuts sorts after snapping" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure4" $ \_ ->
+        polygonBinaryOpRender p1 p2 result
+
+failure5 :: TestTree
+failure5 =
+    let p1 = Polygon
+            [ Vec2 1.3251748478756156 172.00089765020437
+            , Vec2 2.5735005625914873 169.57676224990132
+            , Vec2 2.650349695751249 169.70562748477138
+            , Vec2 23.815850088147716 132.01232159196223
+            , Vec2 29.33260934530046 154.30061769351667
+            , Vec2 2.650349695751249 169.70562748477138
+            , Vec2 29.393459035464485 154.5464569351521
+            , Vec2 33.14562986446458 169.70562748477138 ]
+        p2 = Polygon
+            [ Vec2 (-0.4520657110437618) 170.4886282646589
+            , Vec2 1.3251748478756156 172.00089765020437
+            , Vec2 2.650349695751249 169.70562748477138 ]
+        result = differencePP p1 p2
+    in testVisual "Self-touching polygon (repeated non-adjacent vertex)" 220 140 "docs/geometry/clipping/polygon-polygon-difference-failure5" $ \_ ->
+        polygonBinaryOpRender p1 p2 result

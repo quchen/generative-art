@@ -23,14 +23,15 @@ scaleFactor :: Double
 scaleFactor = 1
 
 resolution :: Int
-resolution = 100
+resolution = 5
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
 
 main :: IO ()
-main = for_ ([0..100] :: [Int]) $ \seed -> do
+main = do
     let count = 100
+        seed = 0 :: Int
     gen <- initializeMwc seed
     centers <- replicateM count (uniformRM (Vec3 (-300) (-300) (-300), Vec3 300 300 300) gen)
     radii <- replicateM count (uniformRM (25, 75) gen)
@@ -48,8 +49,8 @@ main = for_ ([0..100] :: [Int]) $ \seed -> do
         frontFacing = concatMap (cull normal) components
         culledByOcclusion = occlude normal frontFacing
 
-    print $ "Components: " ++ show (length components)
-    print $ "Total triangles: " ++ show (length culledByOcclusion)
+    putStrLn $ "Components: " ++ show (length components)
+    putStrLn $ "Total triangles: " ++ show (length culledByOcclusion)
 
     render file scaledWidth scaledHeight $ do
         C.scale scaleFactor scaleFactor

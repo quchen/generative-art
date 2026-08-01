@@ -103,18 +103,33 @@ extra-doc-files:
     docs/geometry/clipping/polygon-polygon-difference-complicated.svg
     docs/geometry/clipping/polygon-polygon-difference-disjoint.svg
     docs/geometry/clipping/polygon-polygon-difference-double-traversal.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure1.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure2.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure3.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure4.svg
+    docs/geometry/clipping/polygon-polygon-difference-failure5.svg
     docs/geometry/clipping/polygon-polygon-difference-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-difference-shared-corner.svg
+    docs/geometry/clipping/polygon-polygon-difference-shared-edge.svg
     docs/geometry/clipping/polygon-polygon-difference-simple.svg
+    docs/geometry/clipping/polygon-polygon-difference-vertex-on-edge.svg
     docs/geometry/clipping/polygon-polygon-intersection-complicated.svg
     docs/geometry/clipping/polygon-polygon-intersection-disjoint.svg
     docs/geometry/clipping/polygon-polygon-intersection-double-traversal.svg
     docs/geometry/clipping/polygon-polygon-intersection-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-intersection-shared-corner.svg
+    docs/geometry/clipping/polygon-polygon-intersection-shared-edge.svg
     docs/geometry/clipping/polygon-polygon-intersection-simple.svg
+    docs/geometry/clipping/polygon-polygon-intersection-vertex-on-edge.svg
     docs/geometry/clipping/polygon-polygon-union-complicated.svg
     docs/geometry/clipping/polygon-polygon-union-disjoint.svg
     docs/geometry/clipping/polygon-polygon-union-double-traversal.svg
     docs/geometry/clipping/polygon-polygon-union-fully-subsumed.svg
+    docs/geometry/clipping/polygon-polygon-union-shared-corner.svg
+    docs/geometry/clipping/polygon-polygon-union-shared-edge.svg
     docs/geometry/clipping/polygon-polygon-union-simple.svg
+    docs/geometry/clipping/polygon-polygon-union-vertex-on-edge.svg
     docs/geometry/grow_polygon_shrink_ear.svg
     docs/geometry/intersection/almost_parallel.svg
     docs/geometry/intersection/half_virtual.svg

@@ -19,6 +19,7 @@ import Data.List
 import           Data.Multwomap (Multwomap)
 import qualified Data.Multwomap as MM
 import           Geometry.Core
+import           Util (bugError)
 
 -- $setup
 -- >>> import Draw
@@ -202,8 +203,44 @@ cutPolygonEdges
         -- 'CutEdge'.
 cutPolygonEdges subject knives = do
     edge@(Line start end) <- polygonEdges subject
-    let cuts = sortOn (\x -> positionAlongEdge x edge) (multiCutLine edge (polygonEdges knives))
-    pure (CutEdge start cuts end)
+    let cuts = multiCutLine edge (polygonEdges knives)
+        -- Snap each computed intersection point to the subject edge’s exact
+        -- endpoints when it lies within 'snapEpsilon'. This is essential for
+        -- the Margalit–Knott invariant: a vertex shared between the two
+        -- polygons must be the *same* 'Vec2' (bit-identical) in both
+        -- 'cutPolygon' runs, otherwise it ends up as two distinct keys in the
+        -- fragment maps and 'MM.union' overflows. 'intersectionLL' computes
+        -- the same geometric point via different edge pairs and can differ by
+        -- a few ULPs; snapping to the endpoint eliminates that divergence.
+        --
+        -- Snap *before* sorting: when a shared vertex yields multiple cuts at
+        -- the same geometric point, they must collapse to identical 'Vec2's
+        -- before 'sortOn' so they sort adjacently; otherwise ULP-divergent
+        -- copies can interleave with other cuts (e.g. a midpoint between them)
+        -- and 'collapseDuplicates' (consecutive-only) fails to merge them.
+        snappedCuts = map (snapToEdgeEndpoints edge) cuts
+        sortedSnappedCuts = sortOn (\x -> positionAlongEdge x edge) snappedCuts
+    pure (CutEdge start sortedSnappedCuts end)
+
+-- | If a point lies within 'snapEpsilon' of either endpoint of the line,
+-- return that (exact) endpoint; otherwise return the point unchanged.
+snapToEdgeEndpoints :: Line -> Vec2 -> Vec2
+snapToEdgeEndpoints (Line a b) p
+    | normSquare (p -. a) <= snapEpsilonSquared = a
+    | normSquare (p -. b) <= snapEpsilonSquared = b
+    | otherwise                                  = p
+
+-- | Tolerance for snapping computed intersection points to polygon vertices.
+-- Chosen to absorb the rounding error of 'intersectionLL' (a handful of ULPs
+-- on coordinates of moderate magnitude) without merging genuinely distinct
+-- points. 1e-9 has been validated empirically against the regression tests;
+-- shrinking it re-triggers the overflow on the floating-point shared-vertex
+-- case, while growing it risks collapsing distinct close features.
+snapEpsilon :: Double
+snapEpsilon = 1e-9
+
+snapEpsilonSquared :: Double
+snapEpsilonSquared = snapEpsilon ^ 2
 
 -- | Cut a line with multiple knives, and report the intersection points in order
 -- along the edge.
@@ -219,33 +256,107 @@ positionAlongEdge p edge@(Line edgeStart _) = dotProduct (vectorOf edge) (vector
 newtype CutPolygon = CutPolygon [(Side, Vec2)] deriving (Eq, Ord, Show)
 
 cutPolygon :: Polygon -> Polygon -> CutPolygon
-cutPolygon subject knives = toVertexRing (cutPolygonEdges subject knives)
+cutPolygon subject knives = CutPolygon (collapseDuplicates rawRing)
   where
-    toVertexRing :: [CutEdge] -> CutPolygon
+    toVertexRing :: [CutEdge] -> [(Side, Vec2)]
     toVertexRing cutEdges =
         let go [] = []
-            go (CutEdge start cuts _end : rest) = (pointInPolygonOrBoundary start knives, start) : [(Boundary, p) | p <- cuts] ++ go rest
-                               --  ^^^^ end will be handled as the start of the next cut
-        in CutPolygon (go cutEdges)
+            go (CutEdge start cuts end : rest) =
+                (pointInPolygonOrBoundary start knives, start)
+                :  [(Boundary, p) | p <- cuts, p /= end, p /= start]
+                ++ go rest
+                               -- ^^^^^^^^^^^^^^^^
+                               -- Drop cut points that coincide with the edge's
+                               -- *start* too: the start is already emitted
+                               -- explicitly above, so a knife edge that passes
+                               -- through the start vertex would otherwise
+                               -- duplicate it. The duplicate is non-consecutive
+                               -- (interleaved with other cuts along the edge),
+                               -- so 'collapseDuplicates' (consecutive-only)
+                               -- cannot merge it; this corrupts the vertex ring
+                               -- and overflows 'Multwomap'.
+                               --
+                               -- end will be handled as the start of the next cut.
+                               -- A cut point that coincides with this edge's end is
+                               -- dropped here so it isn't double-counted.
+        in go cutEdges
+
+    rawRing = toVertexRing (cutPolygonEdges subject knives)
+
+    -- Collapse consecutive duplicate points in the vertex ring. This is the
+    -- key to keeping the 'Multwomap' invariant (at most two fragments per
+    -- vertex: one in, one out) intact. Duplicates arise when a cut point
+    -- coincides with a subject vertex. Thanks to 'snapToEdgeEndpoints', such
+    -- a cut is now bit-identical to the vertex, so a plain '==' suffices to
+    -- spot the duplicate. Two situations:
+    --
+    --   1. A cut point coincides with this edge's /start/ (a knife edge passes
+    --      through the subject vertex at the start of the edge). The vertex
+    --      then appears once as @(pointInPolygonOrBoundary start, start)@ and
+    --      once as @(Boundary, cut)@.
+    --
+    --   2. Two knife edges share a vertex that lies on a subject edge. Both
+    --      knife edges report the same intersection point, so the cut list
+    --      contains the same point twice.
+    --
+    -- Without collapsing, the duplicate coordinate becomes a key with three
+    -- or more outgoing fragments after 'MM.union', crashing 'Multwomap'.
+    --
+    -- When two consecutive entries share a point, 'Boundary' wins over
+    -- 'Inside'/'Outside' — a point that is an intersection (always 'Boundary')
+    -- is on the other polygon's outline, and 'Boundary' is the truthful
+    -- classification for fragment selection.
+    collapseDuplicates :: [(Side, Vec2)] -> [(Side, Vec2)]
+    collapseDuplicates [] = []
+    collapseDuplicates (x : xs) =
+        let (kept, rest) = span (samePoint x) xs
+            winningSide  = foldl' combineSide (fst x) (map fst kept)
+        in (winningSide, snd x) : collapseDuplicates rest
+
+    samePoint (_, p1) (_, p2) = p1 == p2
+    combineSide Boundary _ = Boundary
+    combineSide _ Boundary = Boundary
+    combineSide s _        = s
 
 pointInPolygonOrBoundary :: Vec2 -> Polygon -> Side
-pointInPolygonOrBoundary p polygon = if pointInPolygon p polygon
-    then Inside
-    else Outside -- TODO: implement point-is-on-boundary!
+pointInPolygonOrBoundary p polygon
+    | pointOnPolygonBoundary p polygon = Boundary
+    | pointInPolygon p polygon         = Inside
+    | otherwise                        = Outside
 
-buildEdgeFragementMap :: CutPolygon -> Side -> Polygon -> Multwomap Vec2 Vec2
+-- | Exact predicate: is the point on any edge of the polygon (including the
+-- endpoints)? Uses exact arithmetic on 'Double' coordinates — a point lies on
+-- a segment iff it is collinear with the segment's endpoints (cross product
+-- is exactly 0) and its projection onto the segment lies within the segment
+-- (dot products at both ends are non-negative). No epsilon, so coincident
+-- intersection points and shared vertices are detected deterministically.
+pointOnPolygonBoundary :: Vec2 -> Polygon -> Bool
+pointOnPolygonBoundary p polygon = any onEdge (polygonEdges polygon)
+  where
+    onEdge (Line a b) =
+        let ab = b -. a
+            ap' = p -. a
+            crossProduct = cross ab ap'
+            -- Collinear (exact). Guard against the degenerate zero-length edge.
+            isCollinear = crossProduct == 0
+            -- p's projection lies within [a,b]: dot(ap,ab) >= 0 && dot(pb,ab) >= 0
+            bp = p -. b
+            withinSegment = dotProduct ap' ab >= 0 && dotProduct bp ab >= 0
+        in isCollinear && withinSegment
+
+buildEdgeFragementMap :: CutPolygon -> Side -> Polygon -> Either String (Multwomap Vec2 Vec2)
 buildEdgeFragementMap (CutPolygon vr) ty polygonOther =
-    let insertEdgeFragement :: (Side, Vec2) -> (Side, Vec2) -> Multwomap Vec2 Vec2 -> Multwomap Vec2 Vec2
+    let insertEdgeFragement :: (Side, Vec2) -> (Side, Vec2) -> Multwomap Vec2 Vec2 -> Either String (Multwomap Vec2 Vec2)
         insertEdgeFragement (Boundary, x) (Boundary, y) = case pointInPolygonOrBoundary ((x +. y) /. 2) polygonOther of
             Boundary -> MM.insert x y
             inOrOut | inOrOut == ty -> MM.insert x y
-            _otherwise -> id
+            _otherwise -> Right
         insertEdgeFragement (pointSideX, x) (pointSideY, y)
             | ty == pointSideX || ty == pointSideY = MM.insert x y
-        insertEdgeFragement _other _wise = id
+        insertEdgeFragement _other _wise = Right
 
         inserts = zipWith insertEdgeFragement vr (tail (cycle vr))
-    in foldl' (\mmap f -> f mmap) MM.empty inserts
+    in foldl' (\mmap f -> mmap >>= f) (Right MM.empty) inserts
 
 constructResultPolygons :: Multwomap Vec2 Vec2 -> [Polygon]
 constructResultPolygons mmap = evalState reconstructAllS mmap
@@ -254,17 +365,43 @@ reconstructAllS :: State (Multwomap Vec2 Vec2) [Polygon]
 reconstructAllS = gets MM.arbitraryKey >>= \case
     Nothing -> pure []
     Just start -> do
-        polygon <- reconstructSingleS start
+        polygons <- reconstructLoopsFromS start
         rest <- reconstructAllS
-        pure (polygon : rest)
+        pure (polygons ++ rest)
 
-reconstructSingleS :: Vec2 -> State (Multwomap Vec2 Vec2) Polygon
-reconstructSingleS start = gets (MM.extract start) >>= \case
-    Nothing -> pure (Polygon [])
-    Just (next, restEdgeFragments) -> do
-        put restEdgeFragments
-        Polygon rest <- reconstructSingleS next
-        pure (Polygon (start : rest))
+-- | Reconstruct all simple sub-polygons that pass through @start@.
+--
+-- The fragment map guarantees at most two fragments per vertex (one in, one
+-- out). Nevertheless, the walk can produce a /self-touching/ (weakly-simple)
+-- polygon: when @start@ has two outgoing fragments, the walk revisits @start@
+-- mid-traversal, producing a figure-eight (e.g. @[X, Y, X, Z]@). Such a
+-- polygon violates the simple-polygon assumption of downstream consumers and
+-- re-feeding it into 'margalitKnott' overflows 'Multwomap'.
+--
+-- We split at every return to @start@: each closed loop becomes its own
+-- simple polygon. Degenerate loops (fewer than 3 vertices, i.e. a back-and-for
+-- sliver) are discarded.
+reconstructLoopsFromS :: Vec2 -> State (Multwomap Vec2 Vec2) [Polygon]
+reconstructLoopsFromS start = go [start]
+  where
+    go :: [Vec2] -> State (Multwomap Vec2 Vec2) [Polygon]
+    go path = gets (MM.extract (last path)) >>= \case
+        Nothing -> pure (emit path)
+        Just (next, rest) -> do
+            put rest
+            if next == start
+                then -- Loop closed: `path` is a complete simple polygon.
+                     -- If `start` still has a fragment, a new loop begins.
+                    gets (MM.extract start) >>= \case
+                        Nothing -> pure (emit path)
+                        Just (next2, rest2) -> do
+                            put rest2
+                            polys <- go [start, next2]
+                            pure (emit path ++ polys)
+                else go (path ++ [next])
+    -- Keep only non-degenerate polygons (≥ 3 vertices); a 2-vertex loop is a
+    -- zero-area sliver (edge traversed forward then back) that carries no area.
+    emit xs = [Polygon xs | length xs >= 3]
 
 -- | The paper’s code on this is pretty unclear, if not misleading: it talks about
 -- a »current polygon« and a »last result polygon«. By testing, it turns out those
@@ -286,24 +423,104 @@ addTypes op orientationA polygonA_Type polygonB_Type = go
     flipHoleIsland Hole = Island
 
 margalitKnott :: Operation -> Regularity -> (Polygon, IslandOrHole) -> (Polygon, IslandOrHole) -> [(Polygon, IslandOrHole)]
-margalitKnott op Regular (polygonA, polygonA_Type) (polygonB', polygonB_Type) =
-    let polygonB = orientB op polygonA polygonB' polygonA_Type polygonB_Type
+margalitKnott op Regular (polygonA', polygonA_Type) (polygonB', polygonB_Type) =
+    let polygonA = sanitizePolygon polygonA'
+        polygonB = orientB op polygonA (sanitizePolygon polygonB') polygonA_Type polygonB_Type
 
         vertexRingA = cutPolygon polygonA polygonB
         vertexRingB = cutPolygon polygonB polygonA
 
         (ftA, ftB) = fragmentType polygonA_Type polygonB_Type op
-        efA = buildEdgeFragementMap vertexRingA ftA polygonB
-        efB = buildEdgeFragementMap vertexRingB ftB polygonA
-        edgeFragments = MM.union efA efB
+    in case ( buildEdgeFragementMap vertexRingA ftA polygonB
+            , buildEdgeFragementMap vertexRingB ftB polygonA
+            ) of
+        (Left err, _) -> reportOverflow err polygonA polygonB
+        (_, Left err) -> reportOverflow err polygonA polygonB
+        (Right efA, Right efB) -> case MM.union efA efB of
+            Left err          -> reportOverflow err polygonA polygonB
+            Right edgeFragments ->
+                let polygons = constructResultPolygons edgeFragments
+                    polygonsTyped = addTypes op (polygonOrientation polygonA) polygonA_Type polygonB_Type polygons
+                    -- TODO: boundary edge fragment handling
+                in polygonsTyped
+  where
+    -- An overflow in 'Multwomap' means a vertex has three or more distinct
+    -- outgoing fragments, which violates the Margalit–Knott invariant. This
+    -- is a bug in fragment generation, not user input. Instead of crashing
+    -- opaquely, report the two input polygons that triggered it so the bug
+    -- can be reproduced and diagnosed.
+    reportOverflow :: String -> Polygon -> Polygon -> a
+    reportOverflow err polygonA polygonB =
+        bugError "MargalitKnott" $ unlines
+            [ err
+            , "Polygon A: " ++ show polygonA
+            , "Polygon B: " ++ show polygonB
+            ]
 
-        polygons = constructResultPolygons edgeFragments
+-- | Drop consecutive duplicate vertices (and a duplicate last vertex that
+-- repeats the first) from a polygon's corner list. The Margalit–Knott
+-- algorithm assumes a /simple/ polygon ring: 'polygonEdges' closes the ring
+-- implicitly via @tail (cycle ps)@, so a repeated first/last vertex produces
+-- a zero-length edge, which in turn spawns a self-loop fragment
+-- (@x -> x@) and overflows 'Multwomap'. Likewise, any run of equal
+-- consecutive vertices collapses to a single point.
+sanitizePolygon :: Polygon -> Polygon
+sanitizePolygon (Polygon []) = Polygon []
+sanitizePolygon (Polygon ps) =
+    Polygon (dropTrailingDuplicate (foldr cons [] ps))
+  where
+    -- Build the deduplicated list back-to-front, skipping a vertex equal to
+    -- the one we just prepended.
+    cons x acc
+        | (y : _) <- acc, x == y = acc
+        | otherwise              = x : acc
+    -- If, after dedup, the last vertex equals the first, drop it: the ring is
+    -- closed implicitly by 'polygonEdges'.
+    dropTrailingDuplicate xs
+        | (x:ys) <- xs, not (null ys), last ys == x = init ys
+        | otherwise                                 = xs
 
-        polygonsTyped = addTypes op (polygonOrientation polygonA) polygonA_Type polygonB_Type polygons
-
-        -- TODO: boundary edge fragment handling
-
-    in polygonsTyped
+-- | Split a /self-touching/ (weakly-simple) polygon into a list of simple
+-- polygons. The Margalit–Knott algorithm assumes simple inputs: each vertex
+-- has at most two incident edges (one in, one out). A self-touching polygon
+-- pinches at one or more vertices that it visits twice non-adjacently, giving
+-- that vertex four incident edges and overflowing 'Multwomap'.
+--
+-- Self-touching polygons arise as output of 'constructResultPolygons' when the
+-- fragment graph forms a figure-eight (two loops sharing a vertex); they must
+-- be split before they are fed back into 'margalitKnott'.
+--
+-- Algorithm: walk the closed vertex ring. When the next vertex is already
+-- present earlier in the current walk, the segment between the two occurrences
+-- forms a closed simple sub-polygon; emit it, then resume the outer walk from
+-- the first occurrence (dropping the just-emitted loop). This handles nested
+-- and chained pinches. After splitting, each result is re-sanitized (to drop
+-- any zero-length slivers) and degenerate results (< 3 vertices) are dropped.
+--
+-- A simple polygon (no self-touch) is returned as a singleton list unchanged.
+splitSelfTouchingPolygon :: Polygon -> [Polygon]
+splitSelfTouchingPolygon (Polygon ps0) =
+    filter hasMinThree (map (sanitizePolygon . Polygon) loops)
+  where
+    hasMinThree (Polygon xs) = length xs >= 3
+    -- The vertex ring is closed implicitly, so we do not append the first
+    -- vertex at the end; instead, a loop closes when we revisit a vertex
+    -- already in the walk.
+    loops = go ps0 []
+    -- walk: remaining vertices to consume; current path of visited vertices.
+    go [] path = finalize path
+    go (x:xs) path
+        | Just i <- lookup x (zip path [0..]) =
+            -- x already appears at position i in path: extract the sub-loop
+            -- [path[i..end] ++ x], then resume with path[0..i] ++ xs.
+            let loop = drop i path ++ [x]
+                outer = take i path
+            in loop : go xs outer
+        | otherwise = go xs (path ++ [x])
+    -- When the input is exhausted, the residual path is the last loop if
+    -- non-empty; otherwise it was already fully consumed.
+    finalize [] = []
+    finalize path = [path]
 
 -- | Union of two polygons.
 --
@@ -377,4 +594,7 @@ antiDifferencePP
 antiDifferencePP = ppBinop AntiDifference
 
 ppBinop :: Operation -> Polygon -> Polygon -> [(Polygon, IslandOrHole)]
-ppBinop op p1 p2 = margalitKnott op Regular (p1, Island) (p2, Island)
+ppBinop op p1 p2 =
+    let as = map (\a -> (a, Island)) (splitSelfTouchingPolygon p1)
+        bs = map (\b -> (b, Island)) (splitSelfTouchingPolygon p2)
+    in concatMap (\a -> concatMap (margalitKnott op Regular a) bs) as
