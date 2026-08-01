@@ -10,6 +10,7 @@ import System.Random.MWC
 import Text.Printf
 
 import Draw
+import Draw.Trace (traceSketchWithBB)
 import Geometry
 import Geometry.Chaotic
 
@@ -109,7 +110,19 @@ subtractOccluders fragments occluders = foldl' step fragments occluders
   where
     step frags occluder = concatMap (subtractOne occluder) frags
     subtractOne occluder frag =
-        [ p | (p, Island) <- differencePP frag occluder, not (isEmptyPolygon p) ]
+        [ p | (p, Island) <- differencePP' frag occluder, not (isEmptyPolygon p) ]
+    -- 'differencePP' wrapped in a visual trace for debugging. Each call renders
+    -- the input pair (frag, occluder) and the resulting [(Polygon, IslandOrHole)]
+    -- to a .svg file under @debug/@ and prints a line to stderr.
+    differencePP' frag occluder =
+        traceSketchWithBB "differencePP" (boundingBox (frag, occluder)) renderInput renderOutput (frag, occluder) (differencePP frag occluder)
+      where
+        renderInput (f, o) = do
+            sketch f >> setColor (mma 0) >> C.setLineWidth 1 >> C.stroke
+            sketch o >> setColor (mma 0) >> C.setLineWidth 1 >> C.stroke
+        renderOutput frags = for_ (zip [0..] frags) $ \(i, (p, _ty)) -> cairoScope $ do
+            sketch p
+            sketch p >> setColor (mma 1) >> C.setLineWidth 0.2 >> C.stroke
 
 -- | A polygon with fewer than three corners has no interior and can be
 --   discarded.
