@@ -270,9 +270,22 @@ multiCutLine edge knives =
     onSegment p (Line a b) =
         let ab = b -. a
             ap' = p -. a
-            isCollinear = cross ab ap' == 0
-            bp = p -. b
-            withinSegment = dotProduct ap' ab >= 0 && dotProduct bp ab >= 0
+            crossProduct = cross ab ap'
+            abLenSq = dotProduct ab ab
+            -- Same tolerance-based collinearity test as
+            -- 'pointOnPolygonBoundary': computed intersection points carry a
+            -- few ULPs of rounding, so an exact @cross == 0@ test would drop
+            -- genuine on-edge intersections. See the docstring of
+            -- 'pointOnPolygonBoundary' for the rationale.
+            isCollinear
+                | abLenSq == 0 = normSquare ap' <= snapEpsilonSquared
+                | otherwise    = crossProduct * crossProduct <= snapEpsilonSquared * abLenSq
+            -- p's projection lies within [a,b]: dot(ap,ab) >= 0 && dot(pb,ab) >= 0.
+            -- Note: pb = b - p (vector from p to b), NOT p - b — using the
+            -- wrong direction flips the second inequality and rejects every
+            -- interior point of the segment, keeping only the endpoint b.
+            pb = b -. p
+            withinSegment = dotProduct ap' ab >= 0 && dotProduct pb ab >= 0
         in isCollinear && withinSegment
 
 -- Position of a point on a line relative to the line’s start in arbitrary units.
@@ -352,12 +365,21 @@ pointInPolygonOrBoundary p polygon
     | pointInPolygon p polygon         = Inside
     | otherwise                        = Outside
 
--- | Exact predicate: is the point on any edge of the polygon (including the
--- endpoints)? Uses exact arithmetic on 'Double' coordinates — a point lies on
--- a segment iff it is collinear with the segment's endpoints (cross product
--- is exactly 0) and its projection onto the segment lies within the segment
--- (dot products at both ends are non-negative). No epsilon, so coincident
--- intersection points and shared vertices are detected deterministically.
+-- | Exact-ish predicate: is the point on any edge of the polygon (including the
+-- endpoints)? A point lies on a segment iff it is collinear with the segment's
+-- endpoints and its projection onto the segment lies within the segment.
+--
+-- The collinearity test uses a tiny perpendicular-distance tolerance
+-- ('snapEpsilon'), not an exact @cross == 0@ test. This is necessary because
+-- the function is also called on /computed/ points — most importantly the
+-- midpoint @((x + y) /. 2)@ of a shared boundary edge in
+-- 'insertEdgeFragement' — which carries a few ULPs of rounding error, so the
+-- cross product of a genuinely collinear midpoint is ~1e-13 rather than
+-- exactly 0. An exact test would reject such a midpoint, classifying it as
+-- 'Inside' or 'Outside', and the boundary-fragment selection would drop the
+-- shared edge, collapsing the result polygon. Bit-identical shared vertices
+-- (cross exactly 0) are unaffected by the tolerance; genuine features are
+-- orders of magnitude larger than 'snapEpsilon'.
 pointOnPolygonBoundary :: Vec2 -> Polygon -> Bool
 pointOnPolygonBoundary p polygon = any onEdge (polygonEdges polygon)
   where
@@ -365,11 +387,20 @@ pointOnPolygonBoundary p polygon = any onEdge (polygonEdges polygon)
         let ab = b -. a
             ap' = p -. a
             crossProduct = cross ab ap'
-            -- Collinear (exact). Guard against the degenerate zero-length edge.
-            isCollinear = crossProduct == 0
-            -- p's projection lies within [a,b]: dot(ap,ab) >= 0 && dot(pb,ab) >= 0
-            bp = p -. b
-            withinSegment = dotProduct ap' ab >= 0 && dotProduct bp ab >= 0
+            abLenSq = dotProduct ab ab
+            -- Perpendicular distance from p to the infinite line through a,b
+            -- is d = |cross| / |ab|. We test d <= snapEpsilon without taking a
+            -- sqrt: cross^2 <= snapEpsilon^2 * |ab|^2. A zero-length edge
+            -- (|ab| = 0) is "on" iff p coincides with the degenerate point.
+            isCollinear
+                | abLenSq == 0 = normSquare ap' <= snapEpsilonSquared
+                | otherwise    = crossProduct * crossProduct <= snapEpsilonSquared * abLenSq
+            -- p's projection lies within [a,b]: dot(ap,ab) >= 0 && dot(pb,ab) >= 0.
+            -- pb = b - p (vector from p to b). Using p - b flips the sign and
+            -- makes the test require t >= 1 instead of t <= 1, rejecting every
+            -- interior point of the edge.
+            pb = b -. p
+            withinSegment = dotProduct ap' ab >= 0 && dotProduct pb ab >= 0
         in isCollinear && withinSegment
 
 buildEdgeFragementMap :: CutPolygon -> Side -> Polygon -> Either String (Multwomap Vec2 Vec2)

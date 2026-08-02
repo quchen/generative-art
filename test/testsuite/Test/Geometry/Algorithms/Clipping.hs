@@ -65,7 +65,7 @@ tests = testGroup "Clipping"
             , sharedEdgeDifferenceTest
             ]
         , testGroup "Regression cases (FP-divergent shared vertex / edge)"
-            [ failure1, failure2, failure3, failure4, failure5, failure6 ]
+            [ failure1, failure2, failure3, failure4, failure5, failure6, failure7 ]
         ]
     ]
 
@@ -691,3 +691,20 @@ failure6 = testCase "Union vertices stay within input polygons (near-collinear s
     unless (null bad) $ assertFailure (unlines
         $ "Union produced vertices outside both input polygons:"
         : map (("  " ++) . show) bad)
+
+-- | Regression: two triangles sharing exactly one edge (and the two endpoints
+-- of that edge), but lying on opposite sides of it — so their interiors are
+-- disjoint. The difference A − B should therefore just be A. Before the fix
+-- the algorithm returned @[]@, dropping the entire subject polygon.
+failure7 :: TestTree
+failure7 = testCase "Difference of polygons sharing an edge with disjoint interiors returns A" $ do
+    let p1 = Polygon
+            [ Vec2 (-49.48783335088127) 83.99018576454353
+            , Vec2 96.65441486345144 (-2.29527016543296)
+            , Vec2 (-47.951856468256835) 84.8528137423857 ]
+        p2 = Polygon
+            [ Vec2 (-47.951856468256835) 84.8528137423857
+            , Vec2 96.65441486345144 (-2.29527016543296)
+            , Vec2 96.65441486345144 2.29527016543296 ]
+        result = differencePP p1 p2
+    assertEqual "Difference should be the first polygon" (Expected [p1]) (Actual (map fst result))
