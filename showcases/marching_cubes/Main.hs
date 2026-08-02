@@ -10,9 +10,9 @@ import System.Random.MWC
 import Text.Printf
 
 import Draw
-import Draw.Trace (traceSketchWithBB)
 import Geometry
 import Geometry.Chaotic
+import qualified Util.RTree as RT
 
 
 
@@ -79,8 +79,12 @@ main = do
 --   all triangles in front of it using 'differencePP'. This clips away the
 --   parts of the triangle that are hidden behind closer geometry. The visible
 --   fragments are then added to the set of occluders for subsequent triangles.
+--
+--   The occluders are stored in an 'RTree' keyed by their bounding box, so we
+--   only need to run the expensive 'differencePP' against the occluders whose
+--   bounding boxes actually overlap the current fragment.
 occlude :: Vec3 -> [Triangle3] -> [Polygon]
-occlude normal triangles = go frontToBack []
+occlude normal triangles = go frontToBack RT.empty
   where
     -- Sort by depth along the viewing direction, closest first. A triangle is
     -- closer to the viewer the larger the dot product of its vertices with the
@@ -93,36 +97,33 @@ occlude normal triangles = go frontToBack []
         (dotProduct v1 normal + dotProduct v2 normal + dotProduct v3 normal) / 3
 
     -- Process triangles from front to back, accumulating the projected
-    -- polygons of all already-drawn (front) triangles as occluders.
-    go :: [Triangle3] -> [Polygon] -> [Polygon]
+    -- polygons of all already-drawn (front) triangles as occluders in an
+    -- 'RTree' for bounding-box-accelerated overlap queries.
+    go :: [Triangle3] -> RT.RTree Polygon -> [Polygon]
     go [] _occluders = []
     go (tri : rest) occluders =
         let projected = projection normal tri
             visible = subtractOccluders [projected] occluders
-        in visible ++ go rest (occluders ++ visible)
+            occluders' = foldl' (flip RT.insert) occluders visible
+        in visible ++ go rest occluders'
 
--- | Subtract a list of occluder polygons from each of the given polygons,
---   returning the visible (non-occluded) fragments. Each fragment is kept only
---   if it is an 'Island' produced by the difference; 'Hole' fragments describe
---   holes punched into the subject and are not drawable on their own.
-subtractOccluders :: [Polygon] -> [Polygon] -> [Polygon]
-subtractOccluders fragments occluders = foldl' step fragments occluders
+-- | Subtract the occluder polygons from each of the given fragments, returning
+--   the visible (non-occluded) fragments. Each fragment is kept only if it is
+--   an 'Island' produced by the difference; 'Hole' fragments describe holes
+--   punched into the subject and are not drawable on their own.
+--
+--   Only occluders whose bounding box intersects the bounding box of a fragment
+--   are passed to 'differencePP', since non-overlapping polygons cannot
+--   subtract from each other. The candidate occluders are found via the
+--   'RTree' for an efficient bounding-box-accelerated overlap query.
+subtractOccluders :: [Polygon] -> RT.RTree Polygon -> [Polygon]
+subtractOccluders fragments occluders = concatMap subtractOverlapping fragments
   where
-    step frags occluder = concatMap (subtractOne occluder) frags
+    subtractOverlapping frag =
+        let candidates = RT.intersect (boundingBox frag) occluders
+        in foldl' (\frags occluder -> concatMap (subtractOne occluder) frags) [frag] candidates
     subtractOne occluder frag =
         [ p | (p, Island) <- differencePP frag occluder, not (isEmptyPolygon p) ]
-    -- 'differencePP' wrapped in a visual trace for debugging. Each call renders
-    -- the input pair (frag, occluder) and the resulting [(Polygon, IslandOrHole)]
-    -- to a .svg file under @debug/@ and prints a line to stderr.
-    differencePP' frag occluder =
-        traceSketchWithBB "differencePP" (boundingBox (frag, occluder)) renderInput renderOutput (frag, occluder) (differencePP frag occluder)
-      where
-        renderInput (f, o) = do
-            sketch f >> setColor (mma 0) >> C.setLineWidth 1 >> C.stroke
-            sketch o >> setColor (mma 0) >> C.setLineWidth 1 >> C.stroke
-        renderOutput frags = for_ (zip [0..] frags) $ \(i, (p, _ty)) -> cairoScope $ do
-            sketch p
-            sketch p >> setColor (mma 1) >> C.setLineWidth 0.2 >> C.stroke
 
 -- | A polygon with fewer than three corners has no interior and can be
 --   discarded.
