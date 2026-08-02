@@ -317,6 +317,7 @@ library
       Physics
       System.Random.MWC.Extended
       Util
+      Util.RTree
       Why
   other-modules:
       Draw.Color.Schemes.Internal.ColorBrewer2
@@ -370,6 +371,7 @@ library
     , parallel
     , plotfont
     , primitive
+    , r-tree
     , random
     , regex-tdfa
     , text
@@ -415,6 +417,7 @@ test-suite doctest
     , parallel
     , plotfont
     , primitive
+    , r-tree
     , random
     , regex-tdfa
     , text
@@ -488,6 +491,7 @@ test-suite testsuite
     , plotfont
     , primitive
     , process
+    , r-tree
     , random
     , regex-tdfa
     , tasty

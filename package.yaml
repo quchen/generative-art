@@ -39,6 +39,7 @@ dependencies:
     - primitive
     - random
     - regex-tdfa
+    - r-tree
     - text
     - tf-random
     - transformers
