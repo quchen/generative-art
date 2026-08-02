@@ -4,6 +4,7 @@ module Test.Geometry.Algorithms.Clipping (tests) where
 
 import Control.Monad
 import Data.Foldable
+import Control.Exception (evaluate)
 import Graphics.Rendering.Cairo as Cairo hiding (x, y)
 
 import Draw
@@ -65,7 +66,7 @@ tests = testGroup "Clipping"
             , sharedEdgeDifferenceTest
             ]
         , testGroup "Regression cases (FP-divergent shared vertex / edge)"
-            [ failure1, failure2, failure3, failure4, failure5, failure6, failure7 ]
+            [ failure1, failure2, failure3, failure4, failure5, failure6, failure7, failure8 ]
         ]
     ]
 
@@ -708,3 +709,29 @@ failure7 = testCase "Difference of polygons sharing an edge with disjoint interi
             , Vec2 96.65441486345144 2.29527016543296 ]
         result = differencePP p1 p2
     assertEqual "Difference should be the first polygon" (Expected [p1]) (Actual (map fst result))
+
+-- | Regression: two polygons with several near-collinear vertices along a
+-- shared horizontal line (@y ≈ -127.27922@) overflowed 'Multwomap' in the
+-- Margalit–Knott algorithm. Polygon A is a thin sliver of three nearly
+-- collinear points on that line; polygon B straddles it with three vertices
+-- on the line (one shared with A within FP noise) and one vertex above.
+-- Before the fix, 'MM.union' reported an overflow because a shared vertex
+-- ended up with three distinct outgoing fragments.
+failure8 :: TestTree
+failure8 = testCase "Near-collinear shared-edge sliver does not overflow" $ do
+    let p1 = Polygon
+            [ Vec2 1.0923520748643103 (-127.27922061357854)
+            , Vec2 1.9146085772853934 (-127.27922061357857)
+            , Vec2 2.3846045774775257 (-127.27922061357857) ]
+        p2 = Polygon
+            [ Vec2 (-1.6503855755971557) (-124.4206689445655)
+            , Vec2 4.824526000952936 (-127.27922061357856)
+            , Vec2 0.0 (-127.27922061357854)
+            , Vec2 (-1.1867706041389852) (-127.27922061357854) ]
+    -- All three exported operations should terminate without throwing a
+    -- 'bugError' overflow. We don't assert on the exact result geometry; the
+    -- regression is the crash itself.
+    _ <- evaluate (length (unionPP p1 p2))
+    _ <- evaluate (length (intersectionPP p1 p2))
+    _ <- evaluate (length (differencePP p1 p2))
+    pure ()

@@ -482,32 +482,39 @@ addTypes op orientationA polygonA_Type polygonB_Type = go
     flipHoleIsland Hole = Island
 
 margalitKnott :: Operation -> Regularity -> Polygon -> Polygon -> [(Polygon, IslandOrHole)]
-margalitKnott op Regular polygonA' polygonB' =
-    let polygonA = sanitizePolygon polygonA'
-        polygonB = orientB op polygonA (sanitizePolygon polygonB')
+margalitKnott op Regular polygonA' polygonB'
+    -- Trivial fast path: disjoint simple polygons don't interact, so the
+    -- O(n*m) edge-cutting pipeline would only reproduce the trivial
+    -- answer. Skip it. 'overlappingBoundingBoxes' returns 'True' for
+    -- boxes that merely touch, so touching polygons still go through the
+    -- full algorithm, which is correct.
+    | not (overlappingBoundingBoxes polygonA polygonB)
+    = case op of
+        Union          -> [(polygonA, Island), (polygonB, Island)]
+        Intersection   -> []
+        Difference     -> [(polygonA, Island)]
+        AntiDifference -> [(polygonB, Island)]
 
-        -- Both inputs are islands (the only thing 'ppBinop' ever passes; the
-        -- typed variant existed only for the now-removed general case).
-        polygonA_Type = Island
-        polygonB_Type = Island
-    in if not (overlappingBoundingBoxes polygonA polygonB)
-        -- Trivial fast path: disjoint simple polygons don't interact, so the
-        -- O(n*m) edge-cutting pipeline would only reproduce the trivial
-        -- answer. Skip it. 'overlappingBoundingBoxes' returns 'True' for
-        -- boxes that merely touch, so touching polygons still go through the
-        -- full algorithm, which is correct.
-        then case op of
-            Union          -> [(polygonA, Island), (polygonB, Island)]
-            Intersection   -> []
-            Difference     -> [(polygonA, Island)]
-            AntiDifference -> [(polygonB, Island)]
-        else runMargalitKnott polygonA polygonB polygonA_Type polygonB_Type
+    -- A degenerate (zero-area) polygon has no interior, so it cannot
+    -- contribute area to any boolean operation. Running it through the
+    -- full pipeline crashes: a sliver's closing edge passes back through
+    -- its own (near-)collinear vertices, giving a vertex three outgoing
+    -- fragments and overflowing 'Multwomap'. Short-circuit with the
+    -- geometrically correct trivial result instead.
+    | isDegenerate polygonA || isDegenerate polygonB
+    = degenerateResult op polygonA polygonB
+
+    | otherwise
+    = runMargalitKnott polygonA polygonB
   where
-    runMargalitKnott polygonA polygonB polygonA_Type polygonB_Type =
+    polygonA = sanitizePolygon polygonA'
+    polygonB = orientB op polygonA (sanitizePolygon polygonB')
+
+    runMargalitKnott polygonA polygonB =
         let vertexRingA = cutPolygon polygonA polygonB
             vertexRingB = cutPolygon polygonB polygonA
 
-            (ftA, ftB) = fragmentType polygonA_Type polygonB_Type op
+            (ftA, ftB) = fragmentType Island Island op
         in case ( buildEdgeFragementMap vertexRingA ftA polygonB
                 , buildEdgeFragementMap vertexRingB ftB polygonA
                 ) of
@@ -517,7 +524,7 @@ margalitKnott op Regular polygonA' polygonB' =
                 Left err          -> reportOverflow err polygonA polygonB
                 Right edgeFragments ->
                     let polygons = constructResultPolygons edgeFragments
-                        polygonsTyped = addTypes op (polygonOrientation polygonA) polygonA_Type polygonB_Type polygons
+                        polygonsTyped = addTypes op (polygonOrientation polygonA) Island Island polygons
                         -- TODO: boundary edge fragment handling
                     in polygonsTyped
 
@@ -533,6 +540,39 @@ margalitKnott op Regular polygonA' polygonB' =
             , "Polygon A: " ++ show polygonA
             , "Polygon B: " ++ show polygonB
             ]
+
+-- | Is a polygon degenerate, i.e. has no interior area? A polygon with fewer
+-- than 3 vertices encloses nothing; a polygon whose 'signedPolygonArea' is
+-- (numerically) zero is a collinear sliver. Both forms violate the simple-
+-- polygon invariant the algorithm relies on (each vertex has at most two
+-- incident edges), and running them through the edge-cutting pipeline
+-- overflows 'Multwomap'.
+isDegenerate :: Polygon -> Bool
+isDegenerate (Polygon ps) = length ps < 3 || abs (signedPolygonArea (Polygon ps)) < degenerateAreaEpsilon
+
+-- | Tolerance below which a polygon's area is treated as zero. Inputs come
+-- from floating-point constructions (e.g. marching-cubes isosurface
+-- extraction), so a genuinely thin-but-nonzero sliver can have an area near
+-- machine epsilon purely from rounding. A real feature — even a thin one —
+-- spanning ~1 unit has area >> 1e-9; the slivers that crash the algorithm
+-- are collinear point sets with area ~1e-13 or smaller.
+degenerateAreaEpsilon :: Double
+degenerateAreaEpsilon = 1e-9
+
+-- | Trivial result of a boolean operation when at least one input is
+-- 'isDegenerate' (zero-area). A degenerate polygon has no interior, so its
+-- contribution to union\/intersection\/difference is empty. We still return
+-- the non-degenerate polygon unchanged (if any) so the caller sees the same
+-- shape it passed in.
+degenerateResult :: Operation -> Polygon -> Polygon -> [(Polygon, IslandOrHole)]
+degenerateResult op polygonA polygonB =
+    let a = if isDegenerate polygonA then [] else [(polygonA, Island)]
+        b = if isDegenerate polygonB then [] else [(polygonB, Island)]
+    in case op of
+        Union          -> a ++ b
+        Intersection   -> []
+        Difference     -> a
+        AntiDifference -> b
 
 -- | Drop consecutive duplicate vertices (and a duplicate last vertex that
 -- repeats the first) from a polygon's corner list. The Margalit–Knott
