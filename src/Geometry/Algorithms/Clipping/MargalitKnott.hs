@@ -176,17 +176,17 @@ resultOrientation Hole Hole Difference         = OppositeOrientation
 resultOrientation Hole Hole AntiDifference     = SameOrientation
 
 -- | Change the orientation of B so it works for the operation with A.
+-- Both inputs are islands (the only case 'margalitKnott' handles), so the
+-- orientation table is consulted with 'Island'/'Island'.
 orientB
     :: Operation
     -> Polygon      -- ^ A
     -> Polygon      -- ^ B
-    -> IslandOrHole -- ^ A’s type
-    -> IslandOrHole -- ^ B’s type
     -> Polygon      -- ^ B, with possibly inverted orientation
-orientB op polygonA polygonB typeA typeB =
+orientB op polygonA polygonB =
     let orientationA = polygonOrientation polygonA
         orientationB = polygonOrientation polygonB
-    in case polygonsOrientation typeA typeB op of
+    in case polygonsOrientation Island Island op of
         SameOrientation | orientationA /= orientationB -> changeOrientation polygonB
         OppositeOrientation | orientationA == orientationB -> changeOrientation polygonB
         _otherwise -> polygonB
@@ -481,28 +481,46 @@ addTypes op orientationA polygonA_Type polygonB_Type = go
     flipHoleIsland Island = Hole
     flipHoleIsland Hole = Island
 
-margalitKnott :: Operation -> Regularity -> (Polygon, IslandOrHole) -> (Polygon, IslandOrHole) -> [(Polygon, IslandOrHole)]
-margalitKnott op Regular (polygonA', polygonA_Type) (polygonB', polygonB_Type) =
+margalitKnott :: Operation -> Regularity -> Polygon -> Polygon -> [(Polygon, IslandOrHole)]
+margalitKnott op Regular polygonA' polygonB' =
     let polygonA = sanitizePolygon polygonA'
-        polygonB = orientB op polygonA (sanitizePolygon polygonB') polygonA_Type polygonB_Type
+        polygonB = orientB op polygonA (sanitizePolygon polygonB')
 
-        vertexRingA = cutPolygon polygonA polygonB
-        vertexRingB = cutPolygon polygonB polygonA
-
-        (ftA, ftB) = fragmentType polygonA_Type polygonB_Type op
-    in case ( buildEdgeFragementMap vertexRingA ftA polygonB
-            , buildEdgeFragementMap vertexRingB ftB polygonA
-            ) of
-        (Left err, _) -> reportOverflow err polygonA polygonB
-        (_, Left err) -> reportOverflow err polygonA polygonB
-        (Right efA, Right efB) -> case MM.union efA efB of
-            Left err          -> reportOverflow err polygonA polygonB
-            Right edgeFragments ->
-                let polygons = constructResultPolygons edgeFragments
-                    polygonsTyped = addTypes op (polygonOrientation polygonA) polygonA_Type polygonB_Type polygons
-                    -- TODO: boundary edge fragment handling
-                in polygonsTyped
+        -- Both inputs are islands (the only thing 'ppBinop' ever passes; the
+        -- typed variant existed only for the now-removed general case).
+        polygonA_Type = Island
+        polygonB_Type = Island
+    in if not (overlappingBoundingBoxes polygonA polygonB)
+        -- Trivial fast path: disjoint simple polygons don't interact, so the
+        -- O(n*m) edge-cutting pipeline would only reproduce the trivial
+        -- answer. Skip it. 'overlappingBoundingBoxes' returns 'True' for
+        -- boxes that merely touch, so touching polygons still go through the
+        -- full algorithm, which is correct.
+        then case op of
+            Union          -> [(polygonA, Island), (polygonB, Island)]
+            Intersection   -> []
+            Difference     -> [(polygonA, Island)]
+            AntiDifference -> [(polygonB, Island)]
+        else runMargalitKnott polygonA polygonB polygonA_Type polygonB_Type
   where
+    runMargalitKnott polygonA polygonB polygonA_Type polygonB_Type =
+        let vertexRingA = cutPolygon polygonA polygonB
+            vertexRingB = cutPolygon polygonB polygonA
+
+            (ftA, ftB) = fragmentType polygonA_Type polygonB_Type op
+        in case ( buildEdgeFragementMap vertexRingA ftA polygonB
+                , buildEdgeFragementMap vertexRingB ftB polygonA
+                ) of
+            (Left err, _) -> reportOverflow err polygonA polygonB
+            (_, Left err) -> reportOverflow err polygonA polygonB
+            (Right efA, Right efB) -> case MM.union efA efB of
+                Left err          -> reportOverflow err polygonA polygonB
+                Right edgeFragments ->
+                    let polygons = constructResultPolygons edgeFragments
+                        polygonsTyped = addTypes op (polygonOrientation polygonA) polygonA_Type polygonB_Type polygons
+                        -- TODO: boundary edge fragment handling
+                    in polygonsTyped
+
     -- An overflow in 'Multwomap' means a vertex has three or more distinct
     -- outgoing fragments, which violates the Margalit–Knott invariant. This
     -- is a bug in fragment generation, not user input. Instead of crashing
@@ -654,6 +672,7 @@ antiDifferencePP = ppBinop AntiDifference
 
 ppBinop :: Operation -> Polygon -> Polygon -> [(Polygon, IslandOrHole)]
 ppBinop op p1 p2 =
-    let as = map (\a -> (a, Island)) (splitSelfTouchingPolygon p1)
-        bs = map (\b -> (b, Island)) (splitSelfTouchingPolygon p2)
+    let as = splitSelfTouchingPolygon p1
+        bs = splitSelfTouchingPolygon p2
     in concatMap (\a -> concatMap (margalitKnott op Regular a) bs) as
+

@@ -24,7 +24,7 @@ scaleFactor :: Double
 scaleFactor = 1
 
 resolution :: Int
-resolution = 5
+resolution = 100
 
 ball :: Double -> Vec3 -> Vec3 -> Double
 ball radius center q = (radius^2 / normSquare (center -. q))**1.7
@@ -110,7 +110,7 @@ subtractOccluders fragments occluders = foldl' step fragments occluders
   where
     step frags occluder = concatMap (subtractOne occluder) frags
     subtractOne occluder frag =
-        [ p | (p, Island) <- differencePP' frag occluder, not (isEmptyPolygon p) ]
+        [ p | (p, Island) <- differencePP frag occluder, not (isEmptyPolygon p) ]
     -- 'differencePP' wrapped in a visual trace for debugging. Each call renders
     -- the input pair (frag, occluder) and the resulting [(Polygon, IslandOrHole)]
     -- to a .svg file under @debug/@ and prints a line to stderr.
