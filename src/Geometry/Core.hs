@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Geometry.Core (
@@ -127,8 +128,7 @@ module Geometry.Core (
     , crossProduct3
     , Triangle3(..)
     , Projection(..)
-    , cull
-
+    , depthSorted
 ) where
 
 
@@ -2342,10 +2342,27 @@ instance Projection Vec3 Vec2 where
             w = crossProduct3 nHat u
         in Vec2 (dotProduct v u) (dotProduct v w)
 
+instance Projection [Vec3] [Vec2] where
+    projection n = fmap (projection n)
+
 instance Projection Triangle3 Polygon where
     projection n tri =
         let (v1, v2, v3) = _triVertices tri
         in Polygon [projection n v1, projection n v2, projection n v3]
 
-cull :: Vec3 -> [Triangle3] -> [Triangle3]
-cull n = filter (\t -> _triNormal t `dotProduct` n >= 0)
+instance Projection [Triangle3] [Polygon] where
+    projection n = fmap (projection n)
+
+-- | Sort by depth along the viewing direction, closest first. A triangle is
+-- closer to the viewer the larger the dot product of its vertices with the
+-- viewing direction is.
+depthSorted
+    :: Vec3 -- ^ Normal (pointing towards the viewer)
+    -> [Triangle3]
+    -> [Triangle3]
+depthSorted normal = sortOn (negate . triDepth)
+  where
+    -- Average dot product of the triangle’s vertices with the viewing
+    -- direction. Used as the depth metric.
+    triDepth (Triangle3 _ (v1, v2, v3)) =
+        (dotProduct v1 normal + dotProduct v2 normal + dotProduct v3 normal) / 3

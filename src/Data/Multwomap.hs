@@ -61,9 +61,8 @@ union (Multwomap mmap1) (Multwomap mmap2) =
 -- would otherwise produce a spurious 'Two' that walks the shared edge twice.
 --
 -- A genuine overflow — three /distinct/ values for one key — is reported as a
--- 'Left' value rather than a fatal error, so the caller can attach context
--- (e.g. the input polygons that triggered the invariant violation) before
--- reporting it as a bug.
+-- 'Left' so the caller can attach context (e.g. the input polygons that
+-- triggered the invariant violation).
 mergeOneTwo :: Eq a => OneTwo a -> OneTwo a -> Either String (OneTwo a)
 mergeOneTwo (One a) (One b)
     | a == b    = Right (One a)

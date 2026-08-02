@@ -285,6 +285,7 @@ library
       Geometry
       Geometry.Algorithms.Clipping
       Geometry.Algorithms.Contour
+      Geometry.Algorithms.Culling
       Geometry.Algorithms.Delaunay
       Geometry.Algorithms.PerlinNoise
       Geometry.Algorithms.Sampling
